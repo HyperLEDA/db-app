@@ -1,2 +1,4 @@
 venv
+uml
+__pycache__/
 .idea
