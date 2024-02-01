@@ -24,7 +24,9 @@ class ValueDescrTest(unittest.TestCase):
         })
         value_descr = NoErrorValue("placeholder", "speed", "km/s")
 
-        self.assertRaises(ColumnNotFoundException, lambda: value_descr.parse_values(df))
+        with self.assertRaises(ColumnNotFoundException) as scope:
+            value_descr.parse_values(df)
+        self.assertEqual(scope.exception.column_names, ['speed'])
 
     def test_wrong_units(self):
         df = DataFrame({

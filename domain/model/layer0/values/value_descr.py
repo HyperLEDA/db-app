@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pandas import DataFrame, Series
-from astropy.units import Unit
+from astropy.units import Unit, Quantity
+from typing import Sequence
 
 from .exceptions import ColumnNotFoundException
 
@@ -20,7 +21,7 @@ class ValueDescr(ABC):
         self._units: str = units
 
     @abstractmethod
-    def parse_values(self, data: DataFrame) -> Series:
+    def parse_values(self, data: DataFrame) -> Sequence[Quantity]:
         pass
 
     @property
@@ -47,11 +48,11 @@ class ValueDescr(ABC):
     def units(self) -> str:
         return self._units
 
-    def _parse_column(self, data: DataFrame) -> Series:
+    def _parse_column(self, data: DataFrame) -> Sequence:
         col: Series = data.get(self._column_name)
         unit = Unit(self.units)
 
         if col is None:
-            raise ColumnNotFoundException()
+            raise ColumnNotFoundException([self._column_name])
 
         return col.apply(lambda el: el * unit)
