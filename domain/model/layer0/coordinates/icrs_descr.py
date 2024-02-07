@@ -1,5 +1,5 @@
 from astropy.coordinates import SkyCoord
-from pandas import DataFrame, Series
+import astropy.units as u
 from typing import Iterable, Any
 
 from .coordinate_descr import CoordinateDescr
@@ -12,4 +12,4 @@ class ICRSDescrStr(CoordinateDescr):
     """
 
     def _parse_row(self, data: Iterable[Any]) -> SkyCoord:
-        return SkyCoord(*data, frame='icrs')
+        return SkyCoord(*data, frame='icrs', unit=(u.hourangle, u.deg))

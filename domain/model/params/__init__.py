@@ -1,5 +1,5 @@
-from .transaction_0_1_fail import Transaction01Fail
+from .cross_identification_param import CrossIdentificationParam
 
 __all__ = [
-    Transaction01Fail,
+    CrossIdentificationParam,
 ]

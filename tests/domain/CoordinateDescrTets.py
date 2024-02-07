@@ -14,9 +14,16 @@ class ICRSDescrDescrTest(unittest.TestCase):
             "182.767746 +50.484854",
             "B123456.1-201256",
             "09h 34m 24.7s +12d 45' 34\"",
-            "01 23 45.67 -12 34 56.7"
+            "01 23 45.67 -12 34 56.7",
+            '00h42.5m +41d12m'
         ]
         self._data_examples_double = [
+            ["J000055.99", "+202017.1"],
+            "00:00:55.99", "+20:20:17.1",
+            "182.767746", "+50.484854",
+            "B123456.1", "-201256",
+            "09h 34m 24.7s",  "+12d 45' 34\"",
+            "01 23 45.67", "-12 34 56.7",
             ['00h42.5m', '+41d12m']
         ]
 
@@ -26,7 +33,9 @@ class ICRSDescrDescrTest(unittest.TestCase):
         with self.assertRaises(ColumnNotFoundException) as scope:
             cd.parse_coordinates(df)
 
-        self.assertEqual(["col11", "col22"], scope.exception.column_names)
+        self.assertEqual(2, len(scope.exception.column_names))
+        self.assertTrue("col11" in scope.exception.column_names)
+        self.assertTrue("col22" in scope.exception.column_names)
 
     def test_parsing_errors(self):
         cd = ICRSDescrStr("col0")

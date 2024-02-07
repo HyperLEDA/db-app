@@ -1,10 +1,13 @@
 from typing import Callable, Optional
 import uuid
 
+import pandas as pd
+from pandas import Series
+
 from ..model import Layer0Model, Layer1Model
 from ..model.layer0.values.exceptions import ColumnNotFoundException
-from ..model.params import Transaction01Fail
 from .cross_identify_use_case import CrossIdentifyUseCase
+from ..model.params.cross_identification_param import CrossIdentificationParam
 from ..model.transformation_0_1_stages import Transformation01Stage, ParseCoordinates, ParseValues, CrossIdentification
 
 
@@ -19,13 +22,14 @@ class TransformationO1UseCase:
             self,
             data: Layer0Model,
             on_progress: Optional[Callable[[Transformation01Stage], None]] = None
-    ) -> tuple[list[Layer1Model], list[Transaction01Fail]]:
+    ) -> tuple[list[Layer1Model], Series]:
         """
         :param data: Layer 0 data to be transformed
         :param on_progress: Optional callable to call on progress (from 0.0 to 1.0)
         :return:
             success: list[Layer1Model] - transformed models
-            fail: list[Transaction01Fail] - failed to transform
+            fail: DataFrame - Rows from original data, that failed, with additional 'cause' column, holding exception,
+            describing the fail
         """
         n_rows = data.data.shape[0]
 
@@ -52,20 +56,36 @@ class TransformationO1UseCase:
             names = n_rows * [None]
         obj_ids = []
         for i, coordinate, name in zip(list(range(0, n_rows)), coordinates, names):
-            obj_ids.append(await self._cross_identify_use_case.invoke(name, coordinate))
+            if isinstance(coordinate, BaseException):
+                # case, where there was an error parsing coordinates, we still can make cross identification
+                cross_id_data = CrossIdentificationParam(name, None)
+            else:
+                cross_id_data = CrossIdentificationParam(name, coordinate)
+            obj_ids.append(await self._cross_identify_use_case.invoke(cross_id_data))
             if on_progress is not None:
                 on_progress(CrossIdentification(n_rows, i+1))
 
         # compile objects
         models = []
-        fails = []
+        fails = pd.DataFrame(columns=data.data.columns.to_list() + ['cause'])
         for i in range(0, n_rows):
+            coordinate, obj_id = (coordinates[i], obj_ids[i])
+            if isinstance(coordinate, BaseException):
+                new_row = pd.concat([data.data.iloc[i], pd.Series({'cause': coordinate})])
+                fails.loc[len(fails.index)] = new_row
+                continue
+
+            if isinstance(obj_id, BaseException):
+                new_row = pd.concat([data.data.iloc[i], pd.Series({'cause': obj_id})])
+                fails.loc[len(fails.index)] = new_row
+                continue
+
             model = Layer1Model(
                 id=uuid.uuid4().int,
-                objectId=obj_ids[i],
+                objectId=obj_id,
                 sourceId=data.id,
                 processed=False,
-                coordinates=coordinates[i],
+                coordinates=coordinate,
                 name=names[i],
                 measurements=[value[i] for value in values],
                 dataset=data.meta.dataset
