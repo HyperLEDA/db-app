@@ -1,12 +1,11 @@
 import unittest
-from typing import Optional, Union, Callable
-from astropy.coordinates import SkyCoord
+from typing import Union, Callable
 from pandas import DataFrame
 
 from domain.model.layer0.coordinates import ICRSDescrStr
 from domain.model.layer0.values import NoErrorValue
 from domain.model.params.cross_identification_param import CrossIdentificationParam
-from domain.model.transformation_0_1_stages import ParseCoordinates, ParseValues, CrossIdentification
+from domain.model.params.transformation_0_1_stages import ParseCoordinates, ParseValues, CrossIdentification
 from domain.usecases import CrossIdentifyUseCase, TransformationO1UseCase
 from domain.model import Layer0Model
 from domain.model.layer0.layer_0_meta import Layer0Meta
@@ -31,7 +30,7 @@ class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
 class Transform01Test(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         super().setUp()
-        self.transaction_use_case = TransformationO1UseCase(MockedCrossIdentifyUseCase())
+        self.transformation_use_case = TransformationO1UseCase(MockedCrossIdentifyUseCase())
 
     async def test_transform_general(self):
         data = Layer0Model(
@@ -55,7 +54,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
         stages = []
 
-        models, fails = await self.transaction_use_case.invoke(data, lambda stage: stages.append(stage))
+        models, fails = await self.transformation_use_case.invoke(data, lambda stage: stages.append(stage))
 
         self.assertEqual([
             ParseCoordinates(),
@@ -65,6 +64,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
             CrossIdentification(total=3, progress=3)
         ], stages)
         self.assertEqual(3, len(models))
+        self.assertEqual(0, len(fails))
 
     async def test_transform_fails(self):
         data = Layer0Model(
@@ -86,7 +86,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
             })
         )
 
-        models, fails = await self.transaction_use_case.invoke(data)
+        models, fails = await self.transformation_use_case.invoke(data)
         self.assertEqual(len(fails), 2)
         self.assertEqual(6, fails["speed_col"][1])
         self.assertIsInstance(fails["cause"][0], ValueError)

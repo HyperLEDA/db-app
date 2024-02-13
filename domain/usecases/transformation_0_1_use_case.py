@@ -2,13 +2,13 @@ from typing import Callable, Optional
 import uuid
 
 import pandas as pd
-from pandas import Series
+from pandas import DataFrame
 
 from ..model import Layer0Model, Layer1Model
 from ..model.layer0.values.exceptions import ColumnNotFoundException
 from .cross_identify_use_case import CrossIdentifyUseCase
 from ..model.params.cross_identification_param import CrossIdentificationParam
-from ..model.transformation_0_1_stages import Transformation01Stage, ParseCoordinates, ParseValues, CrossIdentification
+from domain.model.params.transformation_0_1_stages import Transformation01Stage, ParseCoordinates, ParseValues, CrossIdentification
 
 
 class TransformationO1UseCase:
@@ -22,7 +22,7 @@ class TransformationO1UseCase:
             self,
             data: Layer0Model,
             on_progress: Optional[Callable[[Transformation01Stage], None]] = None
-    ) -> tuple[list[Layer1Model], Series]:
+    ) -> tuple[list[Layer1Model], DataFrame]:
         """
         :param data: Layer 0 data to be transformed
         :param on_progress: Optional callable to call on progress (from 0.0 to 1.0)
