@@ -69,8 +69,8 @@ class Transaction01UseCase:
                     pass
 
         updated_source, updated_models = self._update_update_time(data, models)
-        self._write_transformed_data_to_db(updated_models)
-        self._write_transformed_source_to_db(updated_source)
+        await self._write_transformed_data_to_db(updated_models)
+        await self._write_transformed_source_to_db(updated_source)
 
         return updated_models
 
@@ -89,8 +89,8 @@ class Transaction01UseCase:
         updated_source = replace(source, processed=True)
         return updated_source, models
 
-    def _write_transformed_data_to_db(self, models: list[Layer1Model]):
-        return self._layer_1_repository.save_update_instances(models)
+    async def _write_transformed_data_to_db(self, models: list[Layer1Model]):
+        await self._layer_1_repository.save_update_instances(models)
 
-    def _write_transformed_source_to_db(self, source: Layer0Model):
-        return self._layer_0_repository.save_update_instances([source])
+    async def _write_transformed_source_to_db(self, source: Layer0Model):
+        await self._layer_0_repository.create_update_instances([source])
