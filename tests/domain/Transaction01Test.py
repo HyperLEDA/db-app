@@ -33,7 +33,7 @@ class MockedCachingLayer0Repo(Layer0Repository):
     def __init__(self):
         self.last_saved_instances = None
 
-    def save_update_instances(self, instances: list[Layer0Model]) -> bool:
+    def create_update_instances(self, instances: list[Layer0Model]) -> bool:
         self.last_saved_instances = instances
         return True
 
