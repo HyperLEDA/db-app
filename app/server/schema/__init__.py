@@ -18,8 +18,13 @@ class CreateSourceRequestSchema(Schema):
     metadata = fields.Dict()
 
     @post_load
-    def make_request(self, data, **kwargs):
+    def make(self, data, **kwargs):
         return CreateSourceRequest(**data)
+
+
+@dataclass
+class CreateSourceResponse:
+    id: int
 
 
 class CreateSourceResponseSchema(Schema):
@@ -27,8 +32,3 @@ class CreateSourceResponseSchema(Schema):
         required=True,
         description="HyperLeda source id",
     )
-
-
-@dataclass
-class CreateSourceResponse:
-    id: int
