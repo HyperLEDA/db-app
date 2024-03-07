@@ -1,9 +1,10 @@
-from dataclasses import dataclass
 import dataclasses
 import json
 from typing import Any, Callable
 from aiohttp import web
 from aiohttp.web import middleware
+from functools import wraps
+
 
 from app.server.errors import APIError, new_internal_error
 
@@ -25,10 +26,9 @@ async def exception_middleware(request: web.Request, handler: Callable[[web.Requ
 
 
 def json_wrapper(func: Callable[[web.Request], dict[str, Any]]) -> Callable[[web.Request], web.Response]:
+    @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(request)
-        return web.Response(text=json.dumps(response))
-
-    inner.__doc__ = func.__doc__
+        return web.json_response(response)
 
     return inner

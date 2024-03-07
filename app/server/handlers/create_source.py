@@ -7,6 +7,10 @@ from app.server.schema import CreateSourceRequestSchema
 
 
 async def create_source(request: web.Request) -> server.ResponseType:
+    """
+    ---
+    description: Create new source.
+    """
     request = await request.json()
 
     schema = CreateSourceRequestSchema()
