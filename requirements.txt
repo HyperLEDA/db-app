@@ -3,3 +3,5 @@ pandas
 aiohttp
 aiohttp-swagger
 marshmallow
+pytest
+requests

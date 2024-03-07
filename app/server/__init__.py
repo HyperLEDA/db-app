@@ -1,13 +1,12 @@
 import dataclasses
 import json
+from functools import wraps
 from typing import Any, Callable
+
 from aiohttp import web
 from aiohttp.web import middleware
-from functools import wraps
-
 
 from app.server.errors import APIError, new_internal_error
-
 
 ResponseType = dict[str, Any]
 

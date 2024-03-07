@@ -1,4 +1,5 @@
 test:
+	python -m pytest tests
 	python -m unittest discover -s tests/domain -p "*Test.py"
 
 install:
