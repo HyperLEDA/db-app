@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 from abc import ABC
+from dataclasses import dataclass
 
 
 class Transformation01Stage(ABC):

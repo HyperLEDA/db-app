@@ -6,6 +6,7 @@ class CrossIdentificationException(BaseException):
     """
     Describes collisions from cross identification use case
     """
+
     def __init__(self, target_param: CrossIdentificationParam, collisions: list[Layer0Model]):
         """
         :param target_param: The configuration, that caused collision

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 from abc import ABC
+from dataclasses import dataclass
 
 from domain.model.params.transformation_0_1_stages import Transformation01Stage
 

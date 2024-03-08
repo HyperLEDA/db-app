@@ -7,6 +7,7 @@ class StoreL0UseCase:
     """
     Stores data of layer 0. Throws error if repository fails to perform operation
     """
+
     def __init__(self, repository: Layer0Repository):
         self._repository: Layer0Repository = repository
 

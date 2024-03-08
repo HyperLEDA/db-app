@@ -1,6 +1,7 @@
-from dataclasses import dataclass
-from astropy.units import Quantity
 from abc import ABC
+from dataclasses import dataclass
+
+from astropy.units import Quantity
 
 
 @dataclass
@@ -12,5 +13,6 @@ class Layer1Value(ABC):
         ucd: UCD (https://www.ivoa.net/documents/REC/VOTable/VOTable-20040811.html#ToC28) key,
             describing this value type, and maps to Layer0Meta.columnMap
     """
+
     value: Quantity
     ucd: str

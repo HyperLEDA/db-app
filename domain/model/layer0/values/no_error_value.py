@@ -8,6 +8,7 @@ class NoErrorValue(ValueDescr):
     """
     A value with unspecified error
     """
+
     def __init__(self, ucd: str, column_name: str, units: str):
         super().__init__(ucd, column_name, units)
 

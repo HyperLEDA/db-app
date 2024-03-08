@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from .coordinates.coordinate_descr import CoordinateDescr
-from .values.value_descr import ValueDescr
-from .dataset import Dataset
 from .biblio import Biblio
+from .coordinates.coordinate_descr import CoordinateDescr
+from .dataset import Dataset
+from .values.value_descr import ValueDescr
 
 
 @dataclass
@@ -20,6 +20,7 @@ class Layer0Meta:
         comment: Optional comment
         biblio: Bibliographic information
     """
+
     value_descriptions: list[ValueDescr]
     coordinate_descr: Optional[CoordinateDescr]
     nameCol: Optional[str]

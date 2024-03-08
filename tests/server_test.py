@@ -1,6 +1,7 @@
 import subprocess
-from time import sleep
 import unittest
+from time import sleep
+
 import requests
 
 from app.commands.runserver import config

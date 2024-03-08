@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from pandas import DataFrame
 
 from .layer_0_meta import Layer0Meta
@@ -15,9 +16,8 @@ class Layer0Model:
         meta: Metadata, used to transform data further
         data: Data in form of table, to be processed
     """
+
     id: int
     processed: bool
     meta: Layer0Meta
     data: DataFrame
-
-
