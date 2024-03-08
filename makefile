@@ -5,4 +5,4 @@ install:
 	python -m pip install -r requirements.txt
 
 runserver:
-	python main.py runserver
+	python main.py runserver -c configs/dev/config.yaml

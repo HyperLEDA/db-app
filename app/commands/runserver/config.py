@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from marshmallow import Schema, fields, post_load
 import yaml
+from marshmallow import Schema, fields, post_load
 
 from app.server import ServerConfig, ServerConfigSchema
 
@@ -13,7 +13,7 @@ class Config:
 
 
 class ConfigSchema(Schema):
-    server = fields.Nested(ServerConfigSchema, required=True)
+    server = fields.Nested(ServerConfigSchema(), required=True)
 
     @post_load
     def make(self, data, **kwargs):

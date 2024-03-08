@@ -1,4 +1,5 @@
 from typing import Any
+
 from aiohttp import web
 from aiohttp_apispec import docs
 
