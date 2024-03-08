@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import Any, Iterable, Sequence, Union
+
 from astropy.coordinates import SkyCoord
 from pandas import DataFrame
-from typing import Iterable, Sequence, Union, Any
 
 from ..values.exceptions import ColumnNotFoundException
 
@@ -10,6 +11,7 @@ class CoordinateDescr(ABC):
     """
     Class, responsible to parse coordinates of certain types
     """
+
     def __init__(self, *col_names):
         """
         :param col_names: Names of columns, used to make coordinates

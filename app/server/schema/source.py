@@ -105,6 +105,4 @@ class GetSourceListResponse:
 
 
 class GetSourceListResponseSchema(Schema):
-    sources = fields.List(
-        fields.Nested(GetSourceResponseSchema()), description="List of sources"
-    )
+    sources = fields.List(fields.Nested(GetSourceResponseSchema()), description="List of sources")

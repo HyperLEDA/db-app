@@ -11,6 +11,7 @@ class Biblio:
         first_author: First author
         year: Publish year
     """
+
     ref_str: Optional[str]
     first_author: Optional[str]
     year: Optional[int]

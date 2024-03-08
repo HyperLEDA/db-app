@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from astropy.coordinates import SkyCoord
 from typing import Optional
 
+from astropy.coordinates import SkyCoord
 
-from .layer_1_value import Layer1Value
 from ..layer0 import Dataset
+from .layer_1_value import Layer1Value
 
 
 @dataclass
@@ -22,6 +22,7 @@ class Layer1Model:
         measurements: Measured values
         dataset: Describes where data came from, measurements specifics
     """
+
     id: int
     objectId: int
     sourceId: int

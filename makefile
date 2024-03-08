@@ -1,8 +1,30 @@
-test:
-	python -m unittest discover -s tests -p "*_test.py" -v
+PYTHON := python
 
 install:
-	python -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements.txt
 
 runserver:
-	python main.py runserver -c configs/dev/config.yaml
+	$(PYTHON) main.py runserver -c configs/dev/config.yaml
+
+test-all: check test
+
+test:
+	$(PYTHON) -m unittest discover -s tests -p "*_test.py" -v
+
+
+fix-lint: black isort
+
+black:
+	$(PYTHON) -m black . --config pyproject.toml
+
+isort:
+	$(PYTHON) -m isort . --settings-path pyproject.toml
+
+
+check: dryrun-black dryrun-isort
+
+dryrun-black:
+	$(PYTHON) -m black . --config pyproject.toml --check
+
+dryrun-isort:
+	$(PYTHON) -m isort . --settings-path pyproject.toml --check-only

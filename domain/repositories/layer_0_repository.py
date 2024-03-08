@@ -7,6 +7,7 @@ class Layer0Repository(ABC):
     """
     Provides access to layer 0 data
     """
+
     @abstractmethod
     async def create_update_instances(self, instances: list[Layer0Model]):
         """

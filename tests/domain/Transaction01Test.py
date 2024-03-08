@@ -1,5 +1,5 @@
 import unittest
-from typing import Union, Optional
+from typing import Optional, Union
 
 from pandas import DataFrame
 
@@ -13,7 +13,10 @@ from domain.usecases import TransformationO1UseCase
 from domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from domain.user_interaction.interaction import ResolveCoordinateParseFail
 from domain.user_interaction.interaction_argument import ResolveCoordinateParseFailArg
-from domain.user_interaction.interaction_result import InteractionResult, ResolveCoordinateParseFailRes
+from domain.user_interaction.interaction_result import (
+    InteractionResult,
+    ResolveCoordinateParseFailRes,
+)
 from tests.domain.Transform01Test import PurposefullyFailingCrossIdentifyUseCase
 
 
@@ -66,17 +69,22 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
             meta=Layer0Meta(
                 value_descriptions=[
                     NoErrorValue("speed;ucd", "speed_col", "km/s"),
-                    NoErrorValue("path;ucd", "dist_col", "km")
+                    NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None, dataset=None, comment=None, biblio=None
+                nameCol=None,
+                dataset=None,
+                comment=None,
+                biblio=None,
             ),
-            data=DataFrame({
-                "speed_col": [1, 2, 3],
-                "dist_col": [321, 12, 13124],
-                "col_ra": ["00h42.5m", "00h42.5m", "00h42.5m"],
-                "col_dec": ["+41d12m", "+41d12m", "corrupt data"],
-            })
+            data=DataFrame(
+                {
+                    "speed_col": [1, 2, 3],
+                    "dist_col": [321, 12, 13124],
+                    "col_ra": ["00h42.5m", "00h42.5m", "00h42.5m"],
+                    "col_dec": ["+41d12m", "+41d12m", "corrupt data"],
+                }
+            ),
         )
 
         transformation_use_case = TransformationO1UseCase(
@@ -85,10 +93,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
         l0_repo = MockedCachingLayer0Repo()
         l1_repo = MockedCachingLayer1Repo()
         transaction_use_case = Transaction01UseCase(
-            transformation_use_case,
-            l0_repo,
-            l1_repo,
-            MockedCoordinateParseFailResolver()
+            transformation_use_case, l0_repo, l1_repo, MockedCoordinateParseFailResolver()
         )
         res = await transaction_use_case.invoke(data)
         self.assertEqual(2, len(res))
@@ -109,17 +114,22 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
             meta=Layer0Meta(
                 value_descriptions=[
                     NoErrorValue("speed;ucd", "speed_col", "km/s"),
-                    NoErrorValue("path;ucd", "dist_col", "km")
+                    NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None, dataset=None, comment=None, biblio=None
+                nameCol=None,
+                dataset=None,
+                comment=None,
+                biblio=None,
             ),
-            data=DataFrame({
-                "speed_col": [1, 2, 3],
-                "dist_col": [321, 12, 13124],
-                "col_ra": ["00h42.5m", "00h42.5m", "00h42.5m"],
-                "col_dec": ["+41d12m", "+41d12m", "corrupt data"],
-            })
+            data=DataFrame(
+                {
+                    "speed_col": [1, 2, 3],
+                    "dist_col": [321, 12, 13124],
+                    "col_ra": ["00h42.5m", "00h42.5m", "00h42.5m"],
+                    "col_dec": ["+41d12m", "+41d12m", "corrupt data"],
+                }
+            ),
         )
 
         transformation_use_case = TransformationO1UseCase(
@@ -128,10 +138,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
         l0_repo = MockedCachingLayer0Repo()
         l1_repo = MockedCachingLayer1Repo()
         transaction_use_case = Transaction01UseCase(
-            transformation_use_case,
-            l0_repo,
-            l1_repo,
-            MockedCoordinateParseFailResolverFail()
+            transformation_use_case, l0_repo, l1_repo, MockedCoordinateParseFailResolverFail()
         )
         with self.assertRaises(BaseException) as scope:
             res = await transaction_use_case.invoke(data)
