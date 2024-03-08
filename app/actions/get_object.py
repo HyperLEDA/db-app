@@ -1,6 +1,13 @@
 import dataclasses
 import logging
-from app.server.schema.object import CoordsInfo, GetObjectRequest, GetObjectResponse, ObjectInfo, PositionInfo
+
+from app.server.schema.object import (
+    CoordsInfo,
+    GetObjectRequest,
+    GetObjectResponse,
+    ObjectInfo,
+    PositionInfo,
+)
 
 
 def get_object(r: GetObjectRequest) -> GetObjectResponse:

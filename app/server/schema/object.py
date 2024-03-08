@@ -2,6 +2,10 @@ from dataclasses import dataclass
 
 from marshmallow import Schema, fields, post_load, validate
 
+ALLOWED_COORDINATE_SYSTEMS = ["equatorial"]
+ALLOWED_EPOCHS = ["J2000"]
+ALLOWED_OBJECT_TYPES = ["galaxy", "star"]
+
 
 @dataclass
 class CoordsInfo:
@@ -37,12 +41,12 @@ class PositionInfoSchema(Schema):
     coordinate_system = fields.Str(
         required=True,
         description="Coordinate system name",
-        validate=validate.OneOf(["equatorial"]),
+        validate=validate.OneOf(ALLOWED_COORDINATE_SYSTEMS),
     )
     epoch = fields.Str(
         required=True,
         description="Epoch of the coordinates",
-        validate=validate.OneOf(["J2000"]),
+        validate=validate.OneOf(ALLOWED_EPOCHS),
     )
     coords = fields.Nested(
         CoordsInfoSchema,
@@ -67,7 +71,7 @@ class ObjectInfoSchema(Schema):
     type = fields.Str(
         required=True,
         description="Type of an object",
-        validate=validate.OneOf(["galaxy", "star"]),
+        validate=validate.OneOf(ALLOWED_OBJECT_TYPES),
     )
     position = fields.Nested(
         PositionInfoSchema,
@@ -171,4 +175,63 @@ class GetObjectResponseSchema(Schema):
         ObjectInfoSchema(),
         required=True,
         description="Description of the object",
+    )
+
+
+@dataclass
+class SearchObjectsRequest:
+    ra: float
+    dec: float
+    radius: float
+    type: str
+    page_size: int
+    page: int
+
+
+class SearchObjectsRequestSchema(Schema):
+    ra = fields.Float(
+        required=True,
+        description="Right ascension coordinate, degrees.",
+        validate=validate.Range(0, 360),
+    )
+    dec = fields.Float(
+        required=True,
+        description="Declination coordinate, degrees.",
+        validate=validate.Range(-90, 90),
+    )
+    radius = fields.Float(
+        description="Search radius, arseconds",
+        validate=validate.Range(0),
+        load_default=10 * 60,
+    )
+    type = fields.Str(
+        description="Type of an object",
+        validate=validate.OneOf(ALLOWED_OBJECT_TYPES),
+    )
+    page_size = fields.Int(
+        load_default=20,
+        description="Number of entries in the page",
+        validate=validate.OneOf([10, 20, 50, 100]),
+    )
+    page = fields.Int(
+        load_default=0,
+        description="Page number",
+        validate=validate.Range(0),
+    )
+
+    @post_load
+    def make(self, data, **kwargs) -> SearchObjectsRequest:
+        return SearchObjectsRequest(**data)
+
+
+@dataclass
+class SearchObjectsResponse:
+    objects: list[ObjectInfo]
+
+
+class SearchObjectsResponseSchema(Schema):
+    objects = fields.List(
+        fields.Nested(ObjectInfoSchema()),
+        required=True,
+        description="List of objects that satisfy search filters",
     )

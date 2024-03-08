@@ -35,6 +35,7 @@ routes = [
     (HTTPMethod.POST, "/api/v1/admin/object/batch", handlers.create_objects),
     (HTTPMethod.POST, "/api/v1/admin/object", handlers.create_object),
     (HTTPMethod.GET, "/api/v1/object", handlers.get_object),
+    (HTTPMethod.GET, "/api/v1/object/search", handlers.search_objects),
 ]
 
 
