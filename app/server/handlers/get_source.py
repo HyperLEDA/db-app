@@ -19,7 +19,7 @@ from app.server.schema import GetSourceRequestSchema, GetSourceResponseSchema
 @response_schema(GetSourceResponseSchema(), 200)
 async def get_source(r: web.Request) -> dict[str, Any]:
     try:
-        request = GetSourceRequestSchema().load(**r.rel_url.query)
+        request = GetSourceRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
         raise new_validation_error(str(e))
 
