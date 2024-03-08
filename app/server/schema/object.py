@@ -4,36 +4,36 @@ from marshmallow import Schema, fields, post_load, validate
 
 
 @dataclass
-class CoordsRequest:
+class CoordsInfo:
     ra: float
     dec: float
 
 
-class CoordsRequestSchema(Schema):
+class CoordsInfoSchema(Schema):
     ra = fields.Float(
         required=True,
-        description="Right ascension coordinate",
+        description="Right ascension coordinate, degrees.",
         validate=validate.Range(0, 360),
     )
     dec = fields.Float(
         required=True,
-        description="Declination coordinate",
+        description="Declination coordinate, degrees.",
         validate=validate.Range(-90, 90),
     )
 
     @post_load
-    def make(self, data, **kwargs) -> CoordsRequest:
-        return CoordsRequest(**data)
+    def make(self, data, **kwargs) -> CoordsInfo:
+        return CoordsInfo(**data)
 
 
 @dataclass
-class PositionRequest:
+class PositionInfo:
     coordinate_system: str
     epoch: str
-    coords: CoordsRequest
+    coords: CoordsInfo
 
 
-class PositionRequestSchema(Schema):
+class PositionInfoSchema(Schema):
     coordinate_system = fields.Str(
         required=True,
         description="Coordinate system name",
@@ -45,24 +45,24 @@ class PositionRequestSchema(Schema):
         validate=validate.OneOf(["J2000"]),
     )
     coords = fields.Nested(
-        CoordsRequestSchema,
+        CoordsInfoSchema,
         required=True,
         description="Value of the coordinates",
     )
 
     @post_load
-    def make(self, data, **kwargs) -> PositionRequest:
-        return PositionRequest(**data)
+    def make(self, data, **kwargs) -> PositionInfo:
+        return PositionInfo(**data)
 
 
 @dataclass
-class ObjectRequest:
+class ObjectInfo:
     name: str
     type: str
-    position: PositionRequest
+    position: PositionInfo
 
 
-class ObjectRequestSchema(Schema):
+class ObjectInfoSchema(Schema):
     name = fields.Str(required=True, description="Designation of an object")
     type = fields.Str(
         required=True,
@@ -70,20 +70,20 @@ class ObjectRequestSchema(Schema):
         validate=validate.OneOf(["galaxy", "star"]),
     )
     position = fields.Nested(
-        PositionRequestSchema,
+        PositionInfoSchema,
         required=True,
         description="Positional information of an object",
     )
 
     @post_load
-    def make(self, data, **kwargs) -> ObjectRequest:
-        return ObjectRequest(**data)
+    def make(self, data, **kwargs) -> ObjectInfo:
+        return ObjectInfo(**data)
 
 
 @dataclass
 class CreateObjectBatchRequest:
     source_id: int
-    objects: list[ObjectRequest]
+    objects: list[ObjectInfo]
 
 
 class CreateObjectBatchRequestSchema(Schema):
@@ -92,7 +92,7 @@ class CreateObjectBatchRequestSchema(Schema):
         description="ID of the source that provides objects",
     )
     objects = fields.List(
-        fields.Nested(ObjectRequestSchema),
+        fields.Nested(ObjectInfoSchema),
         required=True,
         description="List of objects",
     )
@@ -114,7 +114,7 @@ class CreateObjectBatchResponseSchema(Schema):
 @dataclass
 class CreateObjectRequest:
     source_id: int
-    object: ObjectRequest
+    object: ObjectInfo
 
 
 class CreateObjectRequestSchema(Schema):
@@ -123,7 +123,7 @@ class CreateObjectRequestSchema(Schema):
         description="ID of the source that provides objects",
     )
     object = fields.Nested(
-        ObjectRequestSchema(),
+        ObjectInfoSchema(),
         required=True,
         description="Description of the object",
     )
@@ -142,4 +142,33 @@ class CreateObjectResponseSchema(Schema):
     id = fields.Int(
         required=True,
         description="ID of the object in HyperLeda database",
+    )
+
+
+@dataclass
+class GetObjectRequest:
+    id: int
+
+
+class GetObjectRequestSchema(Schema):
+    id = fields.Int(
+        required=True,
+        description="ID of the object in HyperLeda database",
+    )
+
+    @post_load
+    def make(self, data, **kwargs) -> GetObjectRequest:
+        return GetObjectRequest(**data)
+
+
+@dataclass
+class GetObjectResponse:
+    object: ObjectInfo
+
+
+class GetObjectResponseSchema(Schema):
+    object = fields.Nested(
+        ObjectInfoSchema(),
+        required=True,
+        description="Description of the object",
     )

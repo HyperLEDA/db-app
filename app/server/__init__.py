@@ -34,6 +34,7 @@ routes = [
     (HTTPMethod.GET, "/api/v1/source/list", handlers.get_source_list),
     (HTTPMethod.POST, "/api/v1/admin/object/batch", handlers.create_objects),
     (HTTPMethod.POST, "/api/v1/admin/object", handlers.create_object),
+    (HTTPMethod.GET, "/api/v1/object", handlers.get_object),
 ]
 
 
@@ -43,31 +44,25 @@ def start(config: ServerConfig):
     for method, path, func in routes:
         app.router.add_route(method, path, json_wrapper(func))
 
-    setup_aiohttp_apispec(app=app, title="Swagger UI", version="v1")
+    setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", version="v1")
     aiohttp_swagger.setup_swagger(app, swagger_url="/api/docs", ui_version=3)
 
     web.run_app(app, port=config.port)
 
 
 @middleware
-async def exception_middleware(
-    request: web.Request, handler: Callable[[web.Request], web.Response]
-):
+async def exception_middleware(request: web.Request, handler: Callable[[web.Request], web.Response]):
     try:
         response = await handler(request)
     except APIException as e:
         response = web.Response(text=json.dumps(dataclasses.asdict(e)))
     except Exception as e:
-        response = web.Response(
-            text=json.dumps(dataclasses.asdict(new_internal_error(e)))
-        )
+        response = web.Response(text=json.dumps(dataclasses.asdict(new_internal_error(e))))
 
     return response
 
 
-def json_wrapper(
-    func: Callable[[web.Request], dict[str, Any]]
-) -> Callable[[web.Request], web.Response]:
+def json_wrapper(func: Callable[[web.Request], dict[str, Any]]) -> Callable[[web.Request], web.Response]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(request)
