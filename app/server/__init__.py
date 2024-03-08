@@ -30,8 +30,10 @@ class ServerConfigSchema(Schema):
 routes = [
     (HTTPMethod.GET, "/ping", handlers.ping),
     (HTTPMethod.POST, "/api/v1/admin/source", handlers.create_source),
-    (HTTPMethod.GET, "/api/v1/admin/source", handlers.get_source),
-    (HTTPMethod.GET, "/api/v1/admin/source/list", handlers.get_source_list),
+    (HTTPMethod.GET, "/api/v1/source", handlers.get_source),
+    (HTTPMethod.GET, "/api/v1/source/list", handlers.get_source_list),
+    (HTTPMethod.POST, "/api/v1/admin/object/batch", handlers.create_objects),
+    (HTTPMethod.POST, "/api/v1/admin/object", handlers.create_object),
 ]
 
 
@@ -48,18 +50,24 @@ def start(config: ServerConfig):
 
 
 @middleware
-async def exception_middleware(request: web.Request, handler: Callable[[web.Request], web.Response]):
+async def exception_middleware(
+    request: web.Request, handler: Callable[[web.Request], web.Response]
+):
     try:
         response = await handler(request)
     except APIException as e:
         response = web.Response(text=json.dumps(dataclasses.asdict(e)))
     except Exception as e:
-        response = web.Response(text=json.dumps(dataclasses.asdict(new_internal_error(e))))
+        response = web.Response(
+            text=json.dumps(dataclasses.asdict(new_internal_error(e)))
+        )
 
     return response
 
 
-def json_wrapper(func: Callable[[web.Request], dict[str, Any]]) -> Callable[[web.Request], web.Response]:
+def json_wrapper(
+    func: Callable[[web.Request], dict[str, Any]]
+) -> Callable[[web.Request], web.Response]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(request)

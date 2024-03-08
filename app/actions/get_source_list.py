@@ -1,4 +1,8 @@
-from app.server.schema import GetSourceListRequest, GetSourceListResponse, GetSourceResponse
+from app.server.schema import (
+    GetSourceListRequest,
+    GetSourceListResponse,
+    GetSourceResponse,
+)
 
 
 def get_source_list(r: GetSourceListRequest) -> GetSourceListResponse:
