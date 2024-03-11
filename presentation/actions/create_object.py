@@ -4,7 +4,7 @@ from presentation.model import (
     CreateObjectRequest,
     CreateObjectResponse,
 )
-from presentation.server.exceptions.apiexception import new_internal_error
+from presentation.server.exceptions import new_internal_error
 
 
 def create_object(r: CreateObjectRequest) -> CreateObjectResponse:
