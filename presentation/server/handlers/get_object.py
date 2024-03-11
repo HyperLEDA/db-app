@@ -5,9 +5,9 @@ from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import ValidationError
 
-from app import actions
-from app.server.exceptions.apiexception import new_validation_error
-from app.server.schema.object import GetObjectRequestSchema, GetObjectResponseSchema
+from presentation import actions
+from presentation.model import GetObjectRequestSchema, GetObjectResponseSchema
+from presentation.server.exceptions.apiexception import new_validation_error
 
 
 @docs(

@@ -1,8 +1,13 @@
 import dataclasses
 import logging
 
-from app.server.schema import SearchObjectsRequest, SearchObjectsResponse
-from app.server.schema.object import CoordsInfo, ObjectInfo, PositionInfo
+from presentation.model import (
+    CoordsInfo,
+    ObjectInfo,
+    PositionInfo,
+    SearchObjectsRequest,
+    SearchObjectsResponse,
+)
 
 
 def search_objects(r: SearchObjectsRequest) -> SearchObjectsResponse:
