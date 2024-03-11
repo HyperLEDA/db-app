@@ -1,7 +1,6 @@
 import dataclasses
 import json
 from functools import wraps
-from http import HTTPMethod
 from typing import Any, Callable
 
 import aiohttp_swagger
@@ -12,6 +11,9 @@ from marshmallow import Schema, fields, post_load
 
 from presentation.server import handlers
 from presentation.server.exceptions import APIException, new_internal_error
+
+HTTPMETHOD_GET = "GET"
+HTTPMETHOD_POST = "POST"
 
 
 @dataclasses.dataclass
@@ -28,14 +30,14 @@ class ServerConfigSchema(Schema):
 
 
 routes = [
-    (HTTPMethod.GET, "/ping", handlers.ping),
-    (HTTPMethod.POST, "/api/v1/admin/source", handlers.create_source),
-    (HTTPMethod.GET, "/api/v1/source", handlers.get_source),
-    (HTTPMethod.GET, "/api/v1/source/list", handlers.get_source_list),
-    (HTTPMethod.POST, "/api/v1/admin/object/batch", handlers.create_objects),
-    (HTTPMethod.POST, "/api/v1/admin/object", handlers.create_object),
-    (HTTPMethod.GET, "/api/v1/object", handlers.get_object),
-    (HTTPMethod.GET, "/api/v1/object/search", handlers.search_objects),
+    (HTTPMETHOD_GET, "/ping", handlers.ping),
+    (HTTPMETHOD_POST, "/api/v1/admin/source", handlers.create_source),
+    (HTTPMETHOD_GET, "/api/v1/source", handlers.get_source),
+    (HTTPMETHOD_GET, "/api/v1/source/list", handlers.get_source_list),
+    (HTTPMETHOD_POST, "/api/v1/admin/object/batch", handlers.create_objects),
+    (HTTPMETHOD_POST, "/api/v1/admin/object", handlers.create_object),
+    (HTTPMETHOD_GET, "/api/v1/object", handlers.get_object),
+    (HTTPMETHOD_GET, "/api/v1/object/search", handlers.search_objects),
 ]
 
 
