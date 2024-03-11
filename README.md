@@ -5,7 +5,7 @@
 To install reqired modules:
 
 ```bash
-pip install -r requirements.txt
+make install
 ```
 
 To start application:
@@ -18,4 +18,10 @@ Tests are located in `tests/`, to run them and all linters:
 
 ```bash
 make test-all
+```
+
+Before commit run:
+
+```bash
+make fix-lint
 ```
