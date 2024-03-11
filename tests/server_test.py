@@ -4,7 +4,7 @@ from time import sleep
 
 import requests
 
-from app.commands.runserver import config
+from presentation.commands.runserver import config
 
 
 class ServerTest(unittest.TestCase):

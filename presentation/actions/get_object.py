@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 
-from app.server.schema.object import (
+from presentation.model import (
     CoordsInfo,
     GetObjectRequest,
     GetObjectResponse,

@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from marshmallow import Schema, fields, post_load
 
-from app.server import ServerConfig, ServerConfigSchema
+from presentation.server import ServerConfig, ServerConfigSchema
 
 
 @dataclass

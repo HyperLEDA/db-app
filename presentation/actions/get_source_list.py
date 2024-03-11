@@ -1,4 +1,4 @@
-from app.server.schema import (
+from presentation.model import (
     GetSourceListRequest,
     GetSourceListResponse,
     GetSourceResponse,

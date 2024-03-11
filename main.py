@@ -1,6 +1,6 @@
 import click
 
-import app.commands.runserver as runserver_cmd
+import presentation.commands.runserver as runserver_cmd
 
 
 @click.group()

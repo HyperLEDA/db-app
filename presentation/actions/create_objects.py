@@ -1,4 +1,7 @@
-from app.server.schema import CreateObjectBatchRequest, CreateObjectBatchResponse
+from presentation.model import (
+    CreateObjectBatchRequest,
+    CreateObjectBatchResponse,
+)
 
 
 def create_objects(r: CreateObjectBatchRequest) -> CreateObjectBatchResponse:

@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 
-from app.server.schema import CreateSourceRequest, CreateSourceResponse
+from presentation.model import CreateSourceRequest, CreateSourceResponse
 
 
 def create_source(r: CreateSourceRequest) -> CreateSourceResponse:

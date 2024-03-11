@@ -1,7 +1,6 @@
-from app import actions
-from app.server.exceptions.apiexception import new_internal_error
-from app.server.schema import CreateObjectRequest, CreateObjectResponse
-from app.server.schema.object import CreateObjectBatchRequest
+from presentation import actions
+from presentation.server.exceptions.apiexception import new_internal_error
+from presentation.model import CreateObjectRequest, CreateObjectResponse, CreateObjectBatchRequest
 
 
 def create_object(r: CreateObjectRequest) -> CreateObjectResponse:

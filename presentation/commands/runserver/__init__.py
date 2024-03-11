@@ -1,7 +1,7 @@
 import logging
 
-from app import server
-from app.commands.runserver.config import parse_config
+from presentation import server
+from presentation.commands.runserver.config import parse_config
 
 
 def start(config_path: str):
