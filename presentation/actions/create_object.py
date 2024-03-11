@@ -1,6 +1,10 @@
 from presentation import actions
+from presentation.model import (
+    CreateObjectBatchRequest,
+    CreateObjectRequest,
+    CreateObjectResponse,
+)
 from presentation.server.exceptions.apiexception import new_internal_error
-from presentation.model import CreateObjectRequest, CreateObjectResponse, CreateObjectBatchRequest
 
 
 def create_object(r: CreateObjectRequest) -> CreateObjectResponse:

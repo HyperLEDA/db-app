@@ -6,11 +6,8 @@ from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import ValidationError
 
 from presentation import actions
+from presentation.model import GetSourceListRequestSchema, GetSourceListResponseSchema
 from presentation.server.exceptions import new_validation_error
-from presentation.model import (
-    GetSourceListRequestSchema,
-    GetSourceListResponseSchema,
-)
 
 
 @docs(
