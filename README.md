@@ -48,7 +48,7 @@ make fix-lint
     ```
 6. Push changes to the repository:
     ```bash
-    git push -u issue-{number}
+    git push origin issue-{number}
     ```
 7. Navigate to https://github.com and create pull request. You should see it [here](https://github.com/HyperLEDA/db-app/pulls).
 8. Wait until all checks become successfull (or fix the code if they are not).
