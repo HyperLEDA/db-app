@@ -4,16 +4,19 @@ from pathlib import Path
 import yaml
 from marshmallow import Schema, fields, post_load
 
+from data import StorageConfig, StorageConfigSchema
 from presentation.server import ServerConfig, ServerConfigSchema
 
 
 @dataclass
 class Config:
     server: ServerConfig
+    storage: StorageConfig
 
 
 class ConfigSchema(Schema):
     server = fields.Nested(ServerConfigSchema(), required=True)
+    storage = fields.Nested(StorageConfigSchema(), required=True)
 
     @post_load
     def make(self, data, **kwargs):

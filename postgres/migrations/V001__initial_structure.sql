@@ -14,7 +14,7 @@ CREATE TABLE common.bib (
     and author [1] IS NOT NULL
   ),
   title text,
-  modification_time timestamp without time zone NOT NULL
+  modification_time timestamp without time zone DEFAULT NOW()
 );
 
 -------- Designation ------------
