@@ -3,7 +3,6 @@ import json
 from functools import wraps
 from typing import Any, Callable
 
-import aiohttp_swagger
 from aiohttp import web
 from aiohttp.web import middleware
 from aiohttp_apispec import setup_aiohttp_apispec
@@ -47,8 +46,7 @@ def start(config: ServerConfig):
     for method, path, func in routes:
         app.router.add_route(method, path, json_wrapper(func))
 
-    setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", version="v1")
-    aiohttp_swagger.setup_swagger(app, swagger_url="/api/docs", ui_version=3)
+    setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", swagger_path="/api/docs")
 
     web.run_app(app, port=config.port)
 

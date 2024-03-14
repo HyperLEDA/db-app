@@ -2,7 +2,7 @@ import dataclasses
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
+from aiohttp_apispec import docs, querystring_schema, response_schema
 from marshmallow import ValidationError
 
 from presentation import actions
@@ -15,7 +15,7 @@ from presentation.server.exceptions.apiexception import new_validation_error
     tags=["objects"],
     description="Retrieves information about the objects that satisfy given filters.",
 )
-@request_schema(SearchObjectsRequestSchema(), location="query")
+@querystring_schema(SearchObjectsRequestSchema())
 @response_schema(SearchObjectsResponseSchema(), 200)
 async def search_objects(r: web.Request) -> dict[str, Any]:
     try:

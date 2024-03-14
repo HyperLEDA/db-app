@@ -2,7 +2,7 @@ import dataclasses
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
+from aiohttp_apispec import docs, querystring_schema, response_schema
 from marshmallow import ValidationError
 
 from presentation import actions
@@ -15,7 +15,7 @@ from presentation.server.exceptions import new_validation_error
     tags=["sources"],
     description="Retrieves information about the source using its id.",
 )
-@request_schema(GetSourceRequestSchema(), location="query")
+@querystring_schema(GetSourceRequestSchema())
 @response_schema(GetSourceResponseSchema(), 200)
 async def get_source(r: web.Request) -> dict[str, Any]:
     try:

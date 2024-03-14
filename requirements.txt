@@ -2,7 +2,6 @@ astropy
 pandas
 aiohttp
 aiohttp_apispec
-aiohttp_swagger
 marshmallow
 requests
 setuptools
