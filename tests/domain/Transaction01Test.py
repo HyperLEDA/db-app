@@ -1,8 +1,6 @@
 import unittest
 from typing import Optional, Union
 
-from pandas import DataFrame
-
 from domain.model import Layer0Model, Layer1Model
 from domain.model.layer0.coordinates import ICRSDescrStr
 from domain.model.layer0.layer_0_meta import Layer0Meta
@@ -17,6 +15,8 @@ from domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
 )
+from pandas import DataFrame
+
 from tests.domain.Transform01Test import PurposefullyFailingCrossIdentifyUseCase
 
 

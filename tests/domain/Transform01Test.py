@@ -1,8 +1,6 @@
 import unittest
 from typing import Callable, Union
 
-from pandas import DataFrame
-
 from domain.model import Layer0Model
 from domain.model.layer0.coordinates import ICRSDescrStr
 from domain.model.layer0.layer_0_meta import Layer0Meta
@@ -15,6 +13,7 @@ from domain.model.params.transformation_0_1_stages import (
 )
 from domain.usecases import CrossIdentifyUseCase, TransformationO1UseCase
 from domain.usecases.exceptions import CrossIdentificationException
+from pandas import DataFrame
 
 
 class MockedCrossIdentifyUseCase(CrossIdentifyUseCase):

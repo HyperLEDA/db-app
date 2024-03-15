@@ -1,10 +1,9 @@
 import unittest
 
 from astropy.coordinates import SkyCoord
-from pandas import DataFrame
-
 from domain.model.layer0.coordinates import ICRSDescrStr
 from domain.model.layer0.values.exceptions import ColumnNotFoundException
+from pandas import DataFrame
 
 
 class ICRSDescrDescrTest(unittest.TestCase):

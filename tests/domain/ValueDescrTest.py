@@ -1,10 +1,9 @@
 import unittest
 
 import astropy.units as u
-from pandas import DataFrame
-
 from domain.model.layer0.values import NoErrorValue
 from domain.model.layer0.values.exceptions import ColumnNotFoundException
+from pandas import DataFrame
 
 
 class ValueDescrTest(unittest.TestCase):
