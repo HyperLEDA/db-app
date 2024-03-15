@@ -1,16 +1,10 @@
-from dataclasses import dataclass
-
 from marshmallow import Schema, fields, post_load, validate
+
+from app.domain import model
 
 ALLOWED_COORDINATE_SYSTEMS = ["equatorial"]
 ALLOWED_EPOCHS = ["J2000"]
 ALLOWED_OBJECT_TYPES = ["galaxy", "star"]
-
-
-@dataclass
-class CoordsInfo:
-    ra: float
-    dec: float
 
 
 class CoordsInfoSchema(Schema):
@@ -26,15 +20,8 @@ class CoordsInfoSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> CoordsInfo:
-        return CoordsInfo(**data)
-
-
-@dataclass
-class PositionInfo:
-    coordinate_system: str
-    epoch: str
-    coords: CoordsInfo
+    def make(self, data, **kwargs) -> model.CoordsInfo:
+        return model.CoordsInfo(**data)
 
 
 class PositionInfoSchema(Schema):
@@ -55,15 +42,8 @@ class PositionInfoSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> PositionInfo:
-        return PositionInfo(**data)
-
-
-@dataclass
-class ObjectInfo:
-    name: str
-    type: str
-    position: PositionInfo
+    def make(self, data, **kwargs) -> model.PositionInfo:
+        return model.PositionInfo(**data)
 
 
 class ObjectInfoSchema(Schema):
@@ -80,14 +60,8 @@ class ObjectInfoSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> ObjectInfo:
-        return ObjectInfo(**data)
-
-
-@dataclass
-class CreateObjectBatchRequest:
-    source_id: int
-    objects: list[ObjectInfo]
+    def make(self, data, **kwargs) -> model.ObjectInfo:
+        return model.ObjectInfo(**data)
 
 
 class CreateObjectBatchRequestSchema(Schema):
@@ -102,23 +76,19 @@ class CreateObjectBatchRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> CreateObjectBatchRequest:
-        return CreateObjectBatchRequest(**data)
-
-
-@dataclass
-class CreateObjectBatchResponse:
-    ids: list[int]
+    def make(self, data, **kwargs) -> model.CreateObjectBatchRequest:
+        return model.CreateObjectBatchRequest(**data)
 
 
 class CreateObjectBatchResponseSchema(Schema):
     ids = fields.List(fields.Int(), description="List of ids of saved objects")
 
 
-@dataclass
-class CreateObjectRequest:
-    source_id: int
-    object: ObjectInfo
+class CreateObjectResponseSchema(Schema):
+    id = fields.Int(
+        required=True,
+        description="ID of the object in HyperLeda database",
+    )
 
 
 class CreateObjectRequestSchema(Schema):
@@ -133,25 +103,8 @@ class CreateObjectRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> CreateObjectRequest:
-        return CreateObjectRequest(**data)
-
-
-@dataclass
-class CreateObjectResponse:
-    id: int
-
-
-class CreateObjectResponseSchema(Schema):
-    id = fields.Int(
-        required=True,
-        description="ID of the object in HyperLeda database",
-    )
-
-
-@dataclass
-class GetObjectRequest:
-    id: int
+    def make(self, data, **kwargs) -> model.CreateObjectRequest:
+        return model.CreateObjectRequest(**data)
 
 
 class GetObjectRequestSchema(Schema):
@@ -161,13 +114,8 @@ class GetObjectRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> GetObjectRequest:
-        return GetObjectRequest(**data)
-
-
-@dataclass
-class GetObjectResponse:
-    object: ObjectInfo
+    def make(self, data, **kwargs) -> model.GetObjectRequest:
+        return model.GetObjectRequest(**data)
 
 
 class GetObjectResponseSchema(Schema):
@@ -176,16 +124,6 @@ class GetObjectResponseSchema(Schema):
         required=True,
         description="Description of the object",
     )
-
-
-@dataclass
-class SearchObjectsRequest:
-    ra: float
-    dec: float
-    radius: float
-    type: str
-    page_size: int
-    page: int
 
 
 class SearchObjectsRequestSchema(Schema):
@@ -220,13 +158,8 @@ class SearchObjectsRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> SearchObjectsRequest:
-        return SearchObjectsRequest(**data)
-
-
-@dataclass
-class SearchObjectsResponse:
-    objects: list[ObjectInfo]
+    def make(self, data, **kwargs) -> model.SearchObjectsRequest:
+        return model.SearchObjectsRequest(**data)
 
 
 class SearchObjectsResponseSchema(Schema):

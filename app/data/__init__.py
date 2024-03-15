@@ -4,6 +4,8 @@ from typing import Any
 import psycopg2
 from marshmallow import Schema, fields, post_load
 
+from app.data.interface import Repository
+
 
 @dataclass
 class StorageConfig:

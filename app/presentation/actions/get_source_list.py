@@ -1,4 +1,4 @@
-from app.presentation.model import (
+from app.domain.model import (
     GetSourceListRequest,
     GetSourceListResponse,
     GetSourceResponse,

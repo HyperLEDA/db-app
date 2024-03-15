@@ -1,15 +1,8 @@
-from dataclasses import dataclass
-from typing import Any
-
 from marshmallow import Schema, fields, post_load, validate
 
+from app.domain import model
+
 ALLOWED_SOURCE_TYPES = ["publication", "catalog", "table"]
-
-
-@dataclass
-class CreateSourceRequest:
-    type: str
-    metadata: dict
 
 
 class CreateSourceRequestSchema(Schema):
@@ -21,13 +14,8 @@ class CreateSourceRequestSchema(Schema):
     metadata = fields.Dict()
 
     @post_load
-    def make(self, data, **kwargs) -> CreateSourceRequest:
-        return CreateSourceRequest(**data)
-
-
-@dataclass
-class CreateSourceResponse:
-    id: int
+    def make(self, data, **kwargs) -> model.CreateSourceRequest:
+        return model.CreateSourceRequest(**data)
 
 
 class CreateSourceResponseSchema(Schema):
@@ -37,11 +25,6 @@ class CreateSourceResponseSchema(Schema):
     )
 
 
-@dataclass
-class GetSourceRequest:
-    id: int
-
-
 class GetSourceRequestSchema(Schema):
     id = fields.Int(
         required=True,
@@ -49,14 +32,8 @@ class GetSourceRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> GetSourceRequest:
-        return GetSourceRequest(**data)
-
-
-@dataclass
-class GetSourceResponse:
-    type: str
-    metadata: dict[str, Any]
+    def make(self, data, **kwargs) -> model.GetSourceRequest:
+        return model.GetSourceRequest(**data)
 
 
 class GetSourceResponseSchema(Schema):
@@ -68,13 +45,6 @@ class GetSourceResponseSchema(Schema):
     metadata = fields.Dict(
         description="Metadata that provides identification for the source",
     )
-
-
-@dataclass
-class GetSourceListRequest:
-    type: str
-    page_size: int
-    page: int
 
 
 class GetSourceListRequestSchema(Schema):
@@ -95,13 +65,8 @@ class GetSourceListRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> GetSourceListRequest:
-        return GetSourceListRequest(**data)
-
-
-@dataclass
-class GetSourceListResponse:
-    sources: list[GetSourceResponse]
+    def make(self, data, **kwargs) -> model.GetSourceListRequest:
+        return model.GetSourceListRequest(**data)
 
 
 class GetSourceListResponseSchema(Schema):

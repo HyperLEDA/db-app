@@ -1,4 +1,4 @@
-from app.presentation.model import CreateObjectBatchRequest, CreateObjectBatchResponse
+from app.domain.model import CreateObjectBatchRequest, CreateObjectBatchResponse
 
 
 def create_objects(r: CreateObjectBatchRequest) -> CreateObjectBatchResponse:

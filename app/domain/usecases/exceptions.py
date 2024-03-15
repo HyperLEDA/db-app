@@ -1,5 +1,5 @@
-from domain.model import Layer0Model
-from domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.model import Layer0Model
+from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 
 
 class CrossIdentificationException(BaseException):

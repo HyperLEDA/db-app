@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 
-from app.presentation.model import (
+from app.domain.model import (
     CoordsInfo,
     GetObjectRequest,
     GetObjectResponse,

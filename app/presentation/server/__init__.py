@@ -8,8 +8,9 @@ from aiohttp.web import middleware
 from aiohttp_apispec import setup_aiohttp_apispec
 from marshmallow import Schema, fields, post_load
 
+from app import domain
+from app.lib.exceptions import APIException, new_internal_error
 from app.presentation.server import handlers
-from app.presentation.server.exceptions import APIException, new_internal_error
 
 HTTPMETHOD_GET = "GET"
 HTTPMETHOD_POST = "POST"
@@ -40,11 +41,11 @@ routes = [
 ]
 
 
-def start(config: ServerConfig):
+def start(config: ServerConfig, actions: domain.Actions):
     app = web.Application(middlewares=[exception_middleware])
 
     for method, path, func in routes:
-        app.router.add_route(method, path, json_wrapper(func))
+        app.router.add_route(method, path, json_wrapper(actions, func))
 
     setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", swagger_path="/api/docs")
 
@@ -52,21 +53,23 @@ def start(config: ServerConfig):
 
 
 @middleware
-async def exception_middleware(request: web.Request, handler: Callable[[web.Request], web.Response]):
+async def exception_middleware(request: web.Request, handler: Callable[[web.Request], web.Response]) -> web.Response:
     try:
         response = await handler(request)
     except APIException as e:
-        response = web.Response(text=json.dumps(dataclasses.asdict(e)))
+        response = web.Response(text=json.dumps(dataclasses.asdict(e)), status=e.status)
     except Exception as e:
-        response = web.Response(text=json.dumps(dataclasses.asdict(new_internal_error(e))))
+        response = web.Response(text=json.dumps(dataclasses.asdict(new_internal_error(e))), status=500)
 
     return response
 
 
-def json_wrapper(func: Callable[[web.Request], dict[str, Any]]) -> Callable[[web.Request], web.Response]:
+def json_wrapper(
+    actions: domain.Actions, func: Callable[[domain.Actions, web.Request], dict[str, Any]]
+) -> Callable[[web.Request], web.Response]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
-        response = await func(request)
+        response = await func(actions, request)
         return web.json_response(response)
 
     return inner

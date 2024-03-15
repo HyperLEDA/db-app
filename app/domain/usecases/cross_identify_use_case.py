@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
-from domain.model.params.cross_identification_param import CrossIdentificationParam
-from domain.usecases.exceptions import CrossIdentificationException
+from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.usecases.exceptions import CrossIdentificationException
 
 
 class CrossIdentifyUseCase:

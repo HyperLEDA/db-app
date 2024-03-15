@@ -1,10 +1,10 @@
-from app.presentation import actions
-from app.presentation.model import (
+from app.domain.model import (
     CreateObjectBatchRequest,
     CreateObjectRequest,
     CreateObjectResponse,
 )
-from app.presentation.server.exceptions import new_internal_error
+from app.lib import exceptions
+from app.presentation import actions
 
 
 def create_object(r: CreateObjectRequest) -> CreateObjectResponse:
@@ -16,6 +16,6 @@ def create_object(r: CreateObjectRequest) -> CreateObjectResponse:
     )
 
     if len(response.ids) != 1:
-        raise new_internal_error("something went wrong during object creation")
+        raise exceptions.new_internal_error("something went wrong during object creation")
 
     return CreateObjectResponse(id=response.ids[0])

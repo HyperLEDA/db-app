@@ -5,12 +5,13 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, response_schema
 from marshmallow import ValidationError
 
+from app import domain
+from app.lib.exceptions import new_validation_error
 from app.presentation import actions
 from app.presentation.model import (
     GetSourceListRequestSchema,
     GetSourceListResponseSchema,
 )
-from app.presentation.server.exceptions import new_validation_error
 
 
 @docs(
@@ -20,7 +21,7 @@ from app.presentation.server.exceptions import new_validation_error
 )
 @querystring_schema(GetSourceListRequestSchema())
 @response_schema(GetSourceListResponseSchema(), 200)
-async def get_source_list(r: web.Request) -> dict[str, Any]:
+async def get_source_list(_: domain.Actions, r: web.Request) -> dict[str, Any]:
     try:
         request = GetSourceListRequestSchema().load(r.rel_url.query)
     except ValidationError as e:

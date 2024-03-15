@@ -1,3 +1,5 @@
+from contextlib import closing
+import socket
 import subprocess
 import unittest
 from time import sleep
@@ -5,6 +7,13 @@ from time import sleep
 import requests
 
 from app.presentation.commands.runserver import config
+
+
+def find_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
 
 class ServerTest(unittest.TestCase):
@@ -34,7 +43,8 @@ class ServerTest(unittest.TestCase):
             _ = config.parse_config(path)
 
     def test_startup(self):
-        response = requests.get("http://localhost:8000/ping", timeout=2)
+        port = find_free_port()
+        response = requests.get(f"http://localhost:{port}/ping", timeout=2)
         data = response.json()
 
         self.assertDictEqual(data, {"ping": "pong"})
