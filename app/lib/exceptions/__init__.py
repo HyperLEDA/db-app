@@ -3,6 +3,7 @@ from dataclasses import dataclass
 INTERNAL_ERROR_CODE = "internal_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
+DATABASE_ERROR = "database_error"
 
 
 @dataclass
@@ -22,3 +23,7 @@ def new_validation_error(error: str) -> APIException:
 
 def new_not_found_error(error: str) -> APIException:
     return APIException(NOT_FOUND_ERROR, 404, error)
+
+
+def new_database_error(error: str) -> APIException:
+    return APIException(DATABASE_ERROR, 500, error)

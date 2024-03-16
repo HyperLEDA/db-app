@@ -10,3 +10,4 @@ click
 black
 isort
 psycopg2
+structlog

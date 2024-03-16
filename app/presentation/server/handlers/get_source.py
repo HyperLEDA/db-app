@@ -7,7 +7,6 @@ from marshmallow import ValidationError
 
 from app import domain
 from app.lib.exceptions import new_validation_error
-from app.presentation import actions
 from app.presentation.model import GetSourceRequestSchema, GetSourceResponseSchema
 
 
@@ -18,11 +17,11 @@ from app.presentation.model import GetSourceRequestSchema, GetSourceResponseSche
 )
 @querystring_schema(GetSourceRequestSchema())
 @response_schema(GetSourceResponseSchema(), 200)
-async def get_source(_: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def get_source(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
     try:
         request = GetSourceRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
-        raise new_validation_error(str(e))
+        raise new_validation_error(str(e)) from e
 
     response = actions.get_source(request)
 

@@ -7,3 +7,4 @@ class Bibliography:
     year: int
     author: list[str]
     title: str
+    id: int = None

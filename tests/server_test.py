@@ -1,7 +1,7 @@
-from contextlib import closing
 import socket
 import subprocess
 import unittest
+from contextlib import closing
 from time import sleep
 
 import requests

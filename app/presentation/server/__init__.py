@@ -1,9 +1,10 @@
 import dataclasses
-import json
 from functools import wraps
 from typing import Any, Callable
 
+import structlog
 from aiohttp import web
+from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web import middleware
 from aiohttp_apispec import setup_aiohttp_apispec
 from marshmallow import Schema, fields, post_load
@@ -11,6 +12,8 @@ from marshmallow import Schema, fields, post_load
 from app import domain
 from app.lib.exceptions import APIException, new_internal_error
 from app.presentation.server import handlers
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 HTTPMETHOD_GET = "GET"
 HTTPMETHOD_POST = "POST"
@@ -49,7 +52,22 @@ def start(config: ServerConfig, actions: domain.Actions):
 
     setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", swagger_path="/api/docs")
 
-    web.run_app(app, port=config.port)
+    web.run_app(app, port=config.port, access_log_class=AccessLogger)
+
+
+class AccessLogger(AbstractAccessLogger):
+    def log(self, request: web.Request, response: web.Response, time):
+        log.info(
+            "request",
+            method=request.method,
+            remote=request.remote,
+            path=request.path,
+            elapsed=f"{time:.03f}s",
+            query=dict(request.query),
+            response_status=response.status,
+            request_content_type=request.content_type,
+            response_content_type=response.content_type,
+        )
 
 
 @middleware
@@ -57,9 +75,11 @@ async def exception_middleware(request: web.Request, handler: Callable[[web.Requ
     try:
         response = await handler(request)
     except APIException as e:
-        response = web.Response(text=json.dumps(dataclasses.asdict(e)), status=e.status)
+        log.error(e)
+        response = web.json_response(dataclasses.asdict(e), status=e.status)
     except Exception as e:
-        response = web.Response(text=json.dumps(dataclasses.asdict(new_internal_error(e))), status=500)
+        log.error(e)
+        response = web.json_response(dataclasses.asdict(new_internal_error(e)), status=500)
 
     return response
 

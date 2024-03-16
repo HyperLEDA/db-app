@@ -1,5 +1,4 @@
 import dataclasses
-import logging
 from typing import final
 
 from app import data, domain
@@ -19,6 +18,7 @@ class Actions(domain.Actions):
         if r.type != "publication":
             raise NotImplementedError("source types other that 'publication' are not supported yet")
 
+        # TODO: this probably should be moved to API validation layer
         bibcode = r.metadata.get("bibcode")
         if bibcode is None:
             raise new_validation_error("bibcode is required in metadata for publication type")
@@ -35,13 +35,16 @@ class Actions(domain.Actions):
         if title is None:
             raise new_validation_error("title is required in metadata for publication type")
 
-        self._repo.create_bibliography(
+        source_id = self._repo.create_bibliography(
             data_model.Bibliography(bibcode=bibcode, year=int(year), author=[author], title=title)
         )
 
-        return domain_model.CreateSourceResponse(id=42)
+        return domain_model.CreateSourceResponse(id=source_id)
 
     def get_source(self, r: domain_model.GetSourceRequest) -> domain_model.GetSourceResponse:
-        logging.info(dataclasses.asdict(r))
+        result = self._repo.get_bibliography(r.id)
 
-        return domain_model.GetSourceResponse(type="table", metadata={"name": "haha funny name"})
+        return domain_model.GetSourceResponse(
+            type="publication",
+            metadata=dataclasses.asdict(result),
+        )

@@ -2,9 +2,12 @@ from dataclasses import dataclass
 from typing import Any
 
 import psycopg2
+import structlog
 from marshmallow import Schema, fields, post_load
+from psycopg2 import extras
 
 from app.data.interface import Repository
+from app.lib.exceptions import new_database_error
 
 
 @dataclass
@@ -35,6 +38,7 @@ class Storage:
     def __init__(self, config: StorageConfig):
         self.config = config
         self.connection = None
+        self.logger = structlog.get_logger()
 
     def connect(self):
         self.connection = psycopg2.connect(self.config.get_dsn())
@@ -43,11 +47,29 @@ class Storage:
         if self.connection is not None:
             self.connection.close()
 
-    def exec(self, query: str, params: list[Any]):
+    def query(self, query: str, params: list[Any]) -> list[dict[str, Any]]:
         if self.connection is None:
             raise RuntimeError("did not connect to database")
 
-        cursor = self.connection.cursor()
-        cursor.execute(query, params)
-        self.connection.commit()
+        self.logger.info("SQL query", query=query.replace("\n", " "), args=params)
+
+        cursor = self.connection.cursor(cursor_factory=extras.DictCursor)
+        try:
+            cursor.execute(query, params)
+            self.connection.commit()
+        except Exception as e:
+            self.connection.rollback()
+            raise e
+
+        rows = cursor.fetchall()
         cursor.close()
+
+        return rows
+
+    def query_one(self, query: str, params: list[Any]) -> dict[str, Any]:
+        result = self.query(query, params)
+
+        if len(result) < 1:
+            raise new_database_error("was unable to fetch one value")
+
+        return result[0]

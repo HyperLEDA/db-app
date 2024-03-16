@@ -1,4 +1,4 @@
-import logging
+import structlog
 
 from app.data import Storage
 from app.data.repository import DataRespository
@@ -9,7 +9,13 @@ from app.presentation.commands.runserver.config import parse_config
 
 def start(config_path: str):
     cfg = parse_config(config_path)
-    logging.basicConfig(level=logging.DEBUG)
+
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.dev.ConsoleRenderer(),
+        ],
+    )
 
     storage = Storage(cfg.storage)
     storage.connect()
