@@ -1,11 +1,7 @@
-import os
-import pathlib
 import unittest
 
 import structlog
-from testcontainers import postgres
 
-from app import data
 from app.data import repository
 from app.domain import model, usecases
 from app.lib import testing
@@ -16,49 +12,18 @@ log = structlog.get_logger()
 class SourcesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        port = testing.find_free_port()
-        log.info("Starting postgres container", port=port)
-        cls.postgres_container = postgres.PostgresContainer(
-            "postgres:16",
-            port=5432,
-            user="hyperleda",
-            password="password",
-            dbname="hyperleda",
-        ).with_bind_ports(5432, port)
-        cls.postgres_container.start()
+        cls.storage = testing.TestPostgresStorage("postgres/migrations")
+        cls.storage.start()
 
-        cls.storage = data.Storage(
-            data.StorageConfig(
-                endpoint="localhost",
-                port=port,
-                user="hyperleda",
-                password="password",
-                dbname="hyperleda",
-                log_enabled=False,
-            )
-        )
-        cls.storage.connect()
-        cls.run_migrations("postgres/migrations")
-
-        cls.repo = repository.DataRespository(cls.storage)
+        cls.repo = repository.DataRespository(cls.storage.get_storage())
         cls.actions = usecases.Actions(cls.repo)
 
     @classmethod
-    def run_migrations(cls, migrations_dir: str):
-        migrations = os.listdir(migrations_dir)
-        migrations.sort()
-
-        for migration_filename in migrations:
-            data = pathlib.Path(migrations_dir, migration_filename).read_text()
-            cls.storage.exec(data)
-
-    @classmethod
     def tearDownClass(cls):
-        cls.storage.disconnect()
-        cls.postgres_container.stop()
+        cls.storage.stop()
 
     def tearDown(self):
-        self.storage.exec("TRUNCATE common.bib CASCADE")
+        self.storage.clear()
 
     def test_create_one_source_success(self):
         create_response = self.actions.create_source(
