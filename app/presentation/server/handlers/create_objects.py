@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 
 from aiohttp import web
@@ -27,6 +26,4 @@ async def create_objects(actions: domain.Actions, r: web.Request) -> dict[str, A
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    response = actions.create_objects(request)
-
-    return {"data": dataclasses.asdict(response)}
+    return actions.create_objects(request)

@@ -1,4 +1,6 @@
 import dataclasses
+import datetime
+import json
 from functools import wraps
 from typing import Any, Callable
 
@@ -39,8 +41,7 @@ routes = [
     (HTTPMETHOD_GET, "/api/v1/source/list", handlers.get_source_list),
     (HTTPMETHOD_POST, "/api/v1/admin/object/batch", handlers.create_objects),
     (HTTPMETHOD_POST, "/api/v1/admin/object", handlers.create_object),
-    (HTTPMETHOD_GET, "/api/v1/object", handlers.get_object),
-    (HTTPMETHOD_GET, "/api/v1/object/search", handlers.search_objects),
+    (HTTPMETHOD_GET, "/api/v1/object/names", handlers.get_object_names),
 ]
 
 
@@ -84,12 +85,23 @@ async def exception_middleware(request: web.Request, handler: Callable[[web.Requ
     return response
 
 
+def datetime_handler(obj: Any):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+
+    raise TypeError("Unknown type")
+
+
+def custom_dumps(obj):
+    return json.dumps(obj, default=datetime_handler)
+
+
 def json_wrapper(
     actions: domain.Actions, func: Callable[[domain.Actions, web.Request], dict[str, Any]]
 ) -> Callable[[web.Request], web.Response]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(actions, request)
-        return web.json_response(response)
+        return web.json_response({"data": dataclasses.asdict(response)}, dumps=custom_dumps)
 
     return inner

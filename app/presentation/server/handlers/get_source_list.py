@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 
 from aiohttp import web
@@ -16,7 +15,7 @@ from app.presentation.model import (
 @docs(
     summary="Obtain list of sources",
     tags=["sources"],
-    description="Obtains a list of sources that satisfy given filters.",
+    description="Obtains a list of sources that satisfy given filters sorted by modification time.",
 )
 @querystring_schema(GetSourceListRequestSchema())
 @response_schema(GetSourceListResponseSchema(), 200)
@@ -26,6 +25,4 @@ async def get_source_list(actions: domain.Actions, r: web.Request) -> dict[str, 
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    response = actions.get_source_list(request)
-
-    return {"data": dataclasses.asdict(response)}
+    return actions.get_source_list(request)

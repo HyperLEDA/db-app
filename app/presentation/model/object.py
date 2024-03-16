@@ -107,44 +107,10 @@ class CreateObjectRequestSchema(Schema):
         return model.CreateObjectRequest(**data)
 
 
-class GetObjectRequestSchema(Schema):
+class GetObjectNamesRequestSchema(Schema):
     id = fields.Int(
         required=True,
         description="ID of the object in HyperLeda database",
-    )
-
-    @post_load
-    def make(self, data, **kwargs) -> model.GetObjectRequest:
-        return model.GetObjectRequest(**data)
-
-
-class GetObjectResponseSchema(Schema):
-    object = fields.Nested(
-        ObjectInfoSchema(),
-        required=True,
-        description="Description of the object",
-    )
-
-
-class SearchObjectsRequestSchema(Schema):
-    ra = fields.Float(
-        required=True,
-        description="Right ascension coordinate, degrees.",
-        validate=validate.Range(0, 360),
-    )
-    dec = fields.Float(
-        required=True,
-        description="Declination coordinate, degrees.",
-        validate=validate.Range(-90, 90),
-    )
-    radius = fields.Float(
-        description="Search radius, arseconds",
-        validate=validate.Range(0),
-        load_default=10 * 60,
-    )
-    type = fields.Str(
-        description="Type of an object",
-        validate=validate.OneOf(ALLOWED_OBJECT_TYPES),
     )
     page_size = fields.Int(
         load_default=20,
@@ -158,13 +124,15 @@ class SearchObjectsRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> model.SearchObjectsRequest:
-        return model.SearchObjectsRequest(**data)
+    def make(self, data, **kwargs) -> model.GetObjectNamesRequest:
+        return model.GetObjectNamesRequest(**data)
 
 
-class SearchObjectsResponseSchema(Schema):
-    objects = fields.List(
-        fields.Nested(ObjectInfoSchema()),
-        required=True,
-        description="List of objects that satisfy search filters",
-    )
+class ObjectNameInfoSchema(Schema):
+    name = fields.Str(description="Designation of the object")
+    source_id = fields.Str(description="ID of the source")
+    modification_time = fields.DateTime(description="Last time this name was modified")
+
+
+class GetObjectNamesResponseSchema(Schema):
+    names = fields.Nested(ObjectNameInfoSchema, description="List of names and metadata about them")

@@ -47,3 +47,11 @@ VALUES
     {% endfor %}
 """
 )
+
+GET_DESIGNATIONS = """
+SELECT design, bib, modification_time
+FROM designation.data
+WHERE pgc = %s
+OFFSET %s
+LIMIT %s
+"""

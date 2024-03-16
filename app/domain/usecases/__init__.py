@@ -6,7 +6,11 @@ from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib.exceptions import new_validation_error
+from app.lib.exceptions import (
+    new_internal_error,
+    new_not_found_error,
+    new_validation_error,
+)
 
 
 @final
@@ -80,3 +84,26 @@ class Actions(domain.Actions):
         )
 
         return domain_model.CreateObjectBatchResponse(ids)
+
+    def create_object(self, r: domain_model.CreateObjectRequest) -> domain_model.CreateObjectResponse:
+        response = self.create_objects(domain_model.CreateObjectBatchRequest(source_id=r.source_id, objects=[r.object]))
+
+        if len(response.ids) != 1:
+            raise new_internal_error(
+                f"something went wrong during object creation, created {len(response.ids)} objects"
+            )
+
+        return domain_model.CreateObjectResponse(id=response.ids[0])
+
+    def get_object_names(self, r: domain_model.GetObjectNamesRequest) -> domain_model.GetObjectNamesResponse:
+        designations = self._repo.get_designations(r.id, r.page, r.page_size)
+
+        if len(designations) == 0:
+            raise new_not_found_error("object does not exist or has no designations")
+
+        return domain_model.GetObjectNamesResponse(
+            [
+                domain_model.ObjectNameInfo(designation.design, designation.bib, designation.modification_time)
+                for designation in designations
+            ]
+        )

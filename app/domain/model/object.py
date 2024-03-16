@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 
 
@@ -19,6 +20,13 @@ class ObjectInfo:
     name: str
     type: str
     position: PositionInfo
+
+
+@dataclass
+class ObjectNameInfo:
+    name: str
+    source_id: int
+    modification_time: datetime.datetime
 
 
 @dataclass
@@ -44,25 +52,12 @@ class CreateObjectResponse:
 
 
 @dataclass
-class GetObjectRequest:
+class GetObjectNamesRequest:
     id: int
-
-
-@dataclass
-class GetObjectResponse:
-    object: ObjectInfo
-
-
-@dataclass
-class SearchObjectsRequest:
-    ra: float
-    dec: float
-    radius: float
-    type: str
     page_size: int
     page: int
 
 
 @dataclass
-class SearchObjectsResponse:
-    objects: list[ObjectInfo]
+class GetObjectNamesResponse:
+    names: list[ObjectNameInfo]

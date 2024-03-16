@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 
 from aiohttp import web
@@ -7,7 +6,6 @@ from marshmallow import ValidationError
 
 from app import domain
 from app.lib.exceptions import new_validation_error
-from app.presentation import actions
 from app.presentation.model import CreateObjectRequestSchema, CreateObjectResponseSchema
 
 
@@ -18,13 +16,11 @@ from app.presentation.model import CreateObjectRequestSchema, CreateObjectRespon
 )
 @request_schema(CreateObjectRequestSchema())
 @response_schema(CreateObjectResponseSchema(), 200)
-async def create_object(_: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def create_object(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
     request_dict = await r.json()
     try:
         request = CreateObjectRequestSchema().load(request_dict)
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    response = actions.create_object(request)
-
-    return {"data": dataclasses.asdict(response)}
+    return actions.create_object(request)

@@ -44,6 +44,11 @@ class DataRespository(data.Repository):
 
         self._storage.exec(template.NEW_DESIGNATIONS.render(objects=designations), params)
 
+    def get_designations(self, pgc: int, offset: int, limit: int) -> list[model.Designation]:
+        rows = self._storage.query(template.GET_DESIGNATIONS, [pgc, offset, limit])
+
+        return [model.Designation(**row) for row in rows]
+
     def create_coordinates(self, coordinates: list[model.CoordinateData]):
         params = []
         for coordinate in coordinates:

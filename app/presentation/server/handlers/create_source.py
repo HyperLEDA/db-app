@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 
 from aiohttp import web
@@ -24,6 +23,4 @@ async def create_source(actions: domain.Actions, r: web.Request) -> dict[str, An
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    response = actions.create_source(request)
-
-    return {"data": dataclasses.asdict(response)}
+    return actions.create_source(request)
