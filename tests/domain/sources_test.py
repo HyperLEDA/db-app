@@ -57,6 +57,9 @@ class SourcesTest(unittest.TestCase):
         cls.storage.disconnect()
         cls.postgres_container.stop()
 
+    def tearDown(self):
+        self.storage.exec("TRUNCATE common.bib CASCADE")
+
     def test_create_one_source_success(self):
         create_response = self.actions.create_source(
             model.CreateSourceRequest(
@@ -106,3 +109,33 @@ class SourcesTest(unittest.TestCase):
     def test_get_non_existent_source_id(self):
         with self.assertRaises(Exception):
             _ = self.actions.get_source(model.GetSourceRequest(id=12321))
+
+    def test_get_list_first_page_full(self):
+        for i in range(25):
+            _ = self.actions.create_source(
+                model.CreateSourceRequest(
+                    "publication",
+                    dict(
+                        bibcode=f"20{i:02d}ApJ…401L…1W", author="Test author et al.", year=2000, title="Test research"
+                    ),
+                ),
+            )
+
+        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 0))
+
+        self.assertEqual(len(result.sources), 10)
+
+    def test_get_list_second_page_not_full(self):
+        for i in range(15):
+            _ = self.actions.create_source(
+                model.CreateSourceRequest(
+                    "publication",
+                    dict(
+                        bibcode=f"20{i:02d}ApJ…402L…1W", author="Test author et al.", year=2000, title="Test research"
+                    ),
+                ),
+            )
+
+        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 1))
+
+        self.assertEqual(len(result.sources), 5)

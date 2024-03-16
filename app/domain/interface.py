@@ -9,3 +9,6 @@ class Actions(abc.ABC):
 
     def get_source(self, r: model.GetSourceRequest) -> model.GetSourceResponse:
         raise NotImplementedError()
+
+    def get_source_list(self, r: model.GetSourceListRequest) -> model.GetSourceListResponse:
+        raise NotImplementedError()

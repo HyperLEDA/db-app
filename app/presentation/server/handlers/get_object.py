@@ -22,7 +22,7 @@ async def get_object(_: domain.Actions, r: web.Request) -> dict[str, Any]:
     try:
         request = GetObjectRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
-        raise new_validation_error(str(e))
+        raise new_validation_error(str(e)) from e
 
     response = actions.get_object(request)
 

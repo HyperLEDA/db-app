@@ -26,7 +26,7 @@ async def create_objects(_: domain.Actions, r: web.Request) -> dict[str, Any]:
     try:
         request = CreateObjectBatchRequestSchema().load(request_dict)
     except ValidationError as e:
-        raise new_validation_error(str(e))
+        raise new_validation_error(str(e)) from e
 
     response = actions.create_objects(request)
 

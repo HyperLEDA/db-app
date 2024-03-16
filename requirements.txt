@@ -12,3 +12,4 @@ isort
 psycopg2
 structlog
 testcontainers-postgres
+jinja2

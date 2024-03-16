@@ -22,7 +22,7 @@ async def create_source(actions: domain.Actions, r: web.Request) -> dict[str, An
     try:
         request = CreateSourceRequestSchema().load(request_dict)
     except ValidationError as e:
-        raise new_validation_error(str(e))
+        raise new_validation_error(str(e)) from e
 
     response = actions.create_source(request)
 

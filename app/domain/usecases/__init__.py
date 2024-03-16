@@ -48,3 +48,18 @@ class Actions(domain.Actions):
             type="publication",
             metadata=dataclasses.asdict(result),
         )
+
+    def get_source_list(self, r: domain_model.GetSourceListRequest) -> domain_model.GetSourceListResponse:
+        if r.type != "publication":
+            raise NotImplementedError("source types other that 'publication' are not supported yet")
+
+        result = self._repo.get_bibliography_list(r.page * r.page_size, r.page_size)
+
+        response = [
+            domain_model.GetSourceResponse(
+                type="publication",
+                metadata=dataclasses.asdict(bib),
+            )
+            for bib in result
+        ]
+        return domain_model.GetSourceListResponse(response)
