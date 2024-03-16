@@ -1,2 +1,9 @@
 server:
   port: 8000
+
+storage:
+  endpoint: localhost
+  port: 5432
+  dbname: hyperleda
+  user: hyperleda
+  password: password

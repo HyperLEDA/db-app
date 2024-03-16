@@ -6,6 +6,13 @@ install:
 runserver:
 	$(PYTHON) main.py runserver -c configs/dev/config.yaml
 
+# starts database and applies migrations
+start-db:
+	docker compose up -d
+
+stop-db:
+	docker compose down
+
 test-all: check test
 
 test:
