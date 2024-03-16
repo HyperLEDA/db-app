@@ -17,6 +17,7 @@ class StorageConfig:
     dbname: str
     user: str
     password: str
+    log_enabled: bool = True
 
     def get_dsn(self) -> str:
         return f"postgresql://{self.endpoint}:{self.port}/{self.dbname}?user={self.user}&password={self.password}"
@@ -47,13 +48,28 @@ class Storage:
         if self.connection is not None:
             self.connection.close()
 
-    def query(self, query: str, params: list[Any]) -> list[dict[str, Any]]:
+    def exec(self, query: str, params: list[Any] | None = None):
+        cursor = self._run_query(query, params)
+        cursor.close()
+
+    def query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+        cursor = self._run_query(query, params)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        return rows
+
+    def _run_query(self, query: str, params: list[Any] | None = None) -> extras.DictCursor:
+        if params is None:
+            params = []
         if self.connection is None:
             raise RuntimeError("did not connect to database")
 
-        self.logger.info("SQL query", query=query.replace("\n", " "), args=params)
+        if self.config.log_enabled:
+            self.logger.info("SQL query", query=query.replace("\n", " "), args=params)
 
         cursor = self.connection.cursor(cursor_factory=extras.DictCursor)
+
         try:
             cursor.execute(query, params)
             self.connection.commit()
@@ -61,10 +77,7 @@ class Storage:
             self.connection.rollback()
             raise e
 
-        rows = cursor.fetchall()
-        cursor.close()
-
-        return rows
+        return cursor
 
     def query_one(self, query: str, params: list[Any]) -> dict[str, Any]:
         result = self.query(query, params)

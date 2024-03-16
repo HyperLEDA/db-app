@@ -7,7 +7,7 @@ CREATE TABLE common.pgc (id serial PRIMARY KEY);
 CREATE TABLE common.bib (
   id serial PRIMARY KEY,
   -- bibcode references the ADS database: https://ui.adsabs.harvard.edu/
-  bibcode char(19) UNIQUE,
+  bibcode text UNIQUE,
   year smallint NOT NULL,
   author text [] CHECK (
     array_length(author, 1) >= 1
