@@ -24,7 +24,7 @@ CREATE TABLE designation.data (
   pgc integer NOT NULL REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade,
   design text NOT NULL UNIQUE,
   bib integer NOT NULL REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade,
-  modification_time timestamp without time zone NOT NULL,
+  modification_time timestamp without time zone DEFAULT NOW(),
   PRIMARY KEY (pgc, design)
 );
 
@@ -34,7 +34,7 @@ CREATE TABLE designation.ambiguity (
   pgc integer NOT NULL REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade,
   design text NOT NULL,
   bib integer NOT NULL REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade,
-  modification_time timestamp without time zone NOT NULL,
+  modification_time timestamp without time zone DEFAULT NOW(),
   PRIMARY KEY (pgc, design)
 );
 
@@ -80,7 +80,7 @@ CREATE TABLE icrs.data (
   ra double precision NOT NULL,
   dec double precision NOT NULL,
   bib integer NOT NULL REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade,
-  modification_time timestamp without time zone NOT NULL,
+  modification_time timestamp without time zone DEFAULT NOW(),
   CHECK (
     ra >= 0
     and ra <= 360
@@ -110,13 +110,13 @@ CREATE TABLE icrs.dataseterr (
 CREATE TABLE icrs.obsoleted (
   bib integer NOT NULL REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade,
   renewed integer NOT NULL REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade,
-  modification_time timestamp without time zone NOT NULL
+  modification_time timestamp without time zone DEFAULT NOW()
 );
 
 CREATE TABLE icrs.excluded (
   id bigint NOT NULL REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade,
   note text NOT NULL,
-  modification_time timestamp without time zone NOT NULL
+  modification_time timestamp without time zone DEFAULT NOW()
 );
 
 CREATE VIEW icrs.list AS

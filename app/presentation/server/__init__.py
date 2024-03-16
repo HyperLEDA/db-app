@@ -75,10 +75,10 @@ async def exception_middleware(request: web.Request, handler: Callable[[web.Requ
     try:
         response = await handler(request)
     except APIException as e:
-        log.error(e)
+        log.exception(e)
         response = web.json_response(dataclasses.asdict(e), status=e.status)
     except Exception as e:
-        log.error(e)
+        log.exception(e)
         response = web.json_response(dataclasses.asdict(new_internal_error(e)), status=500)
 
     return response

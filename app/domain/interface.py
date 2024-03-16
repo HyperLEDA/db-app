@@ -12,3 +12,6 @@ class Actions(abc.ABC):
 
     def get_source_list(self, r: model.GetSourceListRequest) -> model.GetSourceListResponse:
         raise NotImplementedError()
+
+    def create_objects(self, r: model.CreateObjectBatchRequest) -> model.CreateObjectBatchResponse:
+        raise NotImplementedError()

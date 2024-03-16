@@ -7,7 +7,6 @@ from marshmallow import ValidationError
 
 from app import domain
 from app.lib.exceptions import new_validation_error
-from app.presentation import actions
 from app.presentation.model import (
     CreateObjectBatchRequestSchema,
     CreateObjectBatchResponseSchema,
@@ -21,7 +20,7 @@ from app.presentation.model import (
 )
 @request_schema(CreateObjectBatchRequestSchema())
 @response_schema(CreateObjectBatchResponseSchema(), 200)
-async def create_objects(_: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def create_objects(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
     request_dict = await r.json()
     try:
         request = CreateObjectBatchRequestSchema().load(request_dict)

@@ -16,7 +16,7 @@ class Actions(domain.Actions):
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.type != "publication":
-            raise NotImplementedError("source types other that 'publication' are not supported yet")
+            raise NotImplementedError("source types other than 'publication' are not supported yet")
 
         # TODO: this probably should be moved to API validation layer
         bibcode = r.metadata.get("bibcode")
@@ -51,7 +51,7 @@ class Actions(domain.Actions):
 
     def get_source_list(self, r: domain_model.GetSourceListRequest) -> domain_model.GetSourceListResponse:
         if r.type != "publication":
-            raise NotImplementedError("source types other that 'publication' are not supported yet")
+            raise NotImplementedError("source types other than 'publication' are not supported yet")
 
         result = self._repo.get_bibliography_list(r.page * r.page_size, r.page_size)
 
@@ -63,3 +63,20 @@ class Actions(domain.Actions):
             for bib in result
         ]
         return domain_model.GetSourceListResponse(response)
+
+    def create_objects(self, r: domain_model.CreateObjectBatchRequest) -> domain_model.CreateObjectBatchResponse:
+        # TODO: this whole method should be a single transaction. Context manager in storage?
+        ids = self._repo.create_objects(len(r.objects))
+
+        self._repo.create_designations(
+            [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
+        )
+
+        self._repo.create_coordinates(
+            [
+                data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
+                for id, obj in zip(ids, r.objects)
+            ]
+        )
+
+        return domain_model.CreateObjectBatchResponse(ids)

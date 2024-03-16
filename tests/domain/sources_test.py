@@ -139,3 +139,8 @@ class SourcesTest(unittest.TestCase):
         result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 1))
 
         self.assertEqual(len(result.sources), 5)
+
+    def test_get_list_no_sources(self):
+        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 0))
+
+        self.assertEqual(len(result.sources), 0)
