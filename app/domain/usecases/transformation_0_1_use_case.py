@@ -62,7 +62,7 @@ class TransformationO1UseCase:
         else:
             names = n_rows * [None]
         obj_ids = []
-        for i, coordinate, name in zip(list(range(0, n_rows)), coordinates, names):
+        for i, coordinate, name in zip(list(range(n_rows)), coordinates, names):
             if isinstance(coordinate, BaseException):
                 # case, where there was an error parsing coordinates, we still can make cross identification
                 cross_id_data = CrossIdentificationParam(name, None)
@@ -75,7 +75,7 @@ class TransformationO1UseCase:
         # compile objects
         models = []
         fails = pd.DataFrame(columns=data.data.columns.to_list() + ["cause"])
-        for i in range(0, n_rows):
+        for i in range(n_rows):
             coordinate, obj_id = (coordinates[i], obj_ids[i])
             if isinstance(coordinate, BaseException):
                 new_row = pd.concat([data.data.iloc[i], pd.Series({"cause": coordinate})])

@@ -1,6 +1,6 @@
 from abc import ABC
 
-from domain.usecases.exceptions import CrossIdentificationException
+from app.domain.usecases.exceptions import CrossIdentificationException
 
 
 class AbstractArgument(ABC):

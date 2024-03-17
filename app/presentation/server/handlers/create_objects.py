@@ -19,7 +19,7 @@ from app.presentation.model import (
 )
 @request_schema(CreateObjectBatchRequestSchema())
 @response_schema(CreateObjectBatchResponseSchema(), 200)
-async def create_objects(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def create_objects(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()
     try:
         request = CreateObjectBatchRequestSchema().load(request_dict)

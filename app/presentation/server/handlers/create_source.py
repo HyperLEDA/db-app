@@ -16,7 +16,7 @@ from app.presentation.model import CreateSourceRequestSchema, CreateSourceRespon
 )
 @request_schema(CreateSourceRequestSchema())
 @response_schema(CreateSourceResponseSchema(), 200)
-async def create_source(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def create_source(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()
     try:
         request = CreateSourceRequestSchema().load(request_dict)

@@ -1,3 +1,4 @@
+import dataclasses
 from dataclasses import dataclass
 
 INTERNAL_ERROR_CODE = "internal_error"
@@ -11,6 +12,12 @@ class APIException(Exception):
     code: str
     status: int
     message: str
+
+    def __str__(self) -> str:
+        return f"{self.code} (code {self.status}): {self.message}"
+
+    def dict(self) -> dict:
+        return dataclasses.asdict(self)
 
 
 def new_internal_error(error: str | Exception) -> APIException:

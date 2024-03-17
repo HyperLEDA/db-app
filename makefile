@@ -27,6 +27,13 @@ black:
 isort:
 	$(PYTHON) -m isort . --settings-path pyproject.toml
 
+mypy: mypy-app mypy-tests
+
+mypy-tests:
+	$(PYTHON) -m mypy tests --config-file pyproject.toml
+
+mypy-app:
+	$(PYTHON) -m mypy app --config-file pyproject.toml
 
 check: dryrun-black dryrun-isort
 

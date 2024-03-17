@@ -12,9 +12,7 @@ from app.domain.repositories.layer_1_repository import Layer1Repository
 from app.domain.usecases import TransformationO1UseCase
 from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.user_interaction.interaction import ResolveCoordinateParseFail
-from app.domain.user_interaction.interaction_argument import (
-    ResolveCoordinateParseFailArg,
-)
+from app.domain.user_interaction.interaction_argument import AbstractArgument
 from app.domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
@@ -23,13 +21,13 @@ from tests.domain.Transform01Test import PurposefullyFailingCrossIdentifyUseCase
 
 
 class MockedCoordinateParseFailResolver(ResolveCoordinateParseFail):
-    async def eval(self, arg: ResolveCoordinateParseFailArg) -> InteractionResult:
+    async def eval(self, arg: AbstractArgument) -> InteractionResult:
         # user always сancels the data row
         return ResolveCoordinateParseFailRes(True)
 
 
 class MockedCoordinateParseFailResolverFail(ResolveCoordinateParseFail):
-    async def eval(self, arg: ResolveCoordinateParseFailArg) -> InteractionResult:
+    async def eval(self, arg: AbstractArgument) -> InteractionResult:
         # user always сancels the data row
         return ResolveCoordinateParseFailRes(False)
 
@@ -38,7 +36,7 @@ class MockedCachingLayer0Repo(Layer0Repository):
     def __init__(self):
         self.last_saved_instances = None
 
-    def create_update_instances(self, instances: list[Layer0Model]) -> bool:
+    async def create_update_instances(self, instances: list[Layer0Model]) -> bool:
         self.last_saved_instances = instances
         return True
 
@@ -47,13 +45,15 @@ class MockedCachingLayer1Repo(Layer1Repository):
     def __init__(self):
         self.last_saved_instances = None
 
-    def get_by_name(self, name: str) -> Optional[Layer1Model]:
-        pass
+    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
+        return None
 
-    def get_inside_square(self, min_ra: float, max_ra: float, min_dec: float, max_dec: float) -> list[Layer1Model]:
-        pass
+    async def get_inside_square(
+        self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
+    ) -> list[Layer1Model]:
+        return []
 
-    def save_update_instances(self, instances: list[Layer1Model]) -> bool:
+    async def save_update_instances(self, instances: list[Layer1Model]) -> bool:
         self.last_saved_instances = instances
         return True
 

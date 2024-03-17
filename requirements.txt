@@ -13,3 +13,6 @@ psycopg2
 structlog
 testcontainers-postgres
 jinja2
+pandas-stubs
+types-pyyaml
+types-psycopg2

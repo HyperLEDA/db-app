@@ -16,7 +16,7 @@ from app.presentation.model import CreateObjectRequestSchema, CreateObjectRespon
 )
 @request_schema(CreateObjectRequestSchema())
 @response_schema(CreateObjectResponseSchema(), 200)
-async def create_object(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def create_object(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()
     try:
         request = CreateObjectRequestSchema().load(request_dict)

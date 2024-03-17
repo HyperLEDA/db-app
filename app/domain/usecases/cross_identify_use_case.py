@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.usecases.exceptions import CrossIdentificationException
 
@@ -10,10 +8,10 @@ class CrossIdentifyUseCase:
     If there is a collision, returns this collision description
     """
 
-    async def invoke(self, param: CrossIdentificationParam) -> Union[int, CrossIdentificationException]:
+    async def invoke(self, param: CrossIdentificationParam) -> int | CrossIdentificationException:
         """
         :param param: Data, used to identify object
         :return: id for this object
         """
         # TODO implement
-        pass
+        return 0

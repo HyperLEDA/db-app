@@ -52,7 +52,7 @@ class Storage:
         cursor = self._run_query(query, params)
         cursor.close()
 
-    def query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+    def query(self, query: str, params: list[Any] | None = None) -> list[extras.DictRow]:
         cursor = self._run_query(query, params)
         rows = cursor.fetchall()
         cursor.close()
@@ -79,7 +79,7 @@ class Storage:
 
         return cursor
 
-    def query_one(self, query: str, params: list[Any]) -> dict[str, Any]:
+    def query_one(self, query: str, params: list[Any]) -> extras.DictRow:
         result = self.query(query, params)
 
         if len(result) < 1:

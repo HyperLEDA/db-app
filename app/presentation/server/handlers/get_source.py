@@ -16,7 +16,7 @@ from app.presentation.model import GetSourceRequestSchema, GetSourceResponseSche
 )
 @querystring_schema(GetSourceRequestSchema())
 @response_schema(GetSourceResponseSchema(), 200)
-async def get_source(actions: domain.Actions, r: web.Request) -> dict[str, Any]:
+async def get_source(actions: domain.Actions, r: web.Request) -> Any:
     try:
         request = GetSourceRequestSchema().load(r.rel_url.query)
     except ValidationError as e:

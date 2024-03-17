@@ -1,14 +1,7 @@
 from abc import ABC, abstractmethod
 
-from .interaction_argument import (
-    AbstractArgument,
-    ResolveCoordinateParseFailArg,
-    ResolveCrossIdentificationCollisionInteractionArg,
-)
-from .interaction_result import (
-    InteractionResult,
-    ResolveCrossIdentificationCollisionInteractionRes,
-)
+from .interaction_argument import AbstractArgument
+from .interaction_result import InteractionResult
 
 
 class AbstractInteraction(ABC):
@@ -24,12 +17,12 @@ class AbstractInteraction(ABC):
 
 class ResolveCrossIdentificationCollisionInteraction(AbstractInteraction):
     @abstractmethod
-    async def eval(self) -> ResolveCrossIdentificationCollisionInteractionRes:
+    async def eval(self, arg: AbstractArgument) -> InteractionResult:
         # TODO implement
         pass
 
 
 class ResolveCoordinateParseFail(AbstractInteraction):
     @abstractmethod
-    async def eval(self, arg: ResolveCoordinateParseFailArg) -> InteractionResult:
+    async def eval(self, arg: AbstractArgument) -> InteractionResult:
         pass

@@ -1,5 +1,6 @@
-from astropy.units import Quantity
-from pandas import DataFrame, Series
+from typing import Sequence
+
+from pandas import DataFrame
 
 from .value_descr import ValueDescr
 
@@ -14,5 +15,5 @@ class NoErrorValue(ValueDescr):
 
         self._column_name: str = column_name
 
-    def parse_values(self, data: DataFrame) -> Series:
+    def parse_values(self, data: DataFrame) -> Sequence:
         return self._parse_column(data)

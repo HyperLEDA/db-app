@@ -51,7 +51,7 @@ class ValueDescr(ABC):
         return self._units
 
     def _parse_column(self, data: DataFrame) -> Sequence:
-        col: Series = data.get(self._column_name)
+        col: Series | None = data.get(self._column_name)
         unit = Unit(self.units)
 
         if col is None:

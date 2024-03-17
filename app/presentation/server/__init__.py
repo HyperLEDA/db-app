@@ -2,13 +2,11 @@ import dataclasses
 import datetime
 import json
 from functools import wraps
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
+import aiohttp_apispec
 import structlog
-from aiohttp import web
-from aiohttp.abc import AbstractAccessLogger
-from aiohttp.web import middleware
-from aiohttp_apispec import setup_aiohttp_apispec
+from aiohttp import abc, web
 from marshmallow import Schema, fields, post_load
 
 from app import domain
@@ -51,13 +49,17 @@ def start(config: ServerConfig, actions: domain.Actions):
     for method, path, func in routes:
         app.router.add_route(method, path, json_wrapper(actions, func))
 
-    setup_aiohttp_apispec(app=app, title="API specification for HyperLeda", swagger_path="/api/docs")
+    aiohttp_apispec.setup_aiohttp_apispec(
+        app=app,
+        title="API specification for HyperLeda",
+        swagger_path="/api/docs",
+    )
 
     web.run_app(app, port=config.port, access_log_class=AccessLogger)
 
 
-class AccessLogger(AbstractAccessLogger):
-    def log(self, request: web.Request, response: web.Response, time):
+class AccessLogger(abc.AbstractAccessLogger):
+    def log(self, request: web.BaseRequest, response: web.StreamResponse, time: float) -> None:
         log.info(
             "request",
             method=request.method,
@@ -71,16 +73,19 @@ class AccessLogger(AbstractAccessLogger):
         )
 
 
-@middleware
-async def exception_middleware(request: web.Request, handler: Callable[[web.Request], web.Response]) -> web.Response:
+@web.middleware
+async def exception_middleware(
+    request: web.Request, handler: Callable[[web.Request], Awaitable[web.StreamResponse]]
+) -> web.StreamResponse:
     try:
         response = await handler(request)
     except APIException as e:
-        log.exception(e)
-        response = web.json_response(dataclasses.asdict(e), status=e.status)
+        log.exception(str(e))
+        response = web.json_response(e.dict(), status=e.status)
     except Exception as e:
-        log.exception(e)
-        response = web.json_response(dataclasses.asdict(new_internal_error(e)), status=500)
+        exc = new_internal_error(e)
+        log.exception(str(exc))
+        response = web.json_response(exc.dict(), status=500)
 
     return response
 
@@ -97,8 +102,8 @@ def custom_dumps(obj):
 
 
 def json_wrapper(
-    actions: domain.Actions, func: Callable[[domain.Actions, web.Request], dict[str, Any]]
-) -> Callable[[web.Request], web.Response]:
+    actions: domain.Actions, func: Callable[[domain.Actions, web.Request], Any]
+) -> Callable[[web.Request], Awaitable[web.Response]]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(actions, request)

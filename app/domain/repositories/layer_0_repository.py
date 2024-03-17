@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from domain.model import Layer0Model
+from app.domain.model import Layer0Model
 
 
 class Layer0Repository(ABC):

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from domain.model import Layer1Model
+from app.domain.model import Layer1Model
 
 
 class Layer1Repository(ABC):

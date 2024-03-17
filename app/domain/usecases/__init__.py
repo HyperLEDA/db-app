@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 from typing import final
 
 from app import data, domain
@@ -103,7 +104,11 @@ class Actions(domain.Actions):
 
         return domain_model.GetObjectNamesResponse(
             [
-                domain_model.ObjectNameInfo(designation.design, designation.bib, designation.modification_time)
+                domain_model.ObjectNameInfo(
+                    designation.design,
+                    designation.bib,
+                    designation.modification_time or datetime.datetime.now(),
+                )
                 for designation in designations
             ]
         )

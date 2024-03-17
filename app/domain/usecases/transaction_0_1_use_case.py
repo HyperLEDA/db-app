@@ -63,9 +63,6 @@ class Transaction01UseCase:
                 # process user action
                 if not res.is_cancelled:
                     raise fail["cause"]
-                else:
-                    # user cancelled this row
-                    pass
 
         updated_source, updated_models = self._update_update_time(data, models)
         await self._write_transformed_data_to_db(updated_models)

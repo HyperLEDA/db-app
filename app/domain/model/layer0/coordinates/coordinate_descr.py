@@ -12,11 +12,11 @@ class CoordinateDescr(ABC):
     Class, responsible to parse coordinates of certain types
     """
 
-    def __init__(self, *col_names):
+    def __init__(self, *col_names: str):
         """
         :param col_names: Names of columns, used to make coordinates
         """
-        self._col_names: tuple[str] = list(col_names)
+        self._col_names: list[str] = list(col_names)
 
     def parse_coordinates(self, data: DataFrame) -> Sequence[Union[SkyCoord, ValueError]]:
         try:
