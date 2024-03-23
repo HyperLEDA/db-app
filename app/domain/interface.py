@@ -21,3 +21,6 @@ class Actions(abc.ABC):
 
     def get_object_names(self, r: model.GetObjectNamesRequest) -> model.GetObjectNamesResponse:
         raise NotImplementedError("not implemented")
+
+    def search_catalogs(self, r: model.SearchCatalogsRequest) -> model.SearchCatalogsResponse:
+        raise NotImplementedError("not implemented")

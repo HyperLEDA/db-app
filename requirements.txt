@@ -1,4 +1,5 @@
 astropy
+astroquery
 pandas
 aiohttp
 aiohttp_apispec
@@ -16,3 +17,4 @@ jinja2
 pandas-stubs
 types-pyyaml
 types-psycopg2
+pytest

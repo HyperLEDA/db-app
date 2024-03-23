@@ -2,6 +2,9 @@ import dataclasses
 import datetime
 from typing import final
 
+import structlog
+from astroquery.vizier import Vizier
+
 from app import data, domain
 from app.data import model as data_model
 from app.domain import model as domain_model
@@ -12,6 +15,8 @@ from app.lib.exceptions import (
     new_not_found_error,
     new_validation_error,
 )
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @final
@@ -112,3 +117,56 @@ class Actions(domain.Actions):
                 for designation in designations
             ]
         )
+
+    def search_catalogs(self, r: domain_model.SearchCatalogsRequest) -> domain_model.SearchCatalogsResponse:
+        catalogs = Vizier.find_catalogs(r.query)
+
+        catalogs_info = []
+        for catalog_key, catalog_info in catalogs.items():
+            url = ""
+            bibcode = ""
+
+            try:
+                # TODO: this is a clutch, need to find a way to get catalog name reasonably
+                catalog_name = "/".join(catalog_key.split("/")[:-1])
+                catalog = Vizier.get_catalog_metadata(catalog=catalog_name)
+                try:
+                    url = catalog["webpage"][0]
+                except KeyError:
+                    log.warn("unable to find webpage in catalog meta", catalog=catalog_name)
+
+                try:
+                    bibcode = catalog["origin_article"][0]
+                except KeyError:
+                    log.warn("unable to find origin_article in catalog meta", catalog=catalog_name)
+
+            except IndexError:
+                log.warn("unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
+
+            tables = []
+
+            for table in catalog_info.tables:
+                fields = []
+
+                for field in table.fields:
+                    fields.append(domain_model.Field(field.ID, field.description, str(field.unit)))
+
+                tables.append(
+                    domain_model.Table(
+                        id=table.ID,
+                        num_rows=table.nrows,
+                        fields=fields,
+                    )
+                )
+
+            catalogs_info.append(
+                domain_model.Catalog(
+                    id=catalog_key,
+                    description=catalog_info.description,
+                    url=url,
+                    bibcode=bibcode,
+                    tables=tables,
+                )
+            )
+
+        return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)

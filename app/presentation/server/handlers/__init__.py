@@ -5,3 +5,4 @@ from app.presentation.server.handlers.get_object_names import get_object_names
 from app.presentation.server.handlers.get_source import get_source
 from app.presentation.server.handlers.get_source_list import get_source_list
 from app.presentation.server.handlers.ping import ping
+from app.presentation.server.handlers.pipeline.search_catalogs import search_catalogs
