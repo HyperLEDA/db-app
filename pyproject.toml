@@ -1,8 +1,23 @@
+[tool.pylint.messages_control]
+max-line-length = 120
+disable = [
+    "duplicate-code",
+    "missing-docstring",
+    "missing-class-docstring",
+    "missing-module-docstring",
+    "too-few-public-methods",
+    "too-many-branches",
+    "too-many-locals",
+    "too-many-instance-attributes",
+    "fixme",
+    "unused-argument",
+    "function-redefined",
+    "abstract-class-instantiated",
+]
+
 [tool.pytest.ini_options]
 addopts = "-W ignore::DeprecationWarning"
-testpaths = [
-    "tests"
-]
+testpaths = ["tests"]
 
 [tool.black]
 line-length = 120
@@ -20,4 +35,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "aiohttp_apispec.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "astroquery.*"
 ignore_missing_imports = true

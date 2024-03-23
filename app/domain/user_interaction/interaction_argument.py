@@ -9,7 +9,7 @@ class AbstractArgument(ABC):
 
 class ResolveCrossIdentificationCollisionInteractionArg(AbstractArgument):
     def __init__(self, cross_identification_fail: CrossIdentificationException):
-        self.cross_Identification_fail: CrossIdentificationException = cross_identification_fail
+        self.cross_identification_fail: CrossIdentificationException = cross_identification_fail
 
 
 class ResolveCoordinateParseFailArg(AbstractArgument):

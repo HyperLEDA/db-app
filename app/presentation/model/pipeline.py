@@ -25,9 +25,10 @@ class FieldSchema(Schema):
 class TableSchema(Schema):
     id = fields.Str(description="Table id")
     num_rows = fields.Int(description="Number of rows in the table")
-    fields = fields.List(
+    fields_data = fields.List(
         fields.Nested(FieldSchema),
         description="List of fields in the table with their metadata",
+        data_key="fields",
     )
 
 

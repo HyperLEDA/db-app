@@ -29,7 +29,7 @@ class SourcesTest(unittest.TestCase):
         create_response = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                dict(bibcode="1992ApJ…400L…1W", author="Test author et al.", year=2000, title="Test research"),
+                {"bibcode": "1992ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
             ),
         )
         get_response = self.actions.get_source(model.GetSourceRequest(id=create_response.id))
@@ -51,7 +51,7 @@ class SourcesTest(unittest.TestCase):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     "publication",
-                    dict(author="Test author et al."),
+                    {"author": "Test author et al."},
                 ),
             )
 
@@ -59,7 +59,7 @@ class SourcesTest(unittest.TestCase):
         _ = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                dict(bibcode="2000ApJ…400L…1W", author="Test author et al.", year=2000, title="Test research"),
+                {"bibcode": "2000ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
             ),
         )
 
@@ -67,7 +67,12 @@ class SourcesTest(unittest.TestCase):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     "publication",
-                    dict(bibcode="2000ApJ…400L…1W", author="Test author et al.", year=2000, title="Test research"),
+                    {
+                        "bibcode": "2000ApJ…400L…1W",
+                        "author": "Test author et al.",
+                        "year": 2000,
+                        "title": "Test research",
+                    },
                 ),
             )
 
@@ -80,9 +85,12 @@ class SourcesTest(unittest.TestCase):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     "publication",
-                    dict(
-                        bibcode=f"20{i:02d}ApJ…401L…1W", author="Test author et al.", year=2000, title="Test research"
-                    ),
+                    {
+                        "bibcode": f"20{i:02d}ApJ…401L…1W",
+                        "author": "Test author et al.",
+                        "year": 2000,
+                        "title": "Test research",
+                    },
                 ),
             )
 
@@ -95,9 +103,12 @@ class SourcesTest(unittest.TestCase):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     "publication",
-                    dict(
-                        bibcode=f"20{i:02d}ApJ…402L…1W", author="Test author et al.", year=2000, title="Test research"
-                    ),
+                    {
+                        "bibcode": f"20{i:02d}ApJ…402L…1W",
+                        "author": "Test author et al.",
+                        "year": 2000,
+                        "title": "Test research",
+                    },
                 ),
             )
 

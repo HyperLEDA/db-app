@@ -22,7 +22,7 @@ class CoordinateDescr(ABC):
         try:
             col = data[self._col_names]
         except KeyError as e:
-            raise ColumnNotFoundException(list(set(self._col_names) - set(data.columns.values)), cause=e)
+            raise ColumnNotFoundException(list(set(self._col_names) - set(data.columns.values)), cause=e) from e
 
         return col.apply(self.__parse_row, axis=1)
 
@@ -43,4 +43,3 @@ class CoordinateDescr(ABC):
         :param data: Collection of values from table row, order is as specified in column_names in constructor
         :return: Parsed coordinates
         """
-        pass

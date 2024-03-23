@@ -22,8 +22,8 @@ class DataRespository(data.Repository):
 
         return result.get("id")
 
-    def get_bibliography(self, id: int) -> model.Bibliography:
-        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, [id])
+    def get_bibliography(self, bibliography_id: int) -> model.Bibliography:
+        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, [bibliography_id])
 
         return model.Bibliography(**row)
 

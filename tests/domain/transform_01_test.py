@@ -47,7 +47,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None,
+                name_col=None,
                 dataset=None,
                 comment=None,
                 biblio=None,
@@ -64,7 +64,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
         stages = []
 
-        models, fails = await self.transformation_use_case.invoke(data, lambda stage: stages.append(stage))
+        models, fails = await self.transformation_use_case.invoke(data, stages.append)
 
         self.assertEqual(
             [
@@ -89,7 +89,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None,
+                name_col=None,
                 dataset=None,
                 comment=None,
                 biblio=None,
@@ -120,7 +120,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        models, fails = await self.transformation_use_case.invoke(data)
+        _, fails = await self.transformation_use_case.invoke(data)
         self.assertEqual(len(fails), 2)
         self.assertEqual(6, fails["speed_col"][1])
         self.assertIsInstance(fails["cause"][0], ValueError)
@@ -135,7 +135,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol="names_col",
+                name_col="names_col",
                 dataset=None,
                 comment=None,
                 biblio=None,
@@ -168,9 +168,9 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
         )
 
         transaction_use_case = TransformationO1UseCase(
-            PurposefullyFailingCrossIdentifyUseCase(lambda el: el.name == "fail" or el.name == "fail2")
+            PurposefullyFailingCrossIdentifyUseCase(lambda el: el.name in {"fail", "fail2"})
         )
-        models, fails = await transaction_use_case.invoke(data)
+        _, fails = await transaction_use_case.invoke(data)
         self.assertEqual(len(fails), 2)
         self.assertIsInstance(fails["cause"][0], CrossIdentificationException)
         self.assertIsInstance(fails["cause"][1], CrossIdentificationException)

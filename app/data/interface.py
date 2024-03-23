@@ -7,7 +7,7 @@ class Repository(abc.ABC):
     def create_bibliography(self, bibliography: model.Bibliography):
         raise NotImplementedError("not implemented")
 
-    def get_bibliography(self, id: int) -> model.Bibliography:
+    def get_bibliography(self, bibliography_id: int) -> model.Bibliography:
         raise NotImplementedError("not implemented")
 
     def get_bibliography_list(self, offset: int, limit: int) -> list[model.Bibliography]:

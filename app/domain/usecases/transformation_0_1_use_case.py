@@ -55,10 +55,10 @@ class TransformationO1UseCase:
         values = [vd.parse_values(data.data) for vd in data.meta.value_descriptions]
 
         # cross identification
-        if data.meta.nameCol is not None:
-            names = data.data.get(data.meta.nameCol)
+        if data.meta.name_col is not None:
+            names = data.data.get(data.meta.name_col)
             if names is None:
-                raise ColumnNotFoundException([data.meta.nameCol])
+                raise ColumnNotFoundException([data.meta.name_col])
         else:
             names = n_rows * [None]
         obj_ids = []
@@ -89,8 +89,8 @@ class TransformationO1UseCase:
 
             model = Layer1Model(
                 id=uuid.uuid4().int,
-                objectId=obj_id,
-                sourceId=data.id,
+                object_id=obj_id,
+                source_id=data.id,
                 processed=False,
                 coordinates=coordinate,
                 name=names[i],

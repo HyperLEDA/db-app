@@ -13,8 +13,8 @@ class Layer1Model:
     Data model for layer 1 data. Represents one observation of concrete object
     Args:
         id: This observation id
-        objectId: id of this object (e.g. galaxy)
-        sourceId: Layer0Model id, from where this data came
+        object_id: id of this object (e.g. galaxy)
+        source_id: Layer0Model id, from where this data came
         processed: True, if object processed, and data transformed further. False if not transformed, or changed after
             last transformation
         coordinates: SkyCoord frame in 'icrs'. Fully describes position on sky
@@ -24,8 +24,8 @@ class Layer1Model:
     """
 
     id: int
-    objectId: int
-    sourceId: int
+    object_id: int
+    source_id: int
     processed: bool
     coordinates: Optional[SkyCoord]
     name: Optional[str]

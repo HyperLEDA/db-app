@@ -11,14 +11,14 @@ from app.domain.usecases import Actions
 
 @dataclass
 class FieldStub:
-    ID: str
+    ID: str  # pylint: disable=invalid-name
     description: str
     unit: str
 
 
 @dataclass
 class TableStub:
-    ID: str
+    ID: str  # pylint: disable=invalid-name
     nrows: int
     fields: list
 
