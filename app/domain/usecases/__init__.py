@@ -141,7 +141,7 @@ class Actions(domain.Actions):
                     log.warn("unable to find origin_article in catalog meta", catalog=catalog_name)
 
             except IndexError:
-                log.warn("was unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
+                log.warn("unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
 
             tables = []
 
