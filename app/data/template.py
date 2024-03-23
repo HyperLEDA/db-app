@@ -3,15 +3,15 @@ import jinja2
 # TODO: make a unified way for querying with templates
 
 ONE_BIBLIOGRAPHY = """
-SELECT id, bibcode, year, author, title FROM common.bib 
+SELECT id, bibcode, year, author, title FROM common.bib
 WHERE id = %s
 """
 
 
 BIBLIOGRAPHY_TEMPLATE = """
-SELECT 
-    id, bibcode, year, author, title 
-FROM common.bib 
+SELECT
+    id, bibcode, year, author, title
+FROM common.bib
 WHERE
     1 = 1
 ORDER BY modification_time DESC
@@ -22,7 +22,7 @@ LIMIT %s
 
 NEW_OBJECTS = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
     """
-INSERT INTO common.pgc 
+INSERT INTO common.pgc
 VALUES {% for _ in range(n) %}(DEFAULT){% if not loop.last %},{% endif %}{% endfor %}
 RETURNING id;
 """

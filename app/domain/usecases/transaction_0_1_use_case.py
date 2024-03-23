@@ -51,7 +51,7 @@ class Transaction01UseCase:
         else:
             models, fails = await self._transformation_use_case.invoke(data)
         # process fails by user interaction
-        for i, fail in fails.iterrows():
+        for _, fail in fails.iterrows():
             if isinstance(fail["cause"], CrossIdentificationException):
                 # TODO implement
                 pass

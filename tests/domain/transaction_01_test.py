@@ -1,5 +1,5 @@
 import unittest
-from typing import Optional, Union
+from typing import Optional
 
 from pandas import DataFrame
 
@@ -17,7 +17,7 @@ from app.domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
 )
-from tests.domain.Transform01Test import PurposefullyFailingCrossIdentifyUseCase
+from tests.domain.transform_01_test import PurposefullyFailingCrossIdentifyUseCase
 
 
 class MockedCoordinateParseFailResolver(ResolveCoordinateParseFail):
@@ -39,6 +39,12 @@ class MockedCachingLayer0Repo(Layer0Repository):
     async def create_update_instances(self, instances: list[Layer0Model]) -> bool:
         self.last_saved_instances = instances
         return True
+
+    async def create_instances(self, instances: list[Layer0Model]):
+        """
+        Used to create instances, fails on conflict
+        :param instances:
+        """
 
 
 class MockedCachingLayer1Repo(Layer1Repository):
@@ -74,7 +80,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None,
+                name_col=None,
                 dataset=None,
                 comment=None,
                 biblio=None,
@@ -119,7 +125,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                nameCol=None,
+                name_col=None,
                 dataset=None,
                 comment=None,
                 biblio=None,
@@ -143,6 +149,6 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
             transformation_use_case, l0_repo, l1_repo, MockedCoordinateParseFailResolverFail()
         )
         with self.assertRaises(BaseException) as scope:
-            res = await transaction_use_case.invoke(data)
+            _ = await transaction_use_case.invoke(data)
         # Coordinate parse fail must result in ValueError
         self.assertIsInstance(scope.exception, ValueError)

@@ -15,15 +15,18 @@ stop-db:
 
 ## Testing
 
-test: dryrun-black dryrun-isort test-unit
+test: dryrun-black dryrun-isort pylint test-unit
 
-test-all: dryrun-black dryrun-isort test-unit test-integration
+test-all: dryrun-black dryrun-isort pylint test-unit test-integration
 
 dryrun-black:
 	$(PYTHON) -m black . --config pyproject.toml --check
 
 dryrun-isort:
 	$(PYTHON) -m isort . --settings-path pyproject.toml --check-only
+
+pylint:
+	$(PYTHON) -m pylint . --recursive true --rcfile pyproject.toml
 
 test-unit: # we use pytest to run unittest test cases
 	$(PYTHON) -m pytest --config-file=pyproject.toml --ignore=tests/integration
