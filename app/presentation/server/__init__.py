@@ -18,14 +18,18 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 HTTPMETHOD_GET = "GET"
 HTTPMETHOD_POST = "POST"
 
+SWAGGER_UI_URL = "/api/docs"
+
 
 @dataclasses.dataclass
 class ServerConfig:
     port: int
+    host: str
 
 
 class ServerConfigSchema(Schema):
     port = fields.Int(required=True)
+    host = fields.Str(required=True)
 
     @post_load
     def make(self, data, **kwargs):
@@ -40,6 +44,7 @@ routes = [
     (HTTPMETHOD_POST, "/api/v1/admin/object/batch", handlers.create_objects),
     (HTTPMETHOD_POST, "/api/v1/admin/object", handlers.create_object),
     (HTTPMETHOD_GET, "/api/v1/object/names", handlers.get_object_names),
+    (HTTPMETHOD_GET, "/api/v1/pipeline/catalogs", handlers.search_catalogs),
 ]
 
 
@@ -52,7 +57,13 @@ def start(config: ServerConfig, actions: domain.Actions):
     aiohttp_apispec.setup_aiohttp_apispec(
         app=app,
         title="API specification for HyperLeda",
-        swagger_path="/api/docs",
+        swagger_path=SWAGGER_UI_URL,
+    )
+
+    log.info(
+        "starting server",
+        url=f"{config.host}:{config.port}",
+        swagger_ui=f"{config.host}:{config.port}{SWAGGER_UI_URL}",
     )
 
     web.run_app(app, port=config.port, access_log_class=AccessLogger)
