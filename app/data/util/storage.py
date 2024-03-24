@@ -1,5 +1,3 @@
-from typing import Self
-
 import psycopg
 
 
@@ -9,7 +7,7 @@ class _TransactionHolder:
         self.connection = connection
         self.is_created = tx is None
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> '_TransactionHolder':
         if self.is_created:
             self.tx = self.connection.transaction()
             self.tx.__enter__()
