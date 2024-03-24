@@ -17,6 +17,10 @@ CREATE TABLE common.bib (
   modification_time timestamp without time zone DEFAULT NOW()
 );
 
+-------- Raw data ------------
+
+CREATE SCHEMA rawdata;
+
 -------- Designation ------------
 CREATE SCHEMA designation;
 

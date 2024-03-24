@@ -32,7 +32,7 @@ test-unit: # we use pytest to run unittest test cases
 	$(PYTHON) -m pytest --config-file=pyproject.toml --ignore=tests/integration
 
 test-integration:
-	$(PYTHON) -m pytest --config-file=pyproject.toml
+	$(PYTHON) -m pytest --config-file=pyproject.toml tests/integration
 
 mypy: mypy-app mypy-tests
 

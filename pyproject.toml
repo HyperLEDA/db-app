@@ -13,6 +13,7 @@ disable = [
     "unused-argument",
     "function-redefined",
     "abstract-class-instantiated",
+    "no-member",
 ]
 
 [tool.pytest.ini_options]

@@ -170,3 +170,19 @@ class Actions(domain.Actions):
             )
 
         return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)
+
+    def choose_table(self, r: domain_model.ChooseTableRequest) -> domain_model.ChooseTableResponse:
+        catalogs = Vizier.get_catalogs(r.catalog_id)
+
+        for catalog in catalogs:
+            try:
+                name = catalog.meta["name"]
+            except KeyError:
+                continue
+
+            if name != r.table_id:
+                continue
+
+            log.info(catalog)
+
+        return domain_model.ChooseTableResponse(123)

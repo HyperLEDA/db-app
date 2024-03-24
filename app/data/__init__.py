@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Any
 
-import psycopg2
+import psycopg
 import structlog
 from marshmallow import Schema, fields, post_load
-from psycopg2 import extras
+from psycopg import rows
 
 from app.data.interface import Repository
 from app.lib.exceptions import new_database_error
@@ -42,24 +42,13 @@ class Storage:
         self.logger = structlog.get_logger()
 
     def connect(self):
-        self.connection = psycopg2.connect(self.config.get_dsn())
+        self.connection = psycopg.connect(self.config.get_dsn(), row_factory=rows.dict_row, autocommit=True)
 
     def disconnect(self):
         if self.connection is not None:
             self.connection.close()
 
-    def exec(self, query: str, params: list[Any] | None = None):
-        cursor = self._run_query(query, params)
-        cursor.close()
-
-    def query(self, query: str, params: list[Any] | None = None) -> list[extras.DictRow]:
-        cursor = self._run_query(query, params)
-        rows = cursor.fetchall()
-        cursor.close()
-
-        return rows
-
-    def _run_query(self, query: str, params: list[Any] | None = None) -> extras.DictCursor:
+    def exec(self, query: str, params: list[Any] | None = None) -> None:
         if params is None:
             params = []
         if self.connection is None:
@@ -68,18 +57,29 @@ class Storage:
         if self.config.log_enabled:
             self.logger.info("SQL query", query=query.replace("\n", " "), args=params)
 
-        cursor = self.connection.cursor(cursor_factory=extras.DictCursor)
+        cursor = self.connection.cursor()
 
-        try:
+        with self.connection.transaction():
             cursor.execute(query, params)
-            self.connection.commit()
-        except Exception as e:
-            self.connection.rollback()
-            raise e
 
-        return cursor
+    def query(self, query: str, params: list[Any] | None = None) -> list[rows.DictRow]:
+        if params is None:
+            params = []
+        if self.connection is None:
+            raise RuntimeError("did not connect to database")
 
-    def query_one(self, query: str, params: list[Any]) -> extras.DictRow:
+        if self.config.log_enabled:
+            self.logger.info("SQL query", query=query.replace("\n", " "), args=params)
+
+        cursor = self.connection.cursor()
+
+        with self.connection.transaction():
+            cursor.execute(query, params)
+            result_rows = cursor.fetchall()
+
+        return result_rows
+
+    def query_one(self, query: str, params: list[Any]) -> rows.DictRow:
         result = self.query(query, params)
 
         if len(result) < 1:
