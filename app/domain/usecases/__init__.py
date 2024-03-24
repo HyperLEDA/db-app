@@ -75,19 +75,21 @@ class Actions(domain.Actions):
         return domain_model.GetSourceListResponse(response)
 
     def create_objects(self, r: domain_model.CreateObjectBatchRequest) -> domain_model.CreateObjectBatchResponse:
-        # TODO: this whole method should be a single transaction. Context manager in storage?
-        ids = self._repo.create_objects(len(r.objects))
+        with self._repo.with_tx() as tx:
+            ids = self._repo.create_objects(len(r.objects), tx)
 
-        self._repo.create_designations(
-            [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
-        )
+            self._repo.create_designations(
+                [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
+                tx,
+            )
 
-        self._repo.create_coordinates(
-            [
-                data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
-                for id, obj in zip(ids, r.objects)
-            ]
-        )
+            self._repo.create_coordinates(
+                [
+                    data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
+                    for id, obj in zip(ids, r.objects)
+                ],
+                tx,
+            )
 
         return domain_model.CreateObjectBatchResponse(ids)
 
