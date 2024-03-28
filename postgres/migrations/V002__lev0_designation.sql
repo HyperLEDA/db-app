@@ -95,13 +95,13 @@ CREATE TABLE designation.acronym (
 ) ;
 
 CREATE TABLE designation.synonym (
-  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE commit
+  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
 , analog	text	NOT NULL	UNIQUE
 , PRIMARY KEY (acronym,analog)
 ) ;
 
 CREATE TABLE designation.acronymref (
-  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE commit
+  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
 , bib	integer	NOT NULL	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
 , PRIMARY KEY (acronym,bib)
 ) ;
