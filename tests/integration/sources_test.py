@@ -15,7 +15,7 @@ class SourcesTest(unittest.TestCase):
         cls.storage = testing.TestPostgresStorage("postgres/migrations")
         cls.storage.start()
 
-        cls.repo = repository.DataRespository(cls.storage.get_storage())
+        cls.repo = repository.DataRepository(cls.storage.get_storage())
         cls.actions = usecases.Actions(cls.repo)
 
     @classmethod

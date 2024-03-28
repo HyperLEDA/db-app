@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import psycopg
 import structlog
 from marshmallow import Schema, fields, post_load
 from psycopg import rows
+from psycopg.types import numeric
 
 from app.data.util import storage as storageutils
-from app.lib.exceptions import new_database_error
+from app.lib.exceptions import new_database_error, new_internal_error
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -38,15 +40,37 @@ class StorageConfigSchema(Schema):
         return StorageConfig(**data)
 
 
+class NumpyFloatDumper(numeric.FloatDumper):
+    def dump(self, obj: Any) -> bytes | bytearray | memoryview:
+        return super().dump(float(obj))
+
+
+class NumpyIntDumper(numeric.IntDumper):
+    def dump(self, obj: Any) -> bytes | bytearray | memoryview:
+        return super().dump(int(obj))
+
+
 class Storage:
     def __init__(self, config: StorageConfig) -> None:
         self._config = config
-        self._connection = None
+        self._connection: psycopg.Connection | None = None
 
     def connect(self) -> None:
         self._connection = psycopg.connect(self._config.get_dsn(), row_factory=rows.dict_row, autocommit=True)
+        if self._connection is None:
+            raise new_internal_error("unable to create database connection")
+
+        self._connection.adapters.register_dumper(np.float16, NumpyFloatDumper)
+        self._connection.adapters.register_dumper(np.float32, NumpyFloatDumper)
+        self._connection.adapters.register_dumper(np.float64, NumpyFloatDumper)
+        self._connection.adapters.register_dumper(np.int16, NumpyIntDumper)
+        self._connection.adapters.register_dumper(np.int32, NumpyIntDumper)
+        self._connection.adapters.register_dumper(np.int64, NumpyIntDumper)
 
     def with_tx(self) -> psycopg.Transaction:
+        if self._connection is None:
+            raise RuntimeError("did not connect to database")
+
         return self._connection.transaction()
 
     def disconnect(self) -> None:

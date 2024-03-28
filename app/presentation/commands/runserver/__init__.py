@@ -1,7 +1,7 @@
 import structlog
 
 from app.data import Storage
-from app.data.repository import DataRespository
+from app.data.repository import DataRepository
 from app.domain import usecases
 from app.presentation import server
 from app.presentation.commands.runserver.config import parse_config
@@ -20,7 +20,7 @@ def start(config_path: str):
     storage = Storage(cfg.storage)
     storage.connect()
 
-    repo = DataRespository(storage)
+    repo = DataRepository(storage)
     actions = usecases.Actions(repo)
 
     server.start(cfg.server, actions)

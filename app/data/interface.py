@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 
 import psycopg
 
@@ -32,4 +33,14 @@ class Repository(abc.ABC):
         raise NotImplementedError("not implemented")
 
     def create_coordinates(self, coordinates: list[model.CoordinateData], tx: psycopg.Transaction | None = None):
+        raise NotImplementedError("not implemented")
+
+    def create_table(
+        self, schema: str, name: str, fields: list[tuple[str, str]], tx: psycopg.Transaction | None = None
+    ):
+        raise NotImplementedError("not implemented")
+
+    def insert_raw_data(
+        self, schema: str, table_name: str, raw_data: list[dict[str, Any]], tx: psycopg.Transaction | None = None
+    ) -> None:
         raise NotImplementedError("not implemented")

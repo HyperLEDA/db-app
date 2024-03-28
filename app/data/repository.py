@@ -1,14 +1,17 @@
-from typing import final
+from typing import Any, final
 
 import psycopg
+import structlog
 
 from app import data
 from app.data import model, template
 
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
 
 @final
-class DataRespository(data.Repository):
-    def __init__(self, storage: data.Storage):
+class DataRepository(data.Repository):
+    def __init__(self, storage: data.Storage) -> None:
         self._storage = storage
 
     def with_tx(self) -> psycopg.Transaction:
@@ -46,9 +49,9 @@ class DataRespository(data.Repository):
         query = template.NEW_OBJECTS.render(n=n)
         rows = self._storage.query(query, [], tx)
 
-        return [row.get("id") for row in rows]
+        return [int(row.get("id")) for row in rows]
 
-    def create_designations(self, designations: list[model.Designation], tx: psycopg.Transaction | None = None):
+    def create_designations(self, designations: list[model.Designation], tx: psycopg.Transaction | None = None) -> None:
         params = []
         for designation in designations:
             params.extend([designation.pgc, designation.design, designation.bib])
@@ -62,9 +65,66 @@ class DataRespository(data.Repository):
 
         return [model.Designation(**row) for row in rows]
 
-    def create_coordinates(self, coordinates: list[model.CoordinateData], tx: psycopg.Transaction | None = None):
+    def create_coordinates(
+        self, coordinates: list[model.CoordinateData], tx: psycopg.Transaction | None = None
+    ) -> None:
         params = []
         for coordinate in coordinates:
             params.extend([coordinate.pgc, coordinate.ra, coordinate.dec, coordinate.bib])
 
         self._storage.exec(template.NEW_COORDINATES.render(objects=coordinates), params, tx)
+
+    def create_table(
+        self,
+        schema: str,
+        name: str,
+        fields: list[tuple[str, str]],
+        tx: psycopg.Transaction | None = None,
+    ) -> None:
+        self._storage.exec(
+            template.CREATE_TABLE.render(
+                schema=schema,
+                name=name,
+                fields=fields,
+            ),
+            [],
+            tx,
+        )
+
+    def insert_raw_data(
+        self, schema: str, table_name: str, raw_data: list[dict[str, Any]], tx: psycopg.Transaction | None = None
+    ) -> None:
+        """
+        This method puts everything in parameters for prepared statement. This should not be a big
+        issue but one would be better off using this function in batches since prepared statement make
+        this quite cheap (excluding network slow down, though).
+
+        Also the contract of this method requires all dicts to have the same set of keys.
+        """
+        if not raw_data:
+            log.warn("trying to insert 0 rows into the table", table=f"{schema}.{table_name}")
+            return
+
+        params = []
+        objects = []
+        fields = raw_data[0].keys()
+
+        for row in raw_data:
+            obj = {}
+            for field in fields:
+                value = row[field]
+                try:
+                    params.append(value.item())
+                except AttributeError:
+                    params.append(value)
+                obj[field] = "%s"
+
+            objects.append(obj)
+
+        query = template.INSERT_RAW_DATA.render(schema=schema, table=table_name, fields=fields, objects=objects)
+
+        self._storage.exec(
+            query,
+            params,
+            tx,
+        )

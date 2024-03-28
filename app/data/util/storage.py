@@ -3,11 +3,10 @@ import psycopg
 
 class _TransactionHolder:
     def __init__(self, connection: psycopg.Connection, tx: psycopg.Transaction | None) -> None:
-        self.tx = tx
         self.connection = connection
         self.is_created = tx is None
 
-    def __enter__(self) -> '_TransactionHolder':
+    def __enter__(self) -> "_TransactionHolder":
         if self.is_created:
             self.tx = self.connection.transaction()
             self.tx.__enter__()
