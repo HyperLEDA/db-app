@@ -1,12 +1,8 @@
 import unittest
 
-import structlog
-
 from app.data import repository
 from app.domain import model, usecases
 from app.lib import testing
-
-log = structlog.get_logger()
 
 
 class SourcesTest(unittest.TestCase):
@@ -29,13 +25,18 @@ class SourcesTest(unittest.TestCase):
         create_response = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                {"bibcode": "1992ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
+                {
+                    "bibcode": "1992ApJ...400L...1W",
+                    "author": "Test author et al.",
+                    "year": 2000,
+                    "title": "Test research",
+                },
             ),
         )
         get_response = self.actions.get_source(model.GetSourceRequest(id=create_response.id))
 
         self.assertEqual(get_response.type, "publication")
-        self.assertEqual(get_response.metadata["bibcode"], "1992ApJ…400L…1W")
+        self.assertEqual(get_response.metadata["bibcode"], "1992ApJ...400L...1W")
         self.assertEqual(get_response.metadata["author"], ["Test author et al."])
         self.assertEqual(get_response.metadata["year"], 2000)
         self.assertEqual(get_response.metadata["title"], "Test research")
@@ -59,7 +60,12 @@ class SourcesTest(unittest.TestCase):
         _ = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                {"bibcode": "2000ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
+                {
+                    "bibcode": "2000ApJ...400L...1W",
+                    "author": "Test author et al.",
+                    "year": 2000,
+                    "title": "Test research",
+                },
             ),
         )
 
@@ -68,7 +74,7 @@ class SourcesTest(unittest.TestCase):
                 model.CreateSourceRequest(
                     "publication",
                     {
-                        "bibcode": "2000ApJ…400L…1W",
+                        "bibcode": "2000ApJ...400L...1W",
                         "author": "Test author et al.",
                         "year": 2000,
                         "title": "Test research",
@@ -86,7 +92,7 @@ class SourcesTest(unittest.TestCase):
                 model.CreateSourceRequest(
                     "publication",
                     {
-                        "bibcode": f"20{i:02d}ApJ…401L…1W",
+                        "bibcode": f"20{i:02d}ApJ...401L...1W",
                         "author": "Test author et al.",
                         "year": 2000,
                         "title": "Test research",
@@ -104,7 +110,7 @@ class SourcesTest(unittest.TestCase):
                 model.CreateSourceRequest(
                     "publication",
                     {
-                        "bibcode": f"20{i:02d}ApJ…402L…1W",
+                        "bibcode": f"20{i:02d}ApJ...402L...1W",
                         "author": "Test author et al.",
                         "year": 2000,
                         "title": "Test research",
