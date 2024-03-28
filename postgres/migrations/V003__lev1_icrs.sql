@@ -46,7 +46,7 @@ COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp of adding or modific
 -- По уму надо бы хранить ошибку, скорректированную за сколненеие err_ra*cos(dec), аналогично собственным движениям
 CREATE TABLE icrs.err (
   id	integer	NOT NULL	REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade
-, ra	double precision	NOT NULL
+, racosdec	double precision	NOT NULL  -- It is necessary to think how to store the error!
 , dec	double precision	NOT NULL
 ) ;
 
