@@ -27,7 +27,7 @@ CREATE TABLE icrs.data (
 , ra	double precision	NOT NULL
 , dec	double precision	NOT NULL
 , bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, modification_time	timerestamp without time zone	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , CHECK (ra>=0 and ra<=360 and dec>=-90 and dec<=90)
 ) ;
 CREATE INDEX ON icrs.data (ra) ;
@@ -67,7 +67,7 @@ COMMENT ON COLUMN icrs.err.dec IS 'Declination error in degrees' ;
 CREATE TABLE icrs.obsoleted (
   bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
 , renewed	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 ) ;
 
 -- Надо бы добавить поле, обозначающее ответственного за добавление данных в этот список...
@@ -75,7 +75,7 @@ CREATE TABLE icrs.excluded (
   id	bigint	NOT NULL	REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade
   bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
 , note	text	NOT NULL
-, modification_time	timestamp without time zone	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 ) ;
 
 CREATE VIEW icrs.list AS 
