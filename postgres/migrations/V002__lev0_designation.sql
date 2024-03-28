@@ -20,7 +20,7 @@ CREATE TABLE designation.data (
   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
 , design	text	NOT NULL	UNIQUE
 , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
 ) ;
 CREATE INDEX ON designation.data (upper(replace(design,' ',''))) ;
@@ -36,7 +36,7 @@ CREATE TABLE designation.ambiguity (
   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
 , design	text	NOT NULL
 , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
 ) ;
 CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
