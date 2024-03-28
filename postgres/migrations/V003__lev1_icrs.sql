@@ -73,7 +73,7 @@ CREATE TABLE icrs.obsoleted (
 -- Надо бы добавить поле, обозначающее ответственного за добавление данных в этот список...
 CREATE TABLE icrs.excluded (
   id	bigint	NOT NULL	REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade
-  bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
 , note	text	NOT NULL
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 ) ;
