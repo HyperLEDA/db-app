@@ -55,3 +55,23 @@ WHERE pgc = %s
 OFFSET %s
 LIMIT %s
 """
+
+CREATE_TABLE = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
+    """
+CREATE TABLE {{ schema }}.{{ name }} (
+    {% for field_name, field_type in fields %}
+    {{field_name}} {{field_type}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+)
+"""
+)
+
+INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
+    """
+INSERT INTO 
+    {{ schema }}.{{ table }} ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %}) 
+    VALUES{% for object in objects %}
+    ({% for field_name in fields %}{{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
+    {% endfor %}
+"""
+)

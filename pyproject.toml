@@ -9,10 +9,13 @@ disable = [
     "too-many-branches",
     "too-many-locals",
     "too-many-instance-attributes",
+    "too-many-ancestors",
+    "line-too-long",
     "fixme",
     "unused-argument",
     "function-redefined",
     "abstract-class-instantiated",
+    "no-member",
 ]
 
 [tool.pytest.ini_options]

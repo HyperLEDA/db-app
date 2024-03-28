@@ -33,3 +33,14 @@ class Catalog:
 @dataclass
 class SearchCatalogsResponse:
     catalogs: list[Catalog]
+
+
+@dataclass
+class ChooseTableRequest:
+    catalog_id: str
+    table_id: str
+
+
+@dataclass
+class ChooseTableResponse:
+    id: int

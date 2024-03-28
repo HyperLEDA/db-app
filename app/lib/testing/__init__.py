@@ -49,10 +49,11 @@ class TestPostgresStorage:
 
         for migration_filename in migrations:
             data = pathlib.Path(migrations_dir, migration_filename).read_text()
-            self.storage.exec(data)
+            self.storage.exec(data, [])
 
     def clear(self):
-        self.storage.exec("TRUNCATE common.bib CASCADE")
+        self.storage.exec("TRUNCATE common.pgc CASCADE", [])
+        self.storage.exec("TRUNCATE common.bib CASCADE", [])
 
     def get_storage(self) -> data.Storage:
         return self.storage

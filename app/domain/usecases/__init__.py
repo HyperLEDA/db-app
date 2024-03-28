@@ -1,9 +1,13 @@
 import dataclasses
 import datetime
+import random
 from typing import final
 
+import numpy as np
 import structlog
+from astropy import table
 from astroquery.vizier import Vizier
+from numpy import ma
 
 from app import data, domain
 from app.data import model as data_model
@@ -15,6 +19,7 @@ from app.lib.exceptions import (
     new_not_found_error,
     new_validation_error,
 )
+from app.lib.storage import mapping
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -75,19 +80,21 @@ class Actions(domain.Actions):
         return domain_model.GetSourceListResponse(response)
 
     def create_objects(self, r: domain_model.CreateObjectBatchRequest) -> domain_model.CreateObjectBatchResponse:
-        # TODO: this whole method should be a single transaction. Context manager in storage?
-        ids = self._repo.create_objects(len(r.objects))
+        with self._repo.with_tx() as tx:
+            ids = self._repo.create_objects(len(r.objects), tx)
 
-        self._repo.create_designations(
-            [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
-        )
+            self._repo.create_designations(
+                [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
+                tx,
+            )
 
-        self._repo.create_coordinates(
-            [
-                data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
-                for id, obj in zip(ids, r.objects)
-            ]
-        )
+            self._repo.create_coordinates(
+                [
+                    data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
+                    for id, obj in zip(ids, r.objects)
+                ],
+                tx,
+            )
 
         return domain_model.CreateObjectBatchResponse(ids)
 
@@ -145,16 +152,16 @@ class Actions(domain.Actions):
 
             tables = []
 
-            for table in catalog_info.tables:
+            for curr_table in catalog_info.tables:
                 fields = []
 
-                for field in table.fields:
+                for field in curr_table.fields:
                     fields.append(domain_model.Field(field.ID, field.description, str(field.unit)))
 
                 tables.append(
                     domain_model.Table(
-                        id=table.ID,
-                        num_rows=table.nrows,
+                        id=curr_table.ID,
+                        num_rows=curr_table.nrows,
                         fields=fields,
                     )
                 )
@@ -170,3 +177,53 @@ class Actions(domain.Actions):
             )
 
         return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)
+
+    def choose_table(self, r: domain_model.ChooseTableRequest) -> domain_model.ChooseTableResponse:
+        Vizier.ROW_LIMIT = -1
+        catalogs = Vizier.get_catalogs(r.catalog_id)
+        catalog: table.Table | None = None
+
+        for curr_catalog in catalogs:
+            try:
+                name = curr_catalog.meta["name"]
+            except KeyError:
+                continue
+
+            if name != r.table_id:
+                continue
+
+            catalog = curr_catalog
+            break
+
+        if catalog is None:
+            raise new_not_found_error("catalog or table you requested was not found")
+
+        bad_fields = [field for field in catalog.columns if "-" in field]
+        for bad_field in bad_fields:
+            catalog[bad_field.replace("-", "_")] = catalog[bad_field]
+            catalog.remove_column(bad_field)
+
+        field: str
+        for field in catalog.columns:
+            if isinstance(catalog[field], ma.MaskedArray):
+                if catalog[field].dtype == np.int16:
+                    catalog[field] = catalog[field].filled(0)
+                else:
+                    catalog[field] = catalog[field].filled(np.nan)
+
+        fields = []
+        for field, field_meta in catalog.columns.items():
+            t = mapping.get_type_from_dtype(field_meta.dtype)
+            field = field.replace("-", "_")
+            fields.append((field, t))
+
+        table_id = random.randint(0, 2000000000)
+        with self._repo.with_tx() as tx:
+            self._repo.create_table("rawdata", f"data_{table_id}", fields, tx)
+
+            raw_data = list(catalog)
+            self._repo.insert_raw_data("rawdata", f"data_{table_id}", raw_data, tx)
+
+        # TODO: save pipeline id to database?
+
+        return domain_model.ChooseTableResponse(table_id)

@@ -11,7 +11,7 @@ class ObjectTest(unittest.TestCase):
         cls.storage = testing.TestPostgresStorage("postgres/migrations")
         cls.storage.start()
 
-        cls.repo = repository.DataRespository(cls.storage.get_storage())
+        cls.repo = repository.DataRepository(cls.storage.get_storage())
         cls.actions = usecases.Actions(cls.repo)
 
     @classmethod
@@ -64,3 +64,43 @@ class ObjectTest(unittest.TestCase):
                     ),
                 )
             )
+
+    def test_object_creation_is_transactional(self):
+        source_response = self.actions.create_source(
+            model.CreateSourceRequest(
+                "publication",
+                {"bibcode": "1992ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
+            )
+        )
+        _ = self.actions.create_object(
+            model.CreateObjectRequest(
+                source_id=source_response.id,
+                object=model.ObjectInfo(
+                    name="M33",
+                    type="galaxy",
+                    position=model.PositionInfo(
+                        coordinate_system="equatorial",
+                        epoch="J2000",
+                        coords=model.CoordsInfo(ra=200.5, dec=-52.5),
+                    ),
+                ),
+            )
+        )
+        with self.assertRaises(Exception):
+            _ = self.actions.create_object(
+                model.CreateObjectRequest(
+                    source_id=source_response.id,
+                    object=model.ObjectInfo(
+                        name="M33",
+                        type="galaxy",
+                        position=model.PositionInfo(
+                            coordinate_system="equatorial",
+                            epoch="J2000",
+                            coords=model.CoordsInfo(ra=101.5, dec=-62.5),
+                        ),
+                    ),
+                )
+            )
+
+        rows = self.storage.get_storage().query("SELECT id FROM common.pgc", [])
+        self.assertEqual(len(rows), 1)
