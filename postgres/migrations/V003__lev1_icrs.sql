@@ -1,9 +1,11 @@
 BEGIN ;
 
+DROP SCHEMA IF EXISTS icrs CASCADE ;
+
 ----------- Coordinate catalog (level 1) ---------------------
 CREATE SCHEMA icrs ;
 
-COMMENT ON SCHEMA icrs IS 'Catalog of coordinate in the International Celestial Reference System' ;
+COMMENT ON SCHEMA icrs IS 'Catalog of the International Celestial Reference System coordinates' ;
 
 
 --  data - ICRS координаты в градусах
@@ -28,7 +30,7 @@ CREATE TABLE icrs.data (
 , dec	double precision	NOT NULL
 , bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
-, CHECK (ra>=0 and ra<=360 and dec>=-90 and dec<=90)
+, CHECK (ra>=0 and ra<360 and dec>=-90 and dec<=90)
 ) ;
 CREATE INDEX ON icrs.data (ra) ;
 CREATE INDEX ON icrs.data (dec) ;
@@ -36,17 +38,17 @@ CREATE INDEX ON icrs.data (ra,dec) ;
 
 COMMENT ON TABLE icrs.data IS 'The table contains collection of the coordinates in the International Celestial Reference System (ICRS)' ;
 COMMENT ON COLUMN icrs.data.id IS 'ID of the coordinates' ;
-COMMENT ON COLUMN icrs.data.pgc IS 'PGC number of an object' ;
+COMMENT ON COLUMN icrs.data.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN icrs.data.ra IS 'Right Ascension (ICRS) in degrees' ;
 COMMENT ON COLUMN icrs.data.dec IS 'Declination (ICRS) in degrees' ;
 COMMENT ON COLUMN icrs.data.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp of adding or modification coordinates in the database' ;
+COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 -- По уму надо бы хранить ошибку, скорректированную за сколненеие err_ra*cos(dec), аналогично собственным движениям
 CREATE TABLE icrs.err (
   id	integer	NOT NULL	REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade
-, racosdec	double precision	NOT NULL  -- It is necessary to think how to store the error!
+, ra	double precision	NOT NULL  -- It is necessary to think how to store the error RA error: corrected for cos(dec) or not!
 , dec	double precision	NOT NULL
 ) ;
 
@@ -59,7 +61,7 @@ CREATE TABLE icrs.dataseterr (
 
 COMMENT ON TABLE icrs.err IS 'The table of individual object errors' ;
 COMMENT ON COLUMN icrs.err.id IS 'ID of the coordinates' ;
-COMMENT ON COLUMN icrs.err.racosdec IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+COMMENT ON COLUMN icrs.err.ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
 COMMENT ON COLUMN icrs.err.dec IS 'Declination error in degrees' ;
 
 
@@ -91,9 +93,8 @@ SELECT
 , b.year
 , b.author
 , b.title
-, b.description
 , obsol.bib IS NOT NULL and excl.id IS NOT NULL	AS isok
-, GREATEST( d.modification_time, ob.modification_time, ex.modification_time )	AS modification_time
+, GREATEST( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
 FROM
   icrs.data AS d
   LEFT JOIN icrs.err AS err USING (id)

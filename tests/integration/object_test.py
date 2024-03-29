@@ -25,7 +25,7 @@ class ObjectTest(unittest.TestCase):
         source_response = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                {"bibcode": "1992ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
+                {"bibcode": "1992ApJ...400L...1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
             )
         )
         object_response = self.actions.create_object(
@@ -69,7 +69,7 @@ class ObjectTest(unittest.TestCase):
         source_response = self.actions.create_source(
             model.CreateSourceRequest(
                 "publication",
-                {"bibcode": "1992ApJ…400L…1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
+                {"bibcode": "1992ApJ...400L...1W", "author": "Test author et al.", "year": 2000, "title": "Test research"},
             )
         )
         _ = self.actions.create_object(

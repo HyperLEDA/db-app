@@ -1,5 +1,7 @@
 BEGIN ;
 
+DROP SCHEMA IF EXISTS designation CASCADE ;
+
 -----------------------------------------------------------
 -------- Designation --------------------------------------
 CREATE SCHEMA designation ;
@@ -18,18 +20,19 @@ COMMENT ON SCHEMA designation IS 'Designation catalog' ;
 -- В Леда используется метод разработанный в NED парсинга имени и перекодирования его в стандартную форму.
 CREATE TABLE designation.data (
   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
-, design	text	NOT NULL	UNIQUE
+, design	text	NOT NULL
 , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
 ) ;
-CREATE INDEX ON designation.data (upper(replace(design,' ',''))) ;
+CREATE UNIQUE INDEX ON designation.data (upper(replace(design,' ',''))) ;
+CREATE INDEX ON designation.data (bib) ;
 
-COMMENT ON TABLE designation.data IS 'The main table contains unique object names' ;
-COMMENT ON COLUMN designation.data.pgc IS 'PGC number of an object' ;
-COMMENT ON COLUMN designation.data.design IS 'Unique designation an object. It must follow the IAU recommendations: https://cdsweb.u-strasbg.fr/Dic/iau-spec.html' ;
+COMMENT ON TABLE designation.data IS 'List of unique object names' ;
+COMMENT ON COLUMN designation.data.pgc IS 'PGC number of the object' ;
+COMMENT ON COLUMN designation.data.design IS 'Unique designation the object. It must follow the IAU recommendations: https://cdsweb.u-strasbg.fr/Dic/iau-spec.html' ;
 COMMENT ON COLUMN designation.data.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.data.modification_time IS 'Timestamp of adding or modification a designation in the database' ;
+COMMENT ON COLUMN designation.data.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 CREATE TABLE designation.ambiguity (
@@ -40,12 +43,13 @@ CREATE TABLE designation.ambiguity (
 , PRIMARY KEY (pgc,design)
 ) ;
 CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
+CREATE INDEX ON designation.ambiguity (bib) ;
 
 COMMENT ON TABLE designation.ambiguity IS 'List of ambiguous designations' ;
-COMMENT ON COLUMN designation.ambiguity.pgc IS 'PGC number of an object' ;
+COMMENT ON COLUMN designation.ambiguity.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN designation.ambiguity.design IS 'Ambiguous designation' ;
 COMMENT ON COLUMN designation.ambiguity.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.ambiguity.modification_time IS 'Timestamp of adding or modification a designation in the database' ;
+COMMENT ON COLUMN designation.ambiguity.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 CREATE VIEW designation.list AS
@@ -54,8 +58,15 @@ UNION
 SELECT * FROM designation.ambiguity
 ;
 
+COMMENT ON VIEW designation.list IS 'List of designations' ;
+COMMENT ON COLUMN designation.list.pgc IS 'PGC number of the object' ;
+COMMENT ON COLUMN designation.list.design IS 'Designation' ;
+COMMENT ON COLUMN designation.list.bib IS 'Bibliography reference' ;
+COMMENT ON COLUMN designation.list.modification_time IS 'Timestamp when the record was added to the database' ;
 
--- Создал некий кастыль для выбора основного имени
+
+
+-- Костыль для выбора основного имени
 CREATE VIEW designation.main AS
 SELECT DISTINCT ON (pgc)
   d.*
@@ -76,134 +87,139 @@ ORDER BY
 ;
 
 COMMENT ON VIEW designation.main IS 'List of the principal object names' ;
-COMMENT ON COLUMN designation.main.pgc IS 'PGC number of an object' ;
+COMMENT ON COLUMN designation.main.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN designation.main.design IS 'Principal designation' ;
 COMMENT ON COLUMN designation.main.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.main.modification_time IS 'Timestamp of adding or modification a designation in the database' ;
+COMMENT ON COLUMN designation.main.modification_time IS 'Timestamp when the record was added to the database' ;
+
+
+
+-- -----------------------------------------------------------
+-- -- Designations must follow the IAU recommendations
+-- -- https://cdsweb.u-strasbg.fr/Dic/iau-spec.html
+-- -- The designation must be in a form:  Acronym_Sequence_(Specifier)
+-- -- were "_" denotes a blank " "
+-- 
+-- -- Acronym is an unique code that specifies the catalog or collection of sources.
+-- CREATE TABLE designation.acronym (
+--   id	text	PRIMARY KEY
+-- , description	text	NOT NULL
+-- ) ;
+-- 
+-- CREATE TABLE designation.synonym (
+--   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
+-- , analog	text	NOT NULL	UNIQUE
+-- , PRIMARY KEY (acronym,analog)
+-- ) ;
+-- 
+-- CREATE TABLE designation.acronymref (
+--   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
+-- , bib	integer	NOT NULL	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
+-- , PRIMARY KEY (acronym,bib)
+-- ) ;
 
 
 -----------------------------------------------------------
--- Designations must follow the IAU recommendations
--- https://cdsweb.u-strasbg.fr/Dic/iau-spec.html
--- The designation must be in a form:  Acronym_Sequence_(Specifier)
--- were "_" denotes a blanck " "
-
--- Acronym is an unique code that specifies the catalog or collection of sources.
-CREATE TABLE designation.acronym (
-  id	text	PRIMARY KEY
-, description	text	NOT NULL
-) ;
-
-CREATE TABLE designation.synonym (
-  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
-, analog	text	NOT NULL	UNIQUE
-, PRIMARY KEY (acronym,analog)
-) ;
-
-CREATE TABLE designation.acronymref (
-  acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
-, bib	integer	NOT NULL	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
-, PRIMARY KEY (acronym,bib)
-) ;
-
-
------------------------------------------------------------
--- Constellations
+-- Constellations -----------------------------------------
 CREATE TABLE designation.constellation (
   id	char(3)	PRIMARY KEY
-, name	text	UNIQUE
+, name	text	NOT NULL	UNIQUE
 ) ;
 
---COPY designation.constellation FROM STDIN;
---And	Andromeda
---Ant	Antlia
---Aps	Apus
---Aqr	Aquarius
---Aql	Aquila
---Ara	Ara
---Ari	Aries
---Aur	Auriga
---Boo	Bootes
---Cae	Caelum
---Cam	Camelopardalis
---Cnc	Cancer
---CVn	Canes Venatici
---CMa	Canis Major
---CMi	Canis Minor
---Cap	Capricornus
---Car	Carina
---Cas	Cassiopeia
---Cen	Centaurus
---Cep	Cepheus
---Cet	Cetus
---Cha	Chamaleon
---Cir	Circinus
---Col	Columba
---Com	Coma Berenices
---CrA	Corona Australis
---CrB	Corona Borealis
---Crv	Corvus
---Crt	Crater
---Cru	Crux
---Cyg	Cygnus
---Del	Delphinus
---Dor	Dorado
---Dra	Draco
---Equ	Equuleus
---Eri	Eridanus
---For	Fornax
---Gem	Gemini
---Gru	Grus
---Her	Hercules
---Hor	Horologium
---Hya	Hydra
---Hyi	Hydrus
---Ind	Indus
---Lac	Lacerta
---Leo	Leo
---LMi	Leo Minor
---Lep	Lepus
---Lib	Libra
---Lup	Lupus
---Lyn	Lynx
---Lyr	Lyra
---Men	Mensa
---Mic	Microscopium
---Mon	Monoceros
---Mus	Musca
---Nor	Norma
---Oct	Octans
---Oph	Ophiucus
---Ori	Orion
---Pav	Pavo
---Peg	Pegasus
---Per	Perseus
---Phe	Phoenix
---Pic	Pictor
---Psc	Pisces
---PsA	Pisces Austrinus
---Pup	Puppis
---Pyx	Pyxis
---Ret	Reticulum
---Sge	Sagitta
---Sgr	Sagittarius
---Sco	Scorpius
---Scl	Sculptor
---Sct	Scutum
---Ser	Serpens
---Sex	Sextans
---Tau	Taurus
---Tel	Telescopium
---Tri	Triangulum
---TrA	Triangulum Australe
---Tuc	Tucana
---UMa	Ursa Major
---UMi	Ursa Minor
---Vel	Vela
---Vir	Virgo
---Vol	Volans
---Vul	Vulpecula
---\.
+COMMENT ON TABLE designation.constellation IS 'List of constellations: http://vizier.cds.unistra.fr/vizier/VizieR/constellations.htx' ;
+COMMENT ON COLUMN designation.constellation.id IS '3-letter official abbreviation of the constellation' ;
+COMMENT ON COLUMN designation.constellation.name IS 'Constellation' ;
 
+
+INSERT INTO designation.constellation (id,name) VALUES
+  ( 'And' , 'Andromeda' )
+, ( 'Ant' , 'Antlia' )
+, ( 'Aps' , 'Apus' )
+, ( 'Aqr' , 'Aquarius' )
+, ( 'Aql' , 'Aquila' )
+, ( 'Ara' , 'Ara' )
+, ( 'Ari' , 'Aries' )
+, ( 'Aur' , 'Auriga' )
+, ( 'Boo' , 'Bootes' )
+, ( 'Cae' , 'Caelum' )
+, ( 'Cam' , 'Camelopardalis' )
+, ( 'Cnc' , 'Cancer' )
+, ( 'CVn' , 'Canes Venatici' )
+, ( 'CMa' , 'Canis Major' )
+, ( 'CMi' , 'Canis Minor' )
+, ( 'Cap' , 'Capricornus' )
+, ( 'Car' , 'Carina' )
+, ( 'Cas' , 'Cassiopeia' )
+, ( 'Cen' , 'Centaurus' )
+, ( 'Cep' , 'Cepheus' )
+, ( 'Cet' , 'Cetus' )
+, ( 'Cha' , 'Chamaleon' )
+, ( 'Cir' , 'Circinus' )
+, ( 'Col' , 'Columba' )
+, ( 'Com' , 'Coma Berenices' )
+, ( 'CrA' , 'Corona Australis' )
+, ( 'CrB' , 'Corona Borealis' )
+, ( 'Crv' , 'Corvus' )
+, ( 'Crt' , 'Crater' )
+, ( 'Cru' , 'Crux' )
+, ( 'Cyg' , 'Cygnus' )
+, ( 'Del' , 'Delphinus' )
+, ( 'Dor' , 'Dorado' )
+, ( 'Dra' , 'Draco' )
+, ( 'Equ' , 'Equuleus' )
+, ( 'Eri' , 'Eridanus' )
+, ( 'For' , 'Fornax' )
+, ( 'Gem' , 'Gemini' )
+, ( 'Gru' , 'Grus' )
+, ( 'Her' , 'Hercules' )
+, ( 'Hor' , 'Horologium' )
+, ( 'Hya' , 'Hydra' )
+, ( 'Hyi' , 'Hydrus' )
+, ( 'Ind' , 'Indus' )
+, ( 'Lac' , 'Lacerta' )
+, ( 'Leo' , 'Leo' )
+, ( 'LMi' , 'Leo Minor' )
+, ( 'Lep' , 'Lepus' )
+, ( 'Lib' , 'Libra' )
+, ( 'Lup' , 'Lupus' )
+, ( 'Lyn' , 'Lynx' )
+, ( 'Lyr' , 'Lyra' )
+, ( 'Men' , 'Mensa' )
+, ( 'Mic' , 'Microscopium' )
+, ( 'Mon' , 'Monoceros' )
+, ( 'Mus' , 'Musca' )
+, ( 'Nor' , 'Norma' )
+, ( 'Oct' , 'Octans' )
+, ( 'Oph' , 'Ophiucus' )
+, ( 'Ori' , 'Orion' )
+, ( 'Pav' , 'Pavo' )
+, ( 'Peg' , 'Pegasus' )
+, ( 'Per' , 'Perseus' )
+, ( 'Phe' , 'Phoenix' )
+, ( 'Pic' , 'Pictor' )
+, ( 'Psc' , 'Pisces' )
+, ( 'PsA' , 'Pisces Austrinus' )
+, ( 'Pup' , 'Puppis' )
+, ( 'Pyx' , 'Pyxis' )
+, ( 'Ret' , 'Reticulum' )
+, ( 'Sge' , 'Sagitta' )
+, ( 'Sgr' , 'Sagittarius' )
+, ( 'Sco' , 'Scorpius' )
+, ( 'Scl' , 'Sculptor' )
+, ( 'Sct' , 'Scutum' )
+, ( 'Ser' , 'Serpens' )
+, ( 'Sex' , 'Sextans' )
+, ( 'Tau' , 'Taurus' )
+, ( 'Tel' , 'Telescopium' )
+, ( 'Tri' , 'Triangulum' )
+, ( 'TrA' , 'Triangulum Australe' )
+, ( 'Tuc' , 'Tucana' )
+, ( 'UMa' , 'Ursa Major' )
+, ( 'UMi' , 'Ursa Minor' )
+, ( 'Vel' , 'Vela' )
+, ( 'Vir' , 'Virgo' )
+, ( 'Vol' , 'Volans' )
+, ( 'Vul' , 'Vulpecula' )
+;
 
 COMMIT ;

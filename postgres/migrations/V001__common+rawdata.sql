@@ -44,7 +44,7 @@ COMMENT ON COLUMN common.bib.bibcode IS 'The bibcode references the ADS databse:
 COMMENT ON COLUMN common.bib.year IS 'Year of publication' ;
 COMMENT ON COLUMN common.bib.author IS 'Author list' ;
 COMMENT ON COLUMN common.bib.title IS 'Publication title' ;
-COMMENT ON COLUMN common.bib.modification_time IS 'Timestamp of adding a publication to the database' ;
+COMMENT ON COLUMN common.bib.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 -----------------------------------------------------------
