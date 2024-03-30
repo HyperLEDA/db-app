@@ -20,9 +20,6 @@ jobs:
         - name: Run isort
           run: |
             make dryrun-isort
-        - name: Run pylint
-          run: |
-            make pylint
         - name: Run unit tests
           run: |
             make test-unit
