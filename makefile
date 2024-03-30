@@ -15,9 +15,11 @@ stop-db:
 
 ## Testing
 
-test: dryrun-black dryrun-isort pylint test-unit
+test: dryrun-black dryrun-isort test-unit
 
-test-all: dryrun-black dryrun-isort pylint test-unit test-integration
+test-all: dryrun-black dryrun-isort test-unit test-integration
+
+test-extra: pylint mypy
 
 dryrun-black:
 	$(PYTHON) -m black . --config pyproject.toml --check
