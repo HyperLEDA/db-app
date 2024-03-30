@@ -1,6 +1,5 @@
 BEGIN ;
 
-
 ---------------------------------------------------------------------------------------
 -- Weighted mean and standard error of the weighted mean
 -- 
@@ -77,6 +76,8 @@ CREATE OR REPLACE AGGREGATE public.wmean(datum double precision, weight double p
     MFINALFUNC_MODIFY = READ_ONLY
 );
 
-COMMENT ON AGGREGATE public.wmean (datum double precision, weight double precision) IS 'Returns ARRAY[ Weighted_mean, Standard_error_of_weighted_mean ]' ;
+COMMENT ON AGGREGATE public.wmean (datum double precision, weight double precision) 
+IS 'Returns weighted mean and Cochran (1977) approximation to bootstrap estimation of the standard error of the weighted mean. ARRAY[ Weighted_mean, Standard_error_of_weighted_mean ]. Reference: D.F. Gatz & L. Smith, 1995, Atmospheric Environment, 29, 1185, "The standard error of a weighted mean concentration - I. Bootstrapping vs other methods", http://www.sciencedirect.com/science/article/pii/135223109400210C' ;
+
 
 COMMIT ;

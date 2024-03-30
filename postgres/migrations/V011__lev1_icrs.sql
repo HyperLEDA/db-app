@@ -16,7 +16,7 @@ COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial R
 --  obsoleted  - список устаревших наборов данных (поддержание этого списка - ответственность Леда)
 --  excluded   - список ошибочных измерений (поддержание этого списка - ответственность Леда)
 --  list - представление
---  mean - усредненные координаты (простое взвешенное среднее)
+--  mean - усредненные координаты (взвешенное среднее)
 --
 --  Для данного каталога создание специализированных наборов данных (dataset) представляется излишним. Ссылка на библиографию должна полностью решать эту проблему.
 --
@@ -39,6 +39,7 @@ CREATE TABLE icrs.data (
 -- CREATE INDEX ON icrs.data (ra) ;
 CREATE INDEX ON icrs.data (dec) ;
 CREATE INDEX ON icrs.data (ra,dec) ;
+CREATE INDEX ON icrs.data (pgc) ;
 CREATE INDEX ON icrs.data (bib) ;
 
 COMMENT ON TABLE icrs.data IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
@@ -117,7 +118,7 @@ FROM
   LEFT JOIN icrs.excluded AS excl ON (excl.id=d.id)
 ;
 
-COMMENT ON TABLE icrs.list IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
+COMMENT ON VIEW icrs.list IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
 COMMENT ON COLUMN icrs.list.id IS 'ID of the position' ;
 COMMENT ON COLUMN icrs.list.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN icrs.list.ra IS 'Right Ascension (ICRS) in degrees' ;
@@ -143,15 +144,17 @@ WITH
     , cosd(dec) * sind(ra)	AS y
     , sind(dec)	AS z
     , coalesce( 1/( e_ra^2 + e_dec^2 ), 1.0/300^2 ) AS invvar
+    , modification_time
     FROM icrs.list
     WHERE isOk
   )
 , mean AS (
     SELECT
       pgc
-    , wmean( x, invvar )	AS x
-    , wmean( y, invvar )	AS y
-    , wmean( z, invvar )	AS z
+    , public.wmean( x, invvar )	AS x
+    , public.wmean( y, invvar )	AS y
+    , public.wmean( z, invvar )	AS z
+    , max( modification_time )	AS modification_time
     FROM xyz
     GROUP BY pgc
   )
@@ -162,8 +165,17 @@ SELECT
 , atan2d( z[1] , sqrt( x[1]^2+y[1]^2 ) )	AS dec
 , sqrt( ( y[1]^2*x[2]^2 + x[1]^2*y[2]^2 ) / ( x[1]^2+y[1]^2 ) ) /pi()*180*3600	AS e_ra              -- dAlpha is corrected for cos(dec)
 , sqrt( 1 / (1-z[1]^2) )*z[2] /pi()*180*3600	AS e_dec
+, modification_time
 FROM mean
 ;
+
+COMMENT ON VIEW icrs.mean IS 'Object position in the International Celestial Reference System (ICRS)' ;
+COMMENT ON COLUMN icrs.mean.pgc IS 'PGC number of the object' ;
+COMMENT ON COLUMN icrs.mean.ra IS 'Right Ascension (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.mean.dec IS 'Declination (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.mean.e_ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+COMMENT ON COLUMN icrs.mean.e_dec IS 'Declination error in arcsec' ;
+COMMENT ON COLUMN icrs.mean.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 COMMIT ;
