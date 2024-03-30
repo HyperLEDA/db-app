@@ -10,7 +10,7 @@ pyyaml
 click
 black
 isort
-psycopg
+psycopg[binary,pool]
 structlog
 testcontainers-postgres
 jinja2
