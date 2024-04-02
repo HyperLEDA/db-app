@@ -5,6 +5,7 @@ aiohttp
 aiohttp_apispec
 marshmallow
 requests
+rq
 setuptools
 pyyaml
 click
