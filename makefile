@@ -31,6 +31,9 @@ pylint:
 	$(PYTHON) -m pylint . --recursive true --rcfile pyproject.toml
 
 test-unit: # we use pytest to run unittest test cases
+# first test that environment is installed correctly.
+	$(PYTHON) -m pytest --config-file=pyproject.toml tests/env_test.py
+# now run all the remaining tests
 	$(PYTHON) -m pytest --config-file=pyproject.toml --ignore=tests/integration
 
 test-integration:
