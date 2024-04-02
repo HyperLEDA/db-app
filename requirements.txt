@@ -19,3 +19,4 @@ types-pyyaml
 types-psycopg2
 pytest
 pylint
+parameterized
