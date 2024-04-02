@@ -17,6 +17,7 @@ INSERT INTO common.magsys VALUES
 , ( 'ST', 'The ST magnitude system uses flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^−1 cm^−2 Angstrom^−1]), where Flambda is the spectral flux density.' )
 ;
 
+
 CREATE TABLE common.passband (
   id	serial	PRIMARY KEY
 , band	text	NOT NULL	UNIQUE
@@ -27,7 +28,6 @@ CREATE TABLE common.passband (
 , svoid	text	UNIQUE
 ) ;
 CREATE INDEX ON common.passband (wavemean) ;
-CREATE INDEX ON common.passband (magsys) ;
 
 COMMENT ON TABLE common.passband IS 'List of passbands' ;
 COMMENT ON COLUMN common.passband.id IS 'internal ID of the filter' ;
@@ -37,5 +37,6 @@ COMMENT ON COLUMN common.passband.fwhm IS 'The Full Width Half Maximum of the fi
 COMMENT ON COLUMN common.passband.description IS 'Description of the filter' ;
 COMMENT ON COLUMN common.passband.bib IS 'Bibliography reference' ;
 COMMENT ON COLUMN common.passband.svoid IS 'Spanish Virtual Observatory filter ID' ;
+
 
 COMMIT;
