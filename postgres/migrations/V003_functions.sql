@@ -32,7 +32,8 @@ BEGIN ;
 --      ( sum(dWX.^2) -2.*wmeanX.*sum(dW.*dWX) +wmeanX.^2.*sum(dW.^2) ) ;
 --  SE = sqrt(SEV);
 
-CREATE OR REPLACE FUNCTION public.wmean_accum( CumSum double precision[], CurrData double precision, CurrWght double precision ) 
+CREATE OR REPLACE FUNCTION 
+  public.wmean_accum( CumSum double precision[], CurrData double precision, CurrWght double precision ) 
 RETURNS double precision[]
 AS $$
   SELECT 
@@ -47,11 +48,12 @@ AS $$
               ]
          ELSE CumSum 
     END ;
-$$ LANGUAGE 'sql' COST 100 STABLE STRICT PARALLEL UNSAFE
+$$ LANGUAGE sql COST 100 STABLE CALLED ON NULL INPUT PARALLEL UNSAFE
 ;
 
 
-CREATE OR REPLACE FUNCTION public.wmean_final( WSum double precision[] )
+CREATE OR REPLACE FUNCTION 
+  public.wmean_final( WSum double precision[] )
 RETURNS double precision[]
 AS $$
   SELECT ARRAY[ 
@@ -64,7 +66,7 @@ AS $$
              )
            )                               -- Standard error of weighted mean
          ] ;
-$$ LANGUAGE 'sql' COST 100 STABLE STRICT PARALLEL UNSAFE
+$$ LANGUAGE sql COST 100 STABLE STRICT PARALLEL UNSAFE
 ;
 
 CREATE OR REPLACE AGGREGATE public.wmean(datum double precision, weight double precision) (
@@ -77,7 +79,23 @@ CREATE OR REPLACE AGGREGATE public.wmean(datum double precision, weight double p
 );
 
 COMMENT ON AGGREGATE public.wmean (datum double precision, weight double precision) 
-IS 'Returns weighted mean and Cochran (1977) approximation to bootstrap estimation of the standard error of the weighted mean. ARRAY[ Weighted_mean, Standard_error_of_weighted_mean ]. Reference: D.F. Gatz & L. Smith, 1995, Atmospheric Environment, 29, 1185, "The standard error of a weighted mean concentration - I. Bootstrapping vs other methods", http://www.sciencedirect.com/science/article/pii/135223109400210C' ;
+IS 'Weighted mean and Cochran (1977) approximation to bootstrap estimation of the standard error of the weighted mean. ARRAY[ Weighted_mean, Standard_error_of_weighted_mean ]. Reference: D.F. Gatz & L. Smith, 1995, Atmospheric Environment, 29, 1185, "The standard error of a weighted mean concentration - I. Bootstrapping vs other methods", http://www.sciencedirect.com/science/article/pii/135223109400210C' ;
+
+
+
+------------------------------------------------------------
+-- Distance between two points on sphere
+
+CREATE OR REPLACE FUNCTION
+  public.sphdist( ra1 double precision, dec1 double precision, ra2 double precision, dec2 double precision )
+RETURNS double precision
+AS $$
+  SELECT acosd( LEAST( sind(dec1)*sind(dec2) + cosd(dec1)*cosd(dec2)*cosd(ra1-ra2) , 1 ) ) ;
+$$ LANGUAGE sql COST 100 IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE
+;
+
+COMMENT ON FUNCTION public.sphdist (double precision, double precision, double precision, double precision) 
+IS 'Angular separation in DEGREES between 2 points on sphere. The coordinates (RA1,Dec1) and (RA2,Dec2) are in DEGREES.' ;
 
 
 COMMIT ;
