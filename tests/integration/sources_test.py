@@ -1,6 +1,6 @@
 import unittest
 
-from app.data import repository
+from app.data.postgres import database_repository
 from app.domain import model, usecases
 from app.lib import testing
 
@@ -11,8 +11,8 @@ class SourcesTest(unittest.TestCase):
         cls.storage = testing.TestPostgresStorage("postgres/migrations")
         cls.storage.start()
 
-        cls.repo = repository.DataRepository(cls.storage.get_storage())
-        cls.actions = usecases.Actions(cls.repo)
+        cls.repo = database_repository.DataRepository(cls.storage.get_storage())
+        cls.actions = usecases.Actions(cls.repo, None)
 
     @classmethod
     def tearDownClass(cls):

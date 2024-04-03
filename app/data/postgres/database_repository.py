@@ -5,13 +5,14 @@ import structlog
 
 from app import data
 from app.data import model, template
+from app.data.postgres import postgres_storage
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @final
-class DataRepository(data.Repository):
-    def __init__(self, storage: data.Storage) -> None:
+class DataRepository(data.DatabaseRepository):
+    def __init__(self, storage: postgres_storage.Storage) -> None:
         self._storage = storage
 
     def with_tx(self) -> psycopg.Transaction:

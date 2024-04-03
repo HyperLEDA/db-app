@@ -7,6 +7,7 @@ from app.presentation.server.handlers.get_source_list import get_source_list
 from app.presentation.server.handlers.ping import ping
 from app.presentation.server.handlers.pipeline.choose_table import choose_table
 from app.presentation.server.handlers.pipeline.search_catalogs import search_catalogs
+from app.presentation.server.handlers.tasks.start_task import start_task
 
 __all__ = [
     "create_object",
@@ -18,4 +19,5 @@ __all__ = [
     "ping",
     "search_catalogs",
     "choose_table",
+    "start_task",
 ]

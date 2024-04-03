@@ -11,7 +11,7 @@ REQUIREMENTS_PATH = Path("requirements.txt")
 
 class TestEnvironment(unittest.TestCase):
     def test_requirements(self):
-        with REQUIREMENTS_PATH.open() as reqs_file:
+        with REQUIREMENTS_PATH.open(encoding="utf-8") as reqs_file:
             requirements = pkg_resources.parse_requirements(reqs_file)
 
             try:

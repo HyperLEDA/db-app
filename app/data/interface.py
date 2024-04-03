@@ -1,12 +1,12 @@
 import abc
-from typing import Any
+from typing import Any, Callable
 
 import psycopg
 
 from app.data import model
 
 
-class Repository(abc.ABC):
+class DatabaseRepository(abc.ABC):
     def with_tx(self) -> psycopg.Transaction:
         raise NotImplementedError("not implemented")
 
@@ -43,4 +43,9 @@ class Repository(abc.ABC):
     def insert_raw_data(
         self, schema: str, table_name: str, raw_data: list[dict[str, Any]], tx: psycopg.Transaction | None = None
     ) -> None:
+        raise NotImplementedError("not implemented")
+
+
+class QueueRepository(abc.ABC):
+    def enqueue(self, func: Callable, *args: Any) -> None:
         raise NotImplementedError("not implemented")

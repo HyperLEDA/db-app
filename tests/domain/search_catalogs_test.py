@@ -32,7 +32,7 @@ class CatalogStub:
 class SearchCatalogsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.actions = Actions(None)
+        cls.actions = Actions(None, None)
 
     def test_run_without_metadata_no_tables(self):
         catalogs = {"V/II/table11": CatalogStub([], "test")}

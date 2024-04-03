@@ -1,2 +1,1 @@
-from app.data.interface import Repository
-from app.data.postgres_storage import Storage, StorageConfig, StorageConfigSchema
+from app.data.interface import DatabaseRepository, QueueRepository

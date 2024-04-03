@@ -4,9 +4,9 @@ import socket
 from contextlib import closing
 
 import structlog
-from testcontainers import postgres
+from testcontainers import postgres as pgcontainer
 
-from app import data
+from app.data import postgres
 
 log = structlog.get_logger()
 
@@ -22,7 +22,7 @@ class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
         port = find_free_port()
         log.info("Starting postgres container", port=port)
-        self.container = postgres.PostgresContainer(
+        self.container = pgcontainer.PostgresContainer(
             "postgres:16",
             port=5432,
             user="hyperleda",
@@ -30,8 +30,8 @@ class TestPostgresStorage:
             dbname="hyperleda",
         ).with_bind_ports(5432, port)
 
-        self.storage = data.Storage(
-            data.StorageConfig(
+        self.storage = postgres.Storage(
+            postgres.StorageConfig(
                 endpoint="localhost",
                 port=port,
                 user="hyperleda",
@@ -55,7 +55,7 @@ class TestPostgresStorage:
         self.storage.exec("TRUNCATE common.pgc CASCADE", [])
         self.storage.exec("TRUNCATE common.bib CASCADE", [])
 
-    def get_storage(self) -> data.Storage:
+    def get_storage(self) -> postgres.Storage:
         return self.storage
 
     def start(self):
