@@ -14,10 +14,10 @@ jobs:
         - name: Install dependencies
           run: |
             pip install -r requirements.txt
-        - name: Run black
+        - name: Check that code is formatted correctly
           run: |
             make dryrun-black
-        - name: Run isort
+        - name: Check that imports are sorted
           run: |
             make dryrun-isort
         - name: Run unit tests

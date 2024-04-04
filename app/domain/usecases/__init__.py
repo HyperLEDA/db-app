@@ -10,6 +10,7 @@ from astroquery.vizier import Vizier
 from numpy import ma
 
 from app import data, domain
+from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
@@ -21,13 +22,20 @@ from app.lib.exceptions import (
 )
 from app.lib.storage import mapping
 
-log: structlog.stdlib.BoundLogger = structlog.get_logger()
-
 
 @final
 class Actions(domain.Actions):
-    def __init__(self, repo: data.Repository):
-        self._repo = repo
+    def __init__(
+        self,
+        common_repo: interface.CommonRepository,
+        layer0_repo: interface.Layer0Repository,
+        layer1_repo: interface.Layer1Repository,
+        logger: structlog.BoundLogger,
+    ) -> None:
+        self._common_repo = common_repo
+        self._layer0_repo = layer0_repo
+        self._layer1_repo = layer1_repo
+        self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.type != "publication":
@@ -50,14 +58,14 @@ class Actions(domain.Actions):
         if title is None:
             raise new_validation_error("title is required in metadata for publication type")
 
-        source_id = self._repo.create_bibliography(
+        source_id = self._common_repo.create_bibliography(
             data_model.Bibliography(bibcode=bibcode, year=int(year), author=[author], title=title)
         )
 
         return domain_model.CreateSourceResponse(id=source_id)
 
     def get_source(self, r: domain_model.GetSourceRequest) -> domain_model.GetSourceResponse:
-        result = self._repo.get_bibliography(r.id)
+        result = self._common_repo.get_bibliography(r.id)
 
         return domain_model.GetSourceResponse(
             type="publication",
@@ -68,7 +76,7 @@ class Actions(domain.Actions):
         if r.type != "publication":
             raise NotImplementedError("source types other than 'publication' are not supported yet")
 
-        result = self._repo.get_bibliography_list(r.page * r.page_size, r.page_size)
+        result = self._common_repo.get_bibliography_list(r.page * r.page_size, r.page_size)
 
         response = [
             domain_model.GetSourceResponse(
@@ -80,15 +88,15 @@ class Actions(domain.Actions):
         return domain_model.GetSourceListResponse(response)
 
     def create_objects(self, r: domain_model.CreateObjectBatchRequest) -> domain_model.CreateObjectBatchResponse:
-        with self._repo.with_tx() as tx:
-            ids = self._repo.create_objects(len(r.objects), tx)
+        with self._layer1_repo.with_tx() as tx:
+            ids = self._layer1_repo.create_objects(len(r.objects), tx)
 
-            self._repo.create_designations(
+            self._layer1_repo.create_designations(
                 [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
                 tx,
             )
 
-            self._repo.create_coordinates(
+            self._layer1_repo.create_coordinates(
                 [
                     data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
                     for id, obj in zip(ids, r.objects)
@@ -109,7 +117,7 @@ class Actions(domain.Actions):
         return domain_model.CreateObjectResponse(id=response.ids[0])
 
     def get_object_names(self, r: domain_model.GetObjectNamesRequest) -> domain_model.GetObjectNamesResponse:
-        designations = self._repo.get_designations(r.id, r.page, r.page_size)
+        designations = self._layer1_repo.get_designations(r.id, r.page, r.page_size)
 
         if len(designations) == 0:
             raise new_not_found_error("object does not exist or has no designations")
@@ -140,15 +148,15 @@ class Actions(domain.Actions):
                 try:
                     url = catalog["webpage"][0]
                 except KeyError:
-                    log.warn("unable to find webpage in catalog meta", catalog=catalog_name)
+                    self._logger.warn("unable to find webpage in catalog meta", catalog=catalog_name)
 
                 try:
                     bibcode = catalog["origin_article"][0]
                 except KeyError:
-                    log.warn("unable to find origin_article in catalog meta", catalog=catalog_name)
+                    self._logger.warn("unable to find origin_article in catalog meta", catalog=catalog_name)
 
             except IndexError:
-                log.warn("unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
+                self._logger.warn("unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
 
             tables = []
 
@@ -218,11 +226,11 @@ class Actions(domain.Actions):
             fields.append((field, t))
 
         table_id = random.randint(0, 2000000000)
-        with self._repo.with_tx() as tx:
-            self._repo.create_table("rawdata", f"data_{table_id}", fields, tx)
+        with self._layer0_repo.with_tx() as tx:
+            self._layer0_repo.create_table("rawdata", f"data_{table_id}", fields, tx)
 
             raw_data = list(catalog)
-            self._repo.insert_raw_data("rawdata", f"data_{table_id}", raw_data, tx)
+            self._layer0_repo.insert_raw_data("rawdata", f"data_{table_id}", raw_data, tx)
 
         # TODO: save pipeline id to database?
 

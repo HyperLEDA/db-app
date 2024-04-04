@@ -1,5 +1,7 @@
 PYTHON := python
 
+all: test
+
 ## General targets
 install:
 	$(PYTHON) -m pip install -r requirements.txt
