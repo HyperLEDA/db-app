@@ -2,10 +2,11 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import structlog
 from astropy import table
 from astroquery import vizier
 
-from app.data import repository
+from app.data import repositories
 from app.domain import model, usecases
 from app.lib import testing
 
@@ -16,8 +17,10 @@ class RawDataTest(unittest.TestCase):
         cls.storage = testing.TestPostgresStorage("postgres/migrations")
         cls.storage.start()
 
-        cls.repo = repository.DataRepository(cls.storage.get_storage())
-        cls.actions = usecases.Actions(cls.repo)
+        common_repo = repositories.CommonRepository(cls.storage.get_storage(), structlog.get_logger())
+        layer0_repo = repositories.Layer0Repository(cls.storage.get_storage(), structlog.get_logger())
+        layer1_repo = repositories.Layer1Repository(cls.storage.get_storage(), structlog.get_logger())
+        cls.actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, structlog.get_logger())
 
     @classmethod
     def tearDownClass(cls):

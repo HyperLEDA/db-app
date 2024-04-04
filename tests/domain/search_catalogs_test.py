@@ -3,6 +3,7 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
+import structlog
 from astroquery import vizier
 
 from app.domain import model
@@ -32,7 +33,7 @@ class CatalogStub:
 class SearchCatalogsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.actions = Actions(None)
+        cls.actions = Actions(None, None, None, structlog.get_logger())
 
     def test_run_without_metadata_no_tables(self):
         catalogs = {"V/II/table11": CatalogStub([], "test")}

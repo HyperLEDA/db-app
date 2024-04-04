@@ -17,6 +17,7 @@ disable = [
     "abstract-class-instantiated",
     "no-member",
 ]
+ignore-paths = "^.venv/.*$"
 
 [tool.pytest.ini_options]
 addopts = "-W ignore::DeprecationWarning"
