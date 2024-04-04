@@ -13,6 +13,7 @@ from app import data, domain
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
+from app.domain import tasks
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
 from app.lib.exceptions import (
@@ -22,6 +23,10 @@ from app.lib.exceptions import (
 )
 from app.lib.storage import mapping
 
+TASK_REGISTRY = {
+    "echo": (tasks.echo_task, tasks.EchoTaskParams),
+}
+
 
 @final
 class Actions(domain.Actions):
@@ -30,11 +35,13 @@ class Actions(domain.Actions):
         common_repo: interface.CommonRepository,
         layer0_repo: interface.Layer0Repository,
         layer1_repo: interface.Layer1Repository,
+        queue_repo: interface.QueueRepository,
         logger: structlog.BoundLogger,
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo
         self._layer1_repo = layer1_repo
+        self._queue_repo = queue_repo
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
@@ -235,3 +242,14 @@ class Actions(domain.Actions):
         # TODO: save pipeline id to database?
 
         return domain_model.ChooseTableResponse(table_id)
+
+    def start_task(self, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
+        if r.task_name not in TASK_REGISTRY:
+            raise new_not_found_error(f"unable to find task '{r.task_name}'")
+
+        task, params_type = TASK_REGISTRY[r.task_name]
+        params = params_type(**r.payload)
+
+        self._queue_repo.enqueue(task, params)
+
+        return domain_model.StartTaskResponse(1)

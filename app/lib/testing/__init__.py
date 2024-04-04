@@ -30,7 +30,7 @@ class TestPostgresStorage:
             dbname="hyperleda",
         ).with_bind_ports(5432, port)
 
-        self.storage = data.Storage(
+        self.storage = data.PgStorage(
             data.StorageConfig(
                 endpoint="localhost",
                 port=port,
@@ -57,7 +57,7 @@ class TestPostgresStorage:
         self.storage.exec("TRUNCATE common.pgc CASCADE", [])
         self.storage.exec("TRUNCATE common.bib CASCADE", [])
 
-    def get_storage(self) -> data.Storage:
+    def get_storage(self) -> data.PgStorage:
         return self.storage
 
     def start(self):

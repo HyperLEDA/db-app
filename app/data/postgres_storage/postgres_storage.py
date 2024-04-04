@@ -50,7 +50,7 @@ class NumpyIntDumper(numeric.IntDumper):
         return super().dump(int(obj))
 
 
-class Storage:
+class PgStorage:
     def __init__(self, config: StorageConfig) -> None:
         self._config = config
         self._connection: psycopg.Connection | None = None

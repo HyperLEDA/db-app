@@ -27,3 +27,6 @@ class Actions(abc.ABC):
 
     def choose_table(self, r: model.ChooseTableRequest) -> model.ChooseTableResponse:
         raise NotImplementedError("not implemented")
+
+    def start_task(self, r: model.StartTaskRequest) -> model.StartTaskResponse:
+        raise NotImplementedError("not implemented")
