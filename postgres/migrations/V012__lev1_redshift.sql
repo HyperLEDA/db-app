@@ -11,7 +11,7 @@ COMMENT ON SCHEMA cz IS 'Heliocentric Redshift catalog' ;
 
 
 CREATE TABLE cz.method (
-, id	text	PRIMARY KEY
+  id	text	PRIMARY KEY
 , description	text	NOT NULL
 ) ;
 
@@ -51,7 +51,7 @@ COMMENT ON COLUMN cz.dataset.bib IS 'Bibliography reference' ;
 COMMENT ON COLUMN cz.dataset.srctab IS 'Source table' ;  -- Maybe it is better to create the registry for all downloaded tables and reffer ther src id?
 
 
-CREATE cz.datasetGroup (
+CREATE TABLE cz.datasetGroup (
   id	serial	PRIMARY KEY
 , description	text	NOT NULL
 ) ;
@@ -61,7 +61,7 @@ COMMENT ON COLUMN cz.datasetGroup.id IS 'Dataset Group ID' ;
 COMMENT ON COLUMN cz.datasetGroup.description IS 'Dataset Group description' ;
 
 
-CREATE cz.datasetGroupList (
+CREATE TABLE cz.datasetGroupList (
   datasetGroup	integer	NOT NULL	REFERENCES cz.datasetGroup (id)	ON DELETE restrict ON UPDATE cascade
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , PRIMARY KEY (datasetGroup,dataset)
@@ -89,7 +89,7 @@ CREATE INDEX ON cz.data (pgc,quality,cz) ;
 CREATE INDEX ON cz.data (dataset) ;
 
 COMMENT ON TABLE cz.data IS 'Redshift measurement catalog' ;
-COMMENT ON COLUMN cz.data.id IS 'ID of the measurement'
+COMMENT ON COLUMN cz.data.id IS 'ID of the measurement' ;
 COMMENT ON COLUMN cz.data.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN cz.data.cz IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
 COMMENT ON COLUMN cz.data.e_cz IS 'cz measurement error in km/s' ;
