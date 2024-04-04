@@ -1,3 +1,5 @@
+/* pgmigrate-encoding: utf-8 */
+
 BEGIN;
 
 DROP SCHEMA IF EXISTS common CASCADE ;
@@ -23,7 +25,7 @@ COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object list of Principal Gala
 
 -----------------------------------------------------------
 --------- Bibliography ------------------------------------
--- Помимо ссылок на литературу содержит ID работ, которые выболняются в рамках Леда, а также на частные сообщения
+-- Помимо ссылок на литературу содержит ID работ, которые выполняются в рамках Леда, а также на частные сообщения
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
 -- bibcode references the ADS databse: https://ui.adsabs.harvard.edu/
@@ -39,7 +41,7 @@ CREATE INDEX ON common.bib (title) ;
 
 COMMENT ON TABLE common.bib IS 'Bibliography catalog' ;
 COMMENT ON COLUMN common.bib.id IS 'Bibliography ID' ;
-COMMENT ON COLUMN common.bib.bibcode IS 'The bibcode references the ADS databse: https://ui.adsabs.harvard.edu/' ;
+COMMENT ON COLUMN common.bib.bibcode IS 'The bibcode references the ADS database: https://ui.adsabs.harvard.edu/' ;
 COMMENT ON COLUMN common.bib.year IS 'Year of publication' ;
 COMMENT ON COLUMN common.bib.author IS 'Author list' ;
 COMMENT ON COLUMN common.bib.title IS 'Publication title' ;
@@ -75,14 +77,42 @@ COMMENT ON COLUMN common.users.id IS 'User ID' ;
 COMMENT ON COLUMN common.users.name IS 'Full name' ;
 COMMENT ON COLUMN common.users.email IS 'User email' ;
 
-
-
 -----------------------------------------------
 --------- Observation Data Types --------------
 CREATE TABLE common.datatype (
   id	text	PRIMARY KEY
 , description	text	NOT NULL
 ) ;
+
+-----------------------------------------------------------
+--------- Tasks -------------------------------------------
+
+CREATE TYPE task_status AS ENUM('new', 'in_progress', 'failed', 'done');
+
+CREATE TABLE common.tasks (
+  id	        serial	    PRIMARY KEY
+, task_name	  text	      NOT NULL	UNIQUE
+, status	    task_status	NOT NULL	UNIQUE          DEFAULT 'new'
+, start_time  timestamp without time zone NOT NULL  DEFAULT NOW()
+, end_time    timestamp without time zone
+, payload     jsonb
+, user_id     integer REFERENCES common.users(id)
+);
+
+COMMENT ON TABLE common.tasks IS 'Asynchronous tasks for data processing';
+COMMENT ON COLUMN common.tasks.id IS 'Task ID';
+COMMENT ON COLUMN common.tasks.task_name IS 'Name of the task from task registry';
+COMMENT ON COLUMN common.tasks.status IS 'Current status of the task';
+COMMENT ON COLUMN common.tasks.start_time IS 'Task start time';
+COMMENT ON COLUMN common.tasks.end_time IS 'Task end time';
+COMMENT ON COLUMN common.tasks.payload IS 'Data that was used to start the task';
+COMMENT ON COLUMN common.tasks.user_id IS 'User who started the task';
+
+-----------------------------------------------------------
+-------- Raw data -----------------------------------------
+CREATE SCHEMA rawdata;
+
+COMMENT ON SCHEMA rawdata IS 'The schema is a container for the original tables from different sources' ;
 
 COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
 COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;

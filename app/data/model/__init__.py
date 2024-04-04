@@ -1,6 +1,8 @@
 import datetime
 from dataclasses import dataclass
 
+from app.data.model.task import Task
+
 
 @dataclass
 class Bibliography:
