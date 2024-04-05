@@ -98,4 +98,65 @@ COMMENT ON COLUMN cz.data.dataset IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN cz.data.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
+------------------------------------------
+-- List of obsoleted datasets ------------
+CREATE TABLE cz.obsoleted (
+  dataset	integer	PRIMARY KEY	REFERENCES cz.dataset ( id ) ON DELETE restrict ON UPDATE cascade
+, renewed	integer	NOT NULL	REFERENCES cz.dataset ( id ) ON DELETE restrict ON UPDATE cascade
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
+) ;
+
+COMMENT ON TABLE cz.obsoleted IS 'List of obsoleted datasets' ;
+COMMENT ON COLUMN cz.obsoleted.dataset IS 'Obsoleted dataset' ;
+COMMENT ON COLUMN cz.obsoleted.renewed IS 'Dataset that made the previous one obsolete' ;
+COMMENT ON COLUMN cz.obsoleted.modification_time IS 'Timestamp when the record was added to the database' ;
+
+
+---------------------------------------------
+-- List of excluded measurements ------------
+CREATE TABLE cz.excluded (
+  id	integer	PRIMARY KEY	REFERENCES cz.data (id) ON DELETE restrict ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, note	text	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
+) ;
+
+COMMENT ON TABLE cz.excluded IS 'List of measurements excluded from consideration' ;
+COMMENT ON COLUMN cz.excluded.id IS 'measurement ID' ;
+COMMENT ON COLUMN cz.excluded.bib IS 'Bibliography reference where given measurement was marked as wrong' ;
+COMMENT ON COLUMN cz.excluded.note IS 'Note on exclusion' ;
+COMMENT ON COLUMN cz.excluded.modification_time IS 'Timestamp when the record was added to the database' ;
+
+
+------------------------------------------
+--- List of redshift measurements --------
+
+CREATE VIEW cz.list AS
+SELECT
+  d.id
+, d.pgc
+, d.cz
+, d.e_cz
+, d.quality
+, d.dataset
+, obsol.dataset IS NULL and excl.id IS NULL	AS isok
+, greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
+FROM
+  cz.data AS d
+  LEFT JOIN cz.obsoleted AS obsol ON (cz.dataset=d.dataset)
+  LEFT JOIN cz.excluded AS excl ON (excl.id=d.id)
+;
+
+COMMENT ON TABLE cz.list IS 'Redshift measurement catalog' ;
+COMMENT ON COLUMN cz.list.id IS 'measurement ID' ;
+COMMENT ON COLUMN cz.list.pgc IS 'PGC number of the object' ;
+COMMENT ON COLUMN cz.list.cz IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
+COMMENT ON COLUMN cz.list.e_cz IS 'cz measurement error in km/s' ;
+COMMENT ON COLUMN cz.list.quality IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN cz.list.dataset IS 'Dataset of the measurements' ;
+COMMENT ON COLUMN cz.list.isok IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;
+COMMENT ON COLUMN cz.list.modification_time IS 'Timestamp when the record was added to the database' ;
+
+
+
 COMMIT ;

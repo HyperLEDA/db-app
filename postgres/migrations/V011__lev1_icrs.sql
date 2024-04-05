@@ -82,7 +82,7 @@ CREATE TABLE icrs.obsoleted (
 
 COMMENT ON TABLE icrs.obsoleted IS 'List of obsoleted datasets' ;
 COMMENT ON COLUMN icrs.obsoleted.bib IS 'Obsoleted bibliography reference' ;
-COMMENT ON COLUMN icrs.obsoleted.renewed IS 'Renewd version of the obsoleted reference' ;
+COMMENT ON COLUMN icrs.obsoleted.renewed IS 'Reference that made the previous one obsolete' ;
 COMMENT ON COLUMN icrs.obsoleted.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
@@ -110,7 +110,7 @@ SELECT
 , d.e_ra
 , d.e_dec
 , d.bib
-, obsol.bib IS NOT NULL and excl.id IS NOT NULL	AS isok
+, obsol.bib IS NULL and excl.id IS NULL	AS isok
 , greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
 FROM
   icrs.data AS d
