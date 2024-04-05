@@ -8,7 +8,7 @@ from testcontainers import postgres
 
 from app import data
 
-log = structlog.get_logger()
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 def find_free_port():
@@ -49,6 +49,8 @@ class TestPostgresStorage:
 
         for migration_filename in migrations:
             data = pathlib.Path(migrations_dir, migration_filename).read_text()
+            # there should be no placeholders in migrations
+            data = data.replace("%", "%%")
             self.storage.exec(data, [])
 
     def clear(self):
