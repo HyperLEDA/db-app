@@ -7,7 +7,7 @@ DROP SCHEMA IF EXISTS rawdata CASCADE ;
 ------ Common ---------------------------------------------
 CREATE SCHEMA common ;
 
-COMMENT ON SCHEMA common IS 'The schema contains the common Leda tables' ;
+COMMENT ON SCHEMA common IS 'Common Leda tables' ;
 
 
 -----------------------------------------------------------
@@ -65,7 +65,7 @@ COMMENT ON COLUMN common.users.email IS 'User email' ;
 -------- Raw data -----------------------------------------
 CREATE SCHEMA rawdata;
 
-COMMENT ON SCHEMA rawdata IS 'The schema is a container for the orginal tables from different sources' ;
+COMMENT ON SCHEMA rawdata IS 'Container for the orginal tables from different sources' ;
 
 
 
