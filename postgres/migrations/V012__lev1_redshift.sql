@@ -143,19 +143,19 @@ SELECT
 , greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
 FROM
   cz.data AS d
-  LEFT JOIN cz.obsoleted AS obsol ON (cz.dataset=d.dataset)
+  LEFT JOIN cz.obsoleted AS obsol ON (obsol.dataset=d.dataset)
   LEFT JOIN cz.excluded AS excl ON (excl.id=d.id)
 ;
 
-COMMENT ON TABLE cz.list IS 'Redshift measurement catalog' ;
-COMMENT ON COLUMN cz.list.id IS 'measurement ID' ;
-COMMENT ON COLUMN cz.list.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN cz.list.cz IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
-COMMENT ON COLUMN cz.list.e_cz IS 'cz measurement error in km/s' ;
-COMMENT ON COLUMN cz.list.quality IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
-COMMENT ON COLUMN cz.list.dataset IS 'Dataset of the measurements' ;
-COMMENT ON COLUMN cz.list.isok IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;
-COMMENT ON COLUMN cz.list.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON VIEW cz.list	IS 'Redshift measurement catalog' ;
+COMMENT ON COLUMN cz.list.id	IS 'measurement ID' ;
+COMMENT ON COLUMN cz.list.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN cz.list.cz	IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
+COMMENT ON COLUMN cz.list.e_cz	IS 'cz measurement error in km/s' ;
+COMMENT ON COLUMN cz.list.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN cz.list.dataset	IS 'Dataset of the measurements' ;
+COMMENT ON COLUMN cz.list.isok	IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;
+COMMENT ON COLUMN cz.list.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 
