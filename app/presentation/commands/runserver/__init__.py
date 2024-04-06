@@ -1,8 +1,9 @@
 import redis
 import structlog
 
-from app.data import PgStorage, repositories
+from app.data import repositories
 from app.domain import usecases
+from app.lib.storage.postgres import PgStorage
 from app.presentation import server
 from app.presentation.commands.runserver.config import parse_config
 

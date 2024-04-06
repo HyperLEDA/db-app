@@ -8,36 +8,12 @@ from marshmallow import Schema, fields, post_load
 from psycopg import adapt, rows
 from psycopg.types import enum, numeric
 
-from app.data.model.task import TaskStatus
-from app.data.util import storage as storageutils
 from app.lib.exceptions import new_database_error, new_internal_error
+from app.lib.queue.task_status import TaskStatus
+from app.lib.storage.postgres import config
+from app.lib.storage.postgres import transaction as storageutils
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
-
-
-@dataclass
-class PgStorageConfig:
-    endpoint: str
-    port: int
-    dbname: str
-    user: str
-    password: str
-
-    def get_dsn(self) -> str:
-        # TODO: SSL and other options like transaction timeout
-        return f"postgresql://{self.endpoint}:{self.port}/{self.dbname}?user={self.user}&password={self.password}"
-
-
-class PgStorageConfigSchema(Schema):
-    endpoint = fields.Str(required=True)
-    port = fields.Int(required=True)
-    dbname = fields.Str(required=True)
-    user = fields.Str(required=True)
-    password = fields.Str(required=True)
-
-    @post_load
-    def make(self, data, **kwargs):
-        return PgStorageConfig(**data)
 
 
 class NumpyFloatDumper(numeric.FloatDumper):
@@ -71,8 +47,8 @@ DEFAULT_ENUMS = [
 
 
 class PgStorage:
-    def __init__(self, config: PgStorageConfig, logger: structlog.stdlib.BoundLogger) -> None:
-        self._config = config
+    def __init__(self, cfg: config.PgStorageConfig, logger: structlog.stdlib.BoundLogger) -> None:
+        self._config = cfg
         self._connection: psycopg.Connection | None = None
         self._logger = logger
 

@@ -4,9 +4,9 @@ from pathlib import Path
 import yaml
 from marshmallow import Schema, fields, post_load
 
-from app.data import PgStorageConfig, PgStorageConfigSchema
 from app.data.repositories import QueueConfig
 from app.data.repositories.queue_repository import QueueConfigSchema
+from app.lib.storage.postgres import PgStorageConfig, PgStorageConfigSchema
 from app.presentation.server import ServerConfig, ServerConfigSchema
 
 

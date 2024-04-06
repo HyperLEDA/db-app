@@ -4,12 +4,13 @@ import psycopg
 import structlog
 from psycopg.types import json
 
-from app.data import interface, model, postgres_storage, template
+from app.data import interface, model, template
+from app.lib.storage import postgres
 
 
 @final
 class CommonRepository(interface.CommonRepository):
-    def __init__(self, storage: postgres_storage.PgStorage, logger: structlog.BoundLogger) -> None:
+    def __init__(self, storage: postgres.PgStorage, logger: structlog.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
 
