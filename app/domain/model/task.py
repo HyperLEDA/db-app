@@ -25,5 +25,5 @@ class GetTaskInfoResponse:
     task_name: str
     status: str
     payload: dict[str, Any]
-    start_time: datetime.datetime
-    end_time: datetime.datetime
+    start_time: datetime.datetime | None
+    end_time: datetime.datetime | None

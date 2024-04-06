@@ -25,7 +25,7 @@ def start(config_path: str):
     common_repo = repositories.CommonRepository(pg_storage, logger)
     layer0_repo = repositories.Layer0Repository(pg_storage, logger)
     layer1_repo = repositories.Layer1Repository(pg_storage, logger)
-    queue_repo = repositories.QueueRepository(cfg.queue, "default", logger)
+    queue_repo = repositories.QueueRepository(cfg.queue, logger)
 
     actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, logger)
 

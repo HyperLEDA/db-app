@@ -13,11 +13,13 @@ from app.data import interface
 class QueueConfig:
     endpoint: str
     port: int
+    queue_name: str
 
 
 class QueueConfigSchema(Schema):
     endpoint = fields.Str(required=True)
     port = fields.Int(required=True)
+    queue_name = fields.Str(required=True)
 
     @post_load
     def make(self, data, **kwargs):
@@ -28,11 +30,10 @@ class QueueRepository(interface.QueueRepository):
     def __init__(
         self,
         config: QueueConfig,
-        queue_name: str,
         logger: structlog.BoundLogger,
     ) -> None:
         connection = redis.Redis(host=config.endpoint, port=config.port)
-        self._queue = rq.Queue(queue_name, connection=connection)
+        self._queue = rq.Queue(config.queue_name, connection=connection)
         self._logger = logger
 
     def enqueue(self, func: Callable[..., None], *args: Any) -> None:

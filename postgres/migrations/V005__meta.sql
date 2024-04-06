@@ -1,3 +1,5 @@
+/* pgmigrate-encoding: utf-8 */
+
 BEGIN ;
 
 DROP SCHEMA IF EXISTS meta CASCADE;
