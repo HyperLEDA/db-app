@@ -56,16 +56,20 @@ CREATE OR REPLACE FUNCTION
   public.wmean_final( WSum double precision[] )
 RETURNS double precision[]
 AS $$
-  SELECT ARRAY[ 
-           WSum[1] / WSum[2]               -- Weighted average
-         , sqrt( 
-             WSum[3]/( (WSum[3]-1) * WSum[2]^2 ) *
-             (  WSum[4] - WSum[1]^2/WSum[3]
-               -2*WSum[1]/WSum[2]*(WSum[5]-WSum[2]*WSum[1]/WSum[3])
-                 +(WSum[1]/WSum[2])^2*(WSum[6]-WSum[2]^2/WSum[3])
-             )
-           )                               -- Standard error of weighted mean
-         ] ;
+  SELECT 
+    CASE WHEN WSum[3]=0 THEN ARRAY[ NULL::double precision, NULL::double precision ]
+         WHEN WSum[3]=1 THEN ARRAY[ WSum[1] / WSum[2], NULL::double precision ]
+         ELSE ARRAY[ 
+                WSum[1] / WSum[2]               -- Weighted average
+              , sqrt( 
+                  WSum[3]/( (WSum[3]-1) * WSum[2]^2 ) *
+                  (  WSum[4] - WSum[1]^2/WSum[3]
+                    -2*WSum[1]/WSum[2]*(WSum[5]-WSum[2]*WSum[1]/WSum[3])
+                      +(WSum[1]/WSum[2])^2*(WSum[6]-WSum[2]^2/WSum[3])
+                  )
+                )                               -- Standard error of weighted mean
+              ]
+    END;
 $$ LANGUAGE sql COST 100 STABLE STRICT PARALLEL UNSAFE
 ;
 

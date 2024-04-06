@@ -85,7 +85,7 @@ CREATE TABLE cz.data (
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
-CREATE INDEX ON cz.data (pgc,quality,cz) ;
+CREATE UNIQUE INDEX ON cz.data (pgc,quality,cz,dataset) ;
 CREATE INDEX ON cz.data (dataset) ;
 
 COMMENT ON TABLE cz.data IS 'Redshift measurement catalog' ;
@@ -96,20 +96,6 @@ COMMENT ON COLUMN cz.data.e_cz IS 'cz measurement error in km/s' ;
 COMMENT ON COLUMN cz.data.quality IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
 COMMENT ON COLUMN cz.data.dataset IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN cz.data.modification_time IS 'Timestamp when the record was added to the database' ;
-
-
-------------------------------------------
--- List of obsoleted datasets ------------
-CREATE TABLE cz.obsoleted (
-  dataset	integer	PRIMARY KEY	REFERENCES cz.dataset ( id ) ON DELETE restrict ON UPDATE cascade
-, renewed	integer	NOT NULL	REFERENCES cz.dataset ( id ) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
-) ;
-
-COMMENT ON TABLE cz.obsoleted IS 'List of obsoleted datasets' ;
-COMMENT ON COLUMN cz.obsoleted.dataset IS 'Obsoleted dataset' ;
-COMMENT ON COLUMN cz.obsoleted.renewed IS 'Dataset that made the previous one obsolete' ;
-COMMENT ON COLUMN cz.obsoleted.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
 ---------------------------------------------
@@ -139,11 +125,12 @@ SELECT
 , d.e_cz
 , d.quality
 , d.dataset
-, obsol.dataset IS NULL and excl.id IS NULL	AS isok
+, obsol.bib IS NULL and excl.id IS NULL	AS isok
 , greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
 FROM
   cz.data AS d
-  LEFT JOIN cz.obsoleted AS obsol ON (obsol.dataset=d.dataset)
+  LEFT JOIN cz.dataset ON (cz.dataset.id=d.dataset)
+  LEFT JOIN common.obsoleted AS obsol ON (obsol.bib=cz.dataset.bib)
   LEFT JOIN cz.excluded AS excl ON (excl.id=d.id)
 ;
 
