@@ -1,7 +1,6 @@
 BEGIN;
 
 DROP SCHEMA IF EXISTS common CASCADE ;
-DROP SCHEMA IF EXISTS rawdata CASCADE ;
 
 -----------------------------------------------------------
 ------ Common ---------------------------------------------
@@ -47,6 +46,22 @@ COMMENT ON COLUMN common.bib.title IS 'Publication title' ;
 COMMENT ON COLUMN common.bib.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
+------------------------------------------
+-- List of obsoleted bibliography --------
+CREATE TABLE common.obsoleted (
+  bib	integer	PRIMARY KEY	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, renewed	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
+) ;
+
+COMMENT ON TABLE common.obsoleted	IS 'List of obsoleted bibliography' ;
+COMMENT ON COLUMN common.obsoleted.bib	IS 'Obsoleted bibliography' ;
+COMMENT ON COLUMN common.obsoleted.renewed	IS 'Bibliography that made the previous one obsolete' ;
+COMMENT ON COLUMN common.obsoleted.modification_time	IS 'Timestamp when the record was added to the database' ;
+
+
+
+
 -----------------------------------------------------------
 --------- User --------------------------------------------
 CREATE TABLE common.users (
@@ -61,12 +76,45 @@ COMMENT ON COLUMN common.users.name IS 'Full name' ;
 COMMENT ON COLUMN common.users.email IS 'User email' ;
 
 
------------------------------------------------------------
--------- Raw data -----------------------------------------
-CREATE SCHEMA rawdata;
 
-COMMENT ON SCHEMA rawdata IS 'Container for the orginal tables from different sources' ;
+-----------------------------------------------
+--------- Observation Data Types --------------
+CREATE TABLE common.datatype (
+  id	text	PRIMARY KEY
+, description	text	NOT NULL
+) ;
 
+COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
+COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;
+COMMENT ON COLUMN common.datatype.description IS 'Description of the data type' ;
+
+INSERT INTO common.datatype VALUES 
+  ( 'reguliar'     , 'Reguliar measurements' )
+, ( 'reprocessing' , 'Reprocessing of observations' )
+, ( 'preliminary'  , 'Preliminary results' )
+, ( 'compilation'  , 'Compilation of data from literature' )
+;
+
+
+-----------------------------------------------
+--------- Data Quality ------------------------
+CREATE TABLE common.quality (
+  id	smallint	PRIMARY KEY
+, description	text	NOT NULL
+) ;
+
+COMMENT ON TABLE common.quality IS 'Data quality' ;
+COMMENT ON COLUMN common.quality.id IS 'ID of the data quality' ;
+COMMENT ON COLUMN common.quality.description IS 'Description of the data quality' ;
+
+INSERT INTO common.datatype VALUES 
+  ( 0 , 'Reguliar measurements' )
+, ( 1 , 'Low signal to noise' )
+, ( 2 , 'Suspected measurement' )
+, ( 3 , 'Lower limit' )
+, ( 4 , 'Upper limit' )
+, ( 5 , 'Wrong measurement' )
+;
 
 
 COMMIT;

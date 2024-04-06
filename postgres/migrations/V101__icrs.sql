@@ -13,7 +13,6 @@ COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial R
 --         к сожалению, в старых каталогах редко указывалась индивидуальная точность измерения координат
 --         в Леда для этого был введен класс точности http://atlas.obs-hp.fr/hyperleda/a113/ : 
 --         -1 = 0.1 arcsec, 0 = 1 arcsec, 1 = 10 arcsec, 2 = 100 arcsec ~ 1 arcmin, 3 = 1000 arcsec ~ 10 arcmin, 9 - исключить из рассмотрения
---  obsoleted  - список устаревших наборов данных (поддержание этого списка - ответственность Леда)
 --  excluded   - список ошибочных измерений (поддержание этого списка - ответственность Леда)
 --  list - представление
 --  mean - усредненные координаты (взвешенное среднее)
@@ -74,19 +73,6 @@ COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp when the record was 
 
 
 -- Надо бы добавить поле, обозначающее ответственного за добавление данных в этот список...
-CREATE TABLE icrs.obsoleted (
-  bib	integer	PRIMARY KEY	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, renewed	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
-) ;
-
-COMMENT ON TABLE icrs.obsoleted IS 'List of obsoleted datasets' ;
-COMMENT ON COLUMN icrs.obsoleted.bib IS 'Obsoleted bibliography reference' ;
-COMMENT ON COLUMN icrs.obsoleted.renewed IS 'Reference that made the previous one obsolete' ;
-COMMENT ON COLUMN icrs.obsoleted.modification_time IS 'Timestamp when the record was added to the database' ;
-
-
--- Надо бы добавить поле, обозначающее ответственного за добавление данных в этот список...
 CREATE TABLE icrs.excluded (
   id	integer	PRIMARY KEY	REFERENCES icrs.data (id) ON DELETE restrict ON UPDATE cascade
 , bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
@@ -114,7 +100,7 @@ SELECT
 , greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
 FROM
   icrs.data AS d
-  LEFT JOIN icrs.obsoleted AS obsol ON (obsol.bib=d.bib)
+  LEFT JOIN common.obsoleted AS obsol ON (obsol.bib=d.bib)
   LEFT JOIN icrs.excluded AS excl ON (excl.id=d.id)
 ;
 

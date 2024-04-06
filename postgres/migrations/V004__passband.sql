@@ -1,49 +1,6 @@
 BEGIN;
 
 -----------------------------------------------
---------- Observation Data Types --------------
-
-CREATE TABLE common.datatype (
-  id	text	PRIMARY KEY
-, description	text	NOT NULL
-) ;
-
-COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
-COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;
-COMMENT ON COLUMN common.datatype.description IS 'Description of the data type' ;
-
-INSERT INTO common.datatype VALUES 
-  ( 'reguliar'     , 'Reguliar measurements' )
-, ( 'reprocessing' , 'Reprocessing of observations' )
-, ( 'preliminary'  , 'Preliminary results' )
-, ( 'compilation'  , 'Compilation of data from literature' )
-;
-
-
------------------------------------------------
---------- Data Quality ------------------------
-
-CREATE TABLE common.quality (
-  id	smallint	PRIMARY KEY
-, description	text	NOT NULL
-) ;
-
-COMMENT ON TABLE common.quality IS 'Data quality' ;
-COMMENT ON COLUMN common.quality.id IS 'ID of the data quality' ;
-COMMENT ON COLUMN common.quality.description IS 'Description of the data quality' ;
-
-INSERT INTO common.datatype VALUES 
-  ( 0 , 'Reguliar measurements' )
-, ( 1 , 'Low signal to noise' )
-, ( 2 , 'Suspected measurement' )
-, ( 3 , 'Lower limit' )
-, ( 4 , 'Upper limit' )
-, ( 5 , 'Wrong measurement' )
-;
-
-
-
------------------------------------------------
 --------- Spectral regions --------------------
 
 CREATE TABLE common.specregion (
