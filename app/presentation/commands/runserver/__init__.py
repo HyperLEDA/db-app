@@ -19,7 +19,7 @@ def start(config_path: str):
 
     logger = structlog.get_logger()
 
-    pg_storage = PgStorage(cfg.storage)
+    pg_storage = PgStorage(cfg.storage, logger)
     pg_storage.connect()
 
     common_repo = repositories.CommonRepository(pg_storage, logger)

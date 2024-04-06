@@ -24,3 +24,7 @@ class CommonRepository(transactional.Transactional):
     @abc.abstractmethod
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> model.Task:
+        raise NotImplementedError("not implemented")

@@ -255,3 +255,14 @@ class Actions(domain.Actions):
             self._queue_repo.enqueue(task, params)
 
         return domain_model.StartTaskResponse(task_id)
+
+    def get_task_info(self, r: domain_model.GetTaskInfoRequest) -> domain_model.GetTaskInfoResponse:
+        task_info = self._common_repo.get_task_info(r.task_id)
+        return domain_model.GetTaskInfoResponse(
+            task_info.id,
+            task_info.task_name,
+            str(task_info.status.value),
+            task_info.payload,
+            task_info.start_time,
+            task_info.end_time,
+        )

@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
-from app.data.model.task import Task
+from app.data.model.task import Task, TaskStatus
 
 
 @dataclass

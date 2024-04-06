@@ -91,8 +91,8 @@ CREATE TYPE task_status AS ENUM('new', 'in_progress', 'failed', 'done');
 
 CREATE TABLE common.tasks (
   id	        serial	    PRIMARY KEY
-, task_name	  text	      NOT NULL	UNIQUE
-, status	    task_status	NOT NULL	UNIQUE          DEFAULT 'new'
+, task_name	  text	      NOT NULL
+, status	    task_status	NOT NULL                  DEFAULT 'new'
 , start_time  timestamp without time zone NOT NULL  DEFAULT NOW()
 , end_time    timestamp without time zone
 , payload     jsonb

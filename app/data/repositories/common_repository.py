@@ -2,6 +2,7 @@ from typing import final
 
 import psycopg
 import structlog
+from psycopg.types import json
 
 from app.data import interface, model, postgres_storage, template
 
@@ -45,9 +46,22 @@ class CommonRepository(interface.CommonRepository):
 
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         row = self._storage.query_one(
-            "INSERT INTO common.tasks (task_name, payload, user_id) VALUES (%s, %s, %s) RETURNING id",
-            [task.task_name, task.payload],
+            "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
+            [task.task_name, json.Jsonb(task.payload)],
             tx,
         )
 
         return row.get("id")
+
+    def get_task_info(
+        self,
+        task_id: int,
+        tx: psycopg.Transaction | None = None,
+    ) -> model.Task:
+        row = self._storage.query_one(
+            "SELECT id, task_name, payload, user_id, status, start_time, end_time FROM common.tasks WHERE id = %s",
+            [task_id],
+            tx,
+        )
+
+        return model.Task(**row)
