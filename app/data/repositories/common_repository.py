@@ -6,6 +6,7 @@ from psycopg.types import json
 
 from app.data import interface, model, template
 from app.lib.storage import postgres
+from app.lib import queue
 
 
 @final
@@ -66,3 +67,14 @@ class CommonRepository(interface.CommonRepository):
         )
 
         return model.Task(**row)
+
+    def set_task_status(
+        self,
+        task_id: int,
+        task_status: queue.TaskStatus,
+        tx: psycopg.Transaction | None = None,
+    ) -> None:
+        self._storage.exec(
+            "UPDATE common.tasks SET status = %s WHERE id = %s",
+            [task_status, task_id],
+        )

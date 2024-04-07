@@ -92,8 +92,8 @@ CREATE TYPE task_status AS ENUM('new', 'in_progress', 'failed', 'done');
 CREATE TABLE common.tasks (
   id	        serial	    PRIMARY KEY
 , task_name	  text	      NOT NULL
-, status	    task_status	NOT NULL                  DEFAULT 'new'
-, start_time  timestamp without time zone NOT NULL  DEFAULT NOW()
+, status	    task_status	NOT NULL DEFAULT 'new'
+, start_time  timestamp without time zone
 , end_time    timestamp without time zone
 , payload     jsonb
 , user_id     integer REFERENCES common.users(id)
@@ -107,6 +107,31 @@ COMMENT ON COLUMN common.tasks.start_time IS 'Task start time';
 COMMENT ON COLUMN common.tasks.end_time IS 'Task end time';
 COMMENT ON COLUMN common.tasks.payload IS 'Data that was used to start the task';
 COMMENT ON COLUMN common.tasks.user_id IS 'User who started the task';
+
+CREATE OR REPLACE FUNCTION common.set_task_times() RETURNS trigger
+    LANGUAGE plpgsql
+AS
+$$
+    BEGIN
+    IF NEW.status = 'done' OR NEW.status = 'failed' THEN
+      UPDATE common.tasks
+      SET end_time = NOW()
+      WHERE id = NEW.id;
+    END IF;
+    IF NEW.status = 'in_progress' THEN
+      UPDATE common.tasks
+      SET start_time = NOW()
+      WHERE id = NEW.id;
+    END IF;
+    RETURN NEW;
+    END
+$$;
+
+CREATE TRIGGER tr_set_task_end_time
+    AFTER UPDATE OF status
+    ON common.tasks
+    FOR EACH ROW
+EXECUTE PROCEDURE common.set_task_times();
 
 -----------------------------------------------------------
 -------- Raw data -----------------------------------------

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import functools
 from typing import Any, Callable
 
 import redis
@@ -7,6 +8,7 @@ import structlog
 from marshmallow import Schema, fields, post_load
 
 from app.data import interface
+from app.lib.storage.postgres.config import PgStorageConfig
 
 
 @dataclass
@@ -30,12 +32,15 @@ class QueueRepository(interface.QueueRepository):
     def __init__(
         self,
         config: QueueConfig,
+        pg_config: PgStorageConfig,
         logger: structlog.BoundLogger,
     ) -> None:
         connection = redis.Redis(host=config.endpoint, port=config.port)
         self._queue = rq.Queue(config.queue_name, connection=connection)
+        self._storage_config = pg_config
         self._logger = logger
 
-    def enqueue(self, func: Callable[..., None], *args: Any) -> None:
-        self._logger.info("starting task", func=func.__name__, args=args)
-        self._queue.enqueue(func, *args)
+    def enqueue(self, task_id: int, func: Callable[..., None], *args: Any) -> None:
+        job = functools.partial(func, task_id, self._storage_config)
+        self._queue.enqueue(job, *args)
+        self._logger.info("enqueued task", func=func.__name__, args=args)

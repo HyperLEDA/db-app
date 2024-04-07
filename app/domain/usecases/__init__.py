@@ -252,7 +252,7 @@ class Actions(domain.Actions):
 
         with self._common_repo.with_tx() as tx:
             task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
-            self._queue_repo.enqueue(task, params)
+            self._queue_repo.enqueue(task_id, task, params)
 
         return domain_model.StartTaskResponse(task_id)
 
