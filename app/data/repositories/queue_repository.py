@@ -1,4 +1,3 @@
-import functools
 from typing import Any, Callable
 
 import structlog
@@ -19,6 +18,5 @@ class QueueRepository(interface.QueueRepository):
         self._storage_config = pg_config
         self._logger = logger
 
-    def enqueue(self, task_id: int, func: Callable[..., None], *args: Any) -> None:
-        job = functools.partial(func, task_id, self._storage_config)
-        self._queue.enqueue(job, *args)
+    def enqueue(self, job: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+        self._queue.enqueue(job, *args, **kwargs)

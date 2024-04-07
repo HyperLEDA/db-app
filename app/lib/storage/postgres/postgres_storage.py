@@ -46,6 +46,9 @@ class PgStorage:
         self._connection: psycopg.Connection | None = None
         self._logger = logger
 
+    def get_config(self) -> config.PgStorageConfig:
+        return self._config
+
     def connect(self) -> None:
         self._connection = psycopg.connect(self._config.get_dsn(), row_factory=rows.dict_row, autocommit=True)
         if self._connection is None:

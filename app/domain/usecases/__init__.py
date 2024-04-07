@@ -21,10 +21,11 @@ from app.lib.exceptions import (
     new_not_found_error,
     new_validation_error,
 )
-from app.lib.storage import mapping
+from app.lib.storage import mapping, postgres
 
 TASK_REGISTRY = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
+    "download_vizier_table": (tasks.download_vizier_table, tasks.DownloadVizierTableParams),
 }
 
 
@@ -36,12 +37,15 @@ class Actions(domain.Actions):
         layer0_repo: interface.Layer0Repository,
         layer1_repo: interface.Layer1Repository,
         queue_repo: interface.QueueRepository,
+        # remove this when actions are split
+        storage_config: postgres.PgStorageConfig,
         logger: structlog.BoundLogger,
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo
         self._layer1_repo = layer1_repo
         self._queue_repo = queue_repo
+        self._storage_config = storage_config
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
@@ -248,11 +252,18 @@ class Actions(domain.Actions):
             raise new_not_found_error(f"unable to find task '{r.task_name}'")
 
         task, params_type = TASK_REGISTRY[r.task_name]
+
         params = params_type(**r.payload)
 
         with self._common_repo.with_tx() as tx:
             task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
-            self._queue_repo.enqueue(task_id, task, params)
+            self._queue_repo.enqueue(
+                tasks.task_runner,
+                func=task,
+                task_id=task_id,
+                storage_config=self._storage_config,
+                params=params,
+            )
 
         return domain_model.StartTaskResponse(task_id)
 
