@@ -5,7 +5,7 @@ DROP SCHEMA IF EXISTS icrs CASCADE ;
 ----------- Coordinate catalog (level 1) ---------------------
 CREATE SCHEMA icrs ;
 
-COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial Reference System' ;
+COMMENT ON SCHEMA icrs	IS 'Catalog of positions in the International Celestial Reference System' ;
 
 
 --  data - ICRS координаты в градусах
@@ -41,15 +41,15 @@ CREATE INDEX ON icrs.data (ra,dec) ;
 CREATE INDEX ON icrs.data (pgc) ;
 CREATE INDEX ON icrs.data (bib) ;
 
-COMMENT ON TABLE icrs.data IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
-COMMENT ON COLUMN icrs.data.id IS 'ID of the position' ;
-COMMENT ON COLUMN icrs.data.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN icrs.data.ra IS 'Right Ascension (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.data.dec IS 'Declination (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.data.e_ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
-COMMENT ON COLUMN icrs.data.e_dec IS 'Declination error in arcsec' ;
-COMMENT ON COLUMN icrs.data.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON TABLE icrs.data	IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
+COMMENT ON COLUMN icrs.data.id	IS 'ID of the position' ;
+COMMENT ON COLUMN icrs.data.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN icrs.data.ra	IS 'Right Ascension (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.data.dec	IS 'Declination (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.data.e_ra	IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+COMMENT ON COLUMN icrs.data.e_dec	IS 'Declination error in arcsec' ;
+COMMENT ON COLUMN icrs.data.bib	IS 'Bibliography reference' ;
+COMMENT ON COLUMN icrs.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 -- -- По уму надо бы хранить ошибку, скорректированную за сколненеие err_ra*cos(dec), аналогично собственным движениям
@@ -59,10 +59,10 @@ COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp when the record was 
 -- , dec	double precision	NOT NULL
 -- ) ;
 -- 
--- COMMENT ON TABLE icrs.err IS 'The table of individual object errors' ;
--- COMMENT ON COLUMN icrs.err.id IS 'ID of the coordinates' ;
--- COMMENT ON COLUMN icrs.err.ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
--- COMMENT ON COLUMN icrs.err.dec IS 'Declination error in degrees' ;
+-- COMMENT ON TABLE icrs.err	IS 'The table of individual object errors' ;
+-- COMMENT ON COLUMN icrs.err.id	IS 'ID of the coordinates' ;
+-- COMMENT ON COLUMN icrs.err.ra	IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+-- COMMENT ON COLUMN icrs.err.dec	IS 'Declination error in degrees' ;
 
 -- -- Не понятно нужна ли эта таблица вообще, если мы пишем ощибки непосредственно в таблицу data
 -- CREATE TABLE icrs.dataseterr (
@@ -80,11 +80,11 @@ CREATE TABLE icrs.excluded (
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 ) ;
 
-COMMENT ON TABLE icrs.excluded IS 'List of individual positions excluded from consideration' ;
-COMMENT ON COLUMN icrs.excluded.id IS 'ID the position' ;
-COMMENT ON COLUMN icrs.excluded.bib IS 'Bibliography reference where given position was marked as wrong' ;
-COMMENT ON COLUMN icrs.excluded.note IS 'Note on exclusion' ;
-COMMENT ON COLUMN icrs.excluded.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON TABLE icrs.excluded	IS 'List of individual positions excluded from consideration' ;
+COMMENT ON COLUMN icrs.excluded.id	IS 'ID the position' ;
+COMMENT ON COLUMN icrs.excluded.bib	IS 'Bibliography reference where given position was marked as wrong' ;
+COMMENT ON COLUMN icrs.excluded.note	IS 'Note on exclusion' ;
+COMMENT ON COLUMN icrs.excluded.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 CREATE VIEW icrs.list AS 
@@ -104,16 +104,16 @@ FROM
   LEFT JOIN icrs.excluded AS excl ON (excl.id=d.id)
 ;
 
-COMMENT ON VIEW icrs.list IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
-COMMENT ON COLUMN icrs.list.id IS 'ID of the position' ;
-COMMENT ON COLUMN icrs.list.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN icrs.list.ra IS 'Right Ascension (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.list.dec IS 'Declination (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.list.e_ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
-COMMENT ON COLUMN icrs.list.e_dec IS 'Declination error in arcsec' ;
-COMMENT ON COLUMN icrs.list.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN icrs.list.isok IS 'True if the position is actual and False if it is obsoleted or excluded' ;
-COMMENT ON COLUMN icrs.list.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON VIEW icrs.list	IS 'Collection of the object positions in the International Celestial Reference System (ICRS)' ;
+COMMENT ON COLUMN icrs.list.id	IS 'ID of the position' ;
+COMMENT ON COLUMN icrs.list.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN icrs.list.ra	IS 'Right Ascension (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.list.dec	IS 'Declination (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.list.e_ra	IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+COMMENT ON COLUMN icrs.list.e_dec	IS 'Declination error in arcsec' ;
+COMMENT ON COLUMN icrs.list.bib	IS 'Bibliography reference' ;
+COMMENT ON COLUMN icrs.list.isok	IS 'True if the position is actual and False if it is obsoleted or excluded' ;
+COMMENT ON COLUMN icrs.list.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 
@@ -155,13 +155,13 @@ SELECT
 FROM mean
 ;
 
-COMMENT ON VIEW icrs.mean IS 'Object position in the International Celestial Reference System (ICRS)' ;
-COMMENT ON COLUMN icrs.mean.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN icrs.mean.ra IS 'Right Ascension (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.mean.dec IS 'Declination (ICRS) in degrees' ;
-COMMENT ON COLUMN icrs.mean.e_ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
-COMMENT ON COLUMN icrs.mean.e_dec IS 'Declination error in arcsec' ;
-COMMENT ON COLUMN icrs.mean.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON VIEW icrs.mean	IS 'Object position in the International Celestial Reference System (ICRS)' ;
+COMMENT ON COLUMN icrs.mean.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN icrs.mean.ra	IS 'Right Ascension (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.mean.dec	IS 'Declination (ICRS) in degrees' ;
+COMMENT ON COLUMN icrs.mean.e_ra	IS 'Right Ascension error (RAerr*cos(Des) in arcsec' ;
+COMMENT ON COLUMN icrs.mean.e_dec	IS 'Declination error in arcsec' ;
+COMMENT ON COLUMN icrs.mean.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 COMMIT ;
