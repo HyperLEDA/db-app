@@ -27,3 +27,4 @@ class GetTaskInfoResponse:
     payload: dict[str, Any]
     start_time: datetime.datetime | None
     end_time: datetime.datetime | None
+    message: dict[str, Any]

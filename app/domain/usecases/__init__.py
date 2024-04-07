@@ -276,4 +276,5 @@ class Actions(domain.Actions):
             task_info.payload,
             task_info.start_time,
             task_info.end_time,
+            task_info.message,
         )

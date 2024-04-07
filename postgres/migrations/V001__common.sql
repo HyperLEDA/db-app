@@ -108,6 +108,7 @@ CREATE TABLE common.tasks (
 , end_time    timestamp without time zone
 , payload     jsonb
 , user_id     integer REFERENCES common.users(id)
+, message     jsonb
 );
 
 COMMENT ON TABLE common.tasks IS 'Asynchronous tasks for data processing';
