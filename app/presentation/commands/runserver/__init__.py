@@ -1,9 +1,8 @@
-import redis
 import structlog
 
 from app.data import repositories
 from app.domain import usecases
-from app.lib.storage.postgres import PgStorage
+from app.lib.storage import postgres, redis
 from app.presentation import server
 from app.presentation.commands.runserver.config import parse_config
 
@@ -20,15 +19,20 @@ def start(config_path: str):
 
     logger = structlog.get_logger()
 
-    pg_storage = PgStorage(cfg.storage, logger)
+    pg_storage = postgres.PgStorage(cfg.storage, logger)
     pg_storage.connect()
+
+    redis_storage = redis.RedisQueue(cfg.queue, logger)
+    redis_storage.connect()
 
     common_repo = repositories.CommonRepository(pg_storage, logger)
     layer0_repo = repositories.Layer0Repository(pg_storage, logger)
     layer1_repo = repositories.Layer1Repository(pg_storage, logger)
-    queue_repo = repositories.QueueRepository(cfg.queue, cfg.storage, logger)
+    queue_repo = repositories.QueueRepository(redis_storage, cfg.storage, logger)
 
     actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, logger)
 
     server.start(cfg.server, actions)
+
+    redis_storage.disconnect()
     pg_storage.disconnect()

@@ -21,7 +21,7 @@ class GetTaskInfoRequest:
 
 @dataclass
 class GetTaskInfoResponse:
-    id: int
+    id: int | None
     task_name: str
     status: str
     payload: dict[str, Any]

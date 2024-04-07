@@ -6,6 +6,7 @@ from psycopg.types import json
 
 from app.data import interface, model, template
 from app.lib import queue
+from app.lib.exceptions import new_database_error
 from app.lib.storage import postgres
 
 
@@ -53,7 +54,11 @@ class CommonRepository(interface.CommonRepository):
             tx,
         )
 
-        return row.get("id")
+        row_id = row.get("id")
+        if row_id is None:
+            raise new_database_error("found row but it has no 'id' field")
+
+        return int(row_id)
 
     def get_task_info(
         self,

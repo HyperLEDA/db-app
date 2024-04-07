@@ -21,5 +21,6 @@ rq
 setuptools
 structlog
 testcontainers-postgres
+testcontainers-redis
 types-psycopg2
 types-pyyaml

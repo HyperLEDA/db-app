@@ -26,13 +26,7 @@ class NumpyIntDumper(numeric.IntDumper):
         return super().dump(int(obj))
 
 
-class TaskStatusLoader(adapt.Loader):
-    def load(self, data: bytes | bytearray | memoryview) -> Any:
-        status = data.decode("utf-8")
-        return TaskStatus.load(status)
-
-
-DEFAULT_DUMPERS = [
+DEFAULT_DUMPERS: list[tuple[type, type]] = [
     (np.float16, NumpyFloatDumper),
     (np.float32, NumpyFloatDumper),
     (np.float64, NumpyFloatDumper),
@@ -63,8 +57,12 @@ class PgStorage:
             self._connection.adapters.register_dumper(python_type, dumper)
 
         for python_type, pg_type in DEFAULT_ENUMS:
+            type_info = enum.EnumInfo.fetch(self._connection, pg_type)
+            if type_info is None:
+                raise RuntimeError(f"Unable to find enum {pg_type} in DB")
+
             enum.register_enum(
-                enum.EnumInfo.fetch(self._connection, pg_type),
+                type_info,
                 self._connection,
                 python_type,
                 mapping={m: m.value for m in python_type},
@@ -86,7 +84,7 @@ class PgStorage:
         if params is None:
             params = []
         if self._connection is None:
-            raise RuntimeError("did not connect to database")
+            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
 
         log.debug("SQL query", query=query.replace("\n", " "), args=params)
 
@@ -99,7 +97,7 @@ class PgStorage:
         if params is None:
             params = []
         if self._connection is None:
-            raise RuntimeError("did not connect to database")
+            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
 
         log.debug("SQL query", query=query.replace("\n", " "), args=params)
 
