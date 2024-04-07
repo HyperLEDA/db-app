@@ -9,6 +9,9 @@ install:
 runserver:
 	$(PYTHON) main.py runserver -c configs/dev/config.yaml
 
+runworker:
+	rq worker default
+
 start-db:
 	docker compose up -d
 

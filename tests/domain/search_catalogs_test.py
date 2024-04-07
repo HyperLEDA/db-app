@@ -33,7 +33,7 @@ class CatalogStub:
 class SearchCatalogsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.actions = Actions(None, None, None, structlog.get_logger())
+        cls.actions = Actions(None, None, None, None, structlog.get_logger())
 
     def test_run_without_metadata_no_tables(self):
         catalogs = {"V/II/table11": CatalogStub([], "test")}

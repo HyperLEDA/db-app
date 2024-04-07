@@ -8,3 +8,8 @@ storage:
   dbname: hyperleda
   user: hyperleda
   password: password
+
+queue:
+  endpoint: localhost
+  port: 6379
+  queue_name: default

@@ -15,9 +15,12 @@ psycopg[binary,pool]
 pylint
 pytest
 pyyaml
+redis
 requests
+rq
 setuptools
 structlog
 testcontainers-postgres
+testcontainers-redis
 types-psycopg2
 types-pyyaml

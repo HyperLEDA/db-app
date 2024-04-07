@@ -2,13 +2,17 @@ from typing import final
 
 import psycopg
 import structlog
+from psycopg.types import json
 
-from app.data import interface, model, postgres_storage, template
+from app.data import interface, model, template
+from app.lib import queue
+from app.lib.exceptions import new_database_error
+from app.lib.storage import postgres
 
 
 @final
 class CommonRepository(interface.CommonRepository):
-    def __init__(self, storage: postgres_storage.Storage, logger: structlog.BoundLogger) -> None:
+    def __init__(self, storage: postgres.PgStorage, logger: structlog.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
 
@@ -42,3 +46,40 @@ class CommonRepository(interface.CommonRepository):
         rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, [offset, limit], tx)
 
         return [model.Bibliography(**row) for row in rows]
+
+    def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
+        row = self._storage.query_one(
+            "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
+            [task.task_name, json.Jsonb(task.payload)],
+            tx,
+        )
+
+        row_id = row.get("id")
+        if row_id is None:
+            raise new_database_error("found row but it has no 'id' field")
+
+        return int(row_id)
+
+    def get_task_info(
+        self,
+        task_id: int,
+        tx: psycopg.Transaction | None = None,
+    ) -> model.Task:
+        row = self._storage.query_one(
+            "SELECT id, task_name, payload, user_id, status, start_time, end_time FROM common.tasks WHERE id = %s",
+            [task_id],
+            tx,
+        )
+
+        return model.Task(**row)
+
+    def set_task_status(
+        self,
+        task_id: int,
+        task_status: queue.TaskStatus,
+        tx: psycopg.Transaction | None = None,
+    ) -> None:
+        self._storage.exec(
+            "UPDATE common.tasks SET status = %s WHERE id = %s",
+            [task_status, task_id],
+        )

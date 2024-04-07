@@ -4,19 +4,21 @@ from pathlib import Path
 import yaml
 from marshmallow import Schema, fields, post_load
 
-from app.data import StorageConfig, StorageConfigSchema
+from app.lib.storage import postgres, redis
 from app.presentation.server import ServerConfig, ServerConfigSchema
 
 
 @dataclass
 class Config:
     server: ServerConfig
-    storage: StorageConfig
+    storage: postgres.PgStorageConfig
+    queue: redis.QueueConfig
 
 
 class ConfigSchema(Schema):
     server = fields.Nested(ServerConfigSchema(), required=True)
-    storage = fields.Nested(StorageConfigSchema(), required=True)
+    storage = fields.Nested(postgres.PgStorageConfigSchema(), required=True)
+    queue = fields.Nested(redis.QueueConfigSchema(), required=True)
 
     @post_load
     def make(self, data, **kwargs):

@@ -16,7 +16,7 @@ class SourcesTest(unittest.TestCase):
         common_repo = repositories.CommonRepository(cls.storage.get_storage(), structlog.get_logger())
         layer0_repo = repositories.Layer0Repository(cls.storage.get_storage(), structlog.get_logger())
         layer1_repo = repositories.Layer1Repository(cls.storage.get_storage(), structlog.get_logger())
-        cls.actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, structlog.get_logger())
+        cls.actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, None, structlog.get_logger())
 
     @classmethod
     def tearDownClass(cls):
