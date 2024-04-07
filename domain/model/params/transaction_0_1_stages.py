@@ -16,8 +16,3 @@ class AwaitingQueue(TransactionO1Sage):
 @dataclass
 class TransformingData(TransactionO1Sage):
     stage: Transformation01Stage
-
-
-@dataclass
-class AwaitingDecision(TransactionO1Sage):
-    pass

@@ -19,3 +19,7 @@ class Layer1Repository(ABC):
     @abstractmethod
     def save_update_instances(self, instances: list[Layer1Model]) -> bool:
         pass
+
+    @abstractmethod
+    async def make_new_id(self) -> int:
+        pass
