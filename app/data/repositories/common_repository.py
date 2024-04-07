@@ -5,8 +5,8 @@ import structlog
 from psycopg.types import json
 
 from app.data import interface, model, template
-from app.lib.storage import postgres
 from app.lib import queue
+from app.lib.storage import postgres
 
 
 @final

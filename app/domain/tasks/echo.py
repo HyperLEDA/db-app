@@ -1,12 +1,11 @@
-import queue
 import time
 from dataclasses import dataclass
 
 import structlog
 
 from app.data import repositories
-from app.lib.storage import postgres
 from app.lib import queue
+from app.lib.storage import postgres
 
 
 @dataclass

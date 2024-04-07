@@ -84,6 +84,17 @@ CREATE TABLE common.datatype (
 , description	text	NOT NULL
 ) ;
 
+COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
+COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;
+COMMENT ON COLUMN common.datatype.description IS 'Description of the data type' ;
+
+INSERT INTO common.datatype VALUES 
+  ( 'reguliar'     , 'Reguliar measurements' )
+, ( 'reprocessing' , 'Reprocessing of observations' )
+, ( 'preliminary'  , 'Preliminary results' )
+, ( 'compilation'  , 'Compilation of data from literature' )
+;
+
 -----------------------------------------------------------
 --------- Tasks -------------------------------------------
 
@@ -132,24 +143,6 @@ CREATE TRIGGER tr_set_task_end_time
     ON common.tasks
     FOR EACH ROW
 EXECUTE PROCEDURE common.set_task_times();
-
------------------------------------------------------------
--------- Raw data -----------------------------------------
-CREATE SCHEMA rawdata;
-
-COMMENT ON SCHEMA rawdata IS 'The schema is a container for the original tables from different sources' ;
-
-COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
-COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;
-COMMENT ON COLUMN common.datatype.description IS 'Description of the data type' ;
-
-INSERT INTO common.datatype VALUES 
-  ( 'reguliar'     , 'Reguliar measurements' )
-, ( 'reprocessing' , 'Reprocessing of observations' )
-, ( 'preliminary'  , 'Preliminary results' )
-, ( 'compilation'  , 'Compilation of data from literature' )
-;
-
 
 -----------------------------------------------
 --------- Data Quality ------------------------
