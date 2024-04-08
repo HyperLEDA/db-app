@@ -197,56 +197,6 @@ class Actions(domain.Actions):
 
         return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)
 
-    def choose_table(self, r: domain_model.ChooseTableRequest) -> domain_model.ChooseTableResponse:
-        Vizier.ROW_LIMIT = -1
-        catalogs = Vizier.get_catalogs(r.catalog_id)
-        catalog: table.Table | None = None
-
-        for curr_catalog in catalogs:
-            try:
-                name = curr_catalog.meta["name"]
-            except KeyError:
-                continue
-
-            if name != r.table_id:
-                continue
-
-            catalog = curr_catalog
-            break
-
-        if catalog is None:
-            raise new_not_found_error("catalog or table you requested was not found")
-
-        bad_fields = [field for field in catalog.columns if "-" in field]
-        for bad_field in bad_fields:
-            catalog[bad_field.replace("-", "_")] = catalog[bad_field]
-            catalog.remove_column(bad_field)
-
-        field: str
-        for field in catalog.columns:
-            if isinstance(catalog[field], ma.MaskedArray):
-                if catalog[field].dtype == np.int16:
-                    catalog[field] = catalog[field].filled(0)
-                else:
-                    catalog[field] = catalog[field].filled(np.nan)
-
-        fields = []
-        for field, field_meta in catalog.columns.items():
-            t = mapping.get_type_from_dtype(field_meta.dtype)
-            field = field.replace("-", "_")
-            fields.append((field, t))
-
-        table_id = random.randint(0, 2000000000)
-        with self._layer0_repo.with_tx() as tx:
-            self._layer0_repo.create_table("rawdata", f"data_{table_id}", fields, tx)
-
-            raw_data = list(catalog)
-            self._layer0_repo.insert_raw_data("rawdata", f"data_{table_id}", raw_data, tx)
-
-        # TODO: save pipeline id to database?
-
-        return domain_model.ChooseTableResponse(table_id)
-
     def start_task(self, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
         if r.task_name not in TASK_REGISTRY:
             raise new_not_found_error(f"unable to find task '{r.task_name}'")

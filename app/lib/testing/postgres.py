@@ -54,6 +54,8 @@ class TestPostgresStorage:
     def clear(self):
         self.storage.exec("TRUNCATE common.pgc CASCADE", [])
         self.storage.exec("TRUNCATE common.bib CASCADE", [])
+        # note that this removes metadata about the schema. 
+        self.storage.exec("DROP SCHEMA rawdata CASCADE; CREATE SCHEMA rawdata", [])
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage

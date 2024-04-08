@@ -5,11 +5,10 @@ from dataclasses import dataclass
 import numpy as np
 import structlog
 from astropy import table
-from astroquery.vizier import VizierClass
+from astroquery import vizier
 from numpy import ma
 
 from app.data import repositories
-from app.lib.exceptions import new_not_found_error
 from app.lib.storage import mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
@@ -66,7 +65,7 @@ def download_vizier_table(
         logger.warn(f"table '{RAWDATA_SCHEMA}.{table_name}' already exists, skipping download")
         return
 
-    vizier_client = VizierClass()
+    vizier_client = vizier.VizierClass()
     vizier_client.ROW_LIMIT = -1
     vizier_client.TIMEOUT = 30
 
@@ -101,7 +100,7 @@ def download_vizier_table(
         break
 
     if catalog is None:
-        raise new_not_found_error("catalog or table you requested was not found")
+        raise RuntimeError("catalog or table you requested was not found")
 
     field: str
     for field in catalog.colnames:
