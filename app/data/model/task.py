@@ -14,3 +14,4 @@ class Task:
     start_time: datetime.datetime | None = None
     end_time: datetime.datetime | None = None
     id: int | None = None
+    message: dict[str, Any] | None = None

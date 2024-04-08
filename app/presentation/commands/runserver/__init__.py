@@ -30,7 +30,7 @@ def start(config_path: str):
     layer1_repo = repositories.Layer1Repository(pg_storage, logger)
     queue_repo = repositories.QueueRepository(redis_storage, cfg.storage, logger)
 
-    actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, logger)
+    actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, cfg.storage, logger)
 
     server.start(cfg.server, actions)
 

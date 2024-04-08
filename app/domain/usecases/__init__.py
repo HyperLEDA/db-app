@@ -21,10 +21,11 @@ from app.lib.exceptions import (
     new_not_found_error,
     new_validation_error,
 )
-from app.lib.storage import mapping
+from app.lib.storage import mapping, postgres
 
 TASK_REGISTRY = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
+    "download_vizier_table": (tasks.download_vizier_table, tasks.DownloadVizierTableParams),
 }
 
 
@@ -36,12 +37,15 @@ class Actions(domain.Actions):
         layer0_repo: interface.Layer0Repository,
         layer1_repo: interface.Layer1Repository,
         queue_repo: interface.QueueRepository,
+        # remove this when actions are split
+        storage_config: postgres.PgStorageConfig,
         logger: structlog.BoundLogger,
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo
         self._layer1_repo = layer1_repo
         self._queue_repo = queue_repo
+        self._storage_config = storage_config
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
@@ -193,66 +197,23 @@ class Actions(domain.Actions):
 
         return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)
 
-    def choose_table(self, r: domain_model.ChooseTableRequest) -> domain_model.ChooseTableResponse:
-        Vizier.ROW_LIMIT = -1
-        catalogs = Vizier.get_catalogs(r.catalog_id)
-        catalog: table.Table | None = None
-
-        for curr_catalog in catalogs:
-            try:
-                name = curr_catalog.meta["name"]
-            except KeyError:
-                continue
-
-            if name != r.table_id:
-                continue
-
-            catalog = curr_catalog
-            break
-
-        if catalog is None:
-            raise new_not_found_error("catalog or table you requested was not found")
-
-        bad_fields = [field for field in catalog.columns if "-" in field]
-        for bad_field in bad_fields:
-            catalog[bad_field.replace("-", "_")] = catalog[bad_field]
-            catalog.remove_column(bad_field)
-
-        field: str
-        for field in catalog.columns:
-            if isinstance(catalog[field], ma.MaskedArray):
-                if catalog[field].dtype == np.int16:
-                    catalog[field] = catalog[field].filled(0)
-                else:
-                    catalog[field] = catalog[field].filled(np.nan)
-
-        fields = []
-        for field, field_meta in catalog.columns.items():
-            t = mapping.get_type_from_dtype(field_meta.dtype)
-            field = field.replace("-", "_")
-            fields.append((field, t))
-
-        table_id = random.randint(0, 2000000000)
-        with self._layer0_repo.with_tx() as tx:
-            self._layer0_repo.create_table("rawdata", f"data_{table_id}", fields, tx)
-
-            raw_data = list(catalog)
-            self._layer0_repo.insert_raw_data("rawdata", f"data_{table_id}", raw_data, tx)
-
-        # TODO: save pipeline id to database?
-
-        return domain_model.ChooseTableResponse(table_id)
-
     def start_task(self, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
         if r.task_name not in TASK_REGISTRY:
             raise new_not_found_error(f"unable to find task '{r.task_name}'")
 
         task, params_type = TASK_REGISTRY[r.task_name]
+
         params = params_type(**r.payload)
 
         with self._common_repo.with_tx() as tx:
             task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
-            self._queue_repo.enqueue(task_id, task, params)
+            self._queue_repo.enqueue(
+                tasks.task_runner,
+                func=task,
+                task_id=task_id,
+                storage_config=self._storage_config,
+                params=params,
+            )
 
         return domain_model.StartTaskResponse(task_id)
 
@@ -265,4 +226,5 @@ class Actions(domain.Actions):
             task_info.payload,
             task_info.start_time,
             task_info.end_time,
+            task_info.message,
         )

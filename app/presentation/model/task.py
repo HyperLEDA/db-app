@@ -31,3 +31,4 @@ class GetTaskInfoResponseSchema(Schema):
     payload = fields.Dict(keys=fields.Str(), description="Payload to the task")
     start_time = fields.DateTime(format="iso", description="Time when task started")
     end_time = fields.DateTime(format="iso", description="Time when task ended")
+    message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")

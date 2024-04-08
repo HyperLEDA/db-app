@@ -70,3 +70,11 @@ class Layer0Repository(interface.Layer0Repository):
             params,
             tx,
         )
+
+    def table_exists(self, schema: str, table_name: str) -> bool:
+        try:
+            self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}", [])
+        except psycopg.errors.UndefinedTable:
+            return False
+
+        return True

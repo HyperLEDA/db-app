@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 
 import psycopg
 
@@ -34,4 +35,8 @@ class CommonRepository(transactional.Transactional):
     def set_task_status(
         self, task_id: int, task_status: queue.TaskStatus, tx: psycopg.Transaction | None = None
     ) -> None:
+        raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def fail_task(self, task_id: int, message: dict[str, Any], tx: psycopg.Transaction | None = None) -> None:
         raise NotImplementedError("not implemented")

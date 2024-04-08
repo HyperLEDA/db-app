@@ -1,4 +1,4 @@
-from typing import final
+from typing import Any, final
 
 import psycopg
 import structlog
@@ -66,7 +66,7 @@ class CommonRepository(interface.CommonRepository):
         tx: psycopg.Transaction | None = None,
     ) -> model.Task:
         row = self._storage.query_one(
-            "SELECT id, task_name, payload, user_id, status, start_time, end_time FROM common.tasks WHERE id = %s",
+            "SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s",
             [task_id],
             tx,
         )
@@ -82,4 +82,17 @@ class CommonRepository(interface.CommonRepository):
         self._storage.exec(
             "UPDATE common.tasks SET status = %s WHERE id = %s",
             [task_status, task_id],
+            tx,
+        )
+
+    def fail_task(
+        self,
+        task_id: int,
+        message: dict[str, Any],
+        tx: psycopg.Transaction | None = None,
+    ) -> None:
+        self._storage.exec(
+            "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
+            [queue.TaskStatus.FAILED, json.Jsonb(message), task_id],
+            tx,
         )

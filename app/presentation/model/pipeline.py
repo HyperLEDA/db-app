@@ -48,16 +48,3 @@ class SearchCatalogsResponseSchema(Schema):
         fields.Nested(CatalogSchema),
         description="List of catalogs with tables and various metadata",
     )
-
-
-class ChooseTableRequestSchema(Schema):
-    catalog_id = fields.Str(required=True, description="ID of the catalog to select")
-    table_id = fields.Str(required=True, description="ID of the table to select")
-
-    @post_load
-    def make(self, data, **kwargs) -> model.ChooseTableRequest:
-        return model.ChooseTableRequest(**data)
-
-
-class ChooseTableResponseSchema(Schema):
-    id = fields.Int(description="Processing pipeline ID")

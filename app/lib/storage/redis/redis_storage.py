@@ -27,12 +27,12 @@ class RedisQueue:
     def get_connection(self) -> redis.Redis:
         return self._connection
 
-    def enqueue(self, func: Callable[..., None], *args: Any) -> None:
+    def enqueue(self, job: Callable[..., None], *args: Any, **kwargs) -> None:
         if self._connection is None:
             raise RuntimeError("Unable to enqueue task: connection to Redis was not established")
 
-        self._logger.debug("enqueueing task", args=args)
-        self._queue.enqueue(func, *args)
+        self._logger.debug("enqueueing task", args=args, kwargs=kwargs)
+        self._queue.enqueue(job, *args, **kwargs)
 
     def clear_queue(self) -> None:
         if self._connection is None:

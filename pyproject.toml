@@ -17,6 +17,7 @@ disable = [
     "function-redefined",
     "abstract-class-instantiated",
     "no-member",
+    "broad-exception-caught",
 ]
 ignore-paths = "^.venv/.*$"
 
