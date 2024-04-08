@@ -23,7 +23,13 @@ def task_runner(
         func(storage, params, logger)
     except Exception as e:
         logger.exception(e)
-        repo.fail_task(task_id, {"error": str(e)})
+        repo.fail_task(
+            task_id,
+            {
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
         storage.disconnect()
         return
 

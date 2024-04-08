@@ -1,4 +1,3 @@
-import random
 import sys
 import time
 from dataclasses import dataclass
@@ -14,7 +13,7 @@ from app.lib.exceptions import new_not_found_error
 from app.lib.storage import mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
-TABLE_NAMING_FORMAT = "data_{table_id}"
+TABLE_NAMING_FORMAT = "data_vizier_{table_id}"
 
 
 def get_timeout_trace_func(start: float, timeout: float):
@@ -25,6 +24,28 @@ def get_timeout_trace_func(start: float, timeout: float):
         return trace_function
 
     return trace_function
+
+
+BAD_SYMBOLS = {
+    "-": "_",
+    "/": "_",
+}
+
+
+def replace_dict(string: str, symbols: dict[str, str]) -> str:
+    """
+    Works similarly to `str.replace` but for dictionary of symbols.
+    """
+    for old_symbol, new_symbol in symbols.items():
+        string = string.replace(old_symbol, new_symbol)
+
+    return string
+
+
+def construct_table_name(original_name: str) -> str:
+    new_name = replace_dict(original_name, BAD_SYMBOLS)
+
+    return TABLE_NAMING_FORMAT.format(table_id=new_name)
 
 
 @dataclass
@@ -39,6 +60,11 @@ def download_vizier_table(
     logger: structlog.stdlib.BoundLogger,
 ):
     layer0 = repositories.Layer0Repository(storage, logger)
+    table_name = construct_table_name(params.table_id)
+
+    if layer0.table_exists(RAWDATA_SCHEMA, table_name):
+        logger.warn(f"table '{RAWDATA_SCHEMA}.{table_name}' already exists, skipping download")
+        return
 
     vizier_client = VizierClass()
     vizier_client.ROW_LIMIT = -1
@@ -77,29 +103,27 @@ def download_vizier_table(
     if catalog is None:
         raise new_not_found_error("catalog or table you requested was not found")
 
-    bad_fields = [field for field in catalog.columns if "-" in field]
-    for bad_field in bad_fields:
-        catalog[bad_field.replace("-", "_")] = catalog[bad_field]
-        catalog.remove_column(bad_field)
-
     field: str
-    for field in catalog.columns:
-        if isinstance(catalog[field], ma.MaskedArray):
-            if catalog[field].dtype == np.int16:
-                catalog[field] = catalog[field].filled(0)
+    for field in catalog.colnames:
+        new_field = replace_dict(field, BAD_SYMBOLS)
+        if field != new_field:
+            catalog[new_field] = catalog[field]
+            catalog.remove_column(field)
+
+        # TODO: move this validation to separate function
+        if isinstance(catalog[new_field], ma.MaskedArray):
+            if catalog[new_field].dtype == np.int16:
+                catalog[new_field] = catalog[new_field].filled(0)
             else:
-                catalog[field] = catalog[field].filled(np.nan)
+                catalog[new_field] = catalog[new_field].filled(np.nan)
 
     fields = []
     for field, field_meta in catalog.columns.items():
         t = mapping.get_type_from_dtype(field_meta.dtype)
-        field = field.replace("-", "_")
         fields.append((field, t))
 
-    # TODO: make this a reasonable algorithm
-    table_id = random.randint(0, 2000000000)
     with layer0.with_tx() as tx:
-        layer0.create_table(RAWDATA_SCHEMA, TABLE_NAMING_FORMAT.format(table_id), fields, tx)
+        layer0.create_table(RAWDATA_SCHEMA, table_name, fields, tx)
 
         raw_data = list(catalog)
-        layer0.insert_raw_data(RAWDATA_SCHEMA, TABLE_NAMING_FORMAT.format(table_id), raw_data, tx)
+        layer0.insert_raw_data(RAWDATA_SCHEMA, table_name, raw_data, tx)
