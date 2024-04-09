@@ -101,14 +101,14 @@ INSERT INTO common.datatype VALUES
 CREATE TYPE task_status AS ENUM('new', 'in_progress', 'failed', 'done');
 
 CREATE TABLE common.tasks (
-  id	        serial	    PRIMARY KEY
-, task_name	  text	      NOT NULL
-, status	    task_status	NOT NULL DEFAULT 'new'
-, start_time  timestamp without time zone
-, end_time    timestamp without time zone
-, payload     jsonb
-, user_id     integer REFERENCES common.users(id)
-, message     jsonb
+  id	serial	PRIMARY KEY
+, task_name	text	NOT NULL
+, status	task_status	NOT NULL DEFAULT 'new'
+, start_time	timestamp without time zone
+, end_time	timestamp without time zone
+, payload	jsonb
+, user_id	integer REFERENCES common.users(id)
+, message	jsonb
 );
 
 COMMENT ON TABLE common.tasks IS 'Asynchronous tasks for data processing';
@@ -164,6 +164,23 @@ INSERT INTO common.datatype VALUES
 , ( 4 , 'Upper limit' )
 , ( 5 , 'Wrong measurement' )
 ;
+
+
+------------------------------------------------
+------ Notes -----------------------------------
+CREATE TABLE common.notes (
+  pgc	integer	NULL	REFERENCES common.pgc ( id ) ON DELETE restrict ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, note	text	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
+, PRIMARY KEY (pgc,bib)
+) ;
+
+COMMENT ON TABLE common.notes IS 'List of important notes on object' ;
+COMMENT ON COLUMN common.notes.pgc	IS '{"description" : "PGC number of the object" , "ucd" : "meta.id"}' ;
+COMMENT ON COLUMN common.notes.bib	IS '{"description" : "Bibliography reference" , "ucd" : "meta.bib"}' ;
+COMMENT ON COLUMN common.notes.note	IS '{"description" : "Important comments on the object" , "ucd" : "meta.note"}' ;
+COMMENT ON COLUMN common.notes.modification_time	IS '{"description" : "Timestamp when the record was added to the database" , "ucd" : "time.creation"}' ;
 
 
 COMMIT;
