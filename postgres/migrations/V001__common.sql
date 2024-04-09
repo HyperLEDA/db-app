@@ -3,6 +3,7 @@
 BEGIN;
 
 DROP SCHEMA IF EXISTS common CASCADE ;
+DROP TYPE IF EXISTS task_status CASCADE ;
 
 -----------------------------------------------------------
 ------ Common ---------------------------------------------
