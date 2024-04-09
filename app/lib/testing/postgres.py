@@ -1,3 +1,4 @@
+import atexit
 import os
 import pathlib
 import socket
@@ -68,3 +69,25 @@ class TestPostgresStorage:
     def stop(self):
         self.storage.disconnect()
         self.container.stop()
+
+
+_test_storage: TestPostgresStorage | None = None
+
+
+def get_or_create_test_postgres_storage() -> TestPostgresStorage:
+    global _test_storage
+    if _test_storage is None:
+        _test_storage = TestPostgresStorage("postgres/migrations")
+        log.info("Starting postgres container")
+        _test_storage.start()
+
+        atexit.register(exit_handler)
+
+    return _test_storage
+
+
+def exit_handler():
+    global _test_storage
+    if _test_storage is not None:
+        log.info("Stopping postgres container")
+        _test_storage.stop()

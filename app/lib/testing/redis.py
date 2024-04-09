@@ -1,3 +1,5 @@
+import atexit
+
 import structlog
 from testcontainers import redis as rediscontainer
 
@@ -28,3 +30,25 @@ class TestRedisStorage:
     def stop(self) -> None:
         self.storage.disconnect()
         self.container.stop()
+
+
+_test_storage: TestRedisStorage | None = None
+
+
+def get_or_create_test_redis_storage() -> TestRedisStorage:
+    global _test_storage
+    if _test_storage is None:
+        _test_storage = TestRedisStorage()
+        log.info("Starting redis container")
+        _test_storage.start()
+
+        atexit.register(exit_handler)
+
+    return _test_storage
+
+
+def exit_handler():
+    global _test_storage
+    if _test_storage is not None:
+        log.info("Stopping redis container")
+        _test_storage.stop()
