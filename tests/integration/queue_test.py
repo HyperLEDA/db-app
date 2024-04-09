@@ -11,11 +11,8 @@ from app.lib import testing
 class QueueTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.pg_storage = testing.TestPostgresStorage("postgres/migrations")
-        cls.pg_storage.start()
-
-        cls.redis_queue = testing.TestRedisStorage()
-        cls.redis_queue.start()
+        cls.pg_storage = testing.get_or_create_test_postgres_storage()
+        cls.redis_queue = testing.get_or_create_test_redis_storage()
 
         logger = structlog.get_logger()
 
@@ -27,11 +24,6 @@ class QueueTest(unittest.TestCase):
             storage_config=cls.pg_storage.get_storage().get_config(),
             logger=logger,
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.redis_queue.stop()
-        cls.pg_storage.stop()
 
     def tearDown(self):
         self.redis_queue.clear()
