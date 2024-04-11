@@ -1,5 +1,5 @@
 import unittest
-from typing import Callable, Union, Optional
+from typing import Callable, Optional, Union
 
 from pandas import DataFrame
 

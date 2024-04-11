@@ -3,7 +3,11 @@ from typing import Callable, Optional
 
 from ..model import Layer0Model, Layer1Model
 from ..model.layer0 import Transformation01Fail
-from ..model.params.transaction_0_1_stages import TransactionO1Sage, AwaitingQueue, TransformingData
+from ..model.params.transaction_0_1_stages import (
+    AwaitingQueue,
+    TransactionO1Sage,
+    TransformingData,
+)
 from ..util import GlobalDBLock
 from . import TransformationO1UseCase
 
@@ -14,15 +18,13 @@ class Transaction01UseCase:
     """
 
     def __init__(
-            self,
-            transformation_use_case: TransformationO1UseCase,
+        self,
+        transformation_use_case: TransformationO1UseCase,
     ):
         self._transformation_use_case: TransformationO1UseCase = transformation_use_case
 
     async def invoke(
-            self,
-            data: Layer0Model,
-            on_progress: Optional[Callable[[TransactionO1Sage], None]] = None
+        self, data: Layer0Model, on_progress: Optional[Callable[[TransactionO1Sage], None]] = None
     ) -> tuple[Layer0Model, list[Layer1Model], list[Transformation01Fail]]:
         """
         :param data: Layer 0 data to be transformed
@@ -39,9 +41,7 @@ class Transaction01UseCase:
             return await self._perform_transaction(data, on_progress)
 
     async def _perform_transaction(
-            self,
-            data: Layer0Model,
-            on_progress: Optional[Callable[[TransactionO1Sage], None]]
+        self, data: Layer0Model, on_progress: Optional[Callable[[TransactionO1Sage], None]]
     ) -> tuple[Layer0Model, list[Layer1Model], list[Transformation01Fail]]:
         if on_progress is not None:
             models, fails = await self._transformation_use_case.invoke(

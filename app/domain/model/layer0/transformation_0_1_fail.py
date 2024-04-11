@@ -9,5 +9,6 @@ class Transformation01Fail:
         cause: Fail cause
         original_row: Row in original table
     """
+
     cause: BaseException
     original_row: int

@@ -1,11 +1,17 @@
 from abc import ABC, abstractmethod
 
-from .interaction_argument import AbstractArgument, ResolveCrossIdentificationCollisionInteractionArg, \
-    ResolveCoordinateParseFailArg, Confirm01TransactionArg
-from .interaction_result import InteractionResult, ResolveCrossIdentificationCollisionInteractionRes, \
-    ResolveCoordinateParseFailRes, Confirm01TransactionRes
-from .interaction_argument import AbstractArgument
-from .interaction_result import InteractionResult
+from .interaction_argument import (
+    AbstractArgument,
+    Confirm01TransactionArg,
+    ResolveCoordinateParseFailArg,
+    ResolveCrossIdentificationCollisionInteractionArg,
+)
+from .interaction_result import (
+    Confirm01TransactionRes,
+    InteractionResult,
+    ResolveCoordinateParseFailRes,
+    ResolveCrossIdentificationCollisionInteractionRes,
+)
 
 
 class AbstractInteraction(ABC):
@@ -22,8 +28,7 @@ class AbstractInteraction(ABC):
 class ResolveCrossIdentificationCollisionInteraction(AbstractInteraction):
     @abstractmethod
     async def eval(
-            self,
-            arg: ResolveCrossIdentificationCollisionInteractionArg
+        self, arg: ResolveCrossIdentificationCollisionInteractionArg
     ) -> ResolveCrossIdentificationCollisionInteractionRes:
         pass
 

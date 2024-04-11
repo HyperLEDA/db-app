@@ -30,9 +30,7 @@ class TransformationO1UseCase:
         return TransformationO1UseCase(new_use_case)
 
     async def invoke(
-            self,
-            data: Layer0Model,
-            on_progress: Optional[Callable[[Transformation01Stage], None]] = None
+        self, data: Layer0Model, on_progress: Optional[Callable[[Transformation01Stage], None]] = None
     ) -> tuple[list[Layer1Model], list[Transformation01Fail]]:
         """
         :param data: Layer 0 data to be transformed
