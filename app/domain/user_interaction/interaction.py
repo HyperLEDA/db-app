@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
-from .interaction_argument import (
+from app.domain.user_interaction.interaction_argument import (
     AbstractArgument,
     Confirm01TransactionArg,
     ResolveCoordinateParseFailArg,
     ResolveCrossIdentificationCollisionInteractionArg,
 )
-from .interaction_result import (
+from app.domain.user_interaction.interaction_result import (
     Confirm01TransactionRes,
     InteractionResult,
     ResolveCoordinateParseFailRes,

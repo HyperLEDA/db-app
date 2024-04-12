@@ -3,7 +3,7 @@ from typing import Any, Iterable
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
-from .coordinate_descr import CoordinateDescr
+from app.domain.model.layer0.coordinates.coordinate_descr import CoordinateDescr
 
 
 class ICRSDescrStr(CoordinateDescr):

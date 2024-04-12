@@ -32,7 +32,7 @@ class MockedCoordinateParseFailResolverFail(ResolveCoordinateParseFail):
         return ResolveCoordinateParseFailRes(False)
 
 
-class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
+class Transaction01Test(unittest.IsolatedAsyncioTestCase):
     async def test_transaction_coordinate_fail_0(self):
         """
         Layer 0 data has three rows, one has corrupted coordinates

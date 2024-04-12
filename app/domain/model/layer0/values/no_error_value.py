@@ -2,7 +2,7 @@ from typing import Sequence
 
 from pandas import DataFrame
 
-from .value_descr import ValueDescr
+from app.domain.model.layer0.values.value_descr import ValueDescr
 
 
 class NoErrorValue(ValueDescr):

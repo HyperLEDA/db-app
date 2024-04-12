@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from pandas import DataFrame
 
-from .layer_0_meta import Layer0Meta
+from app.domain.model.layer0.layer_0_meta import Layer0Meta
 
 
 @dataclass

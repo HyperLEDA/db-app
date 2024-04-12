@@ -11,11 +11,11 @@ from app.domain.model.params.transformation_0_1_stages import (
     Transformation01Stage,
 )
 
-from ..model import Layer0Model, Layer1Model
-from ..model.layer0 import Transformation01Fail
-from ..model.layer0.values.exceptions import ColumnNotFoundException
-from ..model.params.cross_identification_param import CrossIdentificationParam
-from .cross_identify_use_case import CrossIdentifyUseCase
+from app.domain.model import Layer0Model, Layer1Model
+from app.domain.model.layer0 import Transformation01Fail
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
+from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 
 
 class TransformationO1UseCase:

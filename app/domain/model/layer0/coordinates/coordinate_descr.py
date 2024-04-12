@@ -4,7 +4,7 @@ from typing import Any, Iterable, Sequence, Union
 from astropy.coordinates import SkyCoord
 from pandas import DataFrame
 
-from ..values.exceptions import ColumnNotFoundException
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
 
 
 class CoordinateDescr(ABC):
