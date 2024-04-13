@@ -29,7 +29,7 @@ INSERT INTO rawdata.status VALUES
 , ( 'downloaded' , 'Data are downloaded' )
 , ( 'auto x-id' , 'Automatic cross-identification' )
 , ( 'auto xid finished' , 'Manual cross-identification is finished' )
-, ( 'manual xid' , 'Automatic cross-identification' )
+, ( 'manual xid' , 'Manual cross-identification' )
 , ( 'processed' , 'Table is processed' )
 ;
 
@@ -41,7 +41,7 @@ CREATE TABLE rawdata.tables (
 , bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict ON UPDATE cascade
 , table_name	text	NOT NULL	UNIQUE
 , datatype	text	REFERENCES common.datatype (id)	ON DELETE restrict ON UPDATE cascade
-, status	text	NOT NULL	REFERENCES rawdata.status (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 'initiated' ;
+, status	text	NOT NULL	REFERENCES rawdata.status (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 'initiated'
 ) ;
 
 COMMENT ON TABLE rawdata.tables IS 'List of original data tables' ;
