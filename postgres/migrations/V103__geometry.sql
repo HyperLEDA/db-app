@@ -82,7 +82,7 @@ CREATE TABLE geometry.data (
 , e_b	real
 , pa	real	CHECK (pa>=0 and pa<180)
 , e_pa	real
-, band	integer	REFERENCES common.passband (id)	ON DELETE restrict ON UPDATE cascade
+, band	integer	REFERENCES common.calibpassband (id)	ON DELETE restrict ON UPDATE cascade
 , quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
@@ -99,6 +99,7 @@ COMMENT ON COLUMN geometry.data.b	IS 'Major axis diameter [arcsec]' ;
 COMMENT ON COLUMN geometry.data.e_b	IS 'Error of the major axis diameter [arcsec]' ;
 COMMENT ON COLUMN geometry.data.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
 COMMENT ON COLUMN geometry.data.e_pa	IS 'Error of the position angle [degrees]' ;
+COMMENT ON COLUMN geometry.data.band	IS 'Calibrated passband ID' ;
 COMMENT ON COLUMN geometry.data.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
 COMMENT ON COLUMN geometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
@@ -154,6 +155,7 @@ COMMENT ON COLUMN geometry.list.b	IS 'Major axis diameter [arcsec]' ;
 COMMENT ON COLUMN geometry.list.e_b	IS 'Error of the major axis diameter [arcsec]' ;
 COMMENT ON COLUMN geometry.list.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
 COMMENT ON COLUMN geometry.list.e_pa	IS 'Error of the position angle [degrees]' ;
+COMMENT ON COLUMN geometry.list.band	IS 'Calibrated passband ID' ;
 COMMENT ON COLUMN geometry.list.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
 COMMENT ON COLUMN geometry.list.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.list.isok	IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;

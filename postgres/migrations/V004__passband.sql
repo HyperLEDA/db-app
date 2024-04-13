@@ -53,7 +53,7 @@ CREATE TABLE common.magsys (
 ) ;
 
 COMMENT ON TABLE common.magsys IS 'Magnitude systems' ;
-COMMENT ON COLUMN common.magsys.id IS 'ID of the magnitude system' ;
+COMMENT ON COLUMN common.magsys.id IS 'Magnitude system ID' ;
 COMMENT ON COLUMN common.magsys.description IS 'Description of the magnitude system' ;
 
 INSERT INTO common.magsys VALUES
@@ -63,25 +63,65 @@ INSERT INTO common.magsys VALUES
 ;
 
 
-CREATE TABLE common.passband (
-  id	serial	PRIMARY KEY
-, band	text	NOT NULL	UNIQUE
+CREATE TABLE common.photsys (
+  id	text	PRIMARY KEY
+, description	text	NOT NULL
+, svo_query	text	UNIQUE
+) ;
+
+COMMENT ON TABLE common.photsys IS 'Photometric system' ;
+COMMENT ON COLUMN common.photsys.id IS 'Photometric system ID' ;
+COMMENT ON COLUMN common.photsys.description IS 'Description of the photometric system' ;
+COMMENT ON COLUMN common.photsys.svo_query IS '{"description" : "Query to the Spanish Virtual Observatory", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php", "ucd" : "meta.query"}' ;
+
+INSERT INTO common.photsys VALUES
+  ( 'UBVRIJHKL' , 'Johnson UBVRIJHKL photometric system' , 'gname=Generic&gname2=Johnson_UBVRIJHKL' )
+, ( 'SDSS' , 'The Sloan Digital Sky Survey photometric system' , 'gname=SLOAN&gname2=SDSS' )
+, ( 'ACS_WFC' , 'The Hubble Space Telescope (HST), Advanced Camera for Surveys (ACS), Wide Field Channel photometric system' , 'gname=HST&gname2=ACS_WFC' )
+, ( 'WFPC2_WF' , 'The Hubble Space Telescope (HST), Wide-Field Planetary Camera 2 (WFPC2), Wide Field photometric system' , 'gname=HST&gname2=WFPC2-WF' )
+, ( 'PS1' , 'The Panoramic Survey Telescope and Rapid Response System (Pan-STARRS), PS1 photometric system' , 'gname=PAN-STARRS' )
+, ( '2MASS' , 'The Two Micron All Sky Survey (2MASS) photometric system' , 'gname=2MASS' )
+, ( 'WISE' , 'The Wide-field Infrared Survey Explorer (WISE) photometric system' , 'gname=WISE' )
+, ( 'GALEX' , 'The Galaxy Evolution Explorer (GALEX) photometric system' , 'gname=GALEX' )
+, ( 'DENIS' , 'The Deep Near Infrared Survey of the Southern Sky (DENIS) photometric system' , 'gname=DENIS' )
+;
+
+
+CREATE TABLE common.filter (
+  id	text	PRIMARY KEY
+, name	text	NOT NULL
+, photsys	text	NOT NULL	REFERENCES common.photsys (id) ON DELETE restrict ON UPDATE cascade
 , wavemean	real	NOT NULL
 , fwhm	real	NOT NULL
 , description	text	NOT NULL
-, bib	integer	REFERENCES	common.bib (id) ON DELETE restrict ON UPDATE cascade
-, svoid	text	UNIQUE
+, bib	integer	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
+, svo_id	text	UNIQUE
 ) ;
-CREATE INDEX ON common.passband (wavemean) ;
+CREATE INDEX ON common.filter (wavemean) ;
+CREATE INDEX ON common.filter (name) ;
+CREATE INDEX ON common.filter (photsys) ;
 
-COMMENT ON TABLE common.passband IS 'List of passbands' ;
-COMMENT ON COLUMN common.passband.id IS 'internal ID of the filter' ;
-COMMENT ON COLUMN common.passband.band IS 'The filter name' ;
-COMMENT ON COLUMN common.passband.wavemean IS 'The Mean wavelength of the filter transmission: Lmean = int( L*T(L) dL ) / int( T(L)dL )' ;
-COMMENT ON COLUMN common.passband.fwhm IS 'The Full Width Half Maximum of the filter transmission' ;
-COMMENT ON COLUMN common.passband.description IS 'Description of the filter' ;
-COMMENT ON COLUMN common.passband.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN common.passband.svoid IS 'Spanish Virtual Observatory filter ID' ;
+COMMENT ON TABLE common.filter IS 'List of filters' ;
+COMMENT ON COLUMN common.filter.id IS 'Filter ID' ;
+COMMENT ON COLUMN common.filter.name IS 'Common filter designation' ;
+COMMENT ON COLUMN common.filter.photsys IS 'Photometric system' ;
+COMMENT ON COLUMN common.filter.wavemean IS 'The Mean wavelength of the filter transmission: λmean = int( λ*T(λ) dλ ) / int( T(λ) dλ )' ;
+COMMENT ON COLUMN common.filter.fwhm IS 'The Full Width Half Maximum of the filter transmission' ;
+COMMENT ON COLUMN common.filter.description IS 'Description of the filter' ;
+COMMENT ON COLUMN common.filter.bib IS 'Bibliography reference' ;
+COMMENT ON COLUMN common.filter.svo_id IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.ivoid"}' ;
 
+
+CREATE TABLE common.calibpassband (
+  id	serial	PRIMARY KEY
+, filter	text	NOT NULL	REFERENCES common.filter (id) ON DELETE restrict ON UPDATE cascade
+, magsys	text	NOT NULL	REFERENCES common.magsys (id) ON DELETE restrict ON UPDATE cascade
+, UNIQUE (filter,magsys)
+) ;
+
+COMMENT ON TABLE common.calibpassband IS 'Calibrated passbands' ;
+COMMENT ON COLUMN common.calibpassband.id IS 'Calibrated passband ID' ;
+COMMENT ON COLUMN common.calibpassband.filter IS 'Filter ID' ;
+COMMENT ON COLUMN common.calibpassband.magsys IS 'Magnitude system ID' ;
 
 COMMIT;
