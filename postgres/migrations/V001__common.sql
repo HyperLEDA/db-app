@@ -157,7 +157,7 @@ COMMENT ON TABLE common.quality IS 'Data quality' ;
 COMMENT ON COLUMN common.quality.id IS 'ID of the data quality' ;
 COMMENT ON COLUMN common.quality.description IS 'Description of the data quality' ;
 
-INSERT INTO common.datatype VALUES 
+INSERT INTO common.quality VALUES 
   ( 0 , 'Reguliar measurements' )
 , ( 1 , 'Low signal to noise' )
 , ( 2 , 'Suspected measurement' )
