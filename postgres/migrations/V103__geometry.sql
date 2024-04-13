@@ -83,7 +83,7 @@ CREATE TABLE geometry.data (
 , pa	real	CHECK (pa>=0 and pa<180)
 , e_pa	real
 , band	integer	REFERENCES common.calibpassband (id)	ON DELETE restrict ON UPDATE cascade
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade
+, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;

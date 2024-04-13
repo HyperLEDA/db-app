@@ -10,7 +10,7 @@ CREATE SCHEMA photometry ;
 COMMENT ON SCHEMA photometry	IS 'Photometry catalog (visual magnitudes)' ;
 
 ---------------------------------------------------
--------- Geometry measurement method  -------------
+-------- Photometry measurement method  -------------
 CREATE TABLE photometry.method (
   id	text	PRIMARY KEY
 , description	text	NOT NULL
@@ -36,7 +36,6 @@ CREATE TABLE photometry.dataset (
 , datatype	text	REFERENCES common.datatype (id )	ON DELETE restrict ON UPDATE cascade
 , srctab	text
 , method	text	NOT NULL	REFERENCES photometry.method (id )	ON DELETE restrict ON UPDATE cascade
-, magsys
 ) ;
 
 COMMENT ON TABLE photometry.dataset	IS 'Dataset' ;
@@ -48,15 +47,14 @@ COMMENT ON COLUMN photometry.dataset.method	IS 'Measurement method' ;
 
 
 ------------------------------------------
---- Photometry measurement table ----------
-
+--- Photometry measurement table ---------
 CREATE TABLE photometry.data (
   id	serial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict ON UPDATE cascade
 , mag	real	NOT NULL
 , e_mag	real
-, band	integer	REFERENCES common.passband (id)	ON DELETE restrict ON UPDATE cascade
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade
+, band	integer	REFERENCES common.calibpassband (id)	ON DELETE restrict ON UPDATE cascade
+, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
@@ -71,6 +69,26 @@ COMMENT ON COLUMN photometry.data.e_mag	IS 'Error of the total apparent magnitud
 COMMENT ON COLUMN photometry.data.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
 COMMENT ON COLUMN photometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN photometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
+
+
+---------------------------------------------
+-- List of excluded measurements ------------
+CREATE TABLE photometry.excluded (
+  id	integer	PRIMARY KEY	REFERENCES photometry.data (id) ON DELETE restrict ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
+, note	text	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
+) ;
+
+COMMENT ON TABLE photometry.excluded	IS 'List of measurements excluded from consideration' ;
+COMMENT ON COLUMN photometry.excluded.id	IS 'measurement ID' ;
+COMMENT ON COLUMN photometry.excluded.bib	IS 'Bibliography reference where given measurement was marked as wrong' ;
+COMMENT ON COLUMN photometry.excluded.note	IS 'Note on exclusion' ;
+COMMENT ON COLUMN photometry.excluded.modification_time	IS 'Timestamp when the record was added to the database' ;
+
+
+
+
 
 
 COMMIT ;
