@@ -75,15 +75,29 @@ COMMENT ON COLUMN common.photsys.description IS 'Description of the photometric 
 COMMENT ON COLUMN common.photsys.svo_query IS '{"description" : "Query to the Spanish Virtual Observatory", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php", "ucd" : "meta.query"}' ;
 
 INSERT INTO common.photsys VALUES
-  ( 'UBVRIJHKL' , 'Johnson UBVRIJHKL photometric system' , 'gname=Generic&gname2=Johnson_UBVRIJHKL' )
-, ( 'SDSS' , 'The Sloan Digital Sky Survey photometric system' , 'gname=SLOAN&gname2=SDSS' )
-, ( 'ACS_WFC' , 'The Hubble Space Telescope (HST), Advanced Camera for Surveys (ACS), Wide Field Channel photometric system' , 'gname=HST&gname2=ACS_WFC' )
-, ( 'WFPC2_WF' , 'The Hubble Space Telescope (HST), Wide-Field Planetary Camera 2 (WFPC2), Wide Field photometric system' , 'gname=HST&gname2=WFPC2-WF' )
-, ( 'PS1' , 'The Panoramic Survey Telescope and Rapid Response System (Pan-STARRS), PS1 photometric system' , 'gname=PAN-STARRS' )
-, ( '2MASS' , 'The Two Micron All Sky Survey (2MASS) photometric system' , 'gname=2MASS' )
-, ( 'WISE' , 'The Wide-field Infrared Survey Explorer (WISE) photometric system' , 'gname=WISE' )
-, ( 'GALEX' , 'The Galaxy Evolution Explorer (GALEX) photometric system' , 'gname=GALEX' )
-, ( 'DENIS' , 'The Deep Near Infrared Survey of the Southern Sky (DENIS) photometric system' , 'gname=DENIS' )
+  ( 'Johnson' , 'Johnson UBVRIJHKL photometric system' , 'gname=Generic&gname2=Johnson_UBVRIJHKL' )
+, ( 'Cousins' , 'Cousins (Rc,Ic) photometric system' , 'gname=Generic&gname2=Cousins' )
+
+, ( 'Tycho-2' , 'Tycho photometric system' , 'gname=TYCHO' )
+, ( 'Hipparcos' , 'Hipparcos photometric system' , 'gname=Hipparcos' )
+, ( 'Gaia3' , 'Gaia mission, eDR3 release photometric system' , 'gname=GAIA&gname2=GAIA3' )
+
+, ( 'ACS_WFC' , 'Hubble Space Telescope (HST), Advanced Camera for Surveys (ACS), Wide Field Channel photometric system' , 'gname=HST&gname2=ACS_WFC' )
+, ( 'WFPC2_WF' , 'Hubble Space Telescope (HST), Wide-Field Planetary Camera 2 (WFPC2), Wide Field photometric system' , 'gname=HST&gname2=WFPC2-WF' )
+, ( 'WFPC3_IR' , 'Hubble Space Telescope (HST), Wide-Field Planetary Camera 3 (WFPC3), IR channel photometric system' , 'gname=HST&gname2=WFC3_IR' )
+
+, ( 'NIRCam' , 'James Webb Space Telescope (JWST), Near Infrared Camera (NIRCam) photometric system' , 'gname=JWST&gname2=NIRCam' )
+
+, ( 'SDSS' , 'Sloan Digital Sky Survey photometric system' , 'gname=SLOAN&gname2=SDSS' )
+, ( 'PS1' , 'Panoramic Survey Telescope and Rapid Response System (Pan-STARRS), PS1 photometric system' , 'gname=PAN-STARRS' )
+, ( 'DES' , 'Dark Energy Camera (DECam) photometric system (at the prime focus of the Blanco 4-m telescope)' , 'gname=CTIO&gname2=DECam' )
+, ( 'HSC' , 'Hyper Suprime-Cam (HSC) photometric system (at the prime focus of Subaru Telescope)' , 'Subaru&gname2=HSC' )
+, ( '2MASS' , 'Two Micron All Sky Survey (2MASS) photometric system' , 'gname=2MASS' )
+, ( 'DENIS' , 'Deep Near Infrared Survey of the Southern Sky (DENIS) photometric system' , 'gname=DENIS' )
+
+, ( 'GALEX' , 'Galaxy Evolution Explorer (GALEX) photometric system' , 'gname=GALEX' )
+, ( 'IRAS' , 'Infrared Astronomical Satellite (IRAS) photometric system' , 'gname=IRAS' )
+, ( 'WISE' , 'Wide-field Infrared Survey Explorer (WISE) photometric system' , 'gname=WISE' )
 ;
 
 
