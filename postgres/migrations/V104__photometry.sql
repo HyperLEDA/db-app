@@ -87,8 +87,4 @@ COMMENT ON COLUMN photometry.excluded.note	IS 'Note on exclusion' ;
 COMMENT ON COLUMN photometry.excluded.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
-
-
-
-
 COMMIT ;
