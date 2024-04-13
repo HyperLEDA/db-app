@@ -85,7 +85,7 @@ CREATE TABLE cz.data (
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict ON UPDATE cascade
 , cz	real	NOT NULL
 , e_cz	real
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade
+, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
