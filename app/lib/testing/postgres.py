@@ -16,18 +16,18 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
-        port = common.find_free_port()
-        log.info("Initializing postgres container", port=port)
+        self.port = common.find_free_port()
+        log.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
             "postgres:16",
             port=5432,
             user="hyperleda",
             password="password",
             dbname="hyperleda",
-        ).with_bind_ports(5432, port)
+        ).with_bind_ports(5432, self.port)
         self.config = postgres.PgStorageConfig(
             endpoint="localhost",
-            port=port,
+            port=self.port,
             user="hyperleda",
             password="password",
             dbname="hyperleda",
