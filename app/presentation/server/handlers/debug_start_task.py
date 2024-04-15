@@ -8,7 +8,7 @@ from marshmallow import ValidationError
 from app import domain
 from app.domain.model.task import StartTaskRequest
 from app.lib.exceptions import new_validation_error
-from app.presentation.model import StartTaskRequestSchema, StartTaskResponseSchema
+from app.presentation.server.handlers import start_task
 
 
 @docs(
@@ -17,14 +17,14 @@ from app.presentation.model import StartTaskRequestSchema, StartTaskResponseSche
     description="Starts task synchronously.",
 )
 @request_schema(
-    StartTaskRequestSchema(),
+    start_task.StartTaskRequestSchema(),
     example=dataclasses.asdict(StartTaskRequest("echo", {"sleep_time_seconds": 2})),
 )
-@response_schema(StartTaskResponseSchema(), 200)
-async def debug_start_task(actions: domain.Actions, r: web.Request) -> Any:
+@response_schema(start_task.StartTaskResponseSchema(), 200)
+async def debug_start_task_handler(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()
     try:
-        request = StartTaskRequestSchema().load(request_dict)
+        request = start_task.StartTaskRequestSchema().load(request_dict)
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 

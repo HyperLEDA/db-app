@@ -2,11 +2,33 @@ from typing import Any
 
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import domain
+from app.domain import model
 from app.lib.exceptions import new_validation_error
-from app.presentation.model import CreateSourceRequestSchema, CreateSourceResponseSchema
+
+ALLOWED_SOURCE_TYPES = ["publication", "catalog", "table"]
+
+
+class CreateSourceRequestSchema(Schema):
+    type = fields.Str(
+        required=True,
+        validate=validate.OneOf(ALLOWED_SOURCE_TYPES),
+        description="Source type",
+    )
+    metadata = fields.Dict()
+
+    @post_load
+    def make(self, data, **kwargs) -> model.CreateSourceRequest:
+        return model.CreateSourceRequest(**data)
+
+
+class CreateSourceResponseSchema(Schema):
+    id = fields.Int(
+        required=True,
+        description="HyperLeda source id",
+    )
 
 
 @docs(
@@ -16,7 +38,7 @@ from app.presentation.model import CreateSourceRequestSchema, CreateSourceRespon
 )
 @request_schema(CreateSourceRequestSchema())
 @response_schema(CreateSourceResponseSchema(), 200)
-async def create_source(actions: domain.Actions, r: web.Request) -> Any:
+async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()
     try:
         request = CreateSourceRequestSchema().load(request_dict)

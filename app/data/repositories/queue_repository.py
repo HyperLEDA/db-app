@@ -12,7 +12,7 @@ class QueueRepository(interface.QueueRepository):
         self,
         queue: redis.RedisQueue,
         pg_config: PgStorageConfig,
-        logger: structlog.BoundLogger,
+        logger: structlog.stdlib.BoundLogger,
     ) -> None:
         self._queue = queue
         self._storage_config = pg_config

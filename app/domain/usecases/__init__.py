@@ -39,7 +39,7 @@ class Actions(domain.Actions):
         queue_repo: interface.QueueRepository,
         # remove this when actions are split
         storage_config: postgres.PgStorageConfig,
-        logger: structlog.BoundLogger,
+        logger: structlog.stdlib.BoundLogger,
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo

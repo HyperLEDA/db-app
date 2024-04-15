@@ -10,7 +10,7 @@ from app.domain import tasks, usecases
 from app.lib import testing
 
 
-class RawDataTest(unittest.TestCase):
+class DownloadVizierTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = testing.get_or_create_test_postgres_storage()

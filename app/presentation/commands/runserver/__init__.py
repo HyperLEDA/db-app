@@ -1,3 +1,7 @@
+import dataclasses
+import sys
+from dataclasses import dataclass
+
 import structlog
 
 from app.data import repositories
@@ -17,7 +21,7 @@ def start(config_path: str):
         ],
     )
 
-    logger = structlog.get_logger()
+    logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
     pg_storage = postgres.PgStorage(cfg.storage, logger)
     pg_storage.connect()
@@ -32,7 +36,10 @@ def start(config_path: str):
 
     actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, cfg.storage, logger)
 
-    server.start(cfg.server, actions)
-
-    redis_storage.disconnect()
-    pg_storage.disconnect()
+    try:
+        server.start(cfg.server, actions, logger)
+    except Exception as e:
+        logger.exception(e)
+    finally:
+        redis_storage.disconnect()
+        pg_storage.disconnect()

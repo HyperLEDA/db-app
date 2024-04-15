@@ -1,25 +1,25 @@
-from app.presentation.server.handlers.create_object import create_object
-from app.presentation.server.handlers.create_objects import create_objects
-from app.presentation.server.handlers.create_source import create_source
-from app.presentation.server.handlers.debug_start_task import debug_start_task
-from app.presentation.server.handlers.get_object_names import get_object_names
-from app.presentation.server.handlers.get_source import get_source
-from app.presentation.server.handlers.get_source_list import get_source_list
-from app.presentation.server.handlers.get_task_info import get_task_info
-from app.presentation.server.handlers.ping import ping
-from app.presentation.server.handlers.pipeline.search_catalogs import search_catalogs
-from app.presentation.server.handlers.start_task import start_task
+from app.presentation.server.handlers.create_object import create_object_handler
+from app.presentation.server.handlers.create_objects import create_objects_handler
+from app.presentation.server.handlers.create_source import create_source_handler
+from app.presentation.server.handlers.debug_start_task import debug_start_task_handler
+from app.presentation.server.handlers.get_object_names import get_object_names_handler
+from app.presentation.server.handlers.get_source import get_source_handler
+from app.presentation.server.handlers.get_source_list import get_source_list_handler
+from app.presentation.server.handlers.get_task_info import get_task_info_handler
+from app.presentation.server.handlers.ping import ping_handler
+from app.presentation.server.handlers.search_catalogs import search_catalogs_handler
+from app.presentation.server.handlers.start_task import start_task_handler
 
 __all__ = [
-    "create_object",
-    "create_objects",
-    "create_source",
-    "get_object_names",
-    "get_source",
-    "get_source_list",
-    "ping",
-    "search_catalogs",
-    "start_task",
-    "get_task_info",
-    "debug_start_task",
+    "create_object_handler",
+    "create_objects_handler",
+    "create_source_handler",
+    "get_object_names_handler",
+    "get_source_handler",
+    "get_source_list_handler",
+    "ping_handler",
+    "search_catalogs_handler",
+    "start_task_handler",
+    "get_task_info_handler",
+    "debug_start_task_handler",
 ]
