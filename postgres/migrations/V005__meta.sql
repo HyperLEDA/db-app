@@ -21,7 +21,7 @@ WITH
     table_schema	AS schema_name
   , table_name
   , column_name
-  , pg_catalog.col_description( format('%s.%s',table_schema,table_name)::regclass, ordinal_position )::text	AS str_comment
+  , pg_catalog.col_description(CONCAT(table_schema, '.', table_name)::regclass::oid, ordinal_position)::text	AS str_comment
   FROM 
     information_schema.columns
   WHERE
@@ -55,7 +55,7 @@ WITH
   SELECT
     table_schema	AS schema_name
   , table_name
-  , pg_catalog.obj_description(format('%s.%s',table_schema,table_name)::regclass, 'pg_class')::text	AS str_comment
+  , pg_catalog.obj_description(CONCAT(table_schema, '.', table_name)::regclass, 'pg_class')::text	AS str_comment
   FROM 
     information_schema.tables
   WHERE

@@ -2,6 +2,13 @@ import jinja2
 
 # TODO: make a unified way for querying with templates
 
+
+def render_query(query_string: str, **kwargs) -> str:
+    tpl = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(query_string)
+
+    return tpl.render(**kwargs)
+
+
 ONE_BIBLIOGRAPHY = """
 SELECT id, bibcode, year, author, title FROM common.bib
 WHERE id = %s
@@ -56,15 +63,22 @@ OFFSET %s
 LIMIT %s
 """
 
-CREATE_TABLE = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
-    """
+CREATE_TABLE = """
 CREATE TABLE {{ schema }}.{{ name }} (
     {% for field_name, field_type in fields %}
     {{field_name}} {{field_type}}{% if not loop.last %},{% endif %}
     {% endfor %}
 )
 """
-)
+
+# TODO: use meta.setparam
+ADD_COLUMN_COMMENT = """
+COMMENT ON COLUMN {{ schema }}.{{ table_name }}.{{ column_name }} IS '{{ params }}'
+"""
+
+ADD_TABLE_COMMENT = """
+COMMENT ON TABLE {{ schema }}.{{ table_name }} IS '{{ params }}'
+"""
 
 INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
     """
