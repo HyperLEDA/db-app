@@ -46,6 +46,7 @@ routes = [
     (HTTPMETHOD_GET, "/api/v1/object/names", handlers.get_object_names),
     (HTTPMETHOD_GET, "/api/v1/pipeline/catalogs", handlers.search_catalogs),
     (HTTPMETHOD_POST, "/api/v1/task", handlers.start_task),
+    (HTTPMETHOD_POST, "/api/v1/debug/task", handlers.debug_start_task),
     (HTTPMETHOD_GET, "/api/v1/task", handlers.get_task_info),
 ]
 

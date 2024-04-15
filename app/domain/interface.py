@@ -28,5 +28,8 @@ class Actions(abc.ABC):
     def start_task(self, r: model.StartTaskRequest) -> model.StartTaskResponse:
         raise NotImplementedError("not implemented")
 
+    def debug_start_task(self, r: model.StartTaskRequest) -> model.StartTaskResponse:
+        raise NotImplementedError("not implemented")
+
     def get_task_info(self, r: model.GetTaskInfoRequest) -> model.GetTaskInfoResponse:
         raise NotImplementedError("not implemented")

@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from .biblio import Biblio
-from .coordinates.coordinate_descr import CoordinateDescr
-from .dataset import Dataset
-from .values.value_descr import ValueDescr
+from app.domain.model.layer0.biblio import Biblio
+from app.domain.model.layer0.coordinates.coordinate_descr import CoordinateDescr
+from app.domain.model.layer0.dataset import Dataset
+from app.domain.model.layer0.values.value_descr import ValueDescr
 
 
 @dataclass
