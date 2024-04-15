@@ -12,7 +12,7 @@ from app.lib.storage import postgres
 
 @final
 class CommonRepository(interface.CommonRepository):
-    def __init__(self, storage: postgres.PgStorage, logger: structlog.BoundLogger) -> None:
+    def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
 
@@ -24,34 +24,34 @@ class CommonRepository(interface.CommonRepository):
     ) -> int | None:
         result = self._storage.query_one(
             "INSERT INTO common.bib (bibcode, year, author, title) VALUES (%s, %s, %s, %s) RETURNING id",
-            [
+            params=[
                 bibliography.bibcode,
                 bibliography.year,
                 bibliography.author,
                 bibliography.title,
             ],
-            tx,
+            tx=tx,
         )
 
         return result.get("id")
 
     def get_bibliography(self, bibliography_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
-        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, [bibliography_id], tx)
+        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, params=[bibliography_id], tx=tx)
 
         return model.Bibliography(**row)
 
     def get_bibliography_list(
         self, offset: int, limit: int, tx: psycopg.Transaction | None = None
     ) -> list[model.Bibliography]:
-        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, [offset, limit], tx)
+        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, params=[offset, limit], tx=tx)
 
         return [model.Bibliography(**row) for row in rows]
 
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         row = self._storage.query_one(
             "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
-            [task.task_name, json.Jsonb(task.payload)],
-            tx,
+            params=[task.task_name, json.Jsonb(task.payload)],
+            tx=tx,
         )
 
         row_id = row.get("id")
@@ -67,8 +67,8 @@ class CommonRepository(interface.CommonRepository):
     ) -> model.Task:
         row = self._storage.query_one(
             "SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s",
-            [task_id],
-            tx,
+            params=[task_id],
+            tx=tx,
         )
 
         return model.Task(**row)
@@ -81,8 +81,8 @@ class CommonRepository(interface.CommonRepository):
     ) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s WHERE id = %s",
-            [task_status, task_id],
-            tx,
+            params=[task_status, task_id],
+            tx=tx,
         )
 
     def fail_task(
@@ -93,6 +93,6 @@ class CommonRepository(interface.CommonRepository):
     ) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
-            [queue.TaskStatus.FAILED, json.Jsonb(message), task_id],
-            tx,
+            params=[queue.TaskStatus.FAILED, json.Jsonb(message), task_id],
+            tx=tx,
         )

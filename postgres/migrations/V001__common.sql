@@ -99,12 +99,12 @@ INSERT INTO common.datatype VALUES
 -----------------------------------------------------------
 --------- Tasks -------------------------------------------
 
-CREATE TYPE task_status AS ENUM('new', 'in_progress', 'failed', 'done');
+CREATE TYPE common.task_status AS ENUM('new', 'in_progress', 'failed', 'done');
 
 CREATE TABLE common.tasks (
   id	serial	PRIMARY KEY
 , task_name	text	NOT NULL
-, status	task_status	NOT NULL DEFAULT 'new'
+, status	common.task_status	NOT NULL DEFAULT 'new'
 , start_time	timestamp without time zone
 , end_time	timestamp without time zone
 , payload	jsonb
@@ -120,6 +120,7 @@ COMMENT ON COLUMN common.tasks.start_time IS 'Task start time';
 COMMENT ON COLUMN common.tasks.end_time IS 'Task end time';
 COMMENT ON COLUMN common.tasks.payload IS 'Data that was used to start the task';
 COMMENT ON COLUMN common.tasks.user_id IS 'User who started the task';
+COMMENT ON COLUMN common.tasks.message IS 'Some payload about the task or error message if it failed';
 
 CREATE OR REPLACE FUNCTION common.set_task_times() RETURNS trigger
     LANGUAGE plpgsql

@@ -1,4 +1,3 @@
-import sys
 import time
 from dataclasses import dataclass
 
@@ -8,7 +7,7 @@ from astropy import table
 from astroquery import vizier
 from numpy import ma
 
-from app.data import repositories
+from app.data import model, repositories
 from app.lib.storage import mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
@@ -69,11 +68,11 @@ def download_vizier_table(
     vizier_client.ROW_LIMIT = -1
     vizier_client.TIMEOUT = 30
 
-    timeout_handler = get_timeout_trace_func(
-        time.time(),
-        vizier_client.TIMEOUT,
-    )
-    sys.settrace(timeout_handler)
+    # timeout_handler = get_timeout_trace_func(
+    #     time.time(),
+    #     vizier_client.TIMEOUT,
+    # )
+    # sys.settrace(timeout_handler)
 
     try:
         logger.info("querying Vizier")
@@ -84,7 +83,8 @@ def download_vizier_table(
             "Downloading from Vizier took too long, cancelling. To download a big table ask HyperLeda team for help."
         ) from e
     finally:
-        sys.settrace(None)
+        pass
+        # sys.settrace(None)
 
     catalog: table.Table | None = None
     for curr_catalog in catalogs:
@@ -119,10 +119,35 @@ def download_vizier_table(
     fields = []
     for field, field_meta in catalog.columns.items():
         t = mapping.get_type_from_dtype(field_meta.dtype)
-        fields.append((field, t))
+        fields.append(
+            model.ColumnDescription(
+                name=field,
+                data_type=t,
+                unit=str(field_meta.unit),
+                description=field_meta.description,
+            )
+        )
 
     with layer0.with_tx() as tx:
-        layer0.create_table(RAWDATA_SCHEMA, table_name, fields, tx)
+        try:
+            description = catalog.meta["description"]
+        except KeyError:
+            description = ""
 
-        raw_data = list(catalog)
-        layer0.insert_raw_data(RAWDATA_SCHEMA, table_name, raw_data, tx)
+        layer0.create_table(
+            model.Layer0Creation(
+                table_name,
+                fields,
+                # TODO: parse real bibliographic data from vizier response
+                model.Bibliography(
+                    "2024A&A...684A..31G",
+                    2024,
+                    ["Pović, Mirjana"],
+                    "The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",
+                ),
+                comment=description,
+            ),
+            tx,
+        )
+
+        layer0.insert_raw_data(model.Layer0RawData(table_name, catalog.to_pandas()), tx)

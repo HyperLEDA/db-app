@@ -36,7 +36,7 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
 ]
 
 DEFAULT_ENUMS = [
-    (TaskStatus, "task_status"),
+    (TaskStatus, "common.task_status"),
 ]
 
 
@@ -83,7 +83,7 @@ class PgStorage:
 
             self._connection.close()
 
-    def exec(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> None:
+    def exec(self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None) -> None:
         if params is None:
             params = []
         if self._connection is None:
@@ -96,7 +96,9 @@ class PgStorage:
         with storageutils.get_or_create_transaction(self._connection, tx):
             cursor.execute(query, params)
 
-    def query(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> list[rows.DictRow]:
+    def query(
+        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
+    ) -> list[rows.DictRow]:
         if params is None:
             params = []
         if self._connection is None:
@@ -112,8 +114,10 @@ class PgStorage:
 
         return result_rows
 
-    def query_one(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> rows.DictRow:
-        result = self.query(query, params, tx)
+    def query_one(
+        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
+    ) -> rows.DictRow:
+        result = self.query(query, params=params, tx=tx)
 
         if len(result) < 1:
             raise new_database_error("was unable to fetch one value")
