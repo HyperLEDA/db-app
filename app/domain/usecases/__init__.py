@@ -1,13 +1,9 @@
 import dataclasses
 import datetime
-import random
 from typing import Any, Callable, final
 
-import numpy as np
 import structlog
-from astropy import table
 from astroquery.vizier import Vizier
-from numpy import ma
 
 from app import data, domain
 from app.data import interface
@@ -39,7 +35,7 @@ class Actions(domain.Actions):
         queue_repo: interface.QueueRepository,
         # remove this when actions are split
         storage_config: postgres.PgStorageConfig,
-        logger: structlog.BoundLogger,
+        logger: structlog.stdlib.BoundLogger,
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo

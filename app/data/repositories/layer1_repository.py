@@ -9,7 +9,7 @@ from app.lib.storage import postgres
 
 @final
 class Layer1Repository(interface.Layer1Repository):
-    def __init__(self, storage: postgres.PgStorage, logger: structlog.BoundLogger) -> None:
+    def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
 

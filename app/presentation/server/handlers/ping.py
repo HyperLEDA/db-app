@@ -13,5 +13,5 @@ class PingResponse:
 
 
 @docs(summary="Test that service is up and running")
-async def ping(_: domain.Actions, __: web.Request) -> Any:
+async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
     return PingResponse()
