@@ -41,9 +41,9 @@ class CommonRepository(interface.CommonRepository):
         return model.Bibliography(**row)
 
     def get_bibliography_list(
-        self, offset: int, limit: int, tx: psycopg.Transaction | None = None
+        self, title: str, offset: int, limit: int, tx: psycopg.Transaction | None = None
     ) -> list[model.Bibliography]:
-        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, params=[offset, limit], tx=tx)
+        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, params=[title, offset, limit], tx=tx)
 
         return [model.Bibliography(**row) for row in rows]
 
