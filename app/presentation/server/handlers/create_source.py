@@ -8,16 +8,12 @@ from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
 
-ALLOWED_SOURCE_TYPES = ["publication", "catalog", "table"]
-
 
 class CreateSourceRequestSchema(Schema):
-    type = fields.Str(
-        required=True,
-        validate=validate.OneOf(ALLOWED_SOURCE_TYPES),
-        description="Source type",
-    )
-    metadata = fields.Dict()
+    bibcode = fields.Str(description="Bibcode of publication")
+    title = fields.Str(description="Title of publication")
+    authors = fields.List(fields.Str, description="List of authors")
+    year = fields.Int(description="Year of the publication")
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:
@@ -27,7 +23,7 @@ class CreateSourceRequestSchema(Schema):
 class CreateSourceResponseSchema(Schema):
     id = fields.Int(
         required=True,
-        description="HyperLeda source id",
+        description="HyperLeda bibliography id",
     )
 
 

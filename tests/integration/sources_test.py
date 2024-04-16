@@ -23,61 +23,36 @@ class SourcesTest(unittest.TestCase):
     def test_create_one_source_success(self):
         create_response = self.actions.create_source(
             model.CreateSourceRequest(
-                "publication",
-                {
-                    "bibcode": "1992ApJ...400L...1W",
-                    "author": "Test author et al.",
-                    "year": 2000,
-                    "title": "Test research",
-                },
+                bibcode="1992ApJ...400L...1W",
+                authors=["Test author et al."],
+                year=2000,
+                title="Test research",
             ),
         )
         get_response = self.actions.get_source(model.GetSourceRequest(id=create_response.id))
 
-        self.assertEqual(get_response.type, "publication")
-        self.assertEqual(get_response.metadata["bibcode"], "1992ApJ...400L...1W")
-        self.assertEqual(get_response.metadata["author"], ["Test author et al."])
-        self.assertEqual(get_response.metadata["year"], 2000)
-        self.assertEqual(get_response.metadata["title"], "Test research")
-
-    def test_create_one_source_wrong_type(self):
-        with self.assertRaises(Exception):
-            _ = self.actions.create_source(
-                model.CreateSourceRequest("some_non-exitent-type", {}),
-            )
-
-    def test_create_one_source_not_enough_metadata(self):
-        with self.assertRaises(Exception):
-            _ = self.actions.create_source(
-                model.CreateSourceRequest(
-                    "publication",
-                    {"author": "Test author et al."},
-                ),
-            )
+        self.assertEqual(get_response.bibcode, "1992ApJ...400L...1W")
+        self.assertEqual(get_response.authors, ["Test author et al."])
+        self.assertEqual(get_response.year, 2000)
+        self.assertEqual(get_response.title, "Test research")
 
     def test_create_two_sources_duplicate(self):
         _ = self.actions.create_source(
             model.CreateSourceRequest(
-                "publication",
-                {
-                    "bibcode": "2000ApJ...400L...1W",
-                    "author": "Test author et al.",
-                    "year": 2000,
-                    "title": "Test research",
-                },
+                bibcode="2000ApJ...400L...1W",
+                authors=["Test author et al."],
+                year=2000,
+                title="Test research",
             ),
         )
 
         with self.assertRaises(Exception):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
-                    "publication",
-                    {
-                        "bibcode": "2000ApJ...400L...1W",
-                        "author": "Test author et al.",
-                        "year": 2000,
-                        "title": "Test research",
-                    },
+                    bibcode="2000ApJ...400L...1W",
+                    authors=["Test author et al."],
+                    year=2000,
+                    title="Test research",
                 ),
             )
 
@@ -89,39 +64,57 @@ class SourcesTest(unittest.TestCase):
         for i in range(25):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
-                    "publication",
-                    {
-                        "bibcode": f"20{i:02d}ApJ...401L...1W",
-                        "author": "Test author et al.",
-                        "year": 2000,
-                        "title": "Test research",
-                    },
+                    bibcode=f"20{i:02d}ApJ...401L...1W",
+                    authors=["Test author et al."],
+                    year=2000,
+                    title=f"20{i:02d}ApJ...401L...1W",
                 ),
             )
 
-        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 0))
+        result = self.actions.get_source_list(model.GetSourceListRequest("ApJ", 10, 0))
 
         self.assertEqual(len(result.sources), 10)
+
+    def test_get_filtered_titles(self):
+        _ = self.actions.create_source(
+            model.CreateSourceRequest(
+                bibcode="2001ApJ...401L...1W",
+                authors=["Test author et al."],
+                year=2000,
+                title="Test research",
+            ),
+        )
+        _ = self.actions.create_source(
+            model.CreateSourceRequest(
+                bibcode="2002ApJ...401L...1W",
+                authors=["Test author et al."],
+                year=2000,
+                title="Test important research",
+            ),
+        )
+
+        result = self.actions.get_source_list(model.GetSourceListRequest("Test", 10, 0))
+        self.assertEqual(len(result.sources), 2)
+
+        result = self.actions.get_source_list(model.GetSourceListRequest("important", 10, 0))
+        self.assertEqual(len(result.sources), 1)
 
     def test_get_list_second_page_not_full(self):
         for i in range(15):
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
-                    "publication",
-                    {
-                        "bibcode": f"20{i:02d}ApJ...402L...1W",
-                        "author": "Test author et al.",
-                        "year": 2000,
-                        "title": "Test research",
-                    },
+                    bibcode=f"20{i:02d}ApJ...402L...1W",
+                    authors=["Test author et al."],
+                    year=2000,
+                    title=f"20{i:02d}ApJ...402L...1W",
                 ),
             )
 
-        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 1))
+        result = self.actions.get_source_list(model.GetSourceListRequest("ApJ", 10, 1))
 
         self.assertEqual(len(result.sources), 5)
 
     def test_get_list_no_sources(self):
-        result = self.actions.get_source_list(model.GetSourceListRequest("publication", 10, 0))
+        result = self.actions.get_source_list(model.GetSourceListRequest("ApJ", 10, 0))
 
         self.assertEqual(len(result.sources), 0)
