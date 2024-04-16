@@ -25,6 +25,8 @@ INSERT INTO photometry.method (id,description) VALUES
 , ( 'Kron' , 'Kron magnitude' )
 , ( 'Petro' , 'Petrosian magnitude' )
 , ( 'Model' , 'Model best fit magnitude' )
+, ( 'Iso'  , 'Isophotal magnitude' )
+, ( 'Aper' , 'Aperture photometry' )
 ;
 
 
