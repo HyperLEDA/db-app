@@ -98,12 +98,14 @@ class Layer0Repository(interface.Layer0Repository):
 
             objects.append(obj)
 
-        query = template.INSERT_RAW_DATA.render(
-            schema=RAWDATA_SCHEMA, table=data.table_name, fields=fields, objects=objects
-        )
-
         self._storage.exec(
-            query,
+            template.render_query(
+                template.INSERT_RAW_DATA,
+                schema=RAWDATA_SCHEMA,
+                table=data.table_name,
+                fields=fields,
+                objects=objects,
+            ),
             params=params,
             tx=tx,
         )
