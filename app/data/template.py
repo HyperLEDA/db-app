@@ -79,11 +79,11 @@ CREATE TABLE {{ schema }}.{{ name }} (
 
 # TODO: use meta.setparam
 ADD_COLUMN_COMMENT = """
-COMMENT ON COLUMN {{ schema }}.{{ table_name }}.{{ column_name }} IS '{{ params }}'
+SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ column_name }}', '{{ params }}'::json)
 """
 
 ADD_TABLE_COMMENT = """
-COMMENT ON TABLE {{ schema }}.{{ table_name }} IS '{{ params }}'
+SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ params }}'::json)
 """
 
 INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
