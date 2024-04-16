@@ -102,7 +102,7 @@ COMMENT ON COLUMN geometry.data.modification_time	IS 'Timestamp when the record 
 
 --- Measurements in the Circular apertures ----------
 CREATE TABLE geometry.circle (
-, a	real	NOT NULL
+  a	real	NOT NULL
 , e_a	real
 , PRIMARY KEY (id)
 , UNIQUE (pgc,quality,band,a,dataset)
@@ -122,7 +122,7 @@ COMMENT ON COLUMN geometry.circle.e_a	IS '{"description" : "Error of the equaval
 
 --- Measurements in the Ellipses or in the Slices ----------
 CREATE TABLE geometry.ellipse (
-, a	real	NOT NULL
+  a	real	NOT NULL
 , e_a	real
 , b	real	NOT NULL
 , e_p	real
