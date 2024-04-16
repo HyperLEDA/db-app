@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass
 class CreateSourceRequest:
-    type: str
-    metadata: dict
+    bibcode: str
+    title: str
+    authors: list[str]
+    year: int
 
 
 @dataclass
@@ -20,13 +21,15 @@ class GetSourceRequest:
 
 @dataclass
 class GetSourceResponse:
-    type: str
-    metadata: dict[str, Any]
+    bibcode: str
+    title: str
+    authors: list[str]
+    year: int
 
 
 @dataclass
 class GetSourceListRequest:
-    type: str
+    title: str
     page_size: int
     page: int
 

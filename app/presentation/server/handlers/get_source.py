@@ -22,14 +22,10 @@ class GetSourceRequestSchema(Schema):
 
 
 class GetSourceResponseSchema(Schema):
-    type = fields.Str(
-        required=True,
-        validate=validate.OneOf(create_source.ALLOWED_SOURCE_TYPES),
-        description="Source type",
-    )
-    metadata = fields.Dict(
-        description="Metadata that provides identification for the source",
-    )
+    bibcode = fields.Str(description="Bibcode of publication")
+    title = fields.Str(description="Title of publication")
+    authors = fields.List(fields.Str, description="List of authors")
+    year = fields.Int(description="Year of the publication")
 
 
 @docs(

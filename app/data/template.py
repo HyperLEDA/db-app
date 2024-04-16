@@ -21,6 +21,8 @@ SELECT
 FROM common.bib
 WHERE
     1 = 1
+    AND
+    title LIKE CONCAT('%%', %s::text, '%%')
 ORDER BY modification_time DESC
 OFFSET %s
 LIMIT %s

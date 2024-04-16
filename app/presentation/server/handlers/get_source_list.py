@@ -11,10 +11,9 @@ from app.presentation.server.handlers import create_source, get_source
 
 
 class GetSourceListRequestSchema(Schema):
-    type = fields.Str(
+    title = fields.Str(
         required=True,
-        validate=validate.OneOf(create_source.ALLOWED_SOURCE_TYPES),
-        description="Source type",
+        description="Filter for the title",
     )
     page_size = fields.Int(
         load_default=20,

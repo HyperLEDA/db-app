@@ -45,28 +45,8 @@ class Actions(domain.Actions):
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
-        if r.type != "publication":
-            raise NotImplementedError("source types other than 'publication' are not supported yet")
-
-        # TODO: this probably should be moved to API validation layer
-        bibcode = r.metadata.get("bibcode")
-        if bibcode is None:
-            raise new_validation_error("bibcode is required in metadata for publication type")
-
-        year = r.metadata.get("year")
-        if year is None:
-            raise new_validation_error("year is required in metadata for publication type")
-
-        author = r.metadata.get("author")
-        if author is None:
-            raise new_validation_error("author is required in metadata for publication type")
-
-        title = r.metadata.get("title")
-        if title is None:
-            raise new_validation_error("title is required in metadata for publication type")
-
         source_id = self._common_repo.create_bibliography(
-            data_model.Bibliography(bibcode=bibcode, year=int(year), author=[author], title=title)
+            data_model.Bibliography(bibcode=r.bibcode, year=r.year, author=r.authors, title=r.title)
         )
 
         return domain_model.CreateSourceResponse(id=source_id)
@@ -75,20 +55,21 @@ class Actions(domain.Actions):
         result = self._common_repo.get_bibliography(r.id)
 
         return domain_model.GetSourceResponse(
-            type="publication",
-            metadata=dataclasses.asdict(result),
+            result.bibcode,
+            result.title,
+            result.author,
+            result.year,
         )
 
     def get_source_list(self, r: domain_model.GetSourceListRequest) -> domain_model.GetSourceListResponse:
-        if r.type != "publication":
-            raise NotImplementedError("source types other than 'publication' are not supported yet")
-
-        result = self._common_repo.get_bibliography_list(r.page * r.page_size, r.page_size)
+        result = self._common_repo.get_bibliography_list(r.title, r.page * r.page_size, r.page_size)
 
         response = [
             domain_model.GetSourceResponse(
-                type="publication",
-                metadata=dataclasses.asdict(bib),
+                bib.bibcode,
+                bib.title,
+                bib.author,
+                bib.year,
             )
             for bib in result
         ]
