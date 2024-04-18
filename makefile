@@ -1,5 +1,7 @@
 PYTHON := python
 
+.PHONY: docs
+
 all: test
 
 ## General targets
@@ -17,6 +19,9 @@ start-db:
 
 stop-db:
 	docker compose down
+
+docs:
+	$(PYTHON) -m mkdocs serve
 
 ## Testing
 
