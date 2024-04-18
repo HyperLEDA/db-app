@@ -23,6 +23,12 @@ stop-db:
 docs:
 	$(PYTHON) -m mkdocs serve
 
+deploy-docs:
+	$(PYTHON) -m mkdocs gh-deploy
+
+build-docs:
+	$(PYTHON) -m mkdocs build
+
 ## Testing
 
 test: dryrun-black dryrun-isort test-unit
