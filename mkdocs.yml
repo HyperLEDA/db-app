@@ -1,5 +1,6 @@
 site_name: HyperLeda documentation
 repo_url: https://github.com/HyperLEDA/db-app
+site_url: https://hyperleda.github.io/db-app/
 
 theme:
   name: material
@@ -20,7 +21,7 @@ theme:
         name: Switch to system preference
 
 nav:
-  - Главная: index.ru.md
+  - Главная: index.md
   - developer documentation:
       - Установка окружения: dev/environment.ru.md
       - Внесение изменений: dev/change.ru.md

@@ -23,8 +23,8 @@ stop-db:
 docs:
 	$(PYTHON) -m mkdocs serve
 
-build-docs:
-	$(PYTHON) -m mkdocs build
+deploy-docs:
+	$(PYTHON) -m mkdocs gh-deploy
 
 ## Testing
 
