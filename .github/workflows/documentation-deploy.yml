@@ -1,6 +1,8 @@
-name: Build documentation
+name: Deploy documentation
 on:
-  - push
+  push:
+    branches:
+      - master
 
 jobs:
   build:
