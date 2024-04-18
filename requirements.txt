@@ -8,6 +8,9 @@ isort
 jinja2
 marshmallow
 mypy
+mkdocs
+mkdocs-i18n
+mkdocs-material
 pandas
 pandas-stubs
 parameterized
