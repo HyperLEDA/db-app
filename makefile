@@ -23,6 +23,9 @@ stop-db:
 docs:
 	$(PYTHON) -m mkdocs serve
 
+build-docs:
+	$(PYTHON) -m mkdocs build
+
 ## Testing
 
 test: dryrun-black dryrun-isort test-unit
