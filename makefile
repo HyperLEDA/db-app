@@ -21,7 +21,7 @@ stop-db:
 	docker compose down
 
 docs:
-	$(PYTHON) -m mkdocs serve
+	$(PYTHON) -m mkdocs serve -a localhost:8080
 
 deploy-docs:
 	$(PYTHON) -m mkdocs gh-deploy
