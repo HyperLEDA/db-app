@@ -77,5 +77,19 @@ COMMENT ON COLUMN photometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN photometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
+--------------------------------------------------------------------
+----------  Aperture photometry  -----------------------------------
+CREATE TABLE photometry.circAperture (
+  id	serial	PRIMARY KEY
+, a	real	NOT NULL
+, icrs	integer	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
+) ;
+
+COMMENT ON TABLE photometry.circAperture	IS 'Circular aperture table' ;
+COMMENT ON COLUMN photometry.circAperture.id	IS 'Circular aperture ID' ;
+COMMENT ON COLUMN photometry.circAperture.a	IS 'Circular aperture diameter [arcsec]' ;
+COMMENT ON COLUMN photometry.circAperture.icrs	IS 'Reference the aperture center' ;
+
+
 
 COMMIT ;
