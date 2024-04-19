@@ -8,11 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://hyperleda.github.io/db-app/dev/system_diagram.ru/">
+        <link rel="canonical" href="https://hyperleda.github.io/db-app/dev/documentation.ru/">
       
       
-        <link rel="prev" href="../documentation.ru/">
+        <link rel="prev" href="../change.ru/">
       
+      
+        <link rel="next" href="../system_diagram.ru/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -20,7 +22,7 @@
     
     
       
-        <title>Диаграмма системы - HyperLeda documentation</title>
+        <title>Документация - HyperLeda documentation</title>
       
     
     
@@ -71,6 +73,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -103,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Диаграмма системы
+              Документация
             
           </span>
         </div>
@@ -378,27 +385,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../documentation.ru/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Документация
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -409,7 +395,66 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Документация
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Документация
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Создание новой страницы
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../system_diagram.ru/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -418,7 +463,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -449,6 +493,23 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Создание новой страницы
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -465,10 +526,17 @@
   
 
 
-  <h1>Диаграмма системы</h1>
+  <h1>Документация</h1>
 
-<p><a href="../diagram.drawio.svg">Картинка большого размера</a></p>
-<p><img alt="diagram" src="../diagram.drawio.svg" /></p>
+<p>Для редактирования документации используется пакет <code>mkdocs</code>, который позволяет писать документацию в том же репозитории, что и основной код. </p>
+<p>Вся документация лежит в markdown-файлах внутри директории <code>docs/</code> проекта. Туда можно свободно создавать файлы, делать ссылки на другие страницы, вставлять картинки, сниппеты кода и всё прочее, что поддерживает markdown. Синтаксис markdown очень простой, посмотреть его можно на любой из страниц этой документации или вот тут: <a href="https://www.markdownguide.org/basic-syntax/">https://www.markdownguide.org/basic-syntax/</a>.</p>
+<h3 id="_1">Создание новой страницы<a class="headerlink" href="#_1" title="Permanent link">#</a></h3>
+<ol>
+<li>Создать в директории <code>docs/</code> файл.</li>
+<li>Написать в нём нужный текст.</li>
+<li>В файл <a href="https://github.com/HyperLEDA/db-app/blob/master/mkdocs.yml">mkdocs.yml</a> в секцию <code>nav</code> добавить ссылку на новую страницу образом, аналогичным уже существующим в этой секции ссылкам.</li>
+<li>Полюбоваться на свою документацию командой <code>make docs</code>. Она соберёт документацию, посмотреть её в браузере можно будет по ссылке <a href="http://localhost:8080/db-app/">http://localhost:8080/db-app/</a>.</li>
+</ol>
 
 
 
