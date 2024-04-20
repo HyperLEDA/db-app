@@ -81,21 +81,15 @@ COMMENT ON COLUMN common.users.email IS 'User email' ;
 
 -----------------------------------------------
 --------- Observation Data Types --------------
-CREATE TABLE common.datatype (
-  id	text	PRIMARY KEY
-, description	text	NOT NULL
-) ;
+CREATE TYPE common.datatype AS ENUM('regular', 'reprocessing', 'preliminary', 'compilation');
 
-COMMENT ON TABLE common.datatype IS 'The types of the published data' ;
-COMMENT ON COLUMN common.datatype.id IS 'ID of the data type' ;
-COMMENT ON COLUMN common.datatype.description IS 'Description of the data type' ;
-
-INSERT INTO common.datatype VALUES 
-  ( 'reguliar'     , 'Reguliar measurements' )
-, ( 'reprocessing' , 'Reprocessing of observations' )
-, ( 'preliminary'  , 'Preliminary results' )
-, ( 'compilation'  , 'Compilation of data from literature' )
-;
+-- TODO: add meta function to read/write these comments
+COMMENT ON TYPE common.datatype IS '{
+  "regular": "Regular measurements",
+  "reprocessing": "Reprocessing of observations",
+  "preliminary": "Preliminary results",
+  "compilation": "Compilation of data from literature"
+}';
 
 -----------------------------------------------------------
 --------- Tasks -------------------------------------------

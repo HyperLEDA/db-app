@@ -2,7 +2,7 @@ import datetime
 from dataclasses import dataclass
 from typing import Any
 
-from app.lib import queue
+from app.lib.storage import enums
 
 
 @dataclass
@@ -10,7 +10,7 @@ class Task:
     task_name: str
     payload: dict[str, Any]
     user_id: int
-    status: queue.TaskStatus = queue.TaskStatus.NEW
+    status: enums.TaskStatus = enums.TaskStatus.NEW
     start_time: datetime.datetime | None = None
     end_time: datetime.datetime | None = None
     id: int | None = None

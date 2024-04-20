@@ -79,6 +79,12 @@ ADD_TABLE_COMMENT = """
 SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ params }}'::json)
 """
 
+INSERT_TABLE_REGISTRY_ITEM = """
+INSERT INTO rawdata.tables (bib, table_name, datatype)
+VALUES (%s, %s, %s)
+RETURNING id
+"""
+
 INSERT_RAW_DATA = """
 INSERT INTO 
     {{ schema }}.{{ table }} 

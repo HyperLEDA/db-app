@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from app.data.model.common import Bibliography
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.data.model.task import Task
-from app.lib.queue import TaskStatus
+from app.lib.storage.enums import TaskStatus
 
 __all__ = [
     "Bibliography",

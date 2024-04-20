@@ -68,6 +68,14 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
+        rows = self._storage.exec(
+            template.INSERT_TABLE_REGISTRY_ITEM,
+            params=[data.bibliography_id, data.table_name, data.datatype],
+            tx=tx,
+        )
+
+        return str(rows.get("id"))
+
     def insert_raw_data(
         self,
         data: model.Layer0RawData,

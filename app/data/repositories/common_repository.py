@@ -5,9 +5,8 @@ import structlog
 from psycopg.types import json
 
 from app.data import interface, model, template
-from app.lib import queue
 from app.lib.exceptions import new_database_error
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 
 @final
@@ -72,7 +71,7 @@ class CommonRepository(interface.CommonRepository):
     def set_task_status(
         self,
         task_id: int,
-        task_status: queue.TaskStatus,
+        task_status: enums.TaskStatus,
         tx: psycopg.Transaction | None = None,
     ) -> None:
         self._storage.exec(
@@ -89,6 +88,6 @@ class CommonRepository(interface.CommonRepository):
     ) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
-            params=[queue.TaskStatus.FAILED, json.Jsonb(message), task_id],
+            params=[enums.TaskStatus.FAILED, json.Jsonb(message), task_id],
             tx=tx,
         )

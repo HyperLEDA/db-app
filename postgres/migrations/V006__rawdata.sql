@@ -13,26 +13,26 @@ COMMENT ON SCHEMA rawdata IS 'Container for the original tables from different s
 
 -----------------------------------------------------------
 -------- Data processing Status ---------------------------
-CREATE TABLE rawdata.status (
-  id	text	PRIMARY KEY
-, description	text	NOT NULL	UNIQUE
-) ;
+CREATE TYPE rawdata.status AS ENUM(
+  'initiated', 
+  'downloading', 
+  'failed', 
+  'downloaded', 
+  'auto x-id', 
+  'auto x-id finished', 
+  'manual x-id', 
+  'processed'
+);
 
-COMMENT ON TABLE rawdata.status IS 'Data processing status' ;
-COMMENT ON COLUMN rawdata.status.id IS 'Status ID' ;
-COMMENT ON COLUMN rawdata.status.description IS 'Status description' ;
-
-INSERT INTO rawdata.status VALUES
-  ( 'initiated' , 'Structure is initiated' )
-, ( 'downloading' , 'Data downloading' )
-, ( 'failed' , 'Data downloading is failed' )
-, ( 'downloaded' , 'Data are downloaded' )
-, ( 'auto x-id' , 'Automatic cross-identification' )
-, ( 'auto xid finished' , 'Manual cross-identification is finished' )
-, ( 'manual xid' , 'Manual cross-identification' )
-, ( 'processed' , 'Table is processed' )
-;
-
+COMMENT ON TYPE rawdata.status IS '{
+  "initiated": "Structure is initiated",
+  "downloading": "Data is downloading",
+  "failed": "Data downloading failed",
+  "auto x-id": "Automatic cross-identification",
+  "auto x-id finished": "Manual cross-identification is finished",
+  "manual x-id": "Manual cross-identification",
+  "processed": "Table is processed"
+}';
 
 -----------------------------------------------------------
 -------- List of source data tables -----------------------
@@ -40,15 +40,15 @@ CREATE TABLE rawdata.tables (
   id	serial	PRIMARY KEY
 , bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict ON UPDATE cascade
 , table_name	text	NOT NULL	UNIQUE
-, datatype	text	REFERENCES common.datatype (id)	ON DELETE restrict ON UPDATE cascade
-, status	text	NOT NULL	REFERENCES rawdata.status (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 'initiated'
-) ;
+, datatype	common.datatype
+, status	rawdata.status NOT NULL DEFAULT 'initiated'
+);
 
 COMMENT ON TABLE rawdata.tables IS 'List of original data tables' ;
 COMMENT ON COLUMN rawdata.tables.id IS 'Rawdata table ID' ;
 COMMENT ON COLUMN rawdata.tables.bib IS 'Bibliography reference' ;
 COMMENT ON COLUMN rawdata.tables.table_name IS 'Rawdata table name' ;
-COMMENT ON COLUMN rawdata.tables.datatype IS 'Types of the data (reguliar,reprocessing,preliminary,compilation)' ;
+COMMENT ON COLUMN rawdata.tables.datatype IS 'Types of the data (regular,reprocessing,preliminary,compilation)' ;
 COMMENT ON COLUMN rawdata.tables.status IS 'Data processing status' ;
 
 

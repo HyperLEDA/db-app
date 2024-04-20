@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pandas
 
-from app.data.model import common
+from app.lib.storage import enums
 
 
 @dataclass
@@ -21,13 +21,14 @@ class Layer0Creation:
     Args:
         `table_name`: name of the table that will be written into database
         `column_descriptions`: information about each column
-        `bibliography`: bibliographic information
+        `bibliography_id`: id of bibliography
         `comment`: description of the table
     """
 
     table_name: str
     column_descriptions: list[ColumnDescription]
-    bibliography: common.Bibliography
+    bibliography_id: int
+    datatype: enums.DataType
     comment: str | None = None
 
 
