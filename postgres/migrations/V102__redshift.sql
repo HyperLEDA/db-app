@@ -85,19 +85,18 @@ CREATE TABLE cz.data (
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict ON UPDATE cascade
 , cz	real	NOT NULL
 , e_cz	real
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
+, quality	common.quality	NOT NULL
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
 CREATE UNIQUE INDEX ON cz.data (pgc,quality,cz,dataset) ;
-CREATE INDEX ON cz.data (dataset) ;
 
 COMMENT ON TABLE cz.data	IS 'Redshift measurement catalog' ;
 COMMENT ON COLUMN cz.data.id	IS 'ID of the measurement' ;
 COMMENT ON COLUMN cz.data.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN cz.data.cz	IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
 COMMENT ON COLUMN cz.data.e_cz	IS 'cz measurement error in km/s' ;
-COMMENT ON COLUMN cz.data.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN cz.data.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN cz.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN cz.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
@@ -142,7 +141,7 @@ COMMENT ON COLUMN cz.list.id	IS 'measurement ID' ;
 COMMENT ON COLUMN cz.list.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN cz.list.cz	IS 'Heliocentric/Barycentric redshift (cz) in km/s in the optical convention: z = (λ-λ0)/λ0' ;
 COMMENT ON COLUMN cz.list.e_cz	IS 'cz measurement error in km/s' ;
-COMMENT ON COLUMN cz.list.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN cz.list.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN cz.list.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN cz.list.isok	IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;
 COMMENT ON COLUMN cz.list.modification_time	IS 'Timestamp when the record was added to the database' ;
