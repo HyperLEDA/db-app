@@ -125,7 +125,7 @@ CREATE TABLE geometry.ellipse (
   a	real	NOT NULL
 , e_a	real
 , b	real	NOT NULL
-, e_p	real
+, e_b	real
 , pa	real	NOT NULL
 , e_pa	real
 , PRIMARY KEY (id)
