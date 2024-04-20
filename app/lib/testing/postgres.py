@@ -1,8 +1,6 @@
 import atexit
 import os
 import pathlib
-import socket
-from contextlib import closing
 
 import psycopg
 import structlog

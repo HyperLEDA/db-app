@@ -2,7 +2,7 @@ from typing import Any
 
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
-from marshmallow import Schema, ValidationError, fields, post_load, validate
+from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import domain
 from app.domain import model

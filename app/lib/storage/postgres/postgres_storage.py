@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import psycopg
 import structlog
-from marshmallow import Schema, fields, post_load
-from psycopg import adapt, rows
+from psycopg import rows
 from psycopg.types import enum, numeric
 
 from app.lib.exceptions import new_database_error, new_internal_error

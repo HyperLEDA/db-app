@@ -1,11 +1,10 @@
-import dataclasses
 import datetime
 from typing import Any, Callable, final
 
 import structlog
 from astroquery.vizier import Vizier
 
-from app import data, domain
+from app import domain
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
@@ -15,9 +14,14 @@ from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseC
 from app.lib.exceptions import (
     new_internal_error,
     new_not_found_error,
-    new_validation_error,
 )
-from app.lib.storage import mapping, postgres
+from app.lib.storage import postgres
+
+__all__ = [
+    "Actions",
+    "CrossIdentifyUseCase",
+    "TransformationO1UseCase",
+]
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
@@ -149,11 +153,9 @@ class Actions(domain.Actions):
             tables = []
 
             for curr_table in catalog_info.tables:
-                fields = []
-
-                for field in curr_table.fields:
-                    fields.append(domain_model.Field(field.ID, field.description, str(field.unit)))
-
+                fields = [
+                    domain_model.Field(field.ID, field.description, str(field.unit)) for field in curr_table.fields
+                ]
                 tables.append(
                     domain_model.Table(
                         id=curr_table.ID,

@@ -1,3 +1,14 @@
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 60
+
+[tool.ruff.lint]
+ignore = ["F403"]
+select = ["E", "F"]
+
 [tool.pylint.messages_control]
 max-line-length = 120
 disable = [
@@ -24,9 +35,6 @@ ignore-paths = "^.venv/.*$"
 [tool.pytest.ini_options]
 addopts = "-W ignore::DeprecationWarning"
 testpaths = ["tests"]
-
-[tool.black]
-line-length = 120
 
 [tool.isort]
 profile = "black"

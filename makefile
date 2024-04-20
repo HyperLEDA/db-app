@@ -31,14 +31,23 @@ build-docs:
 
 ## Testing
 
-test: dryrun-black dryrun-isort test-unit
+test: check dryrun-isort test-unit
 
-test-all: dryrun-black dryrun-isort test-unit test-integration
+test-all: check dryrun-isort test-unit test-integration
 
 test-extra: pylint mypy
 
-dryrun-black:
-	$(PYTHON) -m black . --config pyproject.toml --check
+check: check-format check-lint
+
+check-format: dryrun-ruff-format
+
+check-lint: dryrun-ruff-lint
+
+dryrun-ruff-format:
+	$(PYTHON) -m ruff format --config=pyproject.toml --check
+
+dryrun-ruff-lint:
+	$(PYTHON) -m ruff check --config=pyproject.toml
 
 dryrun-isort:
 	$(PYTHON) -m isort . --settings-path pyproject.toml --check-only
@@ -67,12 +76,20 @@ coverage:
 	$(PYTHON) -m coverage run -m unittest discover -s tests -p "*_test.py" -v
 	$(PYTHON) -m coverage html
 
-## Linters
+## Fix code
 
-fix-lint: black isort
+# alias
+fix: fix-lint
 
-black:
-	$(PYTHON) -m black . --config pyproject.toml
+fix-unsafe: lint-ruff-unsafe
 
-isort:
-	$(PYTHON) -m isort . --settings-path pyproject.toml
+fix-lint: format-ruff lint-ruff
+
+format-ruff:
+	$(PYTHON) -m ruff format --config=pyproject.toml
+
+lint-ruff:
+	$(PYTHON) -m ruff check --config=pyproject.toml --fix
+
+lint-ruff-unsafe:
+	$(PYTHON) -m ruff check --config=pyproject.toml --fix

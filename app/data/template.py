@@ -1,8 +1,8 @@
 import jinja2
 
+
 # TODO: make a unified way for querying with templates
-
-
+# TODO: remove \n when compiling templates
 def render_query(query_string: str, **kwargs) -> str:
     tpl = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(query_string)
 
@@ -26,6 +26,10 @@ WHERE
 ORDER BY modification_time DESC
 OFFSET %s
 LIMIT %s
+"""
+
+GET_TASK_INFO = """
+SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s
 """
 
 
@@ -85,9 +89,11 @@ COMMENT ON TABLE {{ schema }}.{{ table_name }} IS '{{ params }}'
 INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
     """
 INSERT INTO 
-    {{ schema }}.{{ table }} ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %}) 
+    {{ schema }}.{{ table }}
+    ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %}) 
     VALUES{% for object in objects %}
-    ({% for field_name in fields %}{{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
+    ({% for field_name in fields %}
+        {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
     {% endfor %}
 """
 )

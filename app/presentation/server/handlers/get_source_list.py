@@ -7,7 +7,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, validate
 from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
-from app.presentation.server.handlers import create_source, get_source
+from app.presentation.server.handlers import get_source
 
 
 class GetSourceListRequestSchema(Schema):

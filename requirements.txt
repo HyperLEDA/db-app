@@ -20,6 +20,7 @@ pytest
 pyyaml
 redis
 requests
+ruff
 rq
 setuptools
 structlog
