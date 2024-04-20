@@ -60,7 +60,7 @@ CREATE TABLE photometry.data (
 , mag	real	NOT NULL
 , e_mag	real
 , band	integer	REFERENCES common.calibpassband (id)	ON DELETE restrict ON UPDATE cascade
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
+, quality	common.quality	NOT NULL
 , dataset	integer	NOT NULL	REFERENCES photometry.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
@@ -72,7 +72,7 @@ COMMENT ON COLUMN photometry.data.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN photometry.data.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN photometry.data.mag	IS '{"description" : "Apparent magnitude", "unit" : "mag", "ucd" : "phot.mag"}' ;
 COMMENT ON COLUMN photometry.data.e_mag	IS '{"description" : "Error of the apparent magnitude", "unit" : "mag", "ucd" : "stat.error"}' ;
-COMMENT ON COLUMN photometry.data.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN photometry.data.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN photometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN photometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 

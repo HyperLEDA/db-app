@@ -86,7 +86,7 @@ CREATE TABLE geometry.data (
   id	serial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict ON UPDATE cascade
 , band	integer	REFERENCES common.calibpassband (id)	ON DELETE restrict ON UPDATE cascade
-, quality	smallint	NOT NULL	REFERENCES common.quality (id)	ON DELETE restrict ON UPDATE cascade	DEFAULT 0   -- default 0 = reguliar measurement
+, quality	common.quality	NOT NULL
 , dataset	integer	NOT NULL	REFERENCES cz.dataset (id)	ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 ) ;
@@ -95,7 +95,7 @@ COMMENT ON TABLE geometry.data	IS 'Geometry catalog' ;
 COMMENT ON COLUMN geometry.data.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.data.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.data.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.data.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.data.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
@@ -113,7 +113,7 @@ COMMENT ON TABLE geometry.circle	IS 'Equivalent diameter table (measurements in 
 COMMENT ON COLUMN geometry.circle.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.circle.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.circle.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.circle.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.circle.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.circle.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.circle.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.circle.a	IS '{"description" : "Equivalent diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
@@ -137,7 +137,7 @@ COMMENT ON TABLE geometry.ellipse	IS 'Geometry table' ;
 COMMENT ON COLUMN geometry.ellipse.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.ellipse.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.ellipse.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.ellipse.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.ellipse.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.ellipse.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.ellipse.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.ellipse.a	IS '{"description" : "Major axis diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
@@ -160,7 +160,7 @@ COMMENT ON TABLE geometry.isophote	IS 'Geometry table' ;
 COMMENT ON COLUMN geometry.isophote.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.isophote.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.isophote.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.isophote.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.isophote.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.isophote.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.isophote.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.isophote.a	IS '{"description" : "Major axis diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;

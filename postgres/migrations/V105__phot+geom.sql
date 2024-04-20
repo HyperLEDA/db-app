@@ -20,7 +20,7 @@ COMMENT ON TABLE geometry.fluxlevel	IS 'Equivalent diameter table at specific to
 COMMENT ON COLUMN geometry.fluxlevel.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.fluxlevel.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.fluxlevel.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.fluxlevel.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.fluxlevel.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.fluxlevel.a	IS '{"description" : "Equivalent diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
@@ -40,7 +40,7 @@ COMMENT ON TABLE geometry.fluxlevel	IS 'Geometry table at specific total flux le
 COMMENT ON COLUMN geometry.fluxlevel.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.fluxlevel.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.fluxlevel.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.fluxlevel.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.fluxlevel.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.fluxlevel.a	IS '{"description" : "Major axis diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
@@ -69,7 +69,7 @@ COMMENT ON TABLE geometry.fluxlevel	IS 'Equivalent diameter table at specific Pe
 COMMENT ON COLUMN geometry.fluxlevel.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.fluxlevel.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.fluxlevel.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.fluxlevel.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.fluxlevel.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.fluxlevel.a	IS '{"description" : "Equivalent diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
@@ -88,7 +88,7 @@ COMMENT ON TABLE geometry.fluxlevel	IS 'Geometry table at the specific Petrosian
 COMMENT ON COLUMN geometry.fluxlevel.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN geometry.fluxlevel.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN geometry.fluxlevel.band	IS 'Passband ID' ;
-COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality: 0 - reguliar, 1 - low S/N, 2 - suspected, 5 -wrong' ;
+COMMENT ON COLUMN geometry.fluxlevel.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN geometry.fluxlevel.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN geometry.fluxlevel.modification_time	IS 'Timestamp when the record was added to the database' ;
 COMMENT ON COLUMN geometry.fluxlevel.a	IS '{"description" : "Major axis diameter", "unit" : "arcsec", "ucd" : "phys.angSize"}' ;
