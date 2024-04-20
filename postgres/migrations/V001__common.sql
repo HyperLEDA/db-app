@@ -78,6 +78,7 @@ COMMENT ON COLUMN common.users.id IS 'User ID' ;
 COMMENT ON COLUMN common.users.name IS 'Full name' ;
 COMMENT ON COLUMN common.users.email IS 'User email' ;
 
+
 -----------------------------------------------
 --------- Observation Data Types --------------
 CREATE TABLE common.datatype (
@@ -147,25 +148,29 @@ CREATE TRIGGER tr_set_task_end_time
     FOR EACH ROW
 EXECUTE PROCEDURE common.set_task_times();
 
+
 -----------------------------------------------
 --------- Data Quality ------------------------
-CREATE TABLE common.quality (
-  id	smallint	PRIMARY KEY
-, description	text	NOT NULL
-) ;
+CREATE TYPE common.quality AS ENUM ('ok', 'lowsnr', 'sus', '>', '<', 'wrong' ) ;
+COMMENT ON TYPE common.quality IS 'Data quality: ok = reguliar measurement; lowsnr = low signal-to-noise; sus = suspected measurement; > = lower limit; < = upper limit; worng = wrong measurement' ;
 
-COMMENT ON TABLE common.quality IS 'Data quality' ;
-COMMENT ON COLUMN common.quality.id IS 'ID of the data quality' ;
-COMMENT ON COLUMN common.quality.description IS 'Description of the data quality' ;
-
-INSERT INTO common.quality VALUES 
-  ( 0 , 'Reguliar measurements' )
-, ( 1 , 'Low signal to noise' )
-, ( 2 , 'Suspected measurement' )
-, ( 3 , 'Lower limit' )
-, ( 4 , 'Upper limit' )
-, ( 5 , 'Wrong measurement' )
-;
+-- CREATE TABLE common.quality (
+--   id	common.quality	PRIMARY KEY
+-- , description	text	NOT NULL
+-- ) ;
+-- 
+-- COMMENT ON TABLE common.quality IS 'Data quality' ;
+-- COMMENT ON COLUMN common.quality.id IS 'ID of the data quality' ;
+-- COMMENT ON COLUMN common.quality.description IS 'Description of the data quality' ;
+-- 
+-- INSERT INTO common.quality VALUES 
+--   ( 0 , 'Reguliar measurements' )
+-- , ( 1 , 'Low signal to noise' )
+-- , ( 2 , 'Suspected measurement' )
+-- , ( 3 , 'Lower limit' )
+-- , ( 4 , 'Upper limit' )
+-- , ( 5 , 'Wrong measurement' )
+-- ;
 
 
 ------------------------------------------------
