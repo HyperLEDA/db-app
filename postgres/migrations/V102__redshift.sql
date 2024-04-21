@@ -36,7 +36,7 @@ INSERT INTO cz.method (id,description) VALUES
 CREATE TABLE cz.dataset (
   id	serial	PRIMARY KEY
 , bib	integer	NOT NULL	REFERENCES common.bib ( id )	ON DELETE restrict ON UPDATE cascade
-, datatype	common.datatype
+, datatype	common.datatype	NOT NULL
 , srctab	text
 , specregion	text	REFERENCES common.specregion (id )	ON DELETE restrict ON UPDATE cascade
 , fovdim	smallint	REFERENCES common.fovdim (id )	ON DELETE restrict ON UPDATE cascade
