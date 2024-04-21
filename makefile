@@ -31,11 +31,11 @@ build-docs:
 
 ## Testing
 
-test: check dryrun-isort test-unit
+test: check test-unit
 
-test-all: check dryrun-isort test-unit test-integration
+test-all: check test-unit test-integration
 
-test-extra: pylint mypy
+test-extra: mypy
 
 check: check-format check-lint
 
@@ -48,12 +48,6 @@ dryrun-ruff-format:
 
 dryrun-ruff-lint:
 	$(PYTHON) -m ruff check --config=pyproject.toml
-
-dryrun-isort:
-	$(PYTHON) -m isort . --settings-path pyproject.toml --check-only
-
-pylint:
-	$(PYTHON) -m pylint . --recursive true --rcfile pyproject.toml
 
 test-unit: # we use pytest to run unittest test cases
 # first test that environment is installed correctly.
@@ -92,4 +86,4 @@ lint-ruff:
 	$(PYTHON) -m ruff check --config=pyproject.toml --fix
 
 lint-ruff-unsafe:
-	$(PYTHON) -m ruff check --config=pyproject.toml --fix
+	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix

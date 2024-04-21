@@ -108,9 +108,7 @@ class PgStorage:
 
         with storageutils.get_or_create_transaction(self._connection, tx):
             cursor.execute(query, params)
-            result_rows = cursor.fetchall()
-
-        return result_rows
+            return cursor.fetchall()
 
     def query_one(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None

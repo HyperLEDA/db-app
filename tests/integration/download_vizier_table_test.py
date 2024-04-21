@@ -52,26 +52,26 @@ class DownloadVizierTableTest(unittest.TestCase):
         self.assertDictEqual(comment_rows[0]["param"], {"description": "test descr"})
 
         comment_rows = self.storage.get_storage().query("""
-            SELECT param 
-            FROM meta.column_info 
-            WHERE schema_name = 'rawdata' 
-                AND table_name = 'data_vizier_test_table' 
+            SELECT param
+            FROM meta.column_info
+            WHERE schema_name = 'rawdata'
+                AND table_name = 'data_vizier_test_table'
                 AND column_name = 'name'
             """)
         self.assertDictEqual(comment_rows[0]["param"], {"description": "test name descr", "unit": "None"})
         comment_rows = self.storage.get_storage().query("""
-            SELECT param 
-            FROM meta.column_info 
-            WHERE schema_name = 'rawdata' 
-                AND table_name = 'data_vizier_test_table' 
+            SELECT param
+            FROM meta.column_info
+            WHERE schema_name = 'rawdata'
+                AND table_name = 'data_vizier_test_table'
                 AND column_name = 'ra'
             """)
         self.assertDictEqual(comment_rows[0]["param"], {"description": "test ra descr", "unit": "None"})
         comment_rows = self.storage.get_storage().query("""
-            SELECT param 
-            FROM meta.column_info 
-            WHERE schema_name = 'rawdata' 
-                AND table_name = 'data_vizier_test_table' 
+            SELECT param
+            FROM meta.column_info
+            WHERE schema_name = 'rawdata'
+                AND table_name = 'data_vizier_test_table'
                 AND column_name = 'dec'
             """)
         self.assertDictEqual(comment_rows[0]["param"], {"description": "test dec descr", "unit": "None"})

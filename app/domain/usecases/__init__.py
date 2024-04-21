@@ -84,14 +84,14 @@ class Actions(domain.Actions):
             ids = self._layer1_repo.create_objects(len(r.objects), tx)
 
             self._layer1_repo.create_designations(
-                [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
+                [data_model.Designation(obj.name, r.source_id, pgc=pgc_id) for pgc_id, obj in zip(ids, r.objects)],
                 tx,
             )
 
             self._layer1_repo.create_coordinates(
                 [
-                    data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
-                    for id, obj in zip(ids, r.objects)
+                    data_model.CoordinateData(pgc_id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
+                    for pgc_id, obj in zip(ids, r.objects)
                 ],
                 tx,
             )
@@ -119,7 +119,7 @@ class Actions(domain.Actions):
                 domain_model.ObjectNameInfo(
                     designation.design,
                     designation.bib,
-                    designation.modification_time or datetime.datetime.now(),
+                    designation.modification_time or datetime.datetime.now(tz=datetime.UTC),
                 )
                 for designation in designations
             ]

@@ -88,9 +88,9 @@ COMMENT ON TABLE {{ schema }}.{{ table_name }} IS '{{ params }}'
 
 INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
     """
-INSERT INTO 
+INSERT INTO
     {{ schema }}.{{ table }}
-    ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %}) 
+    ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %})
     VALUES{% for object in objects %}
     ({% for field_name in fields %}
         {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
