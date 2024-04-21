@@ -2,9 +2,7 @@ aiohttp
 aiohttp_apispec
 astropy
 astroquery
-black
 click
-isort
 jinja2
 marshmallow
 mypy
@@ -15,7 +13,6 @@ pandas
 pandas-stubs
 parameterized
 psycopg[binary,pool]
-pylint
 pytest
 pyyaml
 redis
