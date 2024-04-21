@@ -143,6 +143,7 @@ AS $$
     CASE WHEN TabType='r' THEN EXECUTE concat('COMMENT ON TABLE ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
          WHEN TabType='v' THEN EXECUTE concat('COMMENT ON VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
          WHEN TabType='m' THEN EXECUTE concat('COMMENT ON MATERIALIZED VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
+    ELSE
     END CASE;
   END ;
 $$  LANGUAGE plpgsql COST 100 VOLATILE STRICT PARALLEL UNSAFE

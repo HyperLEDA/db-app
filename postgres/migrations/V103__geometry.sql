@@ -70,7 +70,7 @@ CREATE TABLE geometry.dataset (
 , shape	text	REFERENCES geometry.shape (id )	ON DELETE restrict ON UPDATE cascade
 , method	text	NOT NULL	REFERENCES geometry.method (id )	ON DELETE restrict ON UPDATE cascade
 , src	integer	REFERENCES rawdata.tables (id )	ON DELETE restrict ON UPDATE cascade
-, datatype	text	REFERENCES common.datatype (id )	ON DELETE restrict ON UPDATE cascade
+, datatype	common.datatype
 ) ;
 
 COMMENT ON TABLE geometry.dataset	IS 'Dataset' ;
@@ -78,7 +78,7 @@ COMMENT ON COLUMN geometry.dataset.id	IS 'Dataset ID' ;
 COMMENT ON COLUMN geometry.dataset.method	IS 'Measurement method' ;
 COMMENT ON COLUMN geometry.dataset.shape	IS 'Aperture shape' ;
 COMMENT ON COLUMN geometry.dataset.src	IS 'Source table' ;
-COMMENT ON COLUMN geometry.dataset.datatype	IS 'Type of the data (reguliar,reprocessing,preliminary,compilation)' ;
+COMMENT ON COLUMN geometry.dataset.datatype	IS 'Type of the data (regular,reprocessing,preliminary,compilation)' ;
 
 
 --- Geometry measurement table ----------

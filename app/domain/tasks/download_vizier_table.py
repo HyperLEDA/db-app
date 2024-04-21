@@ -4,11 +4,11 @@ from dataclasses import dataclass
 import numpy as np
 import structlog
 from astropy import table
+from astroquery import vizier
 from numpy import ma
 
 from app.data import model, repositories
-from astroquery import vizier
-from app.lib.storage import mapping, postgres, enums
+from app.lib.storage import enums, mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
 TABLE_NAMING_FORMAT = "data_vizier_{table_id}"
@@ -139,7 +139,7 @@ def download_vizier_table(
         # TODO: parse real bibliographic data from vizier response
         bib_id = common.create_bibliography(
             model.Bibliography(
-                "2024A&A...684A..31G",
+                "2024arXiv240403522G",
                 2024,
                 ["Pović, Mirjana"],
                 "The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",

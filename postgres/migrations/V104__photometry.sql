@@ -42,14 +42,14 @@ CREATE TABLE photometry.dataset (
   id	serial	PRIMARY KEY
 , method	text	NOT NULL	REFERENCES photometry.method (id )	ON DELETE restrict ON UPDATE cascade
 , src	integer	REFERENCES rawdata.tables (id )	ON DELETE restrict ON UPDATE cascade
-, datatype	text	REFERENCES common.datatype (id )	ON DELETE restrict ON UPDATE cascade
+, datatype	common.datatype
 ) ;
 
 COMMENT ON TABLE photometry.dataset	IS 'Dataset' ;
 COMMENT ON COLUMN photometry.dataset.id	IS 'Dataset ID' ;
 COMMENT ON COLUMN photometry.dataset.method	IS 'Measurement method' ;
 COMMENT ON COLUMN photometry.dataset.src	IS 'Source table' ;
-COMMENT ON COLUMN photometry.dataset.datatype	IS 'Type of the data (reguliar,reprocessing,preliminary,compilation)' ;
+COMMENT ON COLUMN photometry.dataset.datatype	IS 'Type of the data (regular,reprocessing,preliminary,compilation)' ;
 
 
 --- Photometry measurement table -----------------------------------

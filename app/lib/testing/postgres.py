@@ -9,13 +9,13 @@ from testcontainers import postgres as pgcontainer
 from app.lib.storage import postgres
 from app.lib.testing import common
 
-log: structlog.stdlib.BoundLogger = structlog.get_logger()
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
         self.port = common.find_free_port()
-        log.info("Initializing postgres container", port=self.port)
+        logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
             "postgres:16",
             port=5432,
@@ -31,7 +31,7 @@ class TestPostgresStorage:
             dbname="hyperleda",
         )
 
-        self.storage = postgres.PgStorage(self.config, log)
+        self.storage = postgres.PgStorage(self.config, logger)
         self.migrations_dir = migrations_dir
 
     def _run_migrations(self, migrations_dir: str):
@@ -44,6 +44,7 @@ class TestPostgresStorage:
             data = pathlib.Path(migrations_dir, migration_filename).read_text()
             # ignore placeholders in migrations
             data = data.replace("%", "%%")
+            logger.info(f"running {migration_filename} migration")
             cur.execute(data)
 
         connection.commit()
@@ -53,8 +54,13 @@ class TestPostgresStorage:
     def clear(self):
         self.storage.exec("TRUNCATE common.pgc CASCADE")
         self.storage.exec("TRUNCATE common.bib CASCADE")
-        # note that this removes metadata about the schema.
-        self.storage.exec("DROP SCHEMA rawdata CASCADE; CREATE SCHEMA rawdata")
+        tables = self.storage.query("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'rawdata' AND table_name LIKE 'data_%%'
+            """)
+        for table in tables:
+            self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage
@@ -76,7 +82,7 @@ def get_or_create_test_postgres_storage() -> TestPostgresStorage:
     global _test_storage
     if _test_storage is None:
         _test_storage = TestPostgresStorage("postgres/migrations")
-        log.info("Starting postgres container")
+        logger.info("Starting postgres container")
         _test_storage.start()
 
         atexit.register(exit_handler)
@@ -87,5 +93,5 @@ def get_or_create_test_postgres_storage() -> TestPostgresStorage:
 def exit_handler():
     global _test_storage
     if _test_storage is not None:
-        log.info("Stopping postgres container")
+        logger.info("Stopping postgres container")
         _test_storage.stop()
