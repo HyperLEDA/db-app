@@ -12,6 +12,9 @@ class PingResponse:
     ping: str = "pong"
 
 
-@docs(summary="Test that service is up and running")
+@docs(
+    summary="Test that service is up and running",
+    tags=["admin"],
+)
 async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
     return PingResponse()

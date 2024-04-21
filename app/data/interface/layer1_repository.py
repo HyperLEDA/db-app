@@ -8,10 +8,6 @@ from app.data.interface import transactional
 
 class Layer1Repository(transactional.Transactional):
     @abc.abstractmethod
-    def create_objects(self, n: int, tx: psycopg.Transaction | None = None) -> list[int]:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
     def create_designations(self, designations: list[model.Designation], tx: psycopg.Transaction | None = None):
         raise NotImplementedError("not implemented")
 

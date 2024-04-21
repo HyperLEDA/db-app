@@ -19,7 +19,7 @@ class Layer0Repository(interface.Layer0Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> str:
+    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> int:
         """
         Creates table, writes metadata and returns string that identifies the table for
         further requests.
@@ -45,6 +45,13 @@ class Layer0Repository(interface.Layer0Repository):
                 )
             )
 
+        row = self._storage.query_one(
+            template.INSERT_TABLE_REGISTRY_ITEM,
+            params=[data.bibliography_id, data.table_name, data.datatype],
+            tx=tx,
+        )
+        table_id = int(row.get("id"))
+
         self._storage.exec(
             template.render_query(
                 template.CREATE_TABLE,
@@ -68,13 +75,7 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        row = self._storage.query_one(
-            template.INSERT_TABLE_REGISTRY_ITEM,
-            params=[data.bibliography_id, data.table_name, data.datatype],
-            tx=tx,
-        )
-
-        return str(row.get("id"))
+        return table_id
 
     def insert_raw_data(
         self,

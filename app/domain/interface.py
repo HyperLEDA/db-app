@@ -17,14 +17,6 @@ class Actions(abc.ABC):
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def create_objects(self, r: model.CreateObjectBatchRequest) -> model.CreateObjectBatchResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
-    def create_object(self, r: model.CreateObjectRequest) -> model.CreateObjectResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
     def get_object_names(self, r: model.GetObjectNamesRequest) -> model.GetObjectNamesResponse:
         raise NotImplementedError("not implemented")
 
@@ -42,4 +34,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_task_info(self, r: model.GetTaskInfoRequest) -> model.GetTaskInfoResponse:
+        raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def create_table(self, r: model.CreateTableRequest) -> model.CreateTableResponse:
         raise NotImplementedError("not implemented")

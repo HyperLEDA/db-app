@@ -16,11 +16,6 @@ class Layer1Repository(interface.Layer1Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_objects(self, n: int, tx: psycopg.Transaction | None = None) -> list[int]:
-        rows = self._storage.query(template.render_query(template.NEW_OBJECTS, n=n), tx=tx)
-
-        return [int(row.get("id")) for row in rows]
-
     def create_designations(self, designations: list[model.Designation], tx: psycopg.Transaction | None = None) -> None:
         params = []
         for designation in designations:

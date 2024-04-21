@@ -11,11 +11,8 @@ from app.domain import model as domain_model
 from app.domain import tasks
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib.exceptions import (
-    new_internal_error,
-    new_not_found_error,
-)
-from app.lib.storage import postgres
+from app.lib.exceptions import new_not_found_error
+from app.lib.storage import enums, mapping, postgres
 
 __all__ = [
     "Actions",
@@ -78,35 +75,6 @@ class Actions(domain.Actions):
             for bib in result
         ]
         return domain_model.GetSourceListResponse(response)
-
-    def create_objects(self, r: domain_model.CreateObjectBatchRequest) -> domain_model.CreateObjectBatchResponse:
-        with self._layer1_repo.with_tx() as tx:
-            ids = self._layer1_repo.create_objects(len(r.objects), tx)
-
-            self._layer1_repo.create_designations(
-                [data_model.Designation(obj.name, r.source_id, pgc=pgc_id) for pgc_id, obj in zip(ids, r.objects)],
-                tx,
-            )
-
-            self._layer1_repo.create_coordinates(
-                [
-                    data_model.CoordinateData(pgc_id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
-                    for pgc_id, obj in zip(ids, r.objects)
-                ],
-                tx,
-            )
-
-        return domain_model.CreateObjectBatchResponse(ids)
-
-    def create_object(self, r: domain_model.CreateObjectRequest) -> domain_model.CreateObjectResponse:
-        response = self.create_objects(domain_model.CreateObjectBatchRequest(source_id=r.source_id, objects=[r.object]))
-
-        if len(response.ids) != 1:
-            raise new_internal_error(
-                f"something went wrong during object creation, created {len(response.ids)} objects"
-            )
-
-        return domain_model.CreateObjectResponse(id=response.ids[0])
 
     def get_object_names(self, r: domain_model.GetObjectNamesRequest) -> domain_model.GetObjectNamesResponse:
         designations = self._layer1_repo.get_designations(r.id, r.page, r.page_size)
@@ -226,3 +194,30 @@ class Actions(domain.Actions):
             task_info.end_time,
             task_info.message,
         )
+
+    def create_table(self, r: domain_model.CreateTableRequest) -> domain_model.CreateTableResponse:
+        columns = []
+
+        for col in r.columns:
+            columns.append(
+                data_model.ColumnDescription(
+                    name=col.name,
+                    data_type=mapping.get_type(col.data_type),
+                    unit=col.unit,
+                    description=col.description,
+                )
+            )
+
+        with self._layer0_repo.with_tx() as tx:
+            table_id = self._layer0_repo.create_table(
+                data_model.Layer0Creation(
+                    table_name=r.table_name,
+                    column_descriptions=columns,
+                    bibliography_id=r.bibliography_id,
+                    datatype=enums.DataType(r.datatype),
+                    comment=r.description,
+                ),
+                tx=tx,
+            )
+
+        return domain_model.CreateTableResponse(table_id)

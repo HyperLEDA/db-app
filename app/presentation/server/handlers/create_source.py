@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Any
 
 from aiohttp import web
@@ -6,6 +7,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import domain
 from app.domain import model
+from app.domain.model.source import CreateSourceRequest
 from app.lib.exceptions import new_validation_error
 
 
@@ -29,10 +31,20 @@ class CreateSourceResponseSchema(Schema):
 
 @docs(
     summary="Create new source",
-    tags=["sources"],
+    tags=["sources", "admin"],
     description="Creates new source that can be referenced when adding new objects.",
 )
-@request_schema(CreateSourceRequestSchema())
+@request_schema(
+    CreateSourceRequestSchema(),
+    example=dataclasses.asdict(
+        CreateSourceRequest(
+            "2001quant.ph..1003R",
+            "An Analysis of Completely-Positive Trace-Preserving Maps on 2x2 Matrices",
+            ["Ruskai, Mary Beth", "Szarek, Stanislaw"],
+            2000,
+        )
+    ),
+)
 @response_schema(CreateSourceResponseSchema(), 200)
 async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     request_dict = await r.json()

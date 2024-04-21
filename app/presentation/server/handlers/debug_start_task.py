@@ -13,7 +13,7 @@ from app.presentation.server.handlers import start_task
 
 @docs(
     summary="Start processing task in debug mode",
-    tags=["tasks"],
+    tags=["tasks", "admin"],
     description="Starts task synchronously.",
 )
 @request_schema(
