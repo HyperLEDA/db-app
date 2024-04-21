@@ -2,7 +2,7 @@ from typing import Any
 
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import domain
 from app.domain import model
@@ -13,7 +13,7 @@ class CreateSourceRequestSchema(Schema):
     bibcode = fields.Str(description="Bibcode of publication")
     title = fields.Str(description="Title of publication")
     authors = fields.List(fields.Str, description="List of authors")
-    year = fields.Int(description="Year of the publication")
+    year = fields.Int(description="Year of the publication", validate=validate.Range(0))
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:
