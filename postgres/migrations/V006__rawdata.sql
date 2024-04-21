@@ -40,7 +40,7 @@ CREATE TABLE rawdata.tables (
   id	serial	PRIMARY KEY
 , bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict ON UPDATE cascade
 , table_name	text	NOT NULL	UNIQUE
-, datatype	common.datatype
+, datatype	common.datatype	NOT NULL
 , status	rawdata.status NOT NULL DEFAULT 'initiated'
 );
 
