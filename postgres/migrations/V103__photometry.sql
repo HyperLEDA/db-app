@@ -57,24 +57,26 @@ INSERT INTO photometry.method (id,description) VALUES
 ;
 
 
-CREATE TYPE photometry.adaptAperMethod	AS ENUM ('Kron','Petro') ;
-COMMENT ON TYPE photometry.adaptAperMethod	IS 'Method of the adaptive aperture estimate' ;
+CREATE TYPE photometry.adaptAperType	AS ENUM ('Kron','Petro') ;
+COMMENT ON TYPE photometry.adaptAperType	IS 'Method of the adaptive aperture estimate' ;
 
-CREATE TABLE photometry.adaptAper (
+CREATE TABLE photometry.adaptAperMethod (
   id	text	PRIMARY KEY
-, method	photometry.adaptAperMethod	NOT NULL
+, method	photometry.adaptAperType	NOT NULL
 , scale	real	NOT NULL	DEFAULT 2
+, bib	integer	REFERENCES common.bib (id)	ON DELETE restrict ON UPDATE cascade
+, description	text	NOT NULL
 ) ;
 
-COMMENT ON TABLE photometry.adaptAper	IS 'Adaptive apertures' ;
-COMMENT ON COLUMN photometry.adaptAper.id	IS 'Adaptive aperture ID' ;
-COMMENT ON COLUMN photometry.adaptAper.method	IS 'Adaptive aperture estimate (Kron|Petro)' ;
-COMMENT ON COLUMN photometry.adaptAper.scale	IS 'Scaling factor to estimate the aperture size' ;
+COMMENT ON TABLE photometry.adaptAperMethod	IS 'Adaptive apertures' ;
+COMMENT ON COLUMN photometry.adaptAperMethod.id	IS 'Adaptive aperture ID' ;
+COMMENT ON COLUMN photometry.adaptAperMethod.method	IS 'Adaptive aperture estimate (Kron|Petro)' ;
+COMMENT ON COLUMN photometry.adaptAperMethod.scale	IS 'Scaling factor to estimate the aperture size' ;
 
-INSERT INTO photometry.adaptAper VALUES 
-  ( 'SDSS.Petro' , 'Petro' , 2 )
-, ( 'SEx.AUTO' , 'Kron' , 2.5 )
-, ( 'SEx.PETRO' , 'Petro' , 2 )
+INSERT INTO photometry.adaptAperMethod VALUES 
+  ( 'SDSS.Petro' , 'Petro' , 2, NULL, 'SDSS Petrosian measurements: https://skyserver.sdss.org/dr7/en/help/docs/algorithm.asp?key=mag_petro' )
+, ( 'SEx.AUTO' , 'Kron' , 2.5, NULL, 'SExtractor measurements: https://sextractor.readthedocs.io/en/latest/Photom.html#flux-auto-def' )
+, ( 'SEx.PETRO' , 'Petro' , 2, NULL, 'SExtractor measurements: https://sextractor.readthedocs.io/en/latest/Photom.html#petrosian-aperture-flux-flux-petro' )
 ;
 
 
@@ -83,10 +85,11 @@ INSERT INTO photometry.adaptAper VALUES
 CREATE TABLE photometry.dataset (
   id	serial	PRIMARY KEY
 , method	text	NOT NULL	REFERENCES photometry.method (id )	ON DELETE restrict ON UPDATE cascade
-, adaptAper	text	REFERENCES photometry.adaptAper (id )	ON DELETE restrict ON UPDATE cascade
+, adaptAper	text	REFERENCES photometry.adaptAperMethod (id )	ON DELETE restrict ON UPDATE cascade
 , src	integer	REFERENCES rawdata.tables (id )	ON DELETE restrict ON UPDATE cascade
 , datatype	text	REFERENCES common.datatype (id )	ON DELETE restrict ON UPDATE cascade
 ) ;
+CREATE INDEX ON photometry.dataset (method) ;
 
 COMMENT ON TABLE photometry.dataset	IS 'Dataset' ;
 COMMENT ON COLUMN photometry.dataset.id	IS 'Dataset ID' ;
@@ -121,8 +124,8 @@ CREATE TABLE photometry.totalMag (
 , mag	real	NOT NULL
 , e_mag	real
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
-, UNIQUE (id,quality,mag)
 ) ;
+CREATE INDEX ON photometry.totalMag (id,quality,mag) ;
 
 COMMENT ON TABLE photometry.totalMag	IS 'Total magnitudes (PSF|model|asymptotic|etc.)' ;
 COMMENT ON COLUMN photometry.totalMag.id	IS 'Photometry data ID' ;
@@ -136,8 +139,9 @@ CREATE TABLE photometry.isoMag (
   iso	real	NOT NULL
 , PRIMARY KEY (id) 
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
-, UNIQUE (id,quality,iso,mag)
+, UNIQUE (id,iso)
 ) INHERITS (photometry.totalMag) ;
+CREATE INDEX ON photometry.isoMag (id,quality,iso,mag) ;
 
 COMMENT ON TABLE photometry.isoMag	IS 'Isophotal magnitudes' ;
 COMMENT ON COLUMN photometry.isoMag.id	IS 'Photometry data ID' ;
@@ -186,8 +190,9 @@ COMMENT ON COLUMN photometry.ellAper.pa	IS 'Aperture position angle [degrees]' ;
 CREATE TABLE photometry.circMag (
   aper	bigint	NOT NULL	REFERENCES photometry.circAper (id)	ON DELETE restrict ON UPDATE cascade
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
-, UNIQUE (id,aper)
+, PRIMARY KEY (id,aper)
 ) INHERITS (photometry.totalMag) ;
+CREATE INDEX ON photometry.circMag (id,quality,aper,mag) ;
 
 COMMENT ON TABLE photometry.circMag	IS 'Photometry in circular apertures' ;
 COMMENT ON COLUMN photometry.circMag.id	IS 'Photometry data ID' ;
@@ -200,8 +205,9 @@ COMMENT ON COLUMN photometry.circMag.aper	IS 'Aperture ID' ;
 CREATE TABLE photometry.ellMag (
   FOREIGN KEY (id) REFERENCES photometry.data (id)
 , FOREIGN KEY (aper) REFERENCES photometry.ellAper (id)	ON DELETE restrict ON UPDATE cascade
-, UNIQUE (id,aper)
+, PRIMARY KEY (id,aper)
 ) INHERITS (photometry.circMag) ;
+CREATE INDEX ON photometry.ellMag (id,quality,aper,mag) ;
 
 COMMENT ON TABLE photometry.ellMag	IS 'Photometry in elliptical apertures' ;
 COMMENT ON COLUMN photometry.ellMag.id	IS 'Photometry data ID' ;
@@ -220,6 +226,7 @@ CREATE TABLE photometry.circle (
 , e_a	real	CHECK (e_a>0)
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
 ) ;
+CREATE INDEX ON photometry.circle (id,quality,a) ;
 
 COMMENT ON TABLE photometry.circle	IS 'Equivalent diameters' ;
 COMMENT ON COLUMN photometry.circle.id	IS 'Photometry data ID' ;
@@ -230,10 +237,11 @@ COMMENT ON COLUMN photometry.circle.quality	IS 'Measurement quality' ;
 
 ------ Equivalent diameter at the specific level of the total flux ------
 CREATE TABLE photometry.fluxPctCircle (
-  level	real	NOT NULL	CHECK (level>0 and level<100)
+  level	real	NOT NULL	CHECK (level>0 and level<100)	DEFAULT 50
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
 , UNIQUE (id,level)
 ) INHERITS (photometry.circle) ;
+CREATE INDEX ON photometry.fluxPctCircle (id,quality,level,a) ;
 
 COMMENT ON TABLE photometry.fluxPctCircle	IS 'Equivalent diameter at specific level of the total flux' ;
 COMMENT ON COLUMN photometry.fluxPctCircle.id	IS 'Photometry data ID' ;
@@ -248,6 +256,7 @@ CREATE TABLE photometry.fluxPctAdaptCircle (
   FOREIGN KEY (id) REFERENCES photometry.data (id)
 , UNIQUE (id,level)
 ) INHERITS (photometry.fluxPctCircle) ;
+CREATE INDEX ON photometry.fluxPctAdaptCircle (id,quality,level,a) ;
 
 COMMENT ON TABLE photometry.fluxPctAdaptCircle	IS 'Equivalent diameter at specific level of the adaptive aperture flux' ;
 COMMENT ON COLUMN photometry.fluxPctAdaptCircle.id	IS 'Photometry data ID' ;
@@ -271,6 +280,7 @@ CREATE TABLE photometry.ellipse (
 , e_pa	real	CHECK (e_pa>0)
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
 ) ;
+CREATE INDEX ON photometry.ellipse (id,quality,a,b,pa) ; -- NULLS NOT DISTINCT;
 
 COMMENT ON TABLE photometry.ellipse	IS 'Object geometry' ;
 COMMENT ON COLUMN photometry.ellipse.id	IS 'Photometry data ID' ;
@@ -289,6 +299,7 @@ CREATE TABLE photometry.isoEllipse (
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
 , UNIQUE (id,iso)
 ) INHERITS (photometry.ellipse) ;
+CREATE INDEX ON photometry.isoEllipse (id,quality,iso,a,b,pa) ; -- NULLS NOT DISTINCT;
 
 COMMENT ON TABLE photometry.isoEllipse	IS 'Object geometry at specific isophote' ;
 COMMENT ON COLUMN photometry.isoEllipse.id	IS 'Photometry data ID' ;
@@ -304,10 +315,11 @@ COMMENT ON COLUMN photometry.isoEllipse.iso	IS 'Isophote' ;
 
 ------ Major+minor diameters at specific of the total flux level ------
 CREATE TABLE photometry.fluxPctEllipse (
-  level	real	NOT NULL	CHECK (level>0 and level<100)
+  level	real	NOT NULL	CHECK (level>0 and level<100)	DEFAULT 50
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
 , UNIQUE (id,level)
 ) INHERITS (photometry.ellipse) ;
+CREATE INDEX ON photometry.fluxPctEllipse (id,quality,level,a,b,pa) ; -- NULLS NOT DISTINCT;
 
 COMMENT ON TABLE photometry.fluxPctEllipse	IS 'Object geometry at specific level of the total flux' ;
 COMMENT ON COLUMN photometry.fluxPctEllipse.id	IS 'Photometry data ID' ;
@@ -323,10 +335,11 @@ COMMENT ON COLUMN photometry.fluxPctEllipse.level	IS 'Percent of the flux' ;
 
 ------ Major+minor diameters at specific of the adaptive aperture flux ------
 CREATE TABLE photometry.fluxPctAdaptEllipse (
-  level	real	NOT NULL	CHECK (level>0 and level<100)
+  level	real	NOT NULL	CHECK (level>0 and level<100)	DEFAULT 50
 , FOREIGN KEY (id) REFERENCES photometry.data (id)
 , UNIQUE (id,level)
 ) INHERITS (photometry.ellipse) ;
+CREATE INDEX ON photometry.fluxPctAdaptEllipse (id,quality,level,a,b,pa) ; -- NULLS NOT DISTINCT;
 
 COMMENT ON TABLE photometry.fluxPctAdaptEllipse	IS 'Object geometry at specific level of the adaptive aperture flux' ;
 COMMENT ON COLUMN photometry.fluxPctAdaptEllipse.id	IS 'Photometry data ID' ;
@@ -338,7 +351,6 @@ COMMENT ON COLUMN photometry.fluxPctAdaptEllipse.pa	IS 'Position angle from Nort
 COMMENT ON COLUMN photometry.fluxPctAdaptEllipse.e_pa	IS 'Error of the position angle [degrees]' ;
 COMMENT ON COLUMN photometry.fluxPctAdaptEllipse.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN photometry.fluxPctAdaptEllipse.level	IS 'Percent of the flux' ;
-
 
 
 COMMIT ;
