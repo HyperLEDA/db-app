@@ -7,7 +7,7 @@ from psycopg import rows
 from psycopg.types import enum, numeric
 
 from app.lib.exceptions import new_database_error, new_internal_error
-from app.lib.queue.task_status import TaskStatus
+from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
 
@@ -34,7 +34,9 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
 ]
 
 DEFAULT_ENUMS = [
-    (TaskStatus, "common.task_status"),
+    (enums.TaskStatus, "common.task_status"),
+    (enums.DataType, "common.datatype"),
+    (enums.RawDataStatus, "rawdata.status"),
 ]
 
 

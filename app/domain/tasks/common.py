@@ -3,8 +3,7 @@ from typing import Any, Callable
 import structlog
 
 from app.data import repositories
-from app.lib import queue
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 
 def task_runner(
@@ -17,7 +16,7 @@ def task_runner(
     storage = postgres.PgStorage(storage_config, logger)
     storage.connect()
     repo = repositories.CommonRepository(storage, logger)
-    repo.set_task_status(task_id, queue.TaskStatus.IN_PROGRESS)
+    repo.set_task_status(task_id, enums.TaskStatus.IN_PROGRESS)
 
     try:
         func(storage, params, logger)
@@ -33,5 +32,5 @@ def task_runner(
         storage.disconnect()
         return
 
-    repo.set_task_status(task_id, queue.TaskStatus.DONE)
+    repo.set_task_status(task_id, enums.TaskStatus.DONE)
     storage.disconnect()

@@ -1,8 +1,8 @@
 import jinja2
 
-
 # TODO: make a unified way for querying with templates
-# TODO: remove \n when compiling templates
+
+
 def render_query(query_string: str, **kwargs) -> str:
     tpl = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(query_string)
 
@@ -33,33 +33,27 @@ SELECT id, task_name, payload, user_id, status, start_time, end_time, message FR
 """
 
 
-NEW_OBJECTS = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
-    """
+NEW_OBJECTS = """
 INSERT INTO common.pgc
 VALUES {% for _ in range(n) %}(DEFAULT){% if not loop.last %},{% endif %}{% endfor %}
 RETURNING id;
 """
-)
 
-NEW_DESIGNATIONS = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
-    """
+NEW_DESIGNATIONS = """
 INSERT INTO designation.data (pgc, design, bib)
 VALUES
     {% for obj in objects %}
     (%s, %s, %s){% if not loop.last %},{% endif %}
     {% endfor %}
 """
-)
 
-NEW_COORDINATES = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
-    """
+NEW_COORDINATES = """
 INSERT INTO icrs.data (pgc, ra, dec, bib)
 VALUES
     {% for obj in objects %}
     (%s, %s, %s, %s){% if not loop.last %},{% endif %}
     {% endfor %}
 """
-)
 
 GET_DESIGNATIONS = """
 SELECT design, bib, modification_time
@@ -77,23 +71,26 @@ CREATE TABLE {{ schema }}.{{ name }} (
 )
 """
 
-# TODO: use meta.setparam
 ADD_COLUMN_COMMENT = """
-COMMENT ON COLUMN {{ schema }}.{{ table_name }}.{{ column_name }} IS '{{ params }}'
+SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ column_name }}', '{{ params }}'::json)
 """
 
 ADD_TABLE_COMMENT = """
-COMMENT ON TABLE {{ schema }}.{{ table_name }} IS '{{ params }}'
+SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ params }}'::json)
 """
 
-INSERT_RAW_DATA = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(
-    """
-INSERT INTO
-    {{ schema }}.{{ table }}
+INSERT_TABLE_REGISTRY_ITEM = """
+INSERT INTO rawdata.tables (bib, table_name, datatype)
+VALUES (%s, %s, %s)
+RETURNING id
+"""
+
+INSERT_RAW_DATA = """
+INSERT INTO 
+    {{ schema }}.{{ table }} 
     ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %})
     VALUES{% for object in objects %}
     ({% for field_name in fields %}
         {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
     {% endfor %}
 """
-)

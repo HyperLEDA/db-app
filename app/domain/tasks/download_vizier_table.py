@@ -8,7 +8,7 @@ from astroquery import vizier
 from numpy import ma
 
 from app.data import model, repositories
-from app.lib.storage import mapping, postgres
+from app.lib.storage import enums, mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
 TABLE_NAMING_FORMAT = "data_vizier_{table_id}"
@@ -57,6 +57,8 @@ def download_vizier_table(
     params: DownloadVizierTableParams,
     logger: structlog.stdlib.BoundLogger,
 ):
+    common = repositories.CommonRepository(storage, logger)
+
     layer0 = repositories.Layer0Repository(storage, logger)
     table_name = construct_table_name(params.table_id)
 
@@ -134,20 +136,27 @@ def download_vizier_table(
         except KeyError:
             description = ""
 
+        # TODO: parse real bibliographic data from vizier response
+        bib_id = common.create_bibliography(
+            model.Bibliography(
+                "2024arXiv240403522G",
+                2024,
+                ["Pović, Mirjana"],
+                "The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",
+            ),
+            tx=tx,
+        )
+
         layer0.create_table(
             model.Layer0Creation(
                 table_name,
                 fields,
-                # TODO: parse real bibliographic data from vizier response
-                model.Bibliography(
-                    "2024A&A...684A..31G",
-                    2024,
-                    ["Pović, Mirjana"],
-                    "The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",
-                ),
+                bib_id,
+                # TODO: obtain that info from vizier
+                enums.DataType.REGULAR,
                 comment=description,
             ),
-            tx,
+            tx=tx,
         )
 
         layer0.insert_raw_data(model.Layer0RawData(table_name, catalog.to_pandas()), tx)

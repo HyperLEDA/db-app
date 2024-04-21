@@ -17,8 +17,7 @@ class Layer1Repository(interface.Layer1Repository):
         return self._storage.with_tx()
 
     def create_objects(self, n: int, tx: psycopg.Transaction | None = None) -> list[int]:
-        query = template.NEW_OBJECTS.render(n=n)
-        rows = self._storage.query(query, tx=tx)
+        rows = self._storage.query(template.render_query(template.NEW_OBJECTS, n=n), tx=tx)
 
         return [int(row.get("id")) for row in rows]
 
@@ -27,7 +26,7 @@ class Layer1Repository(interface.Layer1Repository):
         for designation in designations:
             params.extend([designation.pgc, designation.design, designation.bib])
 
-        self._storage.exec(template.NEW_DESIGNATIONS.render(objects=designations), params=params, tx=tx)
+        self._storage.exec(template.render_query(template.NEW_DESIGNATIONS, objects=designations), params=params, tx=tx)
 
     def get_designations(
         self, pgc: int, offset: int, limit: int, tx: psycopg.Transaction | None = None
@@ -43,4 +42,4 @@ class Layer1Repository(interface.Layer1Repository):
         for coordinate in coordinates:
             params.extend([coordinate.pgc, coordinate.ra, coordinate.dec, coordinate.bib])
 
-        self._storage.exec(template.NEW_COORDINATES.render(objects=coordinates), params=params, tx=tx)
+        self._storage.exec(template.render_query(template.NEW_COORDINATES, objects=coordinates), params=params, tx=tx)

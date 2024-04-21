@@ -5,7 +5,7 @@ import psycopg
 
 from app.data import model
 from app.data.interface import transactional
-from app.lib import queue
+from app.lib.storage import enums
 
 
 class CommonRepository(transactional.Transactional):
@@ -33,7 +33,7 @@ class CommonRepository(transactional.Transactional):
 
     @abc.abstractmethod
     def set_task_status(
-        self, task_id: int, task_status: queue.TaskStatus, tx: psycopg.Transaction | None = None
+        self, task_id: int, task_status: enums.TaskStatus, tx: psycopg.Transaction | None = None
     ) -> None:
         raise NotImplementedError("not implemented")
 
