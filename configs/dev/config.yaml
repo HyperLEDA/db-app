@@ -4,7 +4,7 @@ server:
 
 storage:
   endpoint: localhost
-  port: 5432
+  port: 6432
   dbname: hyperleda
   user: hyperleda
   password: password
