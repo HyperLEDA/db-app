@@ -65,11 +65,7 @@ class CommonRepository(interface.CommonRepository):
         task_id: int,
         tx: psycopg.Transaction | None = None,
     ) -> model.Task:
-        row = self._storage.query_one(
-            "SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s",
-            params=[task_id],
-            tx=tx,
-        )
+        row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id], tx=tx)
 
         return model.Task(**row)
 

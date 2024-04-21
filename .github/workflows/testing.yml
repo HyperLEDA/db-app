@@ -16,10 +16,10 @@ jobs:
             pip install -r requirements.txt
         - name: Check that code is formatted correctly
           run: |
-            make dryrun-black
-        - name: Check that imports are sorted
+            make check-format
+        - name: Check the code for smells and potential bugs
           run: |
-            make dryrun-isort
+            make check-lint
         - name: Run unit tests
           run: |
             make test-unit

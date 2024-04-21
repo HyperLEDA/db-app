@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import psycopg
 import structlog
-from marshmallow import Schema, fields, post_load
-from psycopg import adapt, rows
+from psycopg import rows
 from psycopg.types import enum, numeric
 
 from app.lib.exceptions import new_database_error, new_internal_error
@@ -110,9 +108,7 @@ class PgStorage:
 
         with storageutils.get_or_create_transaction(self._connection, tx):
             cursor.execute(query, params)
-            result_rows = cursor.fetchall()
-
-        return result_rows
+            return cursor.fetchall()
 
     def query_one(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None

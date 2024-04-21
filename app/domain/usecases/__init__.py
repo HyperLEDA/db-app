@@ -1,11 +1,10 @@
-import dataclasses
 import datetime
 from typing import Any, Callable, final
 
 import structlog
 from astroquery.vizier import Vizier
 
-from app import data, domain
+from app import domain
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
@@ -15,9 +14,14 @@ from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseC
 from app.lib.exceptions import (
     new_internal_error,
     new_not_found_error,
-    new_validation_error,
 )
-from app.lib.storage import mapping, postgres
+from app.lib.storage import postgres
+
+__all__ = [
+    "Actions",
+    "CrossIdentifyUseCase",
+    "TransformationO1UseCase",
+]
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
@@ -80,14 +84,14 @@ class Actions(domain.Actions):
             ids = self._layer1_repo.create_objects(len(r.objects), tx)
 
             self._layer1_repo.create_designations(
-                [data_model.Designation(obj.name, r.source_id, pgc=id) for id, obj in zip(ids, r.objects)],
+                [data_model.Designation(obj.name, r.source_id, pgc=pgc_id) for pgc_id, obj in zip(ids, r.objects)],
                 tx,
             )
 
             self._layer1_repo.create_coordinates(
                 [
-                    data_model.CoordinateData(id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
-                    for id, obj in zip(ids, r.objects)
+                    data_model.CoordinateData(pgc_id, obj.position.coords.ra, obj.position.coords.dec, r.source_id)
+                    for pgc_id, obj in zip(ids, r.objects)
                 ],
                 tx,
             )
@@ -115,7 +119,7 @@ class Actions(domain.Actions):
                 domain_model.ObjectNameInfo(
                     designation.design,
                     designation.bib,
-                    designation.modification_time or datetime.datetime.now(),
+                    designation.modification_time or datetime.datetime.now(tz=datetime.UTC),
                 )
                 for designation in designations
             ]
@@ -149,11 +153,9 @@ class Actions(domain.Actions):
             tables = []
 
             for curr_table in catalog_info.tables:
-                fields = []
-
-                for field in curr_table.fields:
-                    fields.append(domain_model.Field(field.ID, field.description, str(field.unit)))
-
+                fields = [
+                    domain_model.Field(field.ID, field.description, str(field.unit)) for field in curr_table.fields
+                ]
                 tables.append(
                     domain_model.Table(
                         id=curr_table.ID,
