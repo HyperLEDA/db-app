@@ -12,7 +12,7 @@ from app.domain import model as domain_model
 from app.domain import tasks
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib.exceptions import new_not_found_error
+from app.lib.exceptions import new_not_found_error, new_validation_error
 from app.lib.storage import enums, mapping, postgres
 
 __all__ = [
@@ -200,12 +200,14 @@ class Actions(domain.Actions):
         columns = []
 
         for col in r.columns:
+            try:
+                col_type = mapping.get_type(col.data_type)
+            except ValueError as e:
+                raise new_validation_error(str(e)) from e
+
             columns.append(
                 data_model.ColumnDescription(
-                    name=col.name,
-                    data_type=mapping.get_type(col.data_type),
-                    unit=col.unit,
-                    description=col.description,
+                    name=col.name, data_type=col_type, unit=col.unit, description=col.description
                 )
             )
 

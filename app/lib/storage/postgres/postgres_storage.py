@@ -94,7 +94,10 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
+            try:
+                cursor.execute(query, params)
+            except psycopg.Error as e:
+                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
 
     def query(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
@@ -109,7 +112,11 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
+            try:
+                cursor.execute(query, params)
+            except psycopg.Error as e:
+                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
+
             return cursor.fetchall()
 
     def query_one(

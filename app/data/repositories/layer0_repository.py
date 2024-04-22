@@ -5,6 +5,7 @@ import psycopg
 import structlog
 
 from app.data import interface, model, template
+from app.lib import exceptions
 from app.lib.exceptions import new_database_error
 from app.lib.storage import postgres
 
@@ -127,7 +128,7 @@ class Layer0Repository(interface.Layer0Repository):
     def table_exists(self, schema: str, table_name: str) -> bool:
         try:
             self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except psycopg.errors.UndefinedTable:
+        except exceptions.APIException:
             return False
 
         return True

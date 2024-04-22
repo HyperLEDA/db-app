@@ -11,8 +11,8 @@ from app.lib import testing
 class QueueTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.pg_storage = testing.get_or_create_test_postgres_storage()
-        cls.redis_queue = testing.get_or_create_test_redis_storage()
+        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.redis_queue = testing.get_test_redis_storage()
 
         logger = structlog.get_logger()
 

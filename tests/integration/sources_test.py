@@ -10,7 +10,7 @@ from app.lib import testing
 class SourcesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.storage = testing.get_or_create_test_postgres_storage()
+        cls.storage = testing.get_test_postgres_storage()
 
         common_repo = repositories.CommonRepository(cls.storage.get_storage(), structlog.get_logger())
         layer0_repo = repositories.Layer0Repository(cls.storage.get_storage(), structlog.get_logger())

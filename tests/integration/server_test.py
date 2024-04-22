@@ -15,8 +15,8 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 class ServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_or_create_test_postgres_storage()
-        cls.redis_queue = testing.get_or_create_test_redis_storage()
+        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.redis_queue = testing.get_test_redis_storage()
         cls.server_port = testing.find_free_port()
 
         os.environ["SERVER_PORT"] = str(cls.server_port)

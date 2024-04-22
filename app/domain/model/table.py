@@ -6,7 +6,7 @@ from typing import Any
 class ColumnDescription:
     name: str
     data_type: str
-    unit: str
+    unit: str | None
     description: str
 
 
