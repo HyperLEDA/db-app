@@ -14,6 +14,7 @@ CREATE TABLE leda.data (
 , dec	double precision	NOT NULL
 , e_ra	real	NOT NULL
 , e_dec	real	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 , FOREIGN KEY (pgc,objname) REFERENCES designation.data (pgc,design)	ON DELETE restrict	ON UPDATE cascade
 ) ;
 CREATE INDEX ON leda.data (objclass) ;
@@ -27,6 +28,7 @@ COMMENT ON COLUMN leda.data.ra	IS 'Right Ascension (ICRS) [degrees]' ;
 COMMENT ON COLUMN leda.data.dec	IS 'Declination (ICRS) [degrees]' ;
 COMMENT ON COLUMN leda.data.e_ra	IS 'Right Ascension error (RAerr*cos(Dec) [arcsec]' ;
 COMMENT ON COLUMN leda.data.e_dec	IS 'Declination error [arcsec]' ;
+COMMENT ON COLUMN leda.data.modification_time IS 'Timestamp when the record was modified in the Leda table' ;
 
 
 COMMIT ;
