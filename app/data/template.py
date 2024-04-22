@@ -94,3 +94,8 @@ INSERT INTO
         {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
     {% endfor %}
 """
+
+GET_RAWDATA_TABLE = """
+SELECT table_name FROM rawdata.tables
+WHERE id = %s
+"""

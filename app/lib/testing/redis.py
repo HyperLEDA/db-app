@@ -35,7 +35,7 @@ class TestRedisStorage:
 _test_storage: TestRedisStorage | None = None
 
 
-def get_or_create_test_redis_storage() -> TestRedisStorage:
+def get_test_redis_storage() -> TestRedisStorage:
     global _test_storage
     if _test_storage is None:
         _test_storage = TestRedisStorage()

@@ -29,7 +29,7 @@ class GetTaskInfoResponseSchema(Schema):
 
 @docs(
     summary="Get information about the task",
-    tags=["tasks"],
+    tags=["tasks", "admin"],
     description="Retrieves information about the task using its id.",
 )
 @querystring_schema(GetTaskInfoRequestSchema())

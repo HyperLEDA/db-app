@@ -25,7 +25,7 @@ class StartTaskResponseSchema(Schema):
 
 @docs(
     summary="Start processing task",
-    tags=["tasks"],
+    tags=["tasks", "admin"],
     description="Starts background task.",
 )
 @request_schema(

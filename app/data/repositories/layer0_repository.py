@@ -5,6 +5,8 @@ import psycopg
 import structlog
 
 from app.data import interface, model, template
+from app.lib import exceptions
+from app.lib.exceptions import new_database_error
 from app.lib.storage import postgres
 
 RAWDATA_SCHEMA = "rawdata"
@@ -19,7 +21,7 @@ class Layer0Repository(interface.Layer0Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> str:
+    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> int:
         """
         Creates table, writes metadata and returns string that identifies the table for
         further requests.
@@ -45,6 +47,13 @@ class Layer0Repository(interface.Layer0Repository):
                 )
             )
 
+        row = self._storage.query_one(
+            template.INSERT_TABLE_REGISTRY_ITEM,
+            params=[data.bibliography_id, data.table_name, data.datatype],
+            tx=tx,
+        )
+        table_id = int(row.get("id"))
+
         self._storage.exec(
             template.render_query(
                 template.CREATE_TABLE,
@@ -68,13 +77,7 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        row = self._storage.query_one(
-            template.INSERT_TABLE_REGISTRY_ITEM,
-            params=[data.bibliography_id, data.table_name, data.datatype],
-            tx=tx,
-        )
-
-        return str(row.get("id"))
+        return table_id
 
     def insert_raw_data(
         self,
@@ -85,13 +88,17 @@ class Layer0Repository(interface.Layer0Repository):
         This method puts everything in parameters for prepared statement. This should not be a big
         issue but one would be better off using this function in batches since prepared statement make
         this quite cheap (excluding network slow down, though).
-
-        Also the contract of this method requires all dicts to have the same set of keys.
         """
 
         if len(data.data) == 0:
-            self._logger.warn("trying to insert 0 rows into the table", table=f"{RAWDATA_SCHEMA}.{data.table_name}")
+            self._logger.warn("trying to insert 0 rows into the table", table_id=data.table_id)
             return
+
+        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[data.table_id], tx=tx)
+        table_name = row.get("table_name")
+
+        if table_name is None:
+            raise new_database_error(f"unable to fetch table with id {data.table_id}")
 
         params = []
         objects = []
@@ -110,7 +117,7 @@ class Layer0Repository(interface.Layer0Repository):
             template.render_query(
                 template.INSERT_RAW_DATA,
                 schema=RAWDATA_SCHEMA,
-                table=data.table_name,
+                table=table_name,
                 fields=fields,
                 objects=objects,
             ),
@@ -121,7 +128,7 @@ class Layer0Repository(interface.Layer0Repository):
     def table_exists(self, schema: str, table_name: str) -> bool:
         try:
             self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except psycopg.errors.UndefinedTable:
+        except exceptions.APIException:
             return False
 
         return True

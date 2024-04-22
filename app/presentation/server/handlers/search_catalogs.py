@@ -59,7 +59,7 @@ class SearchCatalogsResponseSchema(Schema):
 
 @docs(
     summary="Obtain list of catalogs",
-    tags=["pipeline"],
+    tags=["table"],
     description="Obtains a list of catalogs according to query.",
 )
 @querystring_schema(

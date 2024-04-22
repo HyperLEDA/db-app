@@ -54,10 +54,11 @@ class TestPostgresStorage:
     def clear(self):
         self.storage.exec("TRUNCATE common.pgc CASCADE")
         self.storage.exec("TRUNCATE common.bib CASCADE")
+        self.storage.exec("TRUNCATE rawdata.tables CASCADE")
         tables = self.storage.query("""
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'rawdata' AND table_name LIKE 'data_%%'
+            WHERE table_schema = 'rawdata' AND table_name != 'tables'
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
@@ -78,7 +79,7 @@ class TestPostgresStorage:
 _test_storage: TestPostgresStorage | None = None
 
 
-def get_or_create_test_postgres_storage() -> TestPostgresStorage:
+def get_test_postgres_storage() -> TestPostgresStorage:
     global _test_storage
     if _test_storage is None:
         _test_storage = TestPostgresStorage("postgres/migrations")
