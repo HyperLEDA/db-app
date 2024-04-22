@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -21,3 +22,14 @@ class CreateTableRequest:
 @dataclass
 class CreateTableResponse:
     id: int
+
+
+@dataclass
+class AddDataRequest:
+    table_id: int
+    data: list[dict[str, Any]]
+
+
+@dataclass
+class AddDataResponse:
+    pass

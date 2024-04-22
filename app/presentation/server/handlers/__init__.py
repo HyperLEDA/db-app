@@ -1,3 +1,4 @@
+from app.presentation.server.handlers.add_data import add_data_handler
 from app.presentation.server.handlers.create_source import create_source_handler
 from app.presentation.server.handlers.create_table import create_table_handler
 from app.presentation.server.handlers.debug_start_task import debug_start_task_handler
@@ -10,6 +11,7 @@ from app.presentation.server.handlers.search_catalogs import search_catalogs_han
 from app.presentation.server.handlers.start_task import start_task_handler
 
 __all__ = [
+    "add_data_handler",
     "create_table_handler",
     "create_source_handler",
     "get_object_names_handler",

@@ -39,3 +39,7 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def create_table(self, r: model.CreateTableRequest) -> model.CreateTableResponse:
         raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def add_data(self, r: model.AddDataRequest) -> model.AddDataResponse:
+        raise NotImplementedError("not implemented")

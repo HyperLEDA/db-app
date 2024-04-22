@@ -34,5 +34,5 @@ class Layer0Creation:
 
 @dataclass
 class Layer0RawData:
-    table_name: str
+    table_id: int
     data: pandas.DataFrame

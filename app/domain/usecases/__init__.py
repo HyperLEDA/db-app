@@ -1,6 +1,7 @@
 import datetime
 from typing import Any, Callable, final
 
+import pandas
 import structlog
 from astroquery.vizier import Vizier
 
@@ -221,3 +222,17 @@ class Actions(domain.Actions):
             )
 
         return domain_model.CreateTableResponse(table_id)
+
+    def add_data(self, r: domain_model.AddDataRequest) -> domain_model.AddDataResponse:
+        data_df = pandas.DataFrame.from_records(r.data)
+
+        with self._layer0_repo.with_tx() as tx:
+            self._layer0_repo.insert_raw_data(
+                data_model.Layer0RawData(
+                    table_id=r.table_id,
+                    data=data_df,
+                ),
+                tx=tx,
+            )
+
+        return domain_model.AddDataResponse()

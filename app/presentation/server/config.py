@@ -36,4 +36,5 @@ routes = [
     (HTTPMETHOD_POST, "/api/v1/admin/debug/task", handlers.debug_start_task_handler),
     (HTTPMETHOD_GET, "/api/v1/admin/task", handlers.get_task_info_handler),
     (HTTPMETHOD_POST, "/api/v1/admin/table", handlers.create_table_handler),
+    (HTTPMETHOD_POST, "/api/v1/admin/table/data", handlers.add_data_handler),
 ]
