@@ -22,7 +22,7 @@ COMMENT ON SCHEMA designation IS 'Designation catalog' ;
 -- В Леда используется метод разработанный в NED парсинга имени и перекодирования его в стандартную форму.
 CREATE TABLE designation.data (
   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
-, design	text	NOT NULL
+, design	text	NOT NULL	UNIQUE
 , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
