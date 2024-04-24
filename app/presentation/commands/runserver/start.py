@@ -1,3 +1,5 @@
+import os
+
 import structlog
 
 from app.data import repositories
