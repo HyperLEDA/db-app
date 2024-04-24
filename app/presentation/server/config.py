@@ -2,10 +2,18 @@ from dataclasses import dataclass
 
 from marshmallow import Schema, fields, post_load
 
-from app.presentation.server import handlers
-
-HTTPMETHOD_GET = "GET"
-HTTPMETHOD_POST = "POST"
+from app.presentation.server.handlers import (
+    add_data,
+    create_source,
+    create_table,
+    debug_start_task,
+    get_source,
+    get_source_list,
+    get_task_info,
+    ping,
+    search_catalogs,
+    start_task,
+)
 
 SWAGGER_UI_URL = "/api/docs"
 
@@ -26,15 +34,14 @@ class ServerConfigSchema(Schema):
 
 
 routes = [
-    (HTTPMETHOD_GET, "/ping", handlers.ping_handler),
-    (HTTPMETHOD_POST, "/api/v1/admin/source", handlers.create_source_handler),
-    (HTTPMETHOD_GET, "/api/v1/source", handlers.get_source_handler),
-    (HTTPMETHOD_GET, "/api/v1/source/list", handlers.get_source_list_handler),
-    (HTTPMETHOD_GET, "/api/v1/object/names", handlers.get_object_names_handler),
-    (HTTPMETHOD_GET, "/api/v1/pipeline/catalogs", handlers.search_catalogs_handler),
-    (HTTPMETHOD_POST, "/api/v1/admin/task", handlers.start_task_handler),
-    (HTTPMETHOD_POST, "/api/v1/admin/debug/task", handlers.debug_start_task_handler),
-    (HTTPMETHOD_GET, "/api/v1/admin/task", handlers.get_task_info_handler),
-    (HTTPMETHOD_POST, "/api/v1/admin/table", handlers.create_table_handler),
-    (HTTPMETHOD_POST, "/api/v1/admin/table/data", handlers.add_data_handler),
+    ping.description,
+    create_source.description,
+    get_source_list.description,
+    get_source.description,
+    search_catalogs.description,
+    start_task.description,
+    debug_start_task.description,
+    get_task_info.description,
+    create_table.description,
+    add_data.description,
 ]

@@ -1,12 +1,12 @@
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, querystring_schema, response_schema
 from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
+from app.presentation.server.handlers import common
 
 
 class GetTaskInfoRequestSchema(Schema):
@@ -27,17 +27,36 @@ class GetTaskInfoResponseSchema(Schema):
     message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")
 
 
-@docs(
-    summary="Get information about the task",
-    tags=["tasks", "admin"],
-    description="Retrieves information about the task using its id.",
-)
-@querystring_schema(GetTaskInfoRequestSchema())
-@response_schema(GetTaskInfoResponseSchema(), 200)
 async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
+    """---
+    summary: Get information about the task
+    description: Retrieves information about the task using its id.
+    tags: [tasks, admin]
+    parameters:
+      - in: query
+        schema: GetTaskInfoRequestSchema
+    responses:
+        200:
+            description: Task was successfully obtained
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            data: GetTaskInfoResponseSchema
+    """
     try:
         request = GetTaskInfoRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
     return actions.get_task_info(request)
+
+
+description = common.HandlerDescription(
+    common.HTTPMethod.GET,
+    "/api/v1/admin/task",
+    get_task_info_handler,
+    GetTaskInfoRequestSchema,
+    GetTaskInfoResponseSchema,
+)
