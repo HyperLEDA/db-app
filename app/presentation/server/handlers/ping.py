@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from aiohttp import web
-from marshmallow import Schema
+from marshmallow import Schema, fields
 
 from app import domain
 from app.presentation.server.handlers import common
@@ -23,7 +23,7 @@ class PingResponse:
 
 
 class PingResponseSchema(Schema):
-    pass
+    ping = fields.Str(example="pong")
 
 
 async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
@@ -32,10 +32,12 @@ async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
     tags: [admin]
     responses:
         200:
-            description: Source was successfully obtained
             content:
                 application/json:
-                    schema: PingResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: PingResponseSchema
     """
     return PingResponse()
 

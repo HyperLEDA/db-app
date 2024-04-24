@@ -47,7 +47,10 @@ async def get_source_list_handler(actions: domain.Actions, r: web.Request) -> An
             description: Source was successfully obtained
             content:
                 application/json:
-                    schema: GetSourceListResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: GetSourceListResponseSchema
     """
     try:
         request = GetSourceListRequestSchema().load(r.rel_url.query)

@@ -69,7 +69,10 @@ async def search_catalogs_handler(actions: domain.Actions, r: web.Request) -> An
             description: Query successfully returned results.
             content:
                 application/json:
-                    schema: SearchCatalogsResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: SearchCatalogsResponseSchema
     """
     try:
         request = SearchCatalogsRequestSchema().load(r.rel_url.query)

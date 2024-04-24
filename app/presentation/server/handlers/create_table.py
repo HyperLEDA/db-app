@@ -57,7 +57,10 @@ async def create_table_handler(actions: domain.Actions, r: web.Request) -> Any:
             description: Table was successfully created
             content:
                 application/json:
-                    schema: CreateTableResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateTableResponseSchema
     """
     request_dict = await r.json()
     try:

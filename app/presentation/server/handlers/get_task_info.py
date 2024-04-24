@@ -40,7 +40,10 @@ async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
             description: Task was successfully obtained
             content:
                 application/json:
-                    schema: GetTaskInfoResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: GetTaskInfoResponseSchema
     """
     try:
         request = GetTaskInfoRequestSchema().load(r.rel_url.query)

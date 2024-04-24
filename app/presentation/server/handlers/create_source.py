@@ -41,7 +41,10 @@ async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
             description: Source was successfully created
             content:
                 application/json:
-                    schema: CreateSourceResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateSourceResponseSchema
     """
     request_dict = await r.json()
     try:

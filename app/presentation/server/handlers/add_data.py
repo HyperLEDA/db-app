@@ -44,7 +44,10 @@ async def add_data_handler(actions: domain.Actions, r: web.Request) -> Any:
             description: Source was successfully created
             content:
                 application/json:
-                    schema: AddDataResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: AddDataResponseSchema
     """
     request_dict = await r.json()
     try:

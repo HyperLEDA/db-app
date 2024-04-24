@@ -22,7 +22,10 @@ async def debug_start_task_handler(actions: domain.Actions, r: web.Request) -> A
             description: Task successfully started
             content:
                 application/json:
-                    schema: CreateSourceResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateSourceResponseSchema
     """
     request_dict = await r.json()
     try:
