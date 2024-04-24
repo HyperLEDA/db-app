@@ -50,4 +50,10 @@ async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.get_task_info(request)
 
 
-description = common.HandlerDescription(get_task_info_handler, GetTaskInfoRequestSchema, GetTaskInfoResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.GET,
+    "/api/v1/admin/task",
+    get_task_info_handler,
+    GetTaskInfoRequestSchema,
+    GetTaskInfoResponseSchema,
+)

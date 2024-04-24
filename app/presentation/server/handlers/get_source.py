@@ -50,4 +50,10 @@ async def get_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.get_source(request)
 
 
-description = common.HandlerDescription(get_source_handler, GetSourceRequestSchema, GetSourceResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.GET,
+    "/api/v1/source",
+    get_source_handler,
+    GetSourceRequestSchema,
+    GetSourceResponseSchema,
+)

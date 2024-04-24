@@ -51,4 +51,10 @@ async def start_task_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.start_task(request)
 
 
-description = common.HandlerDescription(start_task_handler, StartTaskRequestSchema, StartTaskResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/task",
+    start_task_handler,
+    StartTaskRequestSchema,
+    StartTaskResponseSchema,
+)

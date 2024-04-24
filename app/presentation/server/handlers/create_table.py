@@ -68,4 +68,10 @@ async def create_table_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.create_table(request)
 
 
-description = common.HandlerDescription(create_table_handler, CreateTableRequestSchema, CreateTableResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/table",
+    create_table_handler,
+    CreateTableRequestSchema,
+    CreateTableResponseSchema,
+)

@@ -34,5 +34,9 @@ async def debug_start_task_handler(actions: domain.Actions, r: web.Request) -> A
 
 
 description = common.HandlerDescription(
-    debug_start_task_handler, start_task.StartTaskRequestSchema, start_task.StartTaskResponseSchema
+    common.HTTPMethod.POST,
+    "/api/v1/admin/debug/task",
+    debug_start_task_handler,
+    start_task.StartTaskRequestSchema,
+    start_task.StartTaskResponseSchema,
 )

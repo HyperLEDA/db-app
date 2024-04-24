@@ -80,5 +80,9 @@ async def search_catalogs_handler(actions: domain.Actions, r: web.Request) -> An
 
 
 description = common.HandlerDescription(
-    search_catalogs_handler, SearchCatalogsRequestSchema, SearchCatalogsResponseSchema
+    common.HTTPMethod.GET,
+    "/api/v1/pipeline/catalogs",
+    search_catalogs_handler,
+    SearchCatalogsRequestSchema,
+    SearchCatalogsResponseSchema,
 )

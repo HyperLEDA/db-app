@@ -15,9 +15,6 @@ from app.presentation.server.handlers import (
     start_task,
 )
 
-HTTPMETHOD_GET = "GET"
-HTTPMETHOD_POST = "POST"
-
 SWAGGER_UI_URL = "/api/docs"
 
 
@@ -37,14 +34,14 @@ class ServerConfigSchema(Schema):
 
 
 routes = [
-    (HTTPMETHOD_GET, "/ping", ping.description),
-    (HTTPMETHOD_POST, "/api/v1/admin/source", create_source.description),
-    (HTTPMETHOD_GET, "/api/v1/source/list", get_source_list.description),
-    (HTTPMETHOD_GET, "/api/v1/source", get_source.description),
-    (HTTPMETHOD_GET, "/api/v1/pipeline/catalogs", search_catalogs.description),
-    (HTTPMETHOD_POST, "/api/v1/admin/task", start_task.description),
-    (HTTPMETHOD_POST, "/api/v1/admin/debug/task", debug_start_task.description),
-    (HTTPMETHOD_GET, "/api/v1/admin/task", get_task_info.description),
-    (HTTPMETHOD_POST, "/api/v1/admin/table", create_table.description),
-    (HTTPMETHOD_POST, "/api/v1/admin/table/data", add_data.description),
+    ping.description,
+    create_source.description,
+    get_source_list.description,
+    get_source.description,
+    search_catalogs.description,
+    start_task.description,
+    debug_start_task.description,
+    get_task_info.description,
+    create_table.description,
+    add_data.description,
 ]

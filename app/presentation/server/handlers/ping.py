@@ -40,4 +40,10 @@ async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
     return PingResponse()
 
 
-description = common.HandlerDescription(ping_handler, PingRequestSchema, PingResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.GET,
+    "/ping",
+    ping_handler,
+    PingRequestSchema,
+    PingResponseSchema,
+)

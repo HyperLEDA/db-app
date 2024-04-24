@@ -55,4 +55,10 @@ async def add_data_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.add_data(request)
 
 
-description = common.HandlerDescription(add_data_handler, AddDataRequestSchema, AddDataResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/table/data",
+    add_data_handler,
+    AddDataRequestSchema,
+    AddDataResponseSchema,
+)

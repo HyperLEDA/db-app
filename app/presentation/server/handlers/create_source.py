@@ -52,4 +52,10 @@ async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     return actions.create_source(request)
 
 
-description = common.HandlerDescription(create_source_handler, CreateSourceRequestSchema, CreateSourceResponseSchema)
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/source",
+    create_source_handler,
+    CreateSourceRequestSchema,
+    CreateSourceResponseSchema,
+)

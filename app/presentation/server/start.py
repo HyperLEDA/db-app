@@ -32,13 +32,17 @@ def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.s
         plugins=[apimarshamllow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
     )
 
-    for method, path, description in config.routes:
-        route = app.router.add_route(method, path, json_wrapper(actions, description.handler))
+    for route_description in config.routes:
+        route = app.router.add_route(
+            route_description.method.value,
+            route_description.endpoint,
+            json_wrapper(actions, route_description.handler),
+        )
 
-        if description.request_schema.__name__ not in spec.components.schemas:
-            spec.components.schema(description.request_schema.__name__, schema=description.request_schema)
-        if description.response_schema.__name__ not in spec.components.schemas:
-            spec.components.schema(description.response_schema.__name__, schema=description.response_schema)
+        if route_description.request_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(route_description.request_schema.__name__, schema=route_description.request_schema)
+        if route_description.response_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(route_description.response_schema.__name__, schema=route_description.response_schema)
 
         spec.path(route=route)
 
