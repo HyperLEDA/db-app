@@ -1,13 +1,12 @@
-import dataclasses
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, querystring_schema, response_schema
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
+from app.presentation.server.handlers import common
 
 
 class FieldSchema(Schema):
@@ -38,7 +37,7 @@ class CatalogSchema(Schema):
 
 
 class SearchCatalogsRequestSchema(Schema):
-    query = fields.Str(required=True, description="Query for catalog searching")
+    query = fields.Str(required=True, description="Query for catalog searching", example="dss")
     page_size = fields.Int(
         load_default=10,
         description="Maximum number of catalogs to return",
@@ -57,20 +56,29 @@ class SearchCatalogsResponseSchema(Schema):
     )
 
 
-@docs(
-    summary="Obtain list of catalogs",
-    tags=["table"],
-    description="Obtains a list of catalogs according to query.",
-)
-@querystring_schema(
-    SearchCatalogsRequestSchema(),
-    example=dataclasses.asdict(model.SearchCatalogsRequest("dss", 10)),
-)
-@response_schema(SearchCatalogsResponseSchema(), 200)
 async def search_catalogs_handler(actions: domain.Actions, r: web.Request) -> Any:
+    """---
+    summary: Obtain list of catalogs
+    description: Obtains a list of catalogs according to query.
+    tags: [table]
+    parameters:
+      - in: query
+        schema: SearchCatalogsRequestSchema
+    responses:
+        200:
+            description: Query successfully returned results.
+            content:
+                application/json:
+                    schema: SearchCatalogsResponseSchema
+    """
     try:
         request = SearchCatalogsRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
     return actions.search_catalogs(request)
+
+
+description = common.HandlerDescription(
+    search_catalogs_handler, SearchCatalogsRequestSchema, SearchCatalogsResponseSchema
+)

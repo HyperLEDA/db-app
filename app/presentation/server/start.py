@@ -1,12 +1,17 @@
 import dataclasses
 import datetime
 import json
+import warnings
 from functools import wraps
 from typing import Any, Awaitable, Callable
 
-import aiohttp_apispec
+import apispec
+import apispec.exceptions
 import structlog
+import swagger_ui
 from aiohttp import web
+from apispec.ext import marshmallow as apimarshamllow
+from apispec_webframeworks import aiohttp as apiaiohttp
 
 from app import domain
 from app.lib import server as libserver
@@ -15,15 +20,41 @@ from app.presentation.server import config
 
 
 def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.stdlib.BoundLogger):
+    # silence warning from apispec since it is a desired behaviour in this case.
+    warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
+
     app = web.Application(middlewares=[middleware.exception_middleware])
 
-    for method, path, func in config.routes:
-        app.router.add_route(method, path, json_wrapper(actions, func))
+    spec = apispec.APISpec(
+        title="HyperLeda API specification",
+        version="1.0.0",
+        openapi_version="3.0.2",
+        plugins=[apimarshamllow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
+    )
 
-    aiohttp_apispec.setup_aiohttp_apispec(
-        app=app,
-        title="API specification for HyperLeda",
-        swagger_path=config.SWAGGER_UI_URL,
+    for method, path, description in config.routes:
+        route = app.router.add_route(method, path, json_wrapper(actions, description.handler))
+
+        if description.request_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(description.request_schema.__name__, schema=description.request_schema)
+        if description.response_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(description.response_schema.__name__, schema=description.response_schema)
+
+        spec.path(route=route)
+
+    swagger_ui.api_doc(
+        app,
+        config=spec.to_dict(),
+        url_prefix=config.SWAGGER_UI_URL,
+        title="HyperLeda API",
+        parameters={
+            "tryItOutEnabled": "true",
+            "filter": "true",
+            "displayRequestDuration": "true",
+            "showCommonExtensions": "true",
+            "requestSnippetsEnabled": "true",
+            "persistAuthorization": "true",
+        },
     )
 
     logger.info(

@@ -1,5 +1,6 @@
 aiohttp
-aiohttp_apispec
+apispec
+apispec-webframeworks
 astropy
 astroquery
 click
@@ -21,6 +22,7 @@ ruff
 rq
 setuptools
 structlog
+swagger-ui-py
 testcontainers-postgres
 testcontainers-redis
 types-psycopg2

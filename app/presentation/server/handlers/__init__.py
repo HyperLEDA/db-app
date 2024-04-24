@@ -2,7 +2,6 @@ from app.presentation.server.handlers.add_data import add_data_handler
 from app.presentation.server.handlers.create_source import create_source_handler
 from app.presentation.server.handlers.create_table import create_table_handler
 from app.presentation.server.handlers.debug_start_task import debug_start_task_handler
-from app.presentation.server.handlers.get_object_names import get_object_names_handler
 from app.presentation.server.handlers.get_source import get_source_handler
 from app.presentation.server.handlers.get_source_list import get_source_list_handler
 from app.presentation.server.handlers.get_task_info import get_task_info_handler
@@ -14,7 +13,6 @@ __all__ = [
     "add_data_handler",
     "create_table_handler",
     "create_source_handler",
-    "get_object_names_handler",
     "get_source_handler",
     "get_source_list_handler",
     "ping_handler",
