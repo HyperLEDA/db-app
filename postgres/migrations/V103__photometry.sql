@@ -151,70 +151,70 @@ COMMENT ON COLUMN photometry.isoMag.iso	IS 'Threshold isophote [mag]' ;
 COMMENT ON COLUMN photometry.isoMag.quality	IS 'Measurement quality' ;
 
 
------------------------------------------------------
------- Aperture photometry --------------------------
-
------- Circular Aperture ----------------------------
-CREATE TABLE photometry.circAper (
-  id	bigserial	PRIMARY KEY
-, center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
-, a	real	NOT NULL	CHECK (a>0)
-, UNIQUE (center,a)
-) ;
-
-COMMENT ON TABLE photometry.circAper	IS 'Circular apertures' ;
-COMMENT ON COLUMN photometry.circAper.id	IS 'Circular aperture ID' ;
-COMMENT ON COLUMN photometry.circAper.center	IS 'Aperture center ID' ;
-COMMENT ON COLUMN photometry.circAper.a	IS 'Aperture diameter [arcsec]' ;
-
-
------- Elliptical Aperture ----------------------------
-CREATE TABLE photometry.ellAper (
-  id	bigserial	PRIMARY KEY
-, center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
-, a	real	NOT NULL	CHECK (a>0)
-, b	real	NOT NULL	CHECK (b>0)
-, pa	real	NOT NULL	CHECK (pa>=0 and pa<180)
-, UNIQUE (center,a,b,pa)
-) ;
-
-COMMENT ON TABLE photometry.ellAper	IS 'Elliptical apertures' ;
-COMMENT ON COLUMN photometry.ellAper.id	IS 'Elliptical aperture ID' ;
-COMMENT ON COLUMN photometry.ellAper.center	IS 'Aperture center ID' ;
-COMMENT ON COLUMN photometry.ellAper.a	IS 'Aperture major diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.ellAper.b	IS 'Aperture minor diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.ellAper.pa	IS 'Aperture position angle [degrees]' ;
-
-
------- Aperture magnitude --------------------------
-CREATE TABLE photometry.circMag (
-  aper	bigint	NOT NULL	REFERENCES photometry.circAper (id)	ON DELETE restrict ON UPDATE cascade
-, FOREIGN KEY (id) REFERENCES photometry.data (id)
-, PRIMARY KEY (id,aper)
-) INHERITS (photometry.totalMag) ;
-CREATE INDEX ON photometry.circMag (id,quality,aper,mag) ;
-
-COMMENT ON TABLE photometry.circMag	IS 'Photometry in circular apertures' ;
-COMMENT ON COLUMN photometry.circMag.id	IS 'Photometry data ID' ;
-COMMENT ON COLUMN photometry.circMag.mag	IS 'Aperture magnitude [mag]' ;
-COMMENT ON COLUMN photometry.circMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
-COMMENT ON COLUMN photometry.circMag.quality	IS 'Measurement quality' ;
-COMMENT ON COLUMN photometry.circMag.aper	IS 'Aperture ID' ;
-
-
-CREATE TABLE photometry.ellMag (
-  FOREIGN KEY (id) REFERENCES photometry.data (id)
-, FOREIGN KEY (aper) REFERENCES photometry.ellAper (id)	ON DELETE restrict ON UPDATE cascade
-, PRIMARY KEY (id,aper)
-) INHERITS (photometry.circMag) ;
-CREATE INDEX ON photometry.ellMag (id,quality,aper,mag) ;
-
-COMMENT ON TABLE photometry.ellMag	IS 'Photometry in elliptical apertures' ;
-COMMENT ON COLUMN photometry.ellMag.id	IS 'Photometry data ID' ;
-COMMENT ON COLUMN photometry.ellMag.mag	IS 'Aperture magnitude [mag]' ;
-COMMENT ON COLUMN photometry.ellMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
-COMMENT ON COLUMN photometry.ellMag.quality	IS 'Measurement quality' ;
-COMMENT ON COLUMN photometry.ellMag.aper	IS 'Aperture ID' ;
+-- -----------------------------------------------------
+-- ------ Aperture photometry --------------------------
+-- 
+-- ------ Circular Aperture ----------------------------
+-- CREATE TABLE photometry.circAper (
+--   id	bigserial	PRIMARY KEY
+-- , center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
+-- , a	real	NOT NULL	CHECK (a>0)
+-- , UNIQUE (center,a)
+-- ) ;
+-- 
+-- COMMENT ON TABLE photometry.circAper	IS 'Circular apertures' ;
+-- COMMENT ON COLUMN photometry.circAper.id	IS 'Circular aperture ID' ;
+-- COMMENT ON COLUMN photometry.circAper.center	IS 'Aperture center ID' ;
+-- COMMENT ON COLUMN photometry.circAper.a	IS 'Aperture diameter [arcsec]' ;
+-- 
+-- 
+-- ------ Elliptical Aperture ----------------------------
+-- CREATE TABLE photometry.ellAper (
+--   id	bigserial	PRIMARY KEY
+-- , center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
+-- , a	real	NOT NULL	CHECK (a>0)
+-- , b	real	NOT NULL	CHECK (b>0)
+-- , pa	real	NOT NULL	CHECK (pa>=0 and pa<180)
+-- , UNIQUE (center,a,b,pa)
+-- ) ;
+-- 
+-- COMMENT ON TABLE photometry.ellAper	IS 'Elliptical apertures' ;
+-- COMMENT ON COLUMN photometry.ellAper.id	IS 'Elliptical aperture ID' ;
+-- COMMENT ON COLUMN photometry.ellAper.center	IS 'Aperture center ID' ;
+-- COMMENT ON COLUMN photometry.ellAper.a	IS 'Aperture major diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.ellAper.b	IS 'Aperture minor diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.ellAper.pa	IS 'Aperture position angle [degrees]' ;
+-- 
+-- 
+-- ------ Aperture magnitude --------------------------
+-- CREATE TABLE photometry.circMag (
+--   aper	bigint	NOT NULL	REFERENCES photometry.circAper (id)	ON DELETE restrict ON UPDATE cascade
+-- , FOREIGN KEY (id) REFERENCES photometry.data (id)
+-- , PRIMARY KEY (id,aper)
+-- ) INHERITS (photometry.totalMag) ;
+-- CREATE INDEX ON photometry.circMag (id,quality,aper,mag) ;
+-- 
+-- COMMENT ON TABLE photometry.circMag	IS 'Photometry in circular apertures' ;
+-- COMMENT ON COLUMN photometry.circMag.id	IS 'Photometry data ID' ;
+-- COMMENT ON COLUMN photometry.circMag.mag	IS 'Aperture magnitude [mag]' ;
+-- COMMENT ON COLUMN photometry.circMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
+-- COMMENT ON COLUMN photometry.circMag.quality	IS 'Measurement quality' ;
+-- COMMENT ON COLUMN photometry.circMag.aper	IS 'Aperture ID' ;
+-- 
+-- 
+-- CREATE TABLE photometry.ellMag (
+--   FOREIGN KEY (id) REFERENCES photometry.data (id)
+-- , FOREIGN KEY (aper) REFERENCES photometry.ellAper (id)	ON DELETE restrict ON UPDATE cascade
+-- , PRIMARY KEY (id,aper)
+-- ) INHERITS (photometry.circMag) ;
+-- CREATE INDEX ON photometry.ellMag (id,quality,aper,mag) ;
+-- 
+-- COMMENT ON TABLE photometry.ellMag	IS 'Photometry in elliptical apertures' ;
+-- COMMENT ON COLUMN photometry.ellMag.id	IS 'Photometry data ID' ;
+-- COMMENT ON COLUMN photometry.ellMag.mag	IS 'Aperture magnitude [mag]' ;
+-- COMMENT ON COLUMN photometry.ellMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
+-- COMMENT ON COLUMN photometry.ellMag.quality	IS 'Measurement quality' ;
+-- COMMENT ON COLUMN photometry.ellMag.aper	IS 'Aperture ID' ;
 
 
 
