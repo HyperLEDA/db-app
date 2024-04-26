@@ -8,23 +8,15 @@ BEGIN ;
 --     -> sizeVisual (in fact, it corresponds to the limiting isophote)
 --  Profile: 
 --     -> sizeSigma (1-sigma of the Gaussian light distribution)
---  Aperture: 
---     aperture -> magAper
 --  Total (Asymptotic extrapolation when aperture size -> Inf) : 
 --     -> magTotal -> size%total
---  Isophote:
---     -> magIso
---     -> sizeIso 
+--  Model:
+--     model -> magModel
+--           -> size%model
 --  Petrosian: 
 --     -> Rpetro -> aperture -> magPetro -> size%petro
 --  Kron:
 --     -> Rkron -> aperture -> magKron
---  Model:
---     model -> magModel
---           -> size%model
-------------------  Apertures ------------------------------------
---  Circle: it defines equivalent diameter d=sqrt(a*b)
---  Ellipse: a,b,pa
 ------------------------------------------------------------------
 
 
@@ -48,8 +40,6 @@ INSERT INTO photometry.method (id,description) VALUES
   ( 'PSF' , 'Point Spread Function photometry' )
 , ( 'Vis' , 'Visual estimates' )
 , ( 'Sigma' , '1-sigma of the light distribution' )
-, ( 'Aper' , 'Aperture photometry' )
-, ( 'Iso'  , 'Isophotal photometry' )
 , ( 'Total' , 'Asymptotic (extrapolated) magnitude' )
 , ( 'Model' , 'Best fit model' )
 , ( 'Kron' , 'Kron adaptively scaled aperture' )
@@ -134,89 +124,6 @@ COMMENT ON COLUMN photometry.totalMag.e_mag	IS 'Error of the total magnitude [ma
 COMMENT ON COLUMN photometry.totalMag.quality	IS 'Measurement quality' ;
 
 
--- ------ Isophotal magnitude --------------------------
--- CREATE TABLE photometry.isoMag (
---   iso	real	NOT NULL
--- , PRIMARY KEY (id) 
--- , FOREIGN KEY (id) REFERENCES photometry.data (id)
--- , UNIQUE (id,iso)
--- ) INHERITS (photometry.totalMag) ;
--- CREATE INDEX ON photometry.isoMag (id,quality,iso,mag) ;
--- 
--- COMMENT ON TABLE photometry.isoMag	IS 'Isophotal magnitudes' ;
--- COMMENT ON COLUMN photometry.isoMag.id	IS 'Photometry data ID' ;
--- COMMENT ON COLUMN photometry.isoMag.mag	IS 'Isophotal magnitude (integrated flux above specific isophote) [mag]' ;
--- COMMENT ON COLUMN photometry.isoMag.e_mag	IS 'Error of the isophote magnitude [mag]' ;
--- COMMENT ON COLUMN photometry.isoMag.iso	IS 'Threshold isophote [mag]' ;
--- COMMENT ON COLUMN photometry.isoMag.quality	IS 'Measurement quality' ;
-
-
--- -----------------------------------------------------
--- ------ Aperture photometry --------------------------
--- 
--- ------ Circular Aperture ----------------------------
--- CREATE TABLE photometry.circAper (
---   id	bigserial	PRIMARY KEY
--- , center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
--- , a	real	NOT NULL	CHECK (a>0)
--- , UNIQUE (center,a)
--- ) ;
--- 
--- COMMENT ON TABLE photometry.circAper	IS 'Circular apertures' ;
--- COMMENT ON COLUMN photometry.circAper.id	IS 'Circular aperture ID' ;
--- COMMENT ON COLUMN photometry.circAper.center	IS 'Aperture center ID' ;
--- COMMENT ON COLUMN photometry.circAper.a	IS 'Aperture diameter [arcsec]' ;
--- 
--- 
--- ------ Elliptical Aperture ----------------------------
--- CREATE TABLE photometry.ellAper (
---   id	bigserial	PRIMARY KEY
--- , center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict ON UPDATE cascade
--- , a	real	NOT NULL	CHECK (a>0)
--- , b	real	NOT NULL	CHECK (b>0)
--- , pa	real	NOT NULL	CHECK (pa>=0 and pa<180)
--- , UNIQUE (center,a,b,pa)
--- ) ;
--- 
--- COMMENT ON TABLE photometry.ellAper	IS 'Elliptical apertures' ;
--- COMMENT ON COLUMN photometry.ellAper.id	IS 'Elliptical aperture ID' ;
--- COMMENT ON COLUMN photometry.ellAper.center	IS 'Aperture center ID' ;
--- COMMENT ON COLUMN photometry.ellAper.a	IS 'Aperture major diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.ellAper.b	IS 'Aperture minor diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.ellAper.pa	IS 'Aperture position angle [degrees]' ;
--- 
--- 
--- ------ Aperture magnitude --------------------------
--- CREATE TABLE photometry.circMag (
---   aper	bigint	NOT NULL	REFERENCES photometry.circAper (id)	ON DELETE restrict ON UPDATE cascade
--- , FOREIGN KEY (id) REFERENCES photometry.data (id)
--- , PRIMARY KEY (id,aper)
--- ) INHERITS (photometry.totalMag) ;
--- CREATE INDEX ON photometry.circMag (id,quality,aper,mag) ;
--- 
--- COMMENT ON TABLE photometry.circMag	IS 'Photometry in circular apertures' ;
--- COMMENT ON COLUMN photometry.circMag.id	IS 'Photometry data ID' ;
--- COMMENT ON COLUMN photometry.circMag.mag	IS 'Aperture magnitude [mag]' ;
--- COMMENT ON COLUMN photometry.circMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
--- COMMENT ON COLUMN photometry.circMag.quality	IS 'Measurement quality' ;
--- COMMENT ON COLUMN photometry.circMag.aper	IS 'Aperture ID' ;
--- 
--- 
--- CREATE TABLE photometry.ellMag (
---   FOREIGN KEY (id) REFERENCES photometry.data (id)
--- , FOREIGN KEY (aper) REFERENCES photometry.ellAper (id)	ON DELETE restrict ON UPDATE cascade
--- , PRIMARY KEY (id,aper)
--- ) INHERITS (photometry.circMag) ;
--- CREATE INDEX ON photometry.ellMag (id,quality,aper,mag) ;
--- 
--- COMMENT ON TABLE photometry.ellMag	IS 'Photometry in elliptical apertures' ;
--- COMMENT ON COLUMN photometry.ellMag.id	IS 'Photometry data ID' ;
--- COMMENT ON COLUMN photometry.ellMag.mag	IS 'Aperture magnitude [mag]' ;
--- COMMENT ON COLUMN photometry.ellMag.e_mag	IS 'Error of the aperture magnitude [mag]' ;
--- COMMENT ON COLUMN photometry.ellMag.quality	IS 'Measurement quality' ;
--- COMMENT ON COLUMN photometry.ellMag.aper	IS 'Aperture ID' ;
-
-
 
 -----------------------------------------------------
 ------ Equivalent diameter (circular aperture) ------
@@ -291,26 +198,6 @@ COMMENT ON COLUMN photometry.ellipse.e_b	IS 'Error of the minor diameter [arcsec
 COMMENT ON COLUMN photometry.ellipse.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
 COMMENT ON COLUMN photometry.ellipse.e_pa	IS 'Error of the position angle [degrees]' ;
 COMMENT ON COLUMN photometry.ellipse.quality	IS 'Measurement quality' ;
-
-
--- ------ Isophotal size --------------------------
--- CREATE TABLE photometry.isoEllipse (
---   iso	real	NOT NULL	CHECK (iso>0)
--- , FOREIGN KEY (id) REFERENCES photometry.data (id)
--- , UNIQUE (id,iso)
--- ) INHERITS (photometry.ellipse) ;
--- CREATE INDEX ON photometry.isoEllipse (id,quality,iso,a,b,pa) ; -- NULLS NOT DISTINCT;
--- 
--- COMMENT ON TABLE photometry.isoEllipse	IS 'Object geometry at specific isophote' ;
--- COMMENT ON COLUMN photometry.isoEllipse.id	IS 'Photometry data ID' ;
--- COMMENT ON COLUMN photometry.isoEllipse.a	IS 'Isophotal major diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.e_a	IS 'Error of the major diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.b	IS 'Isophotal minor diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.e_b	IS 'Error of the minor diameter [arcsec]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.e_pa	IS 'Error of the position angle [degrees]' ;
--- COMMENT ON COLUMN photometry.isoEllipse.quality	IS 'Measurement quality' ;
--- COMMENT ON COLUMN photometry.isoEllipse.iso	IS 'Isophote' ;
 
 
 ------ Major+minor diameters at specific of the total flux level ------
