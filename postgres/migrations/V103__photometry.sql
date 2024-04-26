@@ -134,21 +134,21 @@ COMMENT ON COLUMN photometry.totalMag.e_mag	IS 'Error of the total magnitude [ma
 COMMENT ON COLUMN photometry.totalMag.quality	IS 'Measurement quality' ;
 
 
------- Isophotal magnitude --------------------------
-CREATE TABLE photometry.isoMag (
-  iso	real	NOT NULL
-, PRIMARY KEY (id) 
-, FOREIGN KEY (id) REFERENCES photometry.data (id)
-, UNIQUE (id,iso)
-) INHERITS (photometry.totalMag) ;
-CREATE INDEX ON photometry.isoMag (id,quality,iso,mag) ;
-
-COMMENT ON TABLE photometry.isoMag	IS 'Isophotal magnitudes' ;
-COMMENT ON COLUMN photometry.isoMag.id	IS 'Photometry data ID' ;
-COMMENT ON COLUMN photometry.isoMag.mag	IS 'Isophotal magnitude (integrated flux above specific isophote) [mag]' ;
-COMMENT ON COLUMN photometry.isoMag.e_mag	IS 'Error of the isophote magnitude [mag]' ;
-COMMENT ON COLUMN photometry.isoMag.iso	IS 'Threshold isophote [mag]' ;
-COMMENT ON COLUMN photometry.isoMag.quality	IS 'Measurement quality' ;
+-- ------ Isophotal magnitude --------------------------
+-- CREATE TABLE photometry.isoMag (
+--   iso	real	NOT NULL
+-- , PRIMARY KEY (id) 
+-- , FOREIGN KEY (id) REFERENCES photometry.data (id)
+-- , UNIQUE (id,iso)
+-- ) INHERITS (photometry.totalMag) ;
+-- CREATE INDEX ON photometry.isoMag (id,quality,iso,mag) ;
+-- 
+-- COMMENT ON TABLE photometry.isoMag	IS 'Isophotal magnitudes' ;
+-- COMMENT ON COLUMN photometry.isoMag.id	IS 'Photometry data ID' ;
+-- COMMENT ON COLUMN photometry.isoMag.mag	IS 'Isophotal magnitude (integrated flux above specific isophote) [mag]' ;
+-- COMMENT ON COLUMN photometry.isoMag.e_mag	IS 'Error of the isophote magnitude [mag]' ;
+-- COMMENT ON COLUMN photometry.isoMag.iso	IS 'Threshold isophote [mag]' ;
+-- COMMENT ON COLUMN photometry.isoMag.quality	IS 'Measurement quality' ;
 
 
 -- -----------------------------------------------------
@@ -293,24 +293,24 @@ COMMENT ON COLUMN photometry.ellipse.e_pa	IS 'Error of the position angle [degre
 COMMENT ON COLUMN photometry.ellipse.quality	IS 'Measurement quality' ;
 
 
------- Isophotal size --------------------------
-CREATE TABLE photometry.isoEllipse (
-  iso	real	NOT NULL	CHECK (iso>0)
-, FOREIGN KEY (id) REFERENCES photometry.data (id)
-, UNIQUE (id,iso)
-) INHERITS (photometry.ellipse) ;
-CREATE INDEX ON photometry.isoEllipse (id,quality,iso,a,b,pa) ; -- NULLS NOT DISTINCT;
-
-COMMENT ON TABLE photometry.isoEllipse	IS 'Object geometry at specific isophote' ;
-COMMENT ON COLUMN photometry.isoEllipse.id	IS 'Photometry data ID' ;
-COMMENT ON COLUMN photometry.isoEllipse.a	IS 'Isophotal major diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.isoEllipse.e_a	IS 'Error of the major diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.isoEllipse.b	IS 'Isophotal minor diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.isoEllipse.e_b	IS 'Error of the minor diameter [arcsec]' ;
-COMMENT ON COLUMN photometry.isoEllipse.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
-COMMENT ON COLUMN photometry.isoEllipse.e_pa	IS 'Error of the position angle [degrees]' ;
-COMMENT ON COLUMN photometry.isoEllipse.quality	IS 'Measurement quality' ;
-COMMENT ON COLUMN photometry.isoEllipse.iso	IS 'Isophote' ;
+-- ------ Isophotal size --------------------------
+-- CREATE TABLE photometry.isoEllipse (
+--   iso	real	NOT NULL	CHECK (iso>0)
+-- , FOREIGN KEY (id) REFERENCES photometry.data (id)
+-- , UNIQUE (id,iso)
+-- ) INHERITS (photometry.ellipse) ;
+-- CREATE INDEX ON photometry.isoEllipse (id,quality,iso,a,b,pa) ; -- NULLS NOT DISTINCT;
+-- 
+-- COMMENT ON TABLE photometry.isoEllipse	IS 'Object geometry at specific isophote' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.id	IS 'Photometry data ID' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.a	IS 'Isophotal major diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.e_a	IS 'Error of the major diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.b	IS 'Isophotal minor diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.e_b	IS 'Error of the minor diameter [arcsec]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.pa	IS 'Position angle from North to East from 0 to 180 [degrees]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.e_pa	IS 'Error of the position angle [degrees]' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.quality	IS 'Measurement quality' ;
+-- COMMENT ON COLUMN photometry.isoEllipse.iso	IS 'Isophote' ;
 
 
 ------ Major+minor diameters at specific of the total flux level ------
