@@ -16,12 +16,14 @@ COMMENT ON SCHEMA aperture	IS 'Aperture Photometry catalog' ;
 
 ----------------------------------------
 ------ Circular Aperture ---------------
+CREATE SEQUENCE aperture.aperture_id_seq ;
 CREATE TABLE aperture.circle (
-  id	bigserial	PRIMARY KEY
+  id	bigint	PRIMARY KEY	DEFAULT nextval('aperture.aperture_id_seq'::regclass)
 , center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict	ON UPDATE cascade
 , a	real	NOT NULL	CHECK (a>0)
 , UNIQUE (center,a)
 ) ;
+ALTER SEQUENCE aperture.aperture_id_seq OWNED BY aperture.circle.id ;
 
 COMMENT ON TABLE aperture.circle	IS 'Circular apertures' ;
 COMMENT ON COLUMN aperture.circle.id	IS 'Circular aperture ID' ;
@@ -53,12 +55,13 @@ COMMENT ON COLUMN aperture.circMag.dataset	IS 'Dataset' ;
 ----------------------------------------
 ------ Elliptical Aperture -------------
 CREATE TABLE aperture.ellipse (
-  b	real	NOT NULL	CHECK (b>0)
+  id	bigint	PRIMARY KEY	DEFAULT nextval('aperture.aperture_id_seq'::regclass)
+, center	integer	NOT NULL	REFERENCES icrs.data (id)	ON DELETE restrict	ON UPDATE cascade
+, a	real	NOT NULL	CHECK (a>0)
+, b	real	NOT NULL	CHECK (b>=a)
 , pa	real	NOT NULL	CHECK (pa>=0 and pa<180)
-, PRIMARY KEY (id)
-, FOREIGN KEY (center)	REFERENCES icrs.data (id)	ON DELETE restrict	ON UPDATE cascade 
 , UNIQUE (center,a,b,pa)
-) INHERITS (aperture.circle) ;
+) ;
 
 COMMENT ON TABLE aperture.ellipse	IS 'Elliptical apertures' ;
 COMMENT ON COLUMN aperture.ellipse.id	IS 'Elliptical aperture ID' ;
@@ -69,12 +72,15 @@ COMMENT ON COLUMN aperture.ellipse.pa	IS 'Position angle of the major axis from 
 
 ------ Magnitude --------------------------
 CREATE TABLE aperture.ellMag (
-  PRIMARY KEY (pgc,aper,dataset,band,quality)
-, FOREIGN KEY (pgc)	REFERENCES common.pgc(id)	ON DELETE restrict	ON UPDATE cascade
-, FOREIGN KEY (aper)	REFERENCES aperture.ellipse(id)	ON DELETE restrict	ON UPDATE cascade
-, FOREIGN KEY (dataset)	REFERENCES rawdata.tables(id)	ON DELETE restrict	ON UPDATE cascade
-, FOREIGN KEY (band)	REFERENCES common.calibpassband(id)	ON DELETE restrict	ON UPDATE cascade
-) INHERITS (aperture.circMag) ;
+  pgc	integer	NOT NULL	REFERENCES common.pgc (id)	ON DELETE restrict	ON UPDATE cascade
+, aper	bigint	NOT NULL	REFERENCES aperture.ellipse (id)	ON DELETE restrict	ON UPDATE cascade
+, dataset	integer	NOT NULL	REFERENCES rawdata.tables (id)	ON DELETE restrict	ON UPDATE cascade
+, band	integer	NOT NULL	REFERENCES common.calibpassband (id)	ON DELETE restrict	ON UPDATE cascade
+, mag	real	NOT NULL	CHECK (mag>0 and mag<30)
+, e_mag	real
+, quality	common.quality	NOT NULL	DEFAULT 'ok'
+, PRIMARY KEY (pgc,aper,dataset,band,quality)
+) ;
 
 COMMENT ON TABLE aperture.ellMag	IS 'Photometry in elliptical apertures' ;
 COMMENT ON COLUMN aperture.ellMag.pgc	IS 'PGC number of the object' ;
@@ -100,8 +106,8 @@ SELECT
 , ds.table_name
 , ds.datatype
 FROM
-  ONLY aperture.ellMag	AS mag
-  LEFT JOIN ONLY aperture.ellipse	AS ell	ON (ell.id=mag.aper)
+  aperture.ellMag	AS mag
+  LEFT JOIN aperture.ellipse	AS ell	ON (ell.id=mag.aper)
   LEFT JOIN rawdata.tables	AS ds	ON (mag.dataset=ds.id)
 UNION
 SELECT
@@ -115,8 +121,8 @@ SELECT
 , ds.table_name
 , ds.datatype
 FROM 
-  ONLY aperture.circMag	AS mag	
-  LEFT JOIN ONLY aperture.circle	AS circ	ON (circ.id=mag.aper)
+  aperture.circMag	AS mag	
+  LEFT JOIN aperture.circle	AS circ	ON (circ.id=mag.aper)
   LEFT JOIN rawdata.tables	AS ds	ON (mag.dataset=ds.id)
 ;
 
