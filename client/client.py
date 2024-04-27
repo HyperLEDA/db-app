@@ -48,11 +48,17 @@ class HyperLedaClient:
         return model.CreateSourceResponseSchema(**data["data"]).id
 
     def get_bibliography(self, bibliography_id: int) -> model.GetSourceResponseSchema:
+        """
+        Obtain information about the bibliography data registered in HyperLeda. 
+        """
         data = self._get("/api/v1/source", {"id": bibliography_id})
 
         return model.GetSourceResponseSchema(**data["data"])
 
     def create_table(self, table_description: model.CreateTableRequestSchema) -> int:
+        """
+        Create new table with raw data from the source.
+        """
         data = self._post(
             "/api/v1/admin/table",
             table_description,
@@ -61,6 +67,9 @@ class HyperLedaClient:
         return model.CreateTableResponseSchema(**data["data"]).id
 
     def add_data(self, table_id: int, data: pandas.DataFrame) -> None:
+        """
+        Add new data to the table created in `create_table` method.
+        """
         _ = self._post(
             "/api/v1/admin/table/data",
             model.AddDataRequestSchema(table_id, data.to_dict("records")),
