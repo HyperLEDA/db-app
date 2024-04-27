@@ -16,7 +16,7 @@ from apispec_webframeworks import aiohttp as apiaiohttp
 from app import domain
 from app.lib import server as libserver
 from app.lib.server import middleware
-from app.presentation.server import config
+from app.presentation.server import config, handlers
 
 
 def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.stdlib.BoundLogger):
@@ -32,7 +32,7 @@ def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.s
         plugins=[apimarshamllow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
     )
 
-    for route_description in config.routes:
+    for route_description in handlers.routes:
         route = app.router.add_route(
             route_description.method.value,
             route_description.endpoint,

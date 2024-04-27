@@ -31,7 +31,7 @@ build-docs:
 
 # one needs to start the server before running this target.
 generate-client:
-	curl http://localhost:8000/api/docs/swagger.json > client/gen/swagger.json
+	$(PYTHON) main.py generate-spec -o client/gen/swagger.json
 	datamodel-codegen --input client/gen/swagger.json --output client/gen/model.py --output-model-type dataclasses.dataclass
 	make fix-unsafe
 
