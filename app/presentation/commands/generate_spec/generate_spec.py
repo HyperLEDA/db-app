@@ -38,5 +38,6 @@ def generate_spec(filename: str):
 
         spec.path(route=route)
 
-    with pathlib.Path(filename).open("w") as file:
-        json.dump(spec.to_dict(), file, indent=2)
+    output_file = pathlib.Path(filename)
+    output_file.parent.mkdir(exist_ok=True, parents=True)
+    output_file.write_text(json.dumps(spec.to_dict(), indent=2))
