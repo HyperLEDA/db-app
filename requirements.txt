@@ -9,8 +9,8 @@ jinja2
 marshmallow
 mypy
 mkdocs
-mkdocs-i18n
 mkdocs-material
+mkdocs-swagger-ui-tag
 pandas
 pandas-stubs
 parameterized
