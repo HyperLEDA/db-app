@@ -7,12 +7,17 @@ import unittest
 import requests
 import structlog
 
+import client
 from app.lib import testing
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class ServerTest(unittest.TestCase):
+    """
+    Tests both server startup and client for the server.
+    """
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
@@ -50,3 +55,22 @@ class ServerTest(unittest.TestCase):
         data = response.json()
 
         self.assertDictEqual(data, {"data": {"ping": "pong"}})
+
+    def test_bibliography_creation(self):
+        bibcode = "2024LPICo3040.1692M"
+        title = "Dune Sand Mixing in the Huygens and Dragonfly Landing Sites Region, Titan"
+        authors = ["Malaska, M. J."]
+        year = 2024
+
+        c = client.HyperLedaClient(endpoint=f"http://localhost:{self.server_port}")
+        bib_id = c.create_bibliography(
+            bibcode=bibcode,
+            title=title,
+            authors=authors,
+            year=year,
+        )
+        bib = c.get_bibliography(bib_id)
+        self.assertEqual(bib.bibcode, bibcode)
+        self.assertEqual(bib.title, title)
+        self.assertListEqual(bib.authors, authors)
+        self.assertEqual(bib.year, year)

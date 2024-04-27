@@ -4,6 +4,7 @@ apispec-webframeworks
 astropy
 astroquery
 click
+datamodel-code-generator
 jinja2
 marshmallow
 mypy
