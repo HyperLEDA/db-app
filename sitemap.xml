@@ -6,6 +6,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://hyperleda.github.io/db-app/openapi/</loc>
+         <lastmod>2024-04-27</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://hyperleda.github.io/db-app/dev/change.ru/</loc>
          <lastmod>2024-04-27</lastmod>
          <changefreq>daily</changefreq>
