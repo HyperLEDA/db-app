@@ -22,33 +22,18 @@ theme:
 
 nav:
   - Главная: index.md
-  - developer documentation:
+  - Документация API: openapi.md
+  - Документация разработчика:
       - Установка окружения: dev/environment.ru.md
       - Внесение изменений: dev/change.ru.md
       - Документация: dev/documentation.ru.md
       - Диаграмма системы: dev/system_diagram.ru.md
 
-extra:
-  alternate:
-    - name: Russian
-      link: index.ru/
-      lang: ru
-    - name: English
-      link: index.en/
-      lang: en
-
 plugins:
   - search
-  - i18n:
-      languages:
-        ru: "Russian"
-        en: "English"
-      default_language: "ru"
-      translate_nav:
-        ru:
-          developer documentation: "Документация разработчика"
-        en:
-          developer documentation: "Developer documentation"
+  - swagger-ui-tag:
+      syntaxHighlightTheme: monokai
+      supportedSubmitMethods: []
 
 markdown_extensions:
   - toc:
