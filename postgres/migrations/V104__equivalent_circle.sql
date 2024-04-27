@@ -34,15 +34,15 @@ COMMENT ON COLUMN equivCircle.circle.modification_time	IS 'Timestamp when the re
 
 ------ Equivalent circle corresponding to the specific total flux level --------
 CREATE TABLE equivCircle.fluxLevelCircle (
-  magid	bigint	NOT NULL	REFERENCES photometry.totalMag (id)	ON DELETE restrict	ON UPDATE cascade
+  phot	bigint	NOT NULL	REFERENCES photometry.data (id)	ON DELETE restrict	ON UPDATE cascade
 , level	real	NOT NULL	CHECK (level>0 and level<100)
 , a	real	NOT NULL	CHECK (a>0)
 , e_a	real	CHECK (e_a>0)
-, UNIQUE (magid,level)
+, UNIQUE (phot,level)
 ) ;
 
 COMMENT ON TABLE equivCircle.fluxLevelCircle	IS 'Equivalent Circle at specific flux level' ;
-COMMENT ON COLUMN equivCircle.fluxLevelCircle.magid	IS 'Totoal magnitude ID' ;
+COMMENT ON COLUMN equivCircle.fluxLevelCircle.phot	IS 'Totoal magnitude ID' ;
 COMMENT ON COLUMN equivCircle.fluxLevelCircle.level	IS 'Level of the total flux [percent]' ;
 COMMENT ON COLUMN equivCircle.fluxLevelCircle.a	IS 'Circle diameter [arcsec]' ;
 COMMENT ON COLUMN equivCircle.fluxLevelCircle.e_a	IS 'Error of the diameter [arcsec]' ;
@@ -66,7 +66,7 @@ SELECT
 , src.table_name
 FROM
   equivCircle.fluxLevelCircle	AS circ
-  LEFT JOIN photometry.totalMag	AS mag	ON (circ.magid=mag.id)
+  LEFT JOIN photometry.data	AS mag	ON (circ.phot=mag.id)
   LEFT JOIN photometry.dataset	AS ds	ON (mag.dataset=ds.id)
   LEFT JOIN rawdata.tables	AS src	ON (ds.src=src.id)
 

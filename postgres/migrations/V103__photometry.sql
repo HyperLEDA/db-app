@@ -65,7 +65,7 @@ COMMENT ON COLUMN photometry.dataset.src	IS 'Source table' ;
 
 
 ------ Total Magnitude ------------------------------
-CREATE TABLE photometry.totalMag (
+CREATE TABLE photometry.data (
   id	bigserial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict	ON UPDATE cascade
 , dataset	integer	NOT NULL	REFERENCES photometry.dataset (id)	ON DELETE restrict	ON UPDATE cascade
@@ -77,15 +77,15 @@ CREATE TABLE photometry.totalMag (
 , UNIQUE (pgc,dataset,band)
 ) ;
 
-COMMENT ON TABLE photometry.totalMag	IS 'Total magnitudes catalog' ;
-COMMENT ON COLUMN photometry.totalMag.id	IS 'Totla magnitude ID' ;
-COMMENT ON COLUMN photometry.totalMag.pgc	IS 'PGC number of the object' ;
-COMMENT ON COLUMN photometry.totalMag.dataset	IS 'Dataset of the measurements' ;
-COMMENT ON COLUMN photometry.totalMag.band	IS 'Passband ID' ;
-COMMENT ON COLUMN photometry.totalMag.mag	IS 'Total (PSF|model|asymptotic|etc.) magnitude [mag]' ;
-COMMENT ON COLUMN photometry.totalMag.e_mag	IS 'Error of the total magnitude [mag]' ;
-COMMENT ON COLUMN photometry.totalMag.quality	IS 'Measurement quality' ;
-COMMENT ON COLUMN photometry.totalMag.modification_time	IS 'Timestamp when the record was added to the database' ;
+COMMENT ON TABLE photometry.data	IS 'Total magnitudes catalog' ;
+COMMENT ON COLUMN photometry.data.id	IS 'Totla magnitude ID' ;
+COMMENT ON COLUMN photometry.data.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN photometry.data.dataset	IS 'Dataset of the measurements' ;
+COMMENT ON COLUMN photometry.data.band	IS 'Passband ID' ;
+COMMENT ON COLUMN photometry.data.mag	IS 'Total (PSF|model|asymptotic|etc.) magnitude [mag]' ;
+COMMENT ON COLUMN photometry.data.e_mag	IS 'Error of the total magnitude [mag]' ;
+COMMENT ON COLUMN photometry.data.quality	IS 'Measurement quality' ;
+COMMENT ON COLUMN photometry.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 
 COMMIT ;
