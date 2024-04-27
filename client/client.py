@@ -49,7 +49,7 @@ class HyperLedaClient:
 
     def get_bibliography(self, bibliography_id: int) -> model.GetSourceResponseSchema:
         """
-        Obtain information about the bibliography data registered in HyperLeda. 
+        Obtain information about the bibliography data registered in HyperLeda.
         """
         data = self._get("/api/v1/source", {"id": bibliography_id})
 
