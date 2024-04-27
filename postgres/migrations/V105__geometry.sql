@@ -44,7 +44,7 @@ COMMENT ON COLUMN geometry.ellipse.modification_time	IS 'Timestamp when the reco
 
 ------ Ellipse corresponding to the specific total flux level --------
 CREATE TABLE geometry.fluxLevelEllipse (
-  magid	bigint	NOT NULL	REFERENCES photometry.totalMag (id)	ON DELETE restrict	ON UPDATE cascade
+  phot	bigint	NOT NULL	REFERENCES photometry.data (id)	ON DELETE restrict	ON UPDATE cascade
 , level	real	NOT NULL	CHECK (level>0 and level<100)
 , a	real	NOT NULL	CHECK (a>0)
 , e_a	real	CHECK (e_a>0)
@@ -54,11 +54,11 @@ CREATE TABLE geometry.fluxLevelEllipse (
 , e_pa	real	CHECK (e_pa>0)
 , iso	real	CHECK (iso>10 and iso<30)
 , e_iso	real	CHECK (e_iso>0 and e_iso<0.5)
-, UNIQUE (magid,level)
+, UNIQUE (phot,level)
 ) ;
 
 COMMENT ON TABLE geometry.fluxLevelEllipse	IS 'Elliptial geometry at specific flux level' ;
-COMMENT ON COLUMN geometry.fluxLevelEllipse.magid	IS 'Totoal magnitude ID' ;
+COMMENT ON COLUMN geometry.fluxLevelEllipse.phot	IS 'Totoal magnitude ID' ;
 COMMENT ON COLUMN geometry.fluxLevelEllipse.level	IS 'Level of the total flux at which the ellipse corresponds [percent]' ;
 COMMENT ON COLUMN geometry.fluxLevelEllipse.a	IS 'Major diameter [arcsec]' ;
 COMMENT ON COLUMN geometry.fluxLevelEllipse.e_a	IS 'Error of the major diameter [arcsec]' ;
@@ -94,7 +94,7 @@ SELECT
 , src.table_name
 FROM
   geometry.fluxLevelEllipse	AS ell
-  LEFT JOIN photometry.totalMag	AS mag	ON (ell.magid=mag.id)
+  LEFT JOIN photometry.data	AS mag	ON (ell.phot=mag.id)
   LEFT JOIN photometry.dataset	AS ds	ON (mag.dataset=ds.id)
   LEFT JOIN rawdata.tables	AS src	ON (ds.src=src.id)
 
