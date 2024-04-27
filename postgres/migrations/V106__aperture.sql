@@ -39,7 +39,7 @@ CREATE TABLE aperture.circMag (
 , mag	real	NOT NULL	CHECK (mag>0 and mag<30)
 , e_mag	real
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
-, PRIMARY KEY (pgc,aper,dataset,band,quality)
+, PRIMARY KEY (pgc,aper,dataset,band)
 ) ;
 
 COMMENT ON TABLE aperture.circMag	IS 'Photometry in circular apertures' ;
@@ -79,7 +79,7 @@ CREATE TABLE aperture.ellMag (
 , mag	real	NOT NULL	CHECK (mag>0 and mag<30)
 , e_mag	real
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
-, PRIMARY KEY (pgc,aper,dataset,band,quality)
+, PRIMARY KEY (pgc,aper,dataset,band)
 ) ;
 
 COMMENT ON TABLE aperture.ellMag	IS 'Photometry in elliptical apertures' ;

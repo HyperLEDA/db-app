@@ -29,7 +29,7 @@ CREATE TABLE isophote.data (
 , e_pa	real
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
-, PRIMARY KEY (pgc,dataset,band,iso,quality)
+, PRIMARY KEY (pgc,dataset,band,iso)
 ) ;
 
 COMMENT ON TABLE isophote.data	IS 'Isophotal Photometry' ;
