@@ -29,6 +29,12 @@ deploy-docs:
 build-docs:
 	$(PYTHON) -m mkdocs build
 
+# one needs to start the server before running this target.
+generate-client:
+	curl http://localhost:8000/api/docs/swagger.json > client/gen/swagger.json
+	datamodel-codegen --input client/gen/swagger.json --output client/gen/model.py --output-model-type dataclasses.dataclass
+	make fix-unsafe
+
 ## Testing
 
 test: check test-unit
