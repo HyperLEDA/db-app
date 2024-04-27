@@ -2,7 +2,7 @@ PYTHON := python
 
 .PHONY: docs
 
-all: test
+all: generate-client test
 
 ## General targets
 install:

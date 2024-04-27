@@ -20,6 +20,9 @@ jobs:
         - name: Check the code for smells and potential bugs
           run: |
             make check-lint
+        - name: Run code generation
+          run: |
+            make generate-client
         - name: Run unit tests
           run: |
             make test-unit
