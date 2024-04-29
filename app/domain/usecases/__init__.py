@@ -4,7 +4,7 @@ from typing import Any, Callable, final
 
 import pandas
 import structlog
-from astroquery import nasa_ads as na
+from astroquery import nasa_ads as ads
 from astroquery.vizier import Vizier
 
 from app import domain
@@ -52,14 +52,19 @@ class Actions(domain.Actions):
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.bibcode is not None:
             try:
-                na.ADS.TOKEN = os.environ.get("ADS_TOKEN")
-                na.ADS.ADS_FIELDS = ["bibcode", "title", "author"]
+                ads_client = ads.ADSClass()
+                ads_client.TOKEN = os.environ.get("ADS_TOKEN")
+                ads_client.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
 
-                publication = na.ADS.query_simple(f'bibcode:"{r.bibcode}"')[0]
-                r.title, r.authors, r.year = publication["title"][0], list(publication["author"]), int(r.bibcode[:4])
+                publication = ads_client.query_simple(f'bibcode:"{r.bibcode}"')[0]
+                r.title, r.authors, r.year = (
+                    publication["title"][0],
+                    list(publication["author"]),
+                    int(publication["pubdate"][:4]),
+                )
 
-            except RuntimeError:  # no search results returned
-                pass
+            except RuntimeError as e:
+                raise new_validation_error("no search results returned for bibcode from ADS") from e
 
         source_id = self._common_repo.create_bibliography(
             data_model.Bibliography(bibcode=r.bibcode, year=r.year, author=r.authors, title=r.title)
