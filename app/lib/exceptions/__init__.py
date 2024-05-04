@@ -1,6 +1,5 @@
 import dataclasses
 from dataclasses import dataclass
-from http.client import FORBIDDEN
 
 INTERNAL_ERROR_CODE = "internal_error"
 VALIDATION_ERROR_CODE = "validation_error"

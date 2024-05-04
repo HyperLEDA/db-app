@@ -1,7 +1,7 @@
 server:
   host: http://localhost
   port: 8000
-  auth_enabled: true
+  auth_enabled: false
 
 storage:
   endpoint: localhost
