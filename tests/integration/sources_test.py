@@ -4,7 +4,7 @@ import structlog
 
 from app.data import repositories
 from app.domain import model, usecases
-from app.lib import testing
+from app.lib import auth, testing
 
 
 class SourcesTest(unittest.TestCase):
@@ -12,10 +12,17 @@ class SourcesTest(unittest.TestCase):
     def setUpClass(cls):
         cls.storage = testing.get_test_postgres_storage()
 
-        common_repo = repositories.CommonRepository(cls.storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.storage.get_storage(), structlog.get_logger())
-        layer1_repo = repositories.Layer1Repository(cls.storage.get_storage(), structlog.get_logger())
-        cls.actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, None, None, structlog.get_logger())
+        logger = structlog.get_logger()
+
+        cls.actions = usecases.Actions(
+            common_repo=repositories.CommonRepository(cls.storage.get_storage(), logger),
+            layer0_repo=repositories.Layer0Repository(cls.storage.get_storage(), logger),
+            layer1_repo=repositories.Layer1Repository(cls.storage.get_storage(), logger),
+            queue_repo=None,
+            authenticator=auth.NoopAuthenticator(),
+            storage_config=None,
+            logger=logger,
+        )
 
     def tearDown(self):
         self.storage.clear()

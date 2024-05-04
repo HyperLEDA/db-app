@@ -10,27 +10,39 @@ import apispec.exceptions
 import structlog
 import swagger_ui
 from aiohttp import web
-from apispec.ext import marshmallow as apimarshamllow
+from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
 from app import domain
+from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
 from app.presentation.server import config, handlers
 
 
-def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.stdlib.BoundLogger):
+def start(
+    cfg: config.ServerConfig,
+    authenticator: auth.Authenticator,
+    actions: domain.Actions,
+    logger: structlog.stdlib.BoundLogger,
+):
     # silence warning from apispec since it is a desired behaviour in this case.
     warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
 
-    app = web.Application(middlewares=[middleware.exception_middleware])
+    middlewares = [middleware.exception_middleware]
+
+    if cfg.auth_enabled:
+        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", authenticator))
+
+    app = web.Application(middlewares=middlewares)
 
     spec = apispec.APISpec(
         title="HyperLeda API specification",
         version="1.0.0",
         openapi_version="3.0.2",
-        plugins=[apimarshamllow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
+        plugins=[apimarshmallow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
     )
+    spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
 
     for route_description in handlers.routes:
         route = app.router.add_route(

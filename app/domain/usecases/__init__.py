@@ -12,7 +12,8 @@ from app.domain import model as domain_model
 from app.domain import tasks
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib.exceptions import new_not_found_error, new_validation_error
+from app.lib import auth
+from app.lib.exceptions import new_not_found_error, new_unauthorized_error, new_validation_error
 from app.lib.storage import enums, mapping, postgres
 
 __all__ = [
@@ -35,6 +36,7 @@ class Actions(domain.Actions):
         layer0_repo: interface.Layer0Repository,
         layer1_repo: interface.Layer1Repository,
         queue_repo: interface.QueueRepository,
+        authenticator: auth.Authenticator,
         # remove this when actions are split
         storage_config: postgres.PgStorageConfig,
         logger: structlog.stdlib.BoundLogger,
@@ -44,6 +46,7 @@ class Actions(domain.Actions):
         self._layer1_repo = layer1_repo
         self._queue_repo = queue_repo
         self._storage_config = storage_config
+        self._authenticator = authenticator
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
@@ -238,3 +241,11 @@ class Actions(domain.Actions):
             )
 
         return domain_model.AddDataResponse()
+
+    def login(self, r: domain_model.LoginRequest) -> domain_model.LoginResponse:
+        token, is_authenticated = self._authenticator.login(r.username, r.password)
+
+        if not is_authenticated:
+            raise new_unauthorized_error("invalid username or password")
+
+        return domain_model.LoginResponse(token=token)

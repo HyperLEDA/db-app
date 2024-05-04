@@ -31,6 +31,8 @@ async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     """---
     summary: New bibliographic entry
     description: Creates new bibliographic entry in the database.
+    security:
+        - TokenAuth: []
     tags: [admin, source]
     requestBody:
         content:

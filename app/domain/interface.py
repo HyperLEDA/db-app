@@ -43,3 +43,7 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, r: model.AddDataRequest) -> model.AddDataResponse:
         raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def login(self, r: model.LoginRequest) -> model.LoginResponse:
+        raise NotImplementedError("not implemented")

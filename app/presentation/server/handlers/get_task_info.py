@@ -31,6 +31,8 @@ async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
     """---
     summary: Get information about the task
     description: Retrieves information about the task using its id.
+    security:
+        - TokenAuth: []
     tags: [tasks, admin]
     parameters:
       - in: query
