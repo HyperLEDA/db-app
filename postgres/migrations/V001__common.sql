@@ -96,7 +96,23 @@ COMMENT ON COLUMN common.tokens.user_id IS 'Owner of the token' ;
 COMMENT ON COLUMN common.tokens.expiry_time IS 'Time after which token becomes invalid' ;
 COMMENT ON COLUMN common.tokens.active IS 'Is this token obsolete or not' ;
 
--- TODO: trigger on insert to disable all other tokens for the user
+CREATE OR REPLACE FUNCTION common.disable_other_tokens() RETURNS trigger
+  LANGUAGE plpgsql
+AS
+$$
+  BEGIN
+  UPDATE common.tokens
+  SET active = false
+  WHERE user_id = NEW.user_id
+  AND token <> NEW.token;
+  RETURN NEW;
+  END
+$$;
+
+CREATE TRIGGER tr_disable_other_tokens
+  AFTER INSERT ON common.tokens
+  FOR EACH ROW
+EXECUTE PROCEDURE common.disable_other_tokens();
 
 -----------------------------------------------
 --------- Observation Data Types --------------
