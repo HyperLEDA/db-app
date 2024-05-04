@@ -22,10 +22,10 @@ class NoopAuthenticator(interface.Authenticator):
 class PostgresAuthenticator(interface.Authenticator):
     """
     Authenticates users and stores authentication data in Postgres database.
-    Default token lifetime is 30 days.
+    Default token lifetime is 14 days.
     """
 
-    def __init__(self, storage: postgres.PgStorage, token_lifetime_seconds: int = 30 * 24 * 60 * 60):
+    def __init__(self, storage: postgres.PgStorage, token_lifetime_seconds: int = 14 * 24 * 60 * 60):
         self._storage = storage
         self._storage.register_type(user.Role, "common.user_role")
         self.token_lifetime = token_lifetime_seconds
