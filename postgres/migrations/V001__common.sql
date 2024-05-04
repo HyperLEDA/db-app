@@ -74,15 +74,13 @@ CREATE TABLE common.users (
 , name	text	NOT NULL
 , email	text	NOT NULL	UNIQUE
 , role common.user_role NOT NULL
-, salt  text  NOT NULL
-, password_hash  text  NOT NULL
+, password_hash  bytea  NOT NULL
 );
 
 COMMENT ON TABLE common.users IS 'User list' ;
 COMMENT ON COLUMN common.users.id IS 'User ID' ;
 COMMENT ON COLUMN common.users.name IS 'Full name' ;
 COMMENT ON COLUMN common.users.email IS 'User email' ;
-COMMENT ON COLUMN common.users.salt IS 'Salt for user''s password to make it harder to crack' ;
 COMMENT ON COLUMN common.users.password_hash IS 'Hash of the user password glued with salt' ;
 
 CREATE TABLE common.tokens (
@@ -98,7 +96,7 @@ COMMENT ON COLUMN common.tokens.user_id IS 'Owner of the token' ;
 COMMENT ON COLUMN common.tokens.expiry_time IS 'Time after which token becomes invalid' ;
 COMMENT ON COLUMN common.tokens.active IS 'Is this token obsolete or not' ;
 
-
+-- TODO: trigger on insert to disable all other tokens for the user
 
 -----------------------------------------------
 --------- Observation Data Types --------------

@@ -31,7 +31,7 @@ def start(config_path: str):
     layer1_repo = repositories.Layer1Repository(pg_storage, logger)
     queue_repo = repositories.QueueRepository(redis_storage, cfg.storage, logger)
 
-    authenticator = auth.NoopAuthenticator()
+    authenticator = auth.PostgresAuthenticator(pg_storage)
 
     actions = usecases.Actions(
         common_repo,
