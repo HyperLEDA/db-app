@@ -3,6 +3,7 @@ apispec
 apispec-webframeworks
 astropy
 astroquery
+bcrypt
 click
 datamodel-code-generator
 jinja2

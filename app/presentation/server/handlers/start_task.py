@@ -30,6 +30,8 @@ async def start_task_handler(actions: domain.Actions, r: web.Request) -> Any:
     """---
     summary: Start processing task
     description: Starts background task.
+    security:
+        - TokenAuth: []
     tags: [admin, tasks]
     requestBody:
         content:

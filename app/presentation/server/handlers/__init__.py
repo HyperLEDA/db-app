@@ -6,6 +6,7 @@ from app.presentation.server.handlers import (
     get_source,
     get_source_list,
     get_task_info,
+    login,
     ping,
     search_catalogs,
     start_task,
@@ -22,4 +23,5 @@ routes = [
     get_task_info.description,
     create_table.description,
     add_data.description,
+    login.description,
 ]

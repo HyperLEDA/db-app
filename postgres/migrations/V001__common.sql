@@ -29,7 +29,7 @@ COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object list of Principal Gala
 -- Помимо ссылок на литературу содержит ID работ, которые выполняются в рамках Леда, а также на частные сообщения
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
--- bibcode references the ADS databse: https://ui.adsabs.harvard.edu/
+-- bibcode references the ADS database: https://ui.adsabs.harvard.edu/
 , bibcode	char(19)	UNIQUE	CHECK ( bibcode~'^(1[89]|20)[0-9]{2}[A-Za-z.]{5}[A-Za-z0-9.]{4}[ELPQ-Z0-9.][0-9.]{4}[A-Z]$' )
 , year	smallint	NOT NULL	CHECK (year>=1800 and extract(year from now())>=year)
 , author	text[]	CHECK (array_length(author,1)>=1 and author[1] IS NOT NULL and author[1]!~'^ *$' and author[1]!~'^ +' and author[1]!~' +$' )
@@ -64,20 +64,55 @@ COMMENT ON COLUMN common.obsoleted.modification_time	IS 'Timestamp when the reco
 
 
 
-
 -----------------------------------------------------------
 --------- User --------------------------------------------
+CREATE TYPE common.user_role AS ENUM('admin');
+
 CREATE TABLE common.users (
   id	serial	PRIMARY KEY
-, name	text	NOT NULL	UNIQUE
+, login text  NOT NULL  UNIQUE
+, name	text	NOT NULL
 , email	text	NOT NULL	UNIQUE
+, role common.user_role NOT NULL
+, password_hash  bytea  NOT NULL
 );
 
 COMMENT ON TABLE common.users IS 'User list' ;
 COMMENT ON COLUMN common.users.id IS 'User ID' ;
 COMMENT ON COLUMN common.users.name IS 'Full name' ;
 COMMENT ON COLUMN common.users.email IS 'User email' ;
+COMMENT ON COLUMN common.users.password_hash IS 'Hash of the user password glued with salt' ;
 
+CREATE TABLE common.tokens (
+  token text PRIMARY KEY
+, user_id integer NOT NULL REFERENCES common.users(id)
+, expiry_time timestamp without time zone NOT NULL
+, active bool DEFAULT 'true'
+);
+
+COMMENT ON TABLE common.tokens IS 'List of access tokens' ;
+COMMENT ON COLUMN common.tokens.token IS 'Value of the token, usually - randomly generated string' ;
+COMMENT ON COLUMN common.tokens.user_id IS 'Owner of the token' ;
+COMMENT ON COLUMN common.tokens.expiry_time IS 'Time after which token becomes invalid' ;
+COMMENT ON COLUMN common.tokens.active IS 'Is this token obsolete or not' ;
+
+CREATE OR REPLACE FUNCTION common.disable_other_tokens() RETURNS trigger
+  LANGUAGE plpgsql
+AS
+$$
+  BEGIN
+  UPDATE common.tokens
+  SET active = false
+  WHERE user_id = NEW.user_id
+  AND token != NEW.token;
+  RETURN NEW;
+  END
+$$;
+
+CREATE TRIGGER tr_disable_other_tokens
+  AFTER INSERT ON common.tokens
+  FOR EACH ROW
+EXECUTE PROCEDURE common.disable_other_tokens();
 
 -----------------------------------------------
 --------- Observation Data Types --------------
@@ -90,6 +125,8 @@ COMMENT ON TYPE common.datatype IS '{
   "preliminary": "Preliminary results",
   "compilation": "Compilation of data from literature"
 }';
+
+
 
 -----------------------------------------------------------
 --------- Tasks -------------------------------------------
@@ -143,10 +180,11 @@ CREATE TRIGGER tr_set_task_end_time
 EXECUTE PROCEDURE common.set_task_times();
 
 
+
 -----------------------------------------------
 --------- Data Quality ------------------------
 CREATE TYPE common.quality AS ENUM ('ok', 'lowsnr', 'sus', '>', '<', 'wrong' ) ;
-COMMENT ON TYPE common.quality IS 'Data quality: ok = reguliar measurement; lowsnr = low signal-to-noise; sus = suspected measurement; > = lower limit; < = upper limit; worng = wrong measurement' ;
+COMMENT ON TYPE common.quality IS 'Data quality: ok = regular measurement; lowsnr = low signal-to-noise; sus = suspected measurement; > = lower limit; < = upper limit; wrong = wrong measurement' ;
 
 -- CREATE TABLE common.quality (
 --   id	common.quality	PRIMARY KEY
@@ -165,6 +203,7 @@ COMMENT ON TYPE common.quality IS 'Data quality: ok = reguliar measurement; lows
 -- , ( 4 , 'Upper limit' )
 -- , ( 5 , 'Wrong measurement' )
 -- ;
+
 
 
 ------------------------------------------------

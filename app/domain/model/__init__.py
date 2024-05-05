@@ -1,3 +1,4 @@
+from app.domain.model.auth import *
 from app.domain.model.object import *
 from app.domain.model.pipeline import *
 from app.domain.model.source import *

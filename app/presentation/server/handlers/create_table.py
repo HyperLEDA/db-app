@@ -48,6 +48,8 @@ async def create_table_handler(actions: domain.Actions, r: web.Request) -> Any:
     summary: Create table with unprocessed data
     description: Describes schema of the table without any data.
     tags: [admin, table]
+    security:
+        - TokenAuth: []
     requestBody:
         content:
             application/json:

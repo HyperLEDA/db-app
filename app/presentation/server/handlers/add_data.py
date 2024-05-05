@@ -34,6 +34,8 @@ async def add_data_handler(actions: domain.Actions, r: web.Request) -> Any:
     """---
     summary: Add new raw data to the table
     description: Inserts new data to the table.
+    security:
+        - TokenAuth: []
     tags: [admin, table]
     requestBody:
         content:

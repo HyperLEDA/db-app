@@ -27,6 +27,7 @@ nav:
       - Установка окружения: dev/environment.ru.md
       - Внесение изменений: dev/change.ru.md
       - Документация: dev/documentation.ru.md
+      - Авторизация в API: dev/login.ru.md
       - Диаграмма системы: dev/system_diagram.ru.md
 
 plugins:
