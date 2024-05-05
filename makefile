@@ -2,7 +2,7 @@ PYTHON := python
 
 .PHONY: docs
 
-all: generate-client test
+all: test
 
 ## General targets
 install:
@@ -32,16 +32,11 @@ build-docs:
 	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
 	$(PYTHON) -m mkdocs build
 
-generate-client:
-	$(PYTHON) main.py generate-spec -o client/gen/swagger.json
-	datamodel-codegen --input client/gen/swagger.json --output client/gen/model.py --output-model-type dataclasses.dataclass --input-file-type openapi
-	make fix-unsafe
-
 ## Testing
 
 test: check test-unit
 
-test-all: generate-client check test-unit test-integration
+test-all: check test-unit test-integration
 
 test-extra: mypy
 
