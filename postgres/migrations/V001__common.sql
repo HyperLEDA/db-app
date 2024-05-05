@@ -104,7 +104,7 @@ $$
   UPDATE common.tokens
   SET active = false
   WHERE user_id = NEW.user_id
-  AND token <> NEW.token;
+  AND token != NEW.token;
   RETURN NEW;
   END
 $$;
