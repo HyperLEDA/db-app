@@ -5,18 +5,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<link href="https://hyperleda.github.io/db-app/openapi/" rel="canonical"/>
-<link href=".." rel="prev"/>
-<link href="../dev/environment.ru/" rel="next"/>
-<link href="../assets/images/favicon.png" rel="icon"/>
+<link href="https://hyperleda.github.io/db-app/dev/login.ru/" rel="canonical"/>
+<link href="../documentation.ru/" rel="prev"/>
+<link href="../system_diagram.ru/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.0, mkdocs-material-9.5.21" name="generator"/>
-<title>Документация API - HyperLeda documentation</title>
-<link href="../assets/stylesheets/main.66ac8b77.min.css" rel="stylesheet"/>
-<link href="../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<title>Авторизация в API - HyperLeda documentation</title>
+<link href="../../assets/stylesheets/main.66ac8b77.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
 </head>
 <body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
@@ -28,7 +28,7 @@
 </div>
 <header class="md-header md-header--shadow" data-md-component="header">
 <nav aria-label="Header" class="md-header__inner md-grid">
-<a aria-label="HyperLeda documentation" class="md-header__button md-logo" data-md-component="logo" href=".." title="HyperLeda documentation">
+<a aria-label="HyperLeda documentation" class="md-header__button md-logo" data-md-component="logo" href="../.." title="HyperLeda documentation">
 <svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"></path></svg>
 </a>
 <label class="md-header__button md-icon" for="__drawer">
@@ -44,7 +44,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Документация API
+              Авторизация в API
             
           </span>
 </div>
@@ -115,7 +115,7 @@
 <div class="md-sidebar__inner">
 <nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
 <label class="md-nav__title" for="__drawer">
-<a aria-label="HyperLeda documentation" class="md-nav__button md-logo" data-md-component="logo" href=".." title="HyperLeda documentation">
+<a aria-label="HyperLeda documentation" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="HyperLeda documentation">
 <svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"></path></svg>
 </a>
     HyperLeda documentation
@@ -132,9 +132,51 @@
 </div>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="..">
+<a class="md-nav__link" href="../..">
 <span class="md-ellipsis">
     Главная
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../openapi/">
+<span class="md-ellipsis">
+    Документация API
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Документация разработчика
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Документация разработчика
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../environment.ru/">
+<span class="md-ellipsis">
+    Установка окружения
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../change.ru/">
+<span class="md-ellipsis">
+    Внесение изменений
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../documentation.ru/">
+<span class="md-ellipsis">
+    Документация
   </span>
 </a>
 </li>
@@ -142,54 +184,12 @@
 <input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
 <a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
-    Документация API
-  </span>
-</a>
-</li>
-<li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
-<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-<span class="md-ellipsis">
-    Документация разработчика
-  </span>
-<span class="md-nav__icon md-icon"></span>
-</label>
-<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
-<label class="md-nav__title" for="__nav_3">
-<span class="md-nav__icon md-icon"></span>
-            Документация разработчика
-          </label>
-<ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="../dev/environment.ru/">
-<span class="md-ellipsis">
-    Установка окружения
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../dev/change.ru/">
-<span class="md-ellipsis">
-    Внесение изменений
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../dev/documentation.ru/">
-<span class="md-ellipsis">
-    Документация
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../dev/login.ru/">
-<span class="md-ellipsis">
     Авторизация в API
   </span>
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../dev/system_diagram.ru/">
+<a class="md-nav__link" href="../system_diagram.ru/">
 <span class="md-ellipsis">
     Диаграмма системы
   </span>
@@ -213,8 +213,27 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1>Документация API</h1>
-<p><iframe class="swagger-ui-iframe" frameborder="0" id="21db05b0" src="swagger-21db05b0.html" style="overflow:hidden;width:100%;" width="100%"></iframe></p>
+<h1>Авторизация в API</h1>
+<p>Авторизация в веб-сервисе Hyperleda происходит стандартным способом при помощи механизма Bearer token.
+Более подробное описание можно посмотреть, например, <a href="https://www.devopsschool.com/blog/what-is-bearer-token-and-how-it-works/">тут</a>, но базово принцип следующий:</p>
+<ol>
+<li>
+<p>Имея на руках логин и пароль, вызвать метод API <code>/api/v1/login</code>. В случае корректного пароля метод вернёт токен авторизации - строку случайных символов (например, <code>1bb7ed073572d0f3057ade25d7a50b04</code>), подтверждающую, что вы - это вы. Пример:
+    <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>&gt;<span class="w"> </span>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">'POST'</span><span class="w"> </span><span class="s1">'http://localhost:8000/api/v1/login'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>-d<span class="w"> </span><span class="s1">'{"username": "myusername", "password": "mypassword"}'</span>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="o">{</span><span class="s2">"data"</span>:<span class="w"> </span><span class="o">{</span><span class="s2">"token"</span>:<span class="w"> </span><span class="s2">"bc5a996b69f7489f9218c02b2ed3b441"</span><span class="o">}}</span>%<span class="w">   </span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Эта строка далее передаётся в защищённые авторизацией методы API (все те, что начинаются с <code>/api/v1/admin</code>) в виде HTTP заголовка <code>Authorization</code> с префиксом <code>Bearer</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">'POST'</span><span class="w"> </span><span class="s1">'http://localhost:8000/api/v1/admin/task'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>-H<span class="w"> </span><span class="s1">'Authorization: Bearer bc5a996b69f7489f9218c02b2ed3b441'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>-d<span class="w"> </span><span class="s1">'{"task_name": "echo", "payload": {"sleep_time_seconds": 2}}'</span>
+</span></code></pre></div>
+</li>
+</ol>
+<p>Токен авторизации не вечен, а живёт 14 дней с момента создания (в дальнейшем это время может быть уменьшено для большей безопасности). В случае сгорания токена можно заново сделать пункт 1, в таком случае будет создан новый токен, который можно далее использовать так же. При создании нового токена все старые перестают быть активными и более не могут быть использованы.</p>
+<p>Для авторизации при работе через Swagger UI можно использовать кнопку авторизации в правом верхнем углу. Переданный туда токен будет автоматически проставляться в заголовок <code>Authorization</code> во всех запросах, требующих авторизации.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
@@ -238,8 +257,8 @@
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
-<script src="../assets/javascripts/bundle.a7c05c9e.min.js"></script>
+<script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../../assets/javascripts/bundle.a7c05c9e.min.js"></script>
 <script>document$.subscribe(() => {
             window.update_swagger_ui_iframe_height = function (id) {
                 var iFrameID = document.getElementById(id);
@@ -256,7 +275,7 @@
                 iframe_id_list.push(iframes[i].getAttribute("id"))
             }
         
-            let ticking = false;
+            let ticking = true;
             
             document.addEventListener('scroll', function(e) {
                 if (!ticking) {

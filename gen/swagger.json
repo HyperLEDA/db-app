@@ -28,6 +28,11 @@
       "post": {
         "summary": "New bibliographic entry",
         "description": "Creates new bibliographic entry in the database.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "tags": [
           "admin",
           "source"
@@ -218,6 +223,11 @@
       "post": {
         "summary": "Start processing task",
         "description": "Starts background task.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "tags": [
           "admin",
           "tasks"
@@ -252,6 +262,11 @@
       "get": {
         "summary": "Get information about the task",
         "description": "Retrieves information about the task using its id.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "tags": [
           "tasks",
           "admin"
@@ -290,6 +305,11 @@
       "post": {
         "summary": "Start processing task",
         "description": "Starts background task.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "tags": [
           "admin",
           "tasks"
@@ -330,6 +350,11 @@
           "admin",
           "table"
         ],
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -362,6 +387,11 @@
       "post": {
         "summary": "Add new raw data to the table",
         "description": "Inserts new data to the table.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
         "tags": [
           "admin",
           "table"
@@ -385,6 +415,41 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AddDataResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/login": {
+      "post": {
+        "summary": "Login user with username and password",
+        "description": "Gives user credentials for authentication in handlers",
+        "tags": [
+          "authentication"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User was successfully logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LoginResponseSchema"
                     }
                   }
                 }
@@ -836,6 +901,32 @@
       "AddDataResponseSchema": {
         "type": "object",
         "properties": {}
+      },
+      "LoginRequestSchema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password"
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "LoginResponseSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token used to authenticate user in handlers that require a specific role to access"
+          }
+        }
       }
     }
   }
