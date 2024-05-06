@@ -35,8 +35,9 @@ CREATE TABLE distance.calib (
 , bib	integer	NOT NULL	REFERENCES common.bib (id)	ON DELETE restrict	ON UPDATE cascade
 , relation	text	NOT NULL
 , description	text
+, UNIQUE (method,bib)
 ) ;
-CREATE INDEX ON distance.calib (method) ;
+
 
 COMMENT ON TABLE distance.calib	IS 'Distance method calibration' ;
 COMMENT ON COLUMN distance.calib.id	IS 'Calibration ID' ;
@@ -65,13 +66,23 @@ CREATE TABLE distance.data (
   id	serial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id)	ON DELETE restrict	ON UPDATE cascade
 , modulus	real	NOT NULL	CHECK (modulus>15 and modulus<40)
-, e_modulus	real	CHECK (e_modulus>0 and e_modulus<0.5)
+, em_modulus	real	CHECK (em_modulus>0 and em_modulus<0.5)
+, ep_modulus	real	CHECK (ep_modulus>0 and ep_modulus<0.5)
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
 , dataset	integer	NOT NULL	REFERENCES distance.dataset (id)	ON DELETE restrict	ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 , UNIQUE (pgc,dataset)
 ) ;
 
+COMMENT ON TABLE distance.data	IS 'Distance measurement catalog' ;
+COMMENT ON COLUMN distance.data.id	IS 'Measurement ID' ;
+COMMENT ON COLUMN distance.data.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN distance.data.modulus	IS 'Distance modulus [mag]' ;
+COMMENT ON COLUMN distance.data.em_modulus	IS 'Distance modulus minus error [mag]' ;
+COMMENT ON COLUMN distance.data.ep_modulus	IS 'Distance modulus plus error [mag]' ;
+COMMENT ON COLUMN distance.data.quality	IS 'Measurement quality' ;
+COMMENT ON COLUMN distance.data.dataset	IS 'Dataset ID' ;
+COMMENT ON COLUMN distance.data.modification_time	IS 'Timestamp when the record was added to the database' ;
 
 ---------- List of excluded measurements ----------
 CREATE TABLE distance.excluded (
@@ -94,7 +105,8 @@ SELECT
   d.id
 , d.pgc
 , d.modulus
-, d.e_modulus
+, d.em_modulus
+, d.ep_modulus
 , d.quality
 , d.dataset
 , ds.calib
@@ -117,7 +129,8 @@ COMMENT ON VIEW distance.list	IS 'Distance measurement catalog' ;
 COMMENT ON COLUMN distance.list.id	IS 'Measurement ID' ;
 COMMENT ON COLUMN distance.list.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN distance.list.modulus	IS 'Distance modulus [mag]' ;
-COMMENT ON COLUMN distance.list.e_modulus	IS 'Distance modulus error [mag]' ;
+COMMENT ON COLUMN distance.list.em_modulus	IS 'Distance modulus minus error [mag]' ;
+COMMENT ON COLUMN distance.list.ep_modulus	IS 'Distance modulus plus error [mag]' ;
 COMMENT ON COLUMN distance.list.quality	IS 'Measurement quality' ;
 COMMENT ON COLUMN distance.list.dataset	IS 'Dataset ID' ;
 COMMENT ON COLUMN distance.list.calib	IS 'Calibration ID' ;
