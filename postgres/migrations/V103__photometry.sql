@@ -68,11 +68,11 @@ COMMENT ON COLUMN photometry.dataset.src	IS 'Source table' ;
 CREATE TABLE photometry.data (
   id	bigserial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id )	ON DELETE restrict	ON UPDATE cascade
-, dataset	integer	NOT NULL	REFERENCES photometry.dataset (id)	ON DELETE restrict	ON UPDATE cascade
 , band	integer	NOT NULL	REFERENCES common.calibpassband (id)	ON DELETE restrict	ON UPDATE cascade
 , mag	real	NOT NULL	CHECK (mag>-1 and mag<30)
 , e_mag	real	CHECK (e_mag>0 and e_mag<0.5)
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
+, dataset	integer	NOT NULL	REFERENCES photometry.dataset (id)	ON DELETE restrict	ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 , UNIQUE (pgc,dataset,band)
 ) ;

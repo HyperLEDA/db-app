@@ -22,35 +22,112 @@ CREATE TABLE distance.method (
 ) ;
 
 COMMENT ON TABLE distance.method	IS 'List of distance determination methods' ;
-COMMENT ON COLUMN distance.id	IS 'Distance determination method ID' ;
-COMMENT ON COLUMN distance.class	IS 'Distance indicator class: direct, standard candle, standard ruler, standard siren' ;
-COMMENT ON COLUMN distance.short	IS 'Short description of the method' ;
-COMMENT ON COLUMN distance.short	IS 'Distance determination method description' ;
+COMMENT ON COLUMN distance.method.id	IS 'Distance determination method ID' ;
+COMMENT ON COLUMN distance.method.class	IS 'Distance indicator class: direct, standard candle, standard ruler, standard siren' ;
+COMMENT ON COLUMN distance.method.short	IS 'Short description of the method' ;
+COMMENT ON COLUMN distance.method.description	IS 'Distance determination method description' ;
+
+
+-------- Method calibration --------------
+CREATE TABLE distance.calib (
+  id	text	PRIMARY KEY
+, method	text	NOT NULL	REFERENCES distance.method (id)	ON DELETE restrict	ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib (id)	ON DELETE restrict	ON UPDATE cascade
+, relation	text	NOT NULL
+, description	text
+) ;
+CREATE INDEX ON distance.calib (method) ;
+
+COMMENT ON TABLE distance.calib	IS 'Distance method calibration' ;
+COMMENT ON COLUMN distance.calib.id	IS 'Calibration ID' ;
+COMMENT ON COLUMN distance.calib.method	IS 'Distance method ID' ;
+COMMENT ON COLUMN distance.calib.relation	IS 'Relation description' ;
+COMMENT ON COLUMN distance.calib.bib	IS 'Bibliography ID' ;
+COMMENT ON COLUMN distance.calib.description	IS 'Distance calibration description' ;
 
 
 -------- Distance Dataset -------------------------
 CREATE TABLE distance.dataset (
-  id    serial  PRIMARY KEY
-, src   integer REFERENCES rawdata.tables (id ) ON DELETE restrict ON UPDATE cascade
+  id	serial	PRIMARY KEY
+, calib	text	NOT NULL	REFERENCES distance.calib (id)	ON DELETE restrict	ON UPDATE cascade
+, src	integer	REFERENCES rawdata.tables (id)	ON DELETE restrict	ON UPDATE cascade
 ) ;
-CREATE INDEX ON distance.dataset (method) ;
+CREATE INDEX ON distance.dataset (calib) ;
 
-COMMENT ON TABLE distance.dataset     IS 'Dataset' ;
-COMMENT ON COLUMN distance.dataset.id IS 'Dataset ID' ;
-COMMENT ON COLUMN distance.dataset.src        IS 'Source table' ;
+COMMENT ON TABLE distance.dataset	IS 'Dataset' ;
+COMMENT ON COLUMN distance.dataset.id	IS 'Dataset ID' ;
+COMMENT ON COLUMN distance.dataset.calib	IS 'Calibration' ;
+COMMENT ON COLUMN distance.dataset.src	IS 'Source table' ;
 
 
 ---------- Distance data --------------------------
 CREATE TABLE distance.data (
   id	serial	PRIMARY KEY
 , pgc	integer	NOT NULL	REFERENCES common.pgc (id)	ON DELETE restrict	ON UPDATE cascade
-, dataset	integer	NOT NULL	REFERENCES distance.dataset (id)	ON DELETE restrict	ON UPDATE cascade
-, modulus	real	NOT NULL	CHECK (modulus>15 and mag<40)
+, modulus	real	NOT NULL	CHECK (modulus>15 and modulus<40)
 , e_modulus	real	CHECK (e_modulus>0 and e_modulus<0.5)
 , quality	common.quality	NOT NULL	DEFAULT 'ok'
+, dataset	integer	NOT NULL	REFERENCES distance.dataset (id)	ON DELETE restrict	ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
 , UNIQUE (pgc,dataset)
 ) ;
+
+
+---------- List of excluded measurements ----------
+CREATE TABLE distance.excluded (
+  id	integer	PRIMARY KEY	REFERENCES distance.data (id)	ON DELETE restrict	ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib (id)	ON DELETE restrict	ON UPDATE cascade
+, note	text	NOT NULL
+, modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
+) ;
+
+COMMENT ON TABLE distance.excluded	IS 'List of measurements excluded from consideration' ;
+COMMENT ON COLUMN distance.excluded.id	IS 'measurement ID' ;
+COMMENT ON COLUMN distance.excluded.bib	IS 'Bibliography reference where given measurement was marked as wrong' ;
+COMMENT ON COLUMN distance.excluded.note	IS 'Note on exclusion' ;
+COMMENT ON COLUMN distance.excluded.modification_time	IS 'Timestamp when the record was added to the database' ;
+
+
+---------- List of distance measurements ----------
+CREATE VIEW distance.list AS
+SELECT
+  d.id
+, d.pgc
+, d.modulus
+, d.e_modulus
+, d.quality
+, d.dataset
+, ds.calib
+, c.method
+, ds.src
+, t.bib
+, t.datatype
+, obsol.bib IS NULL and excl.id IS NULL	AS isok
+, greatest( d.modification_time, obsol.modification_time, excl.modification_time )	AS modification_time
+FROM
+  distance.data AS d
+  LEFT JOIN distance.dataset AS ds ON (ds.id=d.dataset)
+  LEFT JOIN distance.calib AS c ON (c.id=ds.calib)
+  LEFT JOIN rawdata.tables AS t ON (t.id=ds.src)
+  LEFT JOIN common.obsoleted AS obsol ON (obsol.bib=t.bib)
+  LEFT JOIN distance.excluded AS excl ON (excl.id=d.id)
+;
+
+COMMENT ON VIEW distance.list	IS 'Distance measurement catalog' ;
+COMMENT ON COLUMN distance.list.id	IS 'Measurement ID' ;
+COMMENT ON COLUMN distance.list.pgc	IS 'PGC number of the object' ;
+COMMENT ON COLUMN distance.list.modulus	IS 'Distance modulus [mag]' ;
+COMMENT ON COLUMN distance.list.e_modulus	IS 'Distance modulus error [mag]' ;
+COMMENT ON COLUMN distance.list.quality	IS 'Measurement quality' ;
+COMMENT ON COLUMN distance.list.dataset	IS 'Dataset ID' ;
+COMMENT ON COLUMN distance.list.calib	IS 'Calibration ID' ;
+COMMENT ON COLUMN distance.list.method	IS 'Distance measurement method' ;
+COMMENT ON COLUMN distance.list.src	IS 'Data source ID' ;
+COMMENT ON COLUMN distance.list.bib	IS 'Bibliography ID' ;
+COMMENT ON COLUMN distance.list.datatype	IS 'Data types: regular,reprocessing,preliminary,compilation' ;
+COMMENT ON COLUMN distance.list.isok	IS 'True if the measurement is actual and False if it is obsoleted or excluded' ;
+COMMENT ON COLUMN distance.list.modification_time	IS 'Timestamp when the record was added to the database' ;
+
 
 
 ---------- Methods --------------------------------
@@ -101,5 +178,6 @@ INSERT INTO distance.method (id,class,short,description) VALUES
 , ( 'Sosie' , 'standard candle' , 'Look-alike galaxies' , 'The method of look alike (sosie in French) is proposed by Paturel (1984, ApJ, 282, 382). It is based on the idea that galaxies with the same morphological type, the same inclination, and the same HI line width must to have the same absolute luminosity according to the TF relation.' )
 
 , ( 'GW'    , 'standard siren' , 'Gravitational Wave' , NULL )
+;
 
 COMMIT;
