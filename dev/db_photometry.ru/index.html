@@ -5,12 +5,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<link href="https://hyperleda.github.io/db-app/dev/login.ru/" rel="canonical"/>
-<link href="../documentation.ru/" rel="prev"/>
-<link href="../system_diagram.ru/" rel="next"/>
+<link href="https://hyperleda.github.io/db-app/dev/db_photometry.ru/" rel="canonical"/>
+<link href="../system_diagram.ru/" rel="prev"/>
 <link href="../../assets/images/favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.0, mkdocs-material-9.5.21" name="generator"/>
-<title>Авторизация в API - HyperLeda documentation</title>
+<title>Каталог фотометрии - HyperLeda documentation</title>
 <link href="../../assets/stylesheets/main.66ac8b77.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -23,6 +22,9 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
+<a class="md-skip" href="#_1">
+          Skip to content
+        </a>
 </div>
 <div data-md-component="announce">
 </div>
@@ -44,7 +46,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Авторизация в API
+              Каталог фотометрии
             
           </span>
 </div>
@@ -145,15 +147,15 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
 <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
 <span class="md-ellipsis">
     Документация разработчика
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_3">
 <span class="md-nav__icon md-icon"></span>
             Документация разработчика
@@ -180,9 +182,8 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../login.ru/">
 <span class="md-ellipsis">
     Авторизация в API
   </span>
@@ -198,26 +199,76 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<li class="md-nav__item md-nav__item--active md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
 <span class="md-ellipsis">
     Описание каталогов в БД
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="true" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_4">
 <span class="md-nav__icon md-icon"></span>
             Описание каталогов в БД
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="../db_photometry.ru/">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Каталог фотометрии
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     Каталог фотометрии
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#photometry">
+<span class="md-ellipsis">
+      Photometry
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geometry">
+<span class="md-ellipsis">
+      Geometry
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#equivcircle">
+<span class="md-ellipsis">
+      equivCircle
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#aperture">
+<span class="md-ellipsis">
+      Aperture
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#isophote">
+<span class="md-ellipsis">
+      Isophote
+    </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 </ul>
 </nav>
@@ -231,33 +282,91 @@
 <div class="md-sidebar__scrollwrap">
 <div class="md-sidebar__inner">
 <nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#photometry">
+<span class="md-ellipsis">
+      Photometry
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geometry">
+<span class="md-ellipsis">
+      Geometry
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#equivcircle">
+<span class="md-ellipsis">
+      equivCircle
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#aperture">
+<span class="md-ellipsis">
+      Aperture
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#isophote">
+<span class="md-ellipsis">
+      Isophote
+    </span>
+</a>
+</li>
+</ul>
 </nav>
 </div>
 </div>
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1>Авторизация в API</h1>
-<p>Авторизация в веб-сервисе Hyperleda происходит стандартным способом при помощи механизма Bearer token.
-Более подробное описание можно посмотреть, например, <a href="https://www.devopsschool.com/blog/what-is-bearer-token-and-how-it-works/">тут</a>, но базово принцип следующий:</p>
+<h1 id="_1">Каталог фотометрии галактик<a class="headerlink" href="#_1" title="Permanent link">#</a></h1>
+<p>Данный каталог содержит основные фотометрические и геометрические характеристики, получаемые при фотометрии галактик. Он состоит из нескольких схем, отражающих особенности фотометрии протяженных объектов.</p>
+<h2 id="photometry">Photometry<a class="headerlink" href="#photometry" title="Permanent link">#</a></h2>
+<p>Таблитца <code>photometry.data</code> содержит данные о полной, total, звездной величине объекта, полученные следующими методами:</p>
+<ul>
+<li><code>PSF</code> фотометрия для точечных источников (звезды)</li>
+<li><code>Total</code> - асимптотическая звездная величина, экстраполированная на бесконечность фотометрическая кривая роста галактики</li>
+<li><code>Model</code> - полная звездная величина модели распределения яркости в объекте</li>
+<li><code>Kron</code>, <code>Petro</code> - адаптивные апертурные величины по методу Крона или Петросяна</li>
+</ul>
+<h2 id="geometry">Geometry<a class="headerlink" href="#geometry" title="Permanent link">#</a></h2>
+<p>Глобальные свойства распределения света в первом приближении описывается эллипсом с большими осями <code>a</code>, <code>b</code> и позиционным углом <code>pa</code>.
+Геометрия объекта определяется непосредственно из распределения яркости в исследуемой галактике, из которых определяются положение центра, вторые моменты распределения яркости и другие характеристики.</p>
 <ol>
-<li>
-<p>Имея на руках логин и пароль, вызвать метод API <code>/api/v1/login</code>. В случае корректного пароля метод вернёт токен авторизации - строку случайных символов (например, <code>1bb7ed073572d0f3057ade25d7a50b04</code>), подтверждающую, что вы - это вы. Пример:
-    <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>&gt;<span class="w"> </span>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">'POST'</span><span class="w"> </span><span class="s1">'http://localhost:8000/api/v1/login'</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>-d<span class="w"> </span><span class="s1">'{"username": "myusername", "password": "mypassword"}'</span>
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="o">{</span><span class="s2">"data"</span>:<span class="w"> </span><span class="o">{</span><span class="s2">"token"</span>:<span class="w"> </span><span class="s2">"bc5a996b69f7489f9218c02b2ed3b441"</span><span class="o">}}</span>%<span class="w">   </span>
-</span></code></pre></div></p>
+<li>Таблица <code>geometry.ellipse</code> предназначена для хранения эллипсов, полученных следующими методами:<ul>
+<li><code>Sigma</code> - дисперсия распределения света вдоль большой и малой осей галактики, как это определяется в <a href="https://sextractor.readthedocs.io/en/latest/Position.html">SExtractor</a></li>
+<li><code>Kron</code> - первый момент распределения света, так называемый Кроновский радиус <a href="https://ui.adsabs.harvard.edu/abs/1980ApJS...43..305K/abstract">Kron's first moment</a> (см. так же документацию <a href="https://sextractor.readthedocs.io/en/latest/Photom.html#automatic-aperture-flux-flux-auto">SExtractor</a>)</li>
+<li><code>Petro</code> - радиус Петросяна, связывающий среднюю и локальные поверхностные яркости <a href="https://ui.adsabs.harvard.edu/abs/1980ApJS...43..305K/abstract">Petrosian radius</a> (см. так же документацию <a href="https://sextractor.readthedocs.io/en/latest/Photom.html#petrosian-aperture-flux-flux-petro">SExtractor</a>)</li>
+</ul>
 </li>
-<li>
-<p>Эта строка далее передаётся в защищённые авторизацией методы API (все те, что начинаются с <code>/api/v1/admin</code>) в виде HTTP заголовка <code>Authorization</code> с префиксом <code>Bearer</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">'POST'</span><span class="w"> </span><span class="s1">'http://localhost:8000/api/v1/admin/task'</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>-H<span class="w"> </span><span class="s1">'Authorization: Bearer bc5a996b69f7489f9218c02b2ed3b441'</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>-d<span class="w"> </span><span class="s1">'{"task_name": "echo", "payload": {"sleep_time_seconds": 2}}'</span>
-</span></code></pre></div>
-</li>
+<li>Таблица <code>geometry.fluxLevelEllipse</code> описывает эллипс внутри которого собрана определенная доля полного потока галактики.
+Наиболее распростаненным является так называемый эффективный размер или размер половины светимости - эллипс внутри которого собрано 50% света объекта.
+Данные напрямую связываются с соответствующей оценкой полной звездной величины в таблице <code>photometry.data</code>.</li>
 </ol>
-<p>Токен авторизации не вечен, а живёт 14 дней с момента создания (в дальнейшем это время может быть уменьшено для большей безопасности). В случае сгорания токена можно заново сделать пункт 1, в таком случае будет создан новый токен, который можно далее использовать так же. При создании нового токена все старые перестают быть активными и более не могут быть использованы.</p>
-<p>Для авторизации при работе через Swagger UI можно использовать кнопку авторизации в правом верхнем углу. Переданный туда токен будет автоматически проставляться в заголовок <code>Authorization</code> во всех запросах, требующих авторизации.</p>
+<p>Представление <code>geometry.data</code> объединяет информацию из этих двух таблиц.</p>
+<h2 id="equivcircle">equivCircle<a class="headerlink" href="#equivcircle" title="Permanent link">#</a></h2>
+<p>Схема <code>equivCircle</code> предназначена для описания галактик эквивалентным размером, соответствующему. диаметру круга площади равной исследуемому объекту.
+Как и в случае схемы <code>geometry</code>, информация собирается в двух таблицах:</p>
+<ol>
+<li><code>equivCircle.circle</code> - предназначена для оценок, сделанных методами <code>Sigma</code>, <code>Kron</code> и <code>Petro</code></li>
+<li><code>equivCircle.fluxLevelCircle</code> - круг внутри которого собрана определенная доля полного потока галактики. Данные напрямую связываются с соответствующей оценкой полной звездной величины в таблице <code>photometry.data</code>.</li>
+</ol>
+<p>Представление <code>equivCircle.data</code> объединяет информацию из этих двух таблиц.</p>
+<h2 id="aperture">Aperture<a class="headerlink" href="#aperture" title="Permanent link">#</a></h2>
+<p>Схема <code>aperture</code> собирает фотометрию, выполненную в круговых, <code>aperture.circle</code>, или эллиптических, <code>aperture.ellipse</code>, апертурах. 
+Представление <code>aperture.data</code> объединяет информацию из этих двух таблиц.</p>
+<h2 id="isophote">Isophote<a class="headerlink" href="#isophote" title="Permanent link">#</a></h2>
+<p>Схема <code>isophote</code> предназначена для сбора данных об изофотной фотометрии галактик, т.е. потоках внутри данной изофоты и эллиптическом приближении формы данной изофоты.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
