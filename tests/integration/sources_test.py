@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import structlog
 
@@ -27,7 +28,19 @@ class SourcesTest(unittest.TestCase):
     def tearDown(self):
         self.storage.clear()
 
-    def test_create_one_source_success(self):
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_create_one_source_success(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "1992ApJ...400L...1W",
+                    "author": ["Test author et al."],
+                    "pubdate": "2000",
+                    "title": ["Test research"],
+                }
+            ]
+        )
+        
         create_response = self.actions.create_source(
             model.CreateSourceRequest(
                 bibcode="1992ApJ...400L...1W",
@@ -43,7 +56,19 @@ class SourcesTest(unittest.TestCase):
         self.assertEqual(get_response.year, 2000)
         self.assertEqual(get_response.title, "Test research")
 
-    def test_create_two_sources_duplicate(self):
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_create_two_sources_duplicate(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2000ApJ...400L...1W",
+                    "author": ["Test author et al."],
+                    "pubdate": "2000",
+                    "title": ["Test research"],
+                }
+            ]
+        )
+        
         _ = self.actions.create_source(
             model.CreateSourceRequest(
                 bibcode="2000ApJ...400L...1W",
@@ -67,6 +92,7 @@ class SourcesTest(unittest.TestCase):
         with self.assertRaises(Exception):
             _ = self.actions.get_source(model.GetSourceRequest(id=12321))
 
+    
     def test_get_list_first_page_full(self):
         for i in range(25):
             _ = self.actions.create_source(
