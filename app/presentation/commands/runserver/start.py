@@ -46,15 +46,11 @@ def start(config_path: str):
     )
 
     try:
-<<<<<<< HEAD
-        server.start(cfg.server, authenticator, actions, logger)
-=======
         for variable in ["ADS_TOKEN"]:
             if not os.getenv(variable):
                 raise RuntimeError(f"Environment variable {variable} is not set")
 
-        server.start(cfg.server, actions, logger)
->>>>>>> 8653283 (.gitignore + additional changes for create_source + change error type in start.py)
+        server.start(cfg.server, authenticator, actions, logger)
     except Exception as e:
         logger.exception(e)
     finally:
