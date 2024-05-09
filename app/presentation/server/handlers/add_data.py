@@ -1,12 +1,12 @@
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
+from app.presentation.server.handlers import common
 
 
 class AddDataRequestSchema(Schema):
@@ -30,14 +30,27 @@ class AddDataResponseSchema(Schema):
     pass
 
 
-@docs(
-    summary="Add new raw data to the table",
-    tags=["table", "admin"],
-    description="Inserts new data to the table.",
-)
-@request_schema(AddDataRequestSchema())
-@response_schema(AddDataResponseSchema(), 200)
 async def add_data_handler(actions: domain.Actions, r: web.Request) -> Any:
+    """---
+    summary: Add new raw data to the table
+    description: Inserts new data to the table.
+    security:
+        - TokenAuth: []
+    tags: [admin, table]
+    requestBody:
+        content:
+            application/json:
+                schema: AddDataRequestSchema
+    responses:
+        200:
+            description: Source was successfully created
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            data: AddDataResponseSchema
+    """
     request_dict = await r.json()
     try:
         request = AddDataRequestSchema().load(request_dict)
@@ -45,3 +58,12 @@ async def add_data_handler(actions: domain.Actions, r: web.Request) -> Any:
         raise new_validation_error(str(e)) from e
 
     return actions.add_data(request)
+
+
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/table/data",
+    add_data_handler,
+    AddDataRequestSchema,
+    AddDataResponseSchema,
+)

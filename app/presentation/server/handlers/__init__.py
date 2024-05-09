@@ -1,25 +1,27 @@
-from app.presentation.server.handlers.add_data import add_data_handler
-from app.presentation.server.handlers.create_source import create_source_handler
-from app.presentation.server.handlers.create_table import create_table_handler
-from app.presentation.server.handlers.debug_start_task import debug_start_task_handler
-from app.presentation.server.handlers.get_object_names import get_object_names_handler
-from app.presentation.server.handlers.get_source import get_source_handler
-from app.presentation.server.handlers.get_source_list import get_source_list_handler
-from app.presentation.server.handlers.get_task_info import get_task_info_handler
-from app.presentation.server.handlers.ping import ping_handler
-from app.presentation.server.handlers.search_catalogs import search_catalogs_handler
-from app.presentation.server.handlers.start_task import start_task_handler
+from app.presentation.server.handlers import (
+    add_data,
+    create_source,
+    create_table,
+    debug_start_task,
+    get_source,
+    get_source_list,
+    get_task_info,
+    login,
+    ping,
+    search_catalogs,
+    start_task,
+)
 
-__all__ = [
-    "add_data_handler",
-    "create_table_handler",
-    "create_source_handler",
-    "get_object_names_handler",
-    "get_source_handler",
-    "get_source_list_handler",
-    "ping_handler",
-    "search_catalogs_handler",
-    "start_task_handler",
-    "get_task_info_handler",
-    "debug_start_task_handler",
+routes = [
+    ping.description,
+    create_source.description,
+    get_source_list.description,
+    get_source.description,
+    search_catalogs.description,
+    start_task.description,
+    debug_start_task.description,
+    get_task_info.description,
+    create_table.description,
+    add_data.description,
+    login.description,
 ]

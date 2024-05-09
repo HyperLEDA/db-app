@@ -60,16 +60,22 @@ class PgStorage:
             self._connection.adapters.register_dumper(python_type, dumper)
 
         for python_type, pg_type in DEFAULT_ENUMS:
-            type_info = enum.EnumInfo.fetch(self._connection, pg_type)
-            if type_info is None:
-                raise RuntimeError(f"Unable to find enum {pg_type} in DB")
+            self.register_type(python_type, pg_type)
 
-            enum.register_enum(
-                type_info,
-                self._connection,
-                python_type,
-                mapping={m: m.value for m in python_type},
-            )
+    def register_type(self, enum_type: type[enum.Enum], pg_type: str) -> None:
+        if self._connection is None:
+            raise RuntimeError("did not connect to database")
+
+        type_info = enum.EnumInfo.fetch(self._connection, pg_type)
+        if type_info is None:
+            raise RuntimeError(f"Unable to find enum {pg_type} in DB")
+
+        enum.register_enum(
+            type_info,
+            self._connection,
+            enum_type,
+            mapping={m: m.value for m in enum_type},
+        )
 
     def with_tx(self) -> psycopg.Transaction:
         if self._connection is None:
@@ -124,7 +130,7 @@ class PgStorage:
     ) -> rows.DictRow:
         result = self.query(query, params=params, tx=tx)
 
-        if len(result) < 1:
-            raise new_database_error("was unable to fetch one value")
+        if len(result) != 1:
+            raise RuntimeError("was unable to fetch one value")
 
         return result[0]

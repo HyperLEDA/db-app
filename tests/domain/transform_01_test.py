@@ -1,9 +1,9 @@
 import unittest
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from pandas import DataFrame
 
-from app.domain.model import Layer0Model
+from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
@@ -13,6 +13,7 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseCoordinates,
     ParseValues,
 )
+from app.domain.repositories.layer_1_repository import Layer1Repository
 from app.domain.usecases import CrossIdentifyUseCase, TransformationO1UseCase
 from app.domain.usecases.exceptions import CrossIdentificationException
 
@@ -32,10 +33,26 @@ class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
         return 0
 
 
+class MockedLayer1Repo(Layer1Repository):
+    async def make_new_id(self) -> int:
+        return 0
+
+    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
+        return None
+
+    async def get_inside_square(
+        self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
+    ) -> list[Layer1Model]:
+        return []
+
+    def save_update_instances(self, instances: list[Layer1Model]) -> bool:
+        return True
+
+
 class Transform01Test(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         super().setUp()
-        self.transformation_use_case = TransformationO1UseCase(MockedCrossIdentifyUseCase())
+        self.transformation_use_case = TransformationO1UseCase(MockedCrossIdentifyUseCase(MockedLayer1Repo()))
 
     async def test_transform_general(self):
         data = Layer0Model(
@@ -122,8 +139,8 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
         _, fails = await self.transformation_use_case.invoke(data)
         self.assertEqual(len(fails), 2)
-        self.assertEqual(6, fails["speed_col"][1])
-        self.assertIsInstance(fails["cause"][0], ValueError)
+        self.assertEqual(5, fails[1].original_row)
+        self.assertIsInstance(fails[0].cause, ValueError)
 
     async def test_cross_identification_fails(self):
         data = Layer0Model(
@@ -172,5 +189,5 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
         )
         _, fails = await transaction_use_case.invoke(data)
         self.assertEqual(len(fails), 2)
-        self.assertIsInstance(fails["cause"][0], CrossIdentificationException)
-        self.assertIsInstance(fails["cause"][1], CrossIdentificationException)
+        self.assertIsInstance(fails[0].cause, CrossIdentificationException)
+        self.assertIsInstance(fails[1].cause, CrossIdentificationException)

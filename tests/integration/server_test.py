@@ -13,6 +13,10 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class ServerTest(unittest.TestCase):
+    """
+    Tests server startup.
+    """
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()

@@ -1,14 +1,17 @@
 aiohttp
-aiohttp_apispec
+apispec
+apispec-webframeworks
 astropy
 astroquery
+bcrypt
 click
+datamodel-code-generator
 jinja2
 marshmallow
 mypy
 mkdocs
-mkdocs-i18n
 mkdocs-material
+mkdocs-swagger-ui-tag
 pandas
 pandas-stubs
 parameterized
@@ -21,6 +24,7 @@ ruff
 rq
 setuptools
 structlog
+swagger-ui-py
 testcontainers-postgres
 testcontainers-redis
 types-psycopg2

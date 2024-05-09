@@ -1,29 +1,76 @@
 import dataclasses
 import datetime
 import json
+import warnings
 from functools import wraps
 from typing import Any, Awaitable, Callable
 
-import aiohttp_apispec
+import apispec
+import apispec.exceptions
 import structlog
+import swagger_ui
 from aiohttp import web
+from apispec.ext import marshmallow as apimarshmallow
+from apispec_webframeworks import aiohttp as apiaiohttp
 
 from app import domain
+from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
-from app.presentation.server import config
+from app.presentation.server import config, handlers
 
 
-def start(cfg: config.ServerConfig, actions: domain.Actions, logger: structlog.stdlib.BoundLogger):
-    app = web.Application(middlewares=[middleware.exception_middleware])
+def start(
+    cfg: config.ServerConfig,
+    authenticator: auth.Authenticator,
+    actions: domain.Actions,
+    logger: structlog.stdlib.BoundLogger,
+):
+    # silence warning from apispec since it is a desired behaviour in this case.
+    warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
 
-    for method, path, func in config.routes:
-        app.router.add_route(method, path, json_wrapper(actions, func))
+    middlewares = [middleware.exception_middleware]
 
-    aiohttp_apispec.setup_aiohttp_apispec(
-        app=app,
-        title="API specification for HyperLeda",
-        swagger_path=config.SWAGGER_UI_URL,
+    if cfg.auth_enabled:
+        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", authenticator))
+
+    app = web.Application(middlewares=middlewares)
+
+    spec = apispec.APISpec(
+        title="HyperLeda API specification",
+        version="1.0.0",
+        openapi_version="3.0.2",
+        plugins=[apimarshmallow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
+    )
+    spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
+
+    for route_description in handlers.routes:
+        route = app.router.add_route(
+            route_description.method.value,
+            route_description.endpoint,
+            json_wrapper(actions, route_description.handler),
+        )
+
+        if route_description.request_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(route_description.request_schema.__name__, schema=route_description.request_schema)
+        if route_description.response_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(route_description.response_schema.__name__, schema=route_description.response_schema)
+
+        spec.path(route=route)
+
+    swagger_ui.api_doc(
+        app,
+        config=spec.to_dict(),
+        url_prefix=config.SWAGGER_UI_URL,
+        title="HyperLeda API",
+        parameters={
+            "tryItOutEnabled": "true",
+            "filter": "true",
+            "displayRequestDuration": "true",
+            "showCommonExtensions": "true",
+            "requestSnippetsEnabled": "true",
+            "persistAuthorization": "true",
+        },
     )
 
     logger.info(

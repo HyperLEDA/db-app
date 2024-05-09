@@ -38,11 +38,14 @@ COMMENT ON TYPE rawdata.status IS '{
 -------- List of source data tables -----------------------
 CREATE TABLE rawdata.tables (
   id	serial	PRIMARY KEY
-, bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict ON UPDATE cascade
+, bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict	ON UPDATE cascade
 , table_name	text	NOT NULL	UNIQUE
 , datatype	common.datatype	NOT NULL
-, status	rawdata.status NOT NULL DEFAULT 'initiated'
+, status	rawdata.status	NOT NULL	DEFAULT 'initiated'
 );
+CREATE INDEX ON rawdata.tables (datatype) ;
+CREATE INDEX ON rawdata.tables (bib) ;
+CREATE INDEX ON rawdata.tables (table_name) ;
 
 COMMENT ON TABLE rawdata.tables IS 'List of original data tables' ;
 COMMENT ON COLUMN rawdata.tables.id IS 'Rawdata table ID' ;

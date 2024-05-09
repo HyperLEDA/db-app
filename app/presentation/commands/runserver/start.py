@@ -2,6 +2,7 @@ import structlog
 
 from app.data import repositories
 from app.domain import usecases
+from app.lib import auth
 from app.lib.storage import postgres, redis
 from app.presentation import server
 from app.presentation.commands.runserver import config
@@ -30,10 +31,20 @@ def start(config_path: str):
     layer1_repo = repositories.Layer1Repository(pg_storage, logger)
     queue_repo = repositories.QueueRepository(redis_storage, cfg.storage, logger)
 
-    actions = usecases.Actions(common_repo, layer0_repo, layer1_repo, queue_repo, cfg.storage, logger)
+    authenticator = auth.PostgresAuthenticator(pg_storage)
+
+    actions = usecases.Actions(
+        common_repo,
+        layer0_repo,
+        layer1_repo,
+        queue_repo,
+        authenticator,
+        cfg.storage,
+        logger,
+    )
 
     try:
-        server.start(cfg.server, actions, logger)
+        server.start(cfg.server, authenticator, actions, logger)
     except Exception as e:
         logger.exception(e)
     finally:

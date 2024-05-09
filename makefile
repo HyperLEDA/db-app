@@ -21,12 +21,15 @@ stop-db:
 	docker compose down
 
 docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
 	$(PYTHON) -m mkdocs serve -a localhost:8080
 
 deploy-docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
 	$(PYTHON) -m mkdocs gh-deploy
 
 build-docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
 	$(PYTHON) -m mkdocs build
 
 ## Testing

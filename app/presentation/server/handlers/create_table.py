@@ -1,13 +1,13 @@
 from typing import Any
 
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import domain
 from app.domain import model
 from app.lib.exceptions import new_validation_error
 from app.lib.storage import enums, mapping
+from app.presentation.server.handlers import common
 
 
 class ColumnDescriptionSchema(Schema):
@@ -43,14 +43,27 @@ class CreateTableResponseSchema(Schema):
     id = fields.Int(description="Output id of the table")
 
 
-@docs(
-    summary="Create table with unprocessed data",
-    tags=["table", "admin"],
-    description="Describes schema of the table without any data.",
-)
-@request_schema(CreateTableRequestSchema())
-@response_schema(CreateTableResponseSchema(), 200)
 async def create_table_handler(actions: domain.Actions, r: web.Request) -> Any:
+    """---
+    summary: Create table with unprocessed data
+    description: Describes schema of the table without any data.
+    tags: [admin, table]
+    security:
+        - TokenAuth: []
+    requestBody:
+        content:
+            application/json:
+                schema: CreateTableRequestSchema
+    responses:
+        200:
+            description: Table was successfully created
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateTableResponseSchema
+    """
     request_dict = await r.json()
     try:
         request = CreateTableRequestSchema().load(request_dict)
@@ -58,3 +71,12 @@ async def create_table_handler(actions: domain.Actions, r: web.Request) -> Any:
         raise new_validation_error(str(e)) from e
 
     return actions.create_table(request)
+
+
+description = common.HandlerDescription(
+    common.HTTPMethod.POST,
+    "/api/v1/admin/table",
+    create_table_handler,
+    CreateTableRequestSchema,
+    CreateTableResponseSchema,
+)
