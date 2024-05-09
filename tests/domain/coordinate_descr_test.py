@@ -1,10 +1,13 @@
 import unittest
 
+import structlog
 from astropy.coordinates import SkyCoord
 from pandas import DataFrame
 
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class ICRSDescrDescrTest(unittest.TestCase):
@@ -55,7 +58,7 @@ class ICRSDescrDescrTest(unittest.TestCase):
         cd = ICRSDescrStr("col1")
         df = DataFrame({"col1": self._data_examples_single})
         coords = cd.parse_coordinates(df)
-        print(coords)
+        logger.info(coords)
 
     def test_coordinates_two_col(self):
         cd = ICRSDescrStr("col1", "col2")
@@ -66,4 +69,4 @@ class ICRSDescrDescrTest(unittest.TestCase):
             }
         )
         coords = cd.parse_coordinates(df)
-        print(coords)
+        logger.info(coords)

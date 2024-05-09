@@ -7,12 +7,18 @@ services:
       POSTGRES_USER: "hyperleda"
       POSTGRES_PASSWORD: "password"
     ports:
-      - "5432:5432"
+      - "6432:5432"
     healthcheck:
       test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=password' -qtA -c 'select 1;' || exit 1
       timeout: 3s
       interval: 3s
       retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+       - "6379:6379"
+
   migrate:
     build: 
       dockerfile: postgres/dockerfile

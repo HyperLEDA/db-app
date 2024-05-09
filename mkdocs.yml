@@ -1,0 +1,50 @@
+site_name: HyperLeda documentation
+repo_url: https://github.com/HyperLEDA/db-app
+site_url: https://hyperleda.github.io/db-app/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+nav:
+  - Главная: index.md
+  - Документация API: openapi.md
+  - Документация разработчика:
+      - Установка окружения: dev/environment.ru.md
+      - Внесение изменений: dev/change.ru.md
+      - Документация: dev/documentation.ru.md
+      - Авторизация в API: dev/login.ru.md
+      - Диаграмма системы: dev/system_diagram.ru.md
+  - Описание каталогов в БД:
+      - Каталог фотометрии: dev/db_photometry.ru.md
+
+plugins:
+  - search
+  - swagger-ui-tag:
+      syntaxHighlightTheme: monokai
+      supportedSubmitMethods: []
+
+markdown_extensions:
+  - toc:
+      permalink: "#"
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

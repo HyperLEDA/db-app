@@ -42,10 +42,6 @@ class ValueDescr(ABC):
     def column_name(self) -> str:
         return self._column_name
 
-    @property
-    def units(self):
-        return self._units
-
     @column_name.getter
     def units(self) -> str:
         return self._units

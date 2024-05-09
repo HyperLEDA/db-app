@@ -1,3 +1,5 @@
+/* pgmigrate-encoding: utf-8 */
+
 BEGIN ;
 
 DROP SCHEMA IF EXISTS meta CASCADE;
@@ -19,7 +21,7 @@ WITH
     table_schema	AS schema_name
   , table_name
   , column_name
-  , pg_catalog.col_description( format('%s.%s',table_schema,table_name)::regclass, ordinal_position )::text	AS str_comment
+  , pg_catalog.col_description(concat(table_schema, '.', table_name)::regclass::oid, ordinal_position)::text	AS str_comment
   FROM 
     information_schema.columns
   WHERE
@@ -53,7 +55,7 @@ WITH
   SELECT
     table_schema	AS schema_name
   , table_name
-  , pg_catalog.obj_description(format('%s.%s',table_schema,table_name)::regclass, 'pg_class')::text	AS str_comment
+  , pg_catalog.obj_description(concat(table_schema, '.', table_name)::regclass, 'pg_class')::text	AS str_comment
   FROM 
     information_schema.tables
   WHERE
@@ -116,7 +118,7 @@ AS $$
   DECLARE
     str_comment text := param::text ;
   BEGIN
-    EXECUTE format( 'COMMENT ON COLUMN %I.%I.%I IS %L', schema_name, table_name, column_name, str_comment ) ;
+    EXECUTE concat('COMMENT ON COLUMN ', schema_name, '.', table_name, '.', column_name, ' IS ''', str_comment, '''');
   END ;
 $$  LANGUAGE plpgsql COST 100 VOLATILE STRICT PARALLEL UNSAFE
 ;
@@ -138,9 +140,10 @@ AS $$
       and c.relname=table_name
     ;
 
-    CASE WHEN TabType='r' THEN EXECUTE format( 'COMMENT ON TABLE %I.%I IS %L', schema_name, table_name, str_comment ) ;
-         WHEN TabType='v' THEN EXECUTE format( 'COMMENT ON VIEW %I.%I IS %L', schema_name, table_name, str_comment ) ;
-         WHEN TabType='m' THEN EXECUTE format( 'COMMENT ON MATERIALIZED VIEW %I.%I IS %L', schema_name, table_name, str_comment ) ;
+    CASE WHEN TabType='r' THEN EXECUTE concat('COMMENT ON TABLE ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
+         WHEN TabType='v' THEN EXECUTE concat('COMMENT ON VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
+         WHEN TabType='m' THEN EXECUTE concat('COMMENT ON MATERIALIZED VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
+    ELSE
     END CASE;
   END ;
 $$  LANGUAGE plpgsql COST 100 VOLATILE STRICT PARALLEL UNSAFE

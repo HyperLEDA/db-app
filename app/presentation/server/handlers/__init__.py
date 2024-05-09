@@ -1,21 +1,27 @@
-from app.presentation.server.handlers.create_object import create_object
-from app.presentation.server.handlers.create_objects import create_objects
-from app.presentation.server.handlers.create_source import create_source
-from app.presentation.server.handlers.get_object_names import get_object_names
-from app.presentation.server.handlers.get_source import get_source
-from app.presentation.server.handlers.get_source_list import get_source_list
-from app.presentation.server.handlers.ping import ping
-from app.presentation.server.handlers.pipeline.choose_table import choose_table
-from app.presentation.server.handlers.pipeline.search_catalogs import search_catalogs
+from app.presentation.server.handlers import (
+    add_data,
+    create_source,
+    create_table,
+    debug_start_task,
+    get_source,
+    get_source_list,
+    get_task_info,
+    login,
+    ping,
+    search_catalogs,
+    start_task,
+)
 
-__all__ = [
-    "create_object",
-    "create_objects",
-    "create_source",
-    "get_object_names",
-    "get_source",
-    "get_source_list",
-    "ping",
-    "search_catalogs",
-    "choose_table",
+routes = [
+    ping.description,
+    create_source.description,
+    get_source_list.description,
+    get_source.description,
+    search_catalogs.description,
+    start_task.description,
+    debug_start_task.description,
+    get_task_info.description,
+    create_table.description,
+    add_data.description,
+    login.description,
 ]
