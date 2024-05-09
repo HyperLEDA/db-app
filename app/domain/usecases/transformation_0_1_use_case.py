@@ -1,9 +1,6 @@
 import uuid
 from typing import Callable, Optional
 
-import pandas as pd
-from pandas import DataFrame
-
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
 from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
@@ -75,7 +72,7 @@ class TransformationO1UseCase:
         # compile objects
         models = []
         fails = []
-        for i in range(0, n_rows):
+        for i in range(n_rows):
             coordinate, obj_id = (coordinates[i], obj_ids[i])
             if isinstance(coordinate, BaseException):
                 fails.append(Transformation01Fail(coordinate, i))

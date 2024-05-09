@@ -1,14 +1,11 @@
 import unittest
-from typing import Optional
 
 from pandas import DataFrame
 
-from app.domain.model import Layer0Model, Layer1Model
+from app.domain.model import Layer0Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
-from app.domain.repositories.layer_0_repository import Layer0Repository
-from app.domain.repositories.layer_1_repository import Layer1Repository
 from app.domain.usecases import TransformationO1UseCase
 from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.user_interaction.interaction import ResolveCoordinateParseFail
