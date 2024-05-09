@@ -35,7 +35,7 @@ class SourcesTest(unittest.TestCase):
                 {
                     "bibcode": "1992ApJ...400L...1W",
                     "author": ["Test author et al."],
-                    "pubdate": "2000",
+                    "pubdate": "2000-03-00",
                     "title": ["Test research"],
                 }
             ]
@@ -63,7 +63,7 @@ class SourcesTest(unittest.TestCase):
                 {
                     "bibcode": "2000ApJ...400L...1W",
                     "author": ["Test author et al."],
-                    "pubdate": "2000",
+                    "pubdate": "2000-03-00",
                     "title": ["Test research"],
                 }
             ]
@@ -92,8 +92,20 @@ class SourcesTest(unittest.TestCase):
         with self.assertRaises(Exception):
             _ = self.actions.get_source(model.GetSourceRequest(id=12321))
 
-    def test_get_list_first_page_full(self):
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_get_list_first_page_full(self, ads_mock):
         for i in range(25):
+            ads_mock.return_value.query_simple = mock.MagicMock(
+                return_value=[
+                    {
+                        "bibcode": f"20{i:02d}ApJ...401L...1W",
+                        "author": ["Test author et al."],
+                        "pubdate": "2000-03-00",
+                        "title": [f"20{i:02d}ApJ...401L...1W"],
+                    }
+                ]
+            )
+
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     bibcode=f"20{i:02d}ApJ...401L...1W",
@@ -107,7 +119,19 @@ class SourcesTest(unittest.TestCase):
 
         self.assertEqual(len(result.sources), 10)
 
-    def test_get_filtered_titles(self):
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_get_filtered_titles(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2001ApJ...401L...1W",
+                    "author": ["Test author et al."],
+                    "pubdate": "2000-03-00",
+                    "title": ["Test research"],
+                }
+            ]
+        )
+
         _ = self.actions.create_source(
             model.CreateSourceRequest(
                 bibcode="2001ApJ...401L...1W",
@@ -115,6 +139,17 @@ class SourcesTest(unittest.TestCase):
                 year=2000,
                 title="Test research",
             ),
+        )
+
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2002ApJ...401L...1W",
+                    "author": ["Test author et al."],
+                    "pubdate": "2000-03-00",
+                    "title": ["Test important research"],
+                }
+            ]
         )
         _ = self.actions.create_source(
             model.CreateSourceRequest(
@@ -131,8 +166,20 @@ class SourcesTest(unittest.TestCase):
         result = self.actions.get_source_list(model.GetSourceListRequest("important", 10, 0))
         self.assertEqual(len(result.sources), 1)
 
-    def test_get_list_second_page_not_full(self):
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_get_list_second_page_not_full(self, ads_mock):
         for i in range(15):
+            ads_mock.return_value.query_simple = mock.MagicMock(
+                return_value=[
+                    {
+                        "bibcode": f"20{i:02d}ApJ...402L...1W",
+                        "author": ["Test author et al."],
+                        "pubdate": "2000-03-00",
+                        "title": [f"20{i:02d}ApJ...402L...1W"],
+                    }
+                ]
+            )
+
             _ = self.actions.create_source(
                 model.CreateSourceRequest(
                     bibcode=f"20{i:02d}ApJ...402L...1W",
