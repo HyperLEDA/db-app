@@ -15,3 +15,8 @@ class ResolveCrossIdentificationCollisionInteractionArg(AbstractArgument):
 class ResolveCoordinateParseFailArg(AbstractArgument):
     def __init__(self, cause: ValueError):
         self.cause: ValueError = cause
+
+
+class Confirm01TransactionArg(AbstractArgument):
+    def __init__(self):
+        pass

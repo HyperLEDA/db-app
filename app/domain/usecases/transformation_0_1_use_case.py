@@ -1,20 +1,17 @@
 import uuid
 from typing import Callable, Optional
 
-import pandas as pd
-from pandas import DataFrame
-
+from app.domain.model import Layer0Model, Layer1Model
+from app.domain.model.layer0 import Transformation01Fail
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
+from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
     ParseCoordinates,
     ParseValues,
     Transformation01Stage,
 )
-
-from ..model import Layer0Model, Layer1Model
-from ..model.layer0.values.exceptions import ColumnNotFoundException
-from ..model.params.cross_identification_param import CrossIdentificationParam
-from .cross_identify_use_case import CrossIdentifyUseCase
+from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 
 
 class TransformationO1UseCase:
@@ -25,18 +22,18 @@ class TransformationO1UseCase:
     def __init__(self, cross_identify_use_case: CrossIdentifyUseCase):
         self._cross_identify_use_case: CrossIdentifyUseCase = cross_identify_use_case
 
+    def with_mocked_cross_identify_use_case(self, new_use_case: CrossIdentifyUseCase):
+        return TransformationO1UseCase(new_use_case)
+
     async def invoke(
-        self,
-        data: Layer0Model,
-        on_progress: Optional[Callable[[Transformation01Stage], None]] = None,
-    ) -> tuple[list[Layer1Model], DataFrame]:
+        self, data: Layer0Model, on_progress: Optional[Callable[[Transformation01Stage], None]] = None
+    ) -> tuple[list[Layer1Model], list[Transformation01Fail]]:
         """
         :param data: Layer 0 data to be transformed
         :param on_progress: Optional callable to call on progress (from 0.0 to 1.0)
         :return:
             success: list[Layer1Model] - transformed models
-            fail: DataFrame - Rows from original data, that failed, with additional 'cause' column, holding exception,
-            describing the fail
+            fail: list[Transformation01Fail] - Fails during transformation
         """
         n_rows = data.data.shape[0]
 
@@ -74,17 +71,15 @@ class TransformationO1UseCase:
 
         # compile objects
         models = []
-        fails = pd.DataFrame(columns=data.data.columns.to_list() + ["cause"])
+        fails = []
         for i in range(n_rows):
             coordinate, obj_id = (coordinates[i], obj_ids[i])
             if isinstance(coordinate, BaseException):
-                new_row = pd.concat([data.data.iloc[i], pd.Series({"cause": coordinate})])
-                fails.loc[len(fails.index)] = new_row
+                fails.append(Transformation01Fail(coordinate, i))
                 continue
 
             if isinstance(obj_id, BaseException):
-                new_row = pd.concat([data.data.iloc[i], pd.Series({"cause": obj_id})])
-                fails.loc[len(fails.index)] = new_row
+                fails.append(Transformation01Fail(obj_id, i))
                 continue
 
             model = Layer1Model(
