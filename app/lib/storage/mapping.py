@@ -22,7 +22,7 @@ def get_type(t: str) -> str:
 
 
 def get_type_from_dtype(t: np.dtype) -> str:
-    if t.kind in {"U", "S"}:
+    if t.kind in {"U", "S", "O"}:
         return TYPE_TEXT
 
     if t in [np.float16, np.float32, np.float64]:

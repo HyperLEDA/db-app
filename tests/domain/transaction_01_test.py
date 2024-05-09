@@ -7,6 +7,7 @@ from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
+from app.domain.model.params.layer_0_query_param import Layer0QueryParam
 from app.domain.repositories.layer_0_repository import Layer0Repository
 from app.domain.repositories.layer_1_repository import Layer1Repository
 from app.domain.usecases import TransformationO1UseCase
@@ -33,6 +34,9 @@ class MockedCoordinateParseFailResolverFail(ResolveCoordinateParseFail):
 
 
 class MockedCachingLayer0Repo(Layer0Repository):
+    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+        return []
+
     def __init__(self):
         self.last_saved_instances = None
 
@@ -72,7 +76,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
         :return:
         """
         data = Layer0Model(
-            id=1,
+            id="1",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[
@@ -117,7 +121,7 @@ class Transaction01Twst(unittest.IsolatedAsyncioTestCase):
         :return:
         """
         data = Layer0Model(
-            id=1,
+            id="test_table",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[

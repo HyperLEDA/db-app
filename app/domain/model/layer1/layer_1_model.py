@@ -3,8 +3,8 @@ from typing import Optional
 
 from astropy.coordinates import SkyCoord
 
-from ..layer0 import Dataset
-from .layer_1_value import Layer1Value
+from app.domain.model.layer0 import Dataset
+from app.domain.model.layer1.layer_1_value import Layer1Value
 
 
 @dataclass

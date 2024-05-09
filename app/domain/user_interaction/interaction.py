@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from .interaction_argument import AbstractArgument
-from .interaction_result import InteractionResult
+from app.domain.user_interaction.interaction_argument import AbstractArgument
+from app.domain.user_interaction.interaction_result import InteractionResult
 
 
 class AbstractInteraction(ABC):

@@ -4,7 +4,7 @@ from typing import Sequence
 from astropy.units import Quantity, Unit
 from pandas import DataFrame, Series
 
-from .exceptions import ColumnNotFoundException
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
 
 
 class ValueDescr(ABC):

@@ -99,3 +99,44 @@ GET_RAWDATA_TABLE = """
 SELECT table_name FROM rawdata.tables
 WHERE id = %s
 """
+
+GET_COLUMN_NAMES = """
+SELECT column_name
+FROM information_schema.columns
+WHERE
+    table_schema = %s
+    AND table_name = %s
+"""
+
+FETCH_RAWDATA = """
+SELECT 
+    {% if rows is not none %}
+        {% for row in rows %} {{ row }}{% if not loop.last %},{% endif %} {% endfor %}
+    {% else %}
+        *
+    {% endif %}
+FROM {{ schema }}.{{ table }}
+"""
+
+FETCH_COLUMN_METADATA = """
+SELECT param
+FROM meta.column_info 
+WHERE
+    schema_name = %s and
+    table_name = %s and
+    column_name = %s
+"""
+
+FETCH_TABLE_METADATA = """
+SELECT param
+FROM meta.table_info 
+WHERE
+    schema_name = %s and
+    table_name = %s
+"""
+
+FETCH_RAWDATA_REGISTRY = """
+SELECT * 
+FROM rawdata.tables
+WHERE table_name=%s
+"""

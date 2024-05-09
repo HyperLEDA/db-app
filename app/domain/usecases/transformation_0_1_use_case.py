@@ -4,17 +4,16 @@ from typing import Callable, Optional
 import pandas as pd
 from pandas import DataFrame
 
+from app.domain.model import Layer0Model, Layer1Model
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
+from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
     ParseCoordinates,
     ParseValues,
     Transformation01Stage,
 )
-
-from ..model import Layer0Model, Layer1Model
-from ..model.layer0.values.exceptions import ColumnNotFoundException
-from ..model.params.cross_identification_param import CrossIdentificationParam
-from .cross_identify_use_case import CrossIdentifyUseCase
+from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 
 
 class TransformationO1UseCase:
