@@ -51,18 +51,20 @@ class Actions(domain.Actions):
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.bibcode is not None:
+            ads_client = ads.ADSClass()
+            ads_client.TOKEN = os.environ.get("ADS_TOKEN")
+            ads_client.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
+
             try:
-                ads_client = ads.ADSClass()
-                ads_client.TOKEN = os.environ.get("ADS_TOKEN")
-                ads_client.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
-
                 publication = ads_client.query_simple(f'bibcode:"{r.bibcode}"')[0]
-                r.title, r.authors, r.year = (
-                    publication["title"][0],
-                    list(publication["author"]),
-                    int(publication["pubdate"][:4]),
-                )
 
+                r.title = publication["title"][0]
+                r.authors = list(publication["author"])
+                r.year = (
+                    datetime.datetime.strptime(publication["pubdate"], "%Y-%m-00")
+                    .astimezone(datetime.timezone.utc)
+                    .year
+                )
             except RuntimeError as e:
                 raise new_validation_error("no search results returned for bibcode from ADS") from e
 
