@@ -12,12 +12,13 @@ from app.domain import model as domain_model
 from app.domain import tasks
 from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.store_l0_use_case import StoreL0UseCase
+from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
 from app.lib import auth
 from app.lib.exceptions import new_not_found_error, new_unauthorized_error, new_validation_error
 from app.lib.storage import enums, mapping, postgres
 
-__all__ = ["Actions", "CrossIdentifyUseCase", "TransformationO1UseCase", "StoreL0UseCase"]
+__all__ = ["Actions", "CrossIdentifyUseCase", "TransformationO1UseCase", "StoreL0UseCase", "Transaction01UseCase"]
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),

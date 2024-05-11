@@ -5,6 +5,8 @@ from astropy.coordinates import SkyCoord
 
 from app.domain.model.layer0.coordinates.coordinate_descr import CoordinateDescr
 
+ICRS_DESCR_ID = "icrs"
+
 
 class ICRSDescrStr(CoordinateDescr):
     """
@@ -13,7 +15,7 @@ class ICRSDescrStr(CoordinateDescr):
     """
 
     def description_id(self):
-        return "icrs"
+        return ICRS_DESCR_ID
 
     def _parse_row(self, data: Iterable[Any]) -> SkyCoord:
         return SkyCoord(*data, frame="icrs", unit=(u.hourangle, u.deg))

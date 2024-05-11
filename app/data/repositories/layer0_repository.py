@@ -47,7 +47,7 @@ class Layer0Repository(interface.Layer0Repository):
                     "column_name": column_descr.coordinate_part.column_name,
                 }
             if column_descr.ucd is not None:
-                col_params["ucd"] = {"ucd": column_descr.ucd}
+                col_params["ucd"] = column_descr.ucd
             comment_queries.append(
                 template.render_query(
                     template.ADD_COLUMN_COMMENT,

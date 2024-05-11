@@ -2,6 +2,7 @@ from app.data.model import Bibliography, ColumnDescription, Layer0Creation, Laye
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
+from app.domain.model.layer0.coordinates.icrs_descr import ICRS_DESCR_ID
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.layer0.values.value_descr import ValueDescr
@@ -13,7 +14,8 @@ def layer_0_mapper(creation: Layer0Creation, raw: Layer0RawData, bibliography: B
 
     coordinate_descr = None
     if len(coordinate_cols) > 0:
-        coordinate_descr = ICRSDescrStr(*[it.column_name for it in coordinate_cols])
+        if all(it.descr_id == ICRS_DESCR_ID for it in coordinate_cols):
+            coordinate_descr = ICRSDescrStr(*[it.column_name for it in coordinate_cols])
 
     meta = Layer0Meta(
         list(filter(lambda it: it is not None, [_make_value_descr(descr) for descr in creation.column_descriptions])),
