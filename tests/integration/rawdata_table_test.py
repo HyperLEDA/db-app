@@ -97,7 +97,7 @@ class RawDataTableTest(unittest.TestCase):
                 }
             ]
         )
-        
+
         bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
 
         table_resp = self.actions.create_table(
@@ -156,7 +156,7 @@ class RawDataTableTest(unittest.TestCase):
                 }
             ]
         )
-        
+
         bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
 
         with self.assertRaises(exceptions.APIException):
@@ -188,7 +188,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-
         bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
 
         with self.assertRaises(exceptions.APIException) as ctx:
@@ -207,7 +206,6 @@ class RawDataTableTest(unittest.TestCase):
 
             self.assertEqual(ctx.exception.status, 400)
 
-    
     @mock.patch("astroquery.nasa_ads.ADSClass")
     def test_add_data_to_unknown_column(self, ads_mock):
         ads_mock.return_value.query_simple = mock.MagicMock(
@@ -256,7 +254,6 @@ class RawDataTableTest(unittest.TestCase):
                 }
             ]
         )
-
 
         bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
 
