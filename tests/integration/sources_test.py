@@ -57,6 +57,34 @@ class SourcesTest(unittest.TestCase):
         self.assertEqual(get_response.title, "Test research")
 
     @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_data_from_ads_differs(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "1992ApJ...400L...1W",
+                    "author": ["Test author et al."],
+                    "pubdate": "2000-03-00",
+                    "title": ["Test research"],
+                }
+            ]
+        )
+
+        create_response = self.actions.create_source(
+            model.CreateSourceRequest(
+                bibcode="1992ApJ...400L...1W",
+                authors=["test"],
+                year=2001,
+                title="test",
+            ),
+        )
+        get_response = self.actions.get_source(model.GetSourceRequest(id=create_response.id))
+
+        self.assertEqual(get_response.bibcode, "1992ApJ...400L...1W")
+        self.assertEqual(get_response.authors, ["Test author et al."])
+        self.assertEqual(get_response.year, 2000)
+        self.assertEqual(get_response.title, "Test research")
+
+    @mock.patch("astroquery.nasa_ads.ADSClass")
     def test_create_two_sources_duplicate(self, ads_mock):
         ads_mock.return_value.query_simple = mock.MagicMock(
             return_value=[
