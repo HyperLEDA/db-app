@@ -4,9 +4,9 @@ from dataclasses import dataclass
 @dataclass
 class CreateSourceRequest:
     bibcode: str
-    title: str
-    authors: list[str]
-    year: int
+    title: str | None
+    authors: list[str] | None
+    year: int | None
 
 
 @dataclass
