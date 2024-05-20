@@ -53,7 +53,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -98,7 +98,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -157,7 +157,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException):
             _ = self.actions.create_table(
@@ -188,7 +188,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException) as ctx:
             _ = self.actions.create_table(
@@ -219,7 +219,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -255,7 +255,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         _ = self.actions.create_table(
             model.CreateTableRequest(

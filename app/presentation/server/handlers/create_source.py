@@ -17,6 +17,12 @@ class CreateSourceRequestSchema(Schema):
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:
+        if ("bibcode" not in data or data["bibcode"] is None) and ("title" not in data or "authors" not in data or "year" not in data or data["title"] is None or data["authors"] is None or data["year"] is None):
+            raise ValueError("Either 'bibcode' or 'title', 'authors', and 'year' must be provided")
+        if "bibcode" in data and data["bibcode"] is not None and (
+            ("title" in data and data["title"] is not None) or ("authors" in data and data["authors"] is not None) or ("year" in data and data["year"] is not None)):
+            raise ValueError("'bibcode' cannot be provided with other data ('title', 'authors', or 'year')")
+
         return model.CreateSourceRequest(**data)
 
 
