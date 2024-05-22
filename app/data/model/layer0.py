@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import pandas
@@ -11,6 +13,21 @@ class ColumnDescription:
     data_type: str
     unit: str | None = None  # TODO: validate that the unit is one that we know how to transform
     description: str | None = None
+    ucd: str | None = None
+    coordinate_part: CoordinatePart | None = None
+
+
+@dataclass
+class CoordinatePart:
+    """
+    Args:
+        `descr_id`: string to identify CoordinateDescription
+        `arg_num`: Argument number in CoordinateDescription constructor
+    """
+
+    descr_id: str
+    arg_num: int
+    column_name: str
 
 
 @dataclass
@@ -22,6 +39,7 @@ class Layer0Creation:
         `table_name`: name of the table that will be written into database
         `column_descriptions`: information about each column
         `bibliography_id`: id of bibliography
+        `name_col`: Name of column, holding object name
         `comment`: description of the table
     """
 
@@ -29,6 +47,7 @@ class Layer0Creation:
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
     datatype: enums.DataType
+    name_col: str | None = None
     comment: str | None = None
 
 

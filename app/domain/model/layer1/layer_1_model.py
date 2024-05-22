@@ -25,7 +25,7 @@ class Layer1Model:
 
     id: int
     object_id: int
-    source_id: int
+    source_id: str
     processed: bool
     coordinates: Optional[SkyCoord]
     name: Optional[str]

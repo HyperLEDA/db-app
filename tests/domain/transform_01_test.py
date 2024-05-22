@@ -56,7 +56,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
     async def test_transform_general(self):
         data = Layer0Model(
-            id=1,
+            id="1",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[
@@ -98,7 +98,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
     async def test_transform_fails(self):
         data = Layer0Model(
-            id=1,
+            id="1",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[
@@ -144,7 +144,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
     async def test_cross_identification_fails(self):
         data = Layer0Model(
-            id=1,
+            id="1",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[
