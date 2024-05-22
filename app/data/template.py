@@ -71,6 +71,14 @@ CREATE TABLE {{ schema }}.{{ name }} (
 )
 """
 
+CREATE_TMP_TABLE = """
+CREATE TEMPORARY TABLE {{ name }} (
+    {% for field_name, field_type in fields %}
+    {{field_name}} {{field_type}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+)
+"""
+
 ADD_COLUMN_COMMENT = """
 SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ column_name }}', '{{ params }}'::json)
 """
@@ -95,7 +103,31 @@ INSERT INTO
     {% endfor %}
 """
 
+INSERT_TMP_RAW_DATA = """
+INSERT INTO 
+    {{ table }} 
+    ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %})
+    VALUES{% for object in objects %}
+    ({% for field_name in fields %}
+        {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
+    {% endfor %}
+"""
+
+GET_TMP_DATA_INSIDE = """
+SELECT idx FROM {{ table_name }}
+WHERE
+    dec >= {{ dec0 - delta }} AND dec <= {{ dec0 + delta }} AND
+    sphdist(ra, dec, {{ ra0 }}, {{ dec0 }}) <= {{ delta }}
+"""
+
 GET_RAWDATA_TABLE = """
 SELECT table_name FROM rawdata.tables
 WHERE id = %s
 """
+
+BUILD_INDEX = """
+CREATE INDEX {{ index_name }} 
+ON {{ table_name }}({% for col_name in columns %}{{ col_name }}{% if not loop.last %},{% endif %}{% endfor %})
+"""
+
+DROP_TABLE = """DROP TABLE {{ table_name }}"""
