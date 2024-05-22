@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Iterable, Sequence, Union
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, ICRS
 from pandas import DataFrame
 
 from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
@@ -18,7 +18,7 @@ class CoordinateDescr(ABC):
         """
         self._col_names: list[str] = list(col_names)
 
-    def parse_coordinates(self, data: DataFrame) -> Sequence[Union[SkyCoord, ValueError]]:
+    def parse_coordinates(self, data: DataFrame) -> Sequence[Union[ICRS, ValueError]]:
         try:
             col = data[self._col_names]
         except KeyError as e:
@@ -26,13 +26,13 @@ class CoordinateDescr(ABC):
 
         return col.apply(self.__parse_row, axis=1)
 
-    def __parse_row(self, data: Iterable[Any]) -> Union[SkyCoord, ValueError]:
+    def __parse_row(self, data: Iterable[Any]) -> Union[ICRS, ValueError]:
         """
         :param data: Collection of values from table row, order is as specified in column_names in constructor
         :return: Parsed coordinates or ValueError if parsing ended up in error
         """
         try:
-            return self._parse_row(data)
+            return self._parse_row(data).transform_to("icrs")
         except ValueError as e:
             return e
 

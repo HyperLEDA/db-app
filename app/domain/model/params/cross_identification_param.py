@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import ICRS
 
 
 @dataclass
@@ -12,4 +12,4 @@ class CrossIdentificationParam:
     """
 
     name: Optional[str]
-    coordinates: Optional[SkyCoord]
+    coordinates: Optional[ICRS]
