@@ -100,6 +100,33 @@ INSERT INTO common.photsys VALUES
 , ( 'WISE' , 'Wide-field Infrared Survey Explorer (WISE) photometric system' , 'gname=WISE' )
 ;
 
+CREATE TABLE common.bib (
+  id	integer	PRIMARY KEY
+, url	text	NOT NULL
+) ;
+
+INSERT INTO common.bib VALUES
+ (1,$$https://ui.adsabs.harvard.edu/abs/2007ApJS..173..185G$$)
+,(2,$$https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/swift/docs/uvot/$$)
+,(3,$$https://ui.adsabs.harvard.edu/abs/1953ApJ...117..313J$$)
+,(4,$$https://ui.adsabs.harvard.edu/abs/1976AJ.....81..228C$$)
+,(5,$$https://ui.adsabs.harvard.edu/abs/1965CoLPL...3...73J$$)
+,(6,$$https://ui.adsabs.harvard.edu/abs/1998AJ....116.3040G$$)
+,(7,$$https://ui.adsabs.harvard.edu/abs/1976AJ.....81..228C$$)
+,(8,$$https://ui.adsabs.harvard.edu/abs/1965CoLPL...3...73J$$)
+,(9,$$https://ui.adsabs.harvard.edu/abs/1991rc3..book.....D$$)
+,(10,$$https://ui.adsabs.harvard.edu/abs/1980PASP...92..746C$$)
+,(11,$$https://ui.adsabs.harvard.edu/abs/1990PASP..102.1181B$$)
+,(12,$$https://ui.adsabs.harvard.edu/abs/2012ApJ...750...99T$$)
+,(13,$$https://ui.adsabs.harvard.edu/abs/1976MmRAS..81...25C$$)
+,(14,$$https://ui.adsabs.harvard.edu/abs/1976AJ.....81..228C$$)
+,(15,$$https://ui.adsabs.harvard.edu/abs/2000PASP..112..691Y$$)
+,(16,$$https://ui.adsabs.harvard.edu/abs/2013AJ....145..101K$$)
+,(17,$$https://ui.adsabs.harvard.edu/abs/2003AJ....126.1090C$$)
+,(18,$$https://ui.adsabs.harvard.edu/abs/2010AJ....140.1868W$$)
+,(19,$$https://ui.adsabs.harvard.edu/abs/2004ApJS..154...10F$$)
+,(20,$$https://ui.adsabs.harvard.edu/abs/1984ApJ...278L...1N$$)
+;
 
 CREATE TABLE common.filter (
   id	text	PRIMARY KEY
