@@ -2,42 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://hyperleda.github.io/db-app/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/openapi/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/change.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/db_photometry.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/documentation.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/environment.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/login.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/system_diagram.ru/</loc>
-         <lastmod>2024-05-22</lastmod>
+         <lastmod>2024-05-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
