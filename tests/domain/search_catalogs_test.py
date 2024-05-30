@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from unittest import mock
 
 import structlog
-from astroquery import vizier
 
 from app.domain import model
 from app.domain.usecases import Actions
+from app.lib import clients as libclients
 
 
 @dataclass
@@ -33,13 +33,14 @@ class CatalogStub:
 class SearchCatalogsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.actions = Actions(None, None, None, None, None, None, structlog.get_logger())
+        cls.clients = libclients.Clients("")
+        cls.actions = Actions(None, None, None, None, None, cls.clients, None, structlog.get_logger())
 
     def test_run_without_metadata_no_tables(self):
         catalogs = {"V/II/table11": CatalogStub([], "test")}
 
-        vizier.Vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
-        vizier.Vizier.get_catalog_metadata = mock.MagicMock(side_effect=IndexError("test"))
+        self.clients.vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
+        self.clients.vizier.get_catalog_metadata = mock.MagicMock(side_effect=IndexError("test"))
 
         actual = self.actions.search_catalogs(
             model.SearchCatalogsRequest(
@@ -65,8 +66,8 @@ class SearchCatalogsTest(unittest.TestCase):
         catalogs = {"V/II/table11": CatalogStub([], "test")}
         metadata = {"webpage": ["http://example.com"]}
 
-        vizier.Vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
-        vizier.Vizier.get_catalog_metadata = mock.MagicMock(return_value=metadata)
+        self.clients.vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
+        self.clients.vizier.get_catalog_metadata = mock.MagicMock(return_value=metadata)
 
         actual = self.actions.search_catalogs(
             model.SearchCatalogsRequest(
@@ -96,8 +97,8 @@ class SearchCatalogsTest(unittest.TestCase):
         catalogs = {"V/II/table11": catalog}
         metadata = {"webpage": ["http://example.com"]}
 
-        vizier.Vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
-        vizier.Vizier.get_catalog_metadata = mock.MagicMock(return_value=metadata)
+        self.clients.vizier.find_catalogs = mock.MagicMock(return_value=catalogs)
+        self.clients.vizier.get_catalog_metadata = mock.MagicMock(return_value=metadata)
 
         actual = self.actions.search_catalogs(
             model.SearchCatalogsRequest(
