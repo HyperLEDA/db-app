@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import pandas
 import structlog
@@ -39,8 +40,20 @@ class RawDataTableTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def test_create_table_happy_case(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_create_table_happy_case(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -72,8 +85,20 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
         self.assertListEqual(data_df["test_col_2"].to_list(), ["test data 2", "test data 1"])
 
-    def test_create_table_with_nulls(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_create_table_with_nulls(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -119,8 +144,20 @@ class RawDataTableTest(unittest.TestCase):
 
             # TODO: check that status code is 400
 
-    def test_duplicate_column(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_duplicate_column(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException):
             _ = self.actions.create_table(
@@ -138,8 +175,20 @@ class RawDataTableTest(unittest.TestCase):
 
             # TODO: check that status code is 400
 
-    def test_unknown_data_type(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_unknown_data_type(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException) as ctx:
             _ = self.actions.create_table(
@@ -157,8 +206,20 @@ class RawDataTableTest(unittest.TestCase):
 
             self.assertEqual(ctx.exception.status, 400)
 
-    def test_add_data_to_unknown_column(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_add_data_to_unknown_column(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         table_resp = self.actions.create_table(
             model.CreateTableRequest(
@@ -181,8 +242,20 @@ class RawDataTableTest(unittest.TestCase):
                 )
             )
 
-    def test_duplicate_table(self):
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F", "test", ["test"], 2020))
+    @mock.patch("astroquery.nasa_ads.ADSClass")
+    def test_duplicate_table(self, ads_mock):
+        ads_mock.return_value.query_simple = mock.MagicMock(
+            return_value=[
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ]
+        )
+
+        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
 
         _ = self.actions.create_table(
             model.CreateTableRequest(

@@ -1,3 +1,5 @@
+import os
+
 import structlog
 
 from app.data import repositories
@@ -44,6 +46,10 @@ def start(config_path: str):
     )
 
     try:
+        for variable in ["ADS_TOKEN"]:
+            if not os.getenv(variable):
+                raise RuntimeError(f"Environment variable {variable} is not set")
+
         server.start(cfg.server, authenticator, actions, logger)
     except Exception as e:
         logger.exception(e)

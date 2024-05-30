@@ -1,8 +1,10 @@
 import datetime
+import os
 from typing import Any, Callable, final
 
 import pandas
 import structlog
+from astroquery import nasa_ads as ads
 from astroquery.vizier import Vizier
 
 from app import domain
@@ -48,6 +50,24 @@ class Actions(domain.Actions):
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
+        if r.bibcode is not None:
+            ads_client = ads.ADSClass()
+            ads_client.TOKEN = os.environ.get("ADS_TOKEN")
+            ads_client.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
+
+            try:
+                publication = ads_client.query_simple(f'bibcode:"{r.bibcode}"')[0]
+
+                r.title = publication["title"][0]
+                r.authors = list(publication["author"])
+                r.year = (
+                    datetime.datetime.strptime(publication["pubdate"], "%Y-%m-00")
+                    .astimezone(datetime.timezone.utc)
+                    .year
+                )
+            except RuntimeError as e:
+                raise new_validation_error("no search results returned for bibcode from ADS") from e
+
         source_id = self._common_repo.create_bibliography(
             data_model.Bibliography(bibcode=r.bibcode, year=r.year, author=r.authors, title=r.title)
         )
