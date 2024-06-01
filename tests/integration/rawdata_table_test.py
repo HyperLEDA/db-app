@@ -30,7 +30,6 @@ class RawDataTableTest(unittest.TestCase):
         cls.actions = usecases.Actions(
             common_repo=repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
             layer0_repo=repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
-            layer1_repo=repositories.Layer1Repository(cls.pg_storage.get_storage(), logger),
             queue_repo=None,
             authenticator=auth.NoopAuthenticator(),
             clients=cls.clients,

@@ -13,23 +13,7 @@ class Actions(abc.ABC):
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_source_list(self, r: model.GetSourceListRequest) -> model.GetSourceListResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
-    def get_object_names(self, r: model.GetObjectNamesRequest) -> model.GetObjectNamesResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
-    def search_catalogs(self, r: model.SearchCatalogsRequest) -> model.SearchCatalogsResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
     def start_task(self, r: model.StartTaskRequest) -> model.StartTaskResponse:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
-    def debug_start_task(self, r: model.StartTaskRequest) -> model.StartTaskResponse:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
