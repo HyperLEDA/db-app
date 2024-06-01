@@ -5,31 +5,14 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app import commands
-from app.data import repositories
-from app.domain import tasks, usecases
-from app.lib import auth, testing
-from app.lib import clients as libclients
+from app.domain import tasks
+from app.lib import testing
 
 
 class DownloadVizierTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = testing.get_test_postgres_storage()
-
-        logger = structlog.get_logger()
-        cls.clients = libclients.Clients("")
-
-        cls.actions = usecases.Actions(
-            commands.Depot(
-                repositories.CommonRepository(cls.storage.get_storage(), logger),
-                repositories.Layer0Repository(cls.storage.get_storage(), logger),
-                None,
-                auth.NoopAuthenticator(),
-                cls.clients,
-            ),
-            storage_config=None,
-        )
 
     def tearDown(self):
         self.storage.clear()
