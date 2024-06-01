@@ -6,6 +6,7 @@ import structlog
 from app.data import repositories
 from app.domain import model, usecases
 from app.lib import auth, testing
+from app.lib import clients as libclients
 
 
 class SourcesTest(unittest.TestCase):
@@ -14,6 +15,8 @@ class SourcesTest(unittest.TestCase):
         cls.storage = testing.get_test_postgres_storage()
 
         logger = structlog.get_logger()
+        cls.clients = libclients.Clients("")
+        cls.clients.ads = mock.MagicMock()
 
         cls.actions = usecases.Actions(
             common_repo=repositories.CommonRepository(cls.storage.get_storage(), logger),
@@ -21,6 +24,7 @@ class SourcesTest(unittest.TestCase):
             layer1_repo=repositories.Layer1Repository(cls.storage.get_storage(), logger),
             queue_repo=None,
             authenticator=auth.NoopAuthenticator(),
+            clients=cls.clients,
             storage_config=None,
             logger=logger,
         )
@@ -28,9 +32,8 @@ class SourcesTest(unittest.TestCase):
     def tearDown(self):
         self.storage.clear()
 
-    @mock.patch("astroquery.nasa_ads.ADSClass")
-    def test_create_one_source_success(self, ads_mock):
-        ads_mock.return_value.query_simple = mock.MagicMock(
+    def test_create_one_source_success(self):
+        self.clients.ads.query_simple = mock.MagicMock(
             return_value=[
                 {
                     "bibcode": "1992ApJ...400L...1W",
@@ -49,9 +52,8 @@ class SourcesTest(unittest.TestCase):
         self.assertEqual(get_response.year, 2000)
         self.assertEqual(get_response.title, "Test research")
 
-    @mock.patch("astroquery.nasa_ads.ADSClass")
-    def test_data_from_ads_differs(self, ads_mock):
-        ads_mock.return_value.query_simple = mock.MagicMock(
+    def test_data_from_ads_differs(self):
+        self.clients.ads.query_simple = mock.MagicMock(
             return_value=[
                 {
                     "bibcode": "1992ApJ...400L...1W",
@@ -77,9 +79,8 @@ class SourcesTest(unittest.TestCase):
         self.assertEqual(get_response.year, 2000)
         self.assertEqual(get_response.title, "from_ads")
 
-    @mock.patch("astroquery.nasa_ads.ADSClass")
-    def test_create_two_sources_duplicate(self, ads_mock):
-        ads_mock.return_value.query_simple = mock.MagicMock(
+    def test_create_two_sources_duplicate(self):
+        self.clients.ads.query_simple = mock.MagicMock(
             return_value=[
                 {
                     "bibcode": "2000ApJ...400L...1W",
@@ -99,10 +100,9 @@ class SourcesTest(unittest.TestCase):
         with self.assertRaises(Exception):
             _ = self.actions.get_source(model.GetSourceRequest(id=12321))
 
-    @mock.patch("astroquery.nasa_ads.ADSClass")
-    def test_get_list_first_page_full(self, ads_mock):
+    def test_get_list_first_page_full(self):
         for i in range(25):
-            ads_mock.return_value.query_simple = mock.MagicMock(
+            self.clients.ads.query_simple = mock.MagicMock(
                 return_value=[
                     {
                         "bibcode": f"20{i:02d}ApJ...401L...1W",
@@ -145,7 +145,7 @@ class SourcesTest(unittest.TestCase):
     @mock.patch("astroquery.nasa_ads.ADSClass")
     def test_get_list_second_page_not_full(self, ads_mock):
         for i in range(15):
-            ads_mock.return_value.query_simple = mock.MagicMock(
+            self.clients.ads.query_simple = mock.MagicMock(
                 return_value=[
                     {
                         "bibcode": f"20{i:02d}ApJ...402L...1W",
