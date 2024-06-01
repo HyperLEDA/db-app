@@ -1,10 +1,8 @@
-import os
-
 import structlog
 
 from app.data import repositories
 from app.domain import usecases
-from app.lib import auth
+from app.lib import auth, clients
 from app.lib.storage import postgres, redis
 from app.presentation import server
 from app.presentation.commands.runserver import config
@@ -35,21 +33,20 @@ def start(config_path: str):
 
     authenticator = auth.PostgresAuthenticator(pg_storage)
 
+    client = clients.Clients(cfg.clients.ads_token)
+
     actions = usecases.Actions(
         common_repo,
         layer0_repo,
         layer1_repo,
         queue_repo,
         authenticator,
+        client,
         cfg.storage,
         logger,
     )
 
     try:
-        for variable in ["ADS_TOKEN"]:
-            if not os.getenv(variable):
-                raise RuntimeError(f"Environment variable {variable} is not set")
-
         server.start(cfg.server, authenticator, actions, logger)
     except Exception as e:
         logger.exception(e)

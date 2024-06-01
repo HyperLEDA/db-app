@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import rq
 import structlog
@@ -6,6 +7,7 @@ import structlog
 from app.data import repositories
 from app.domain import model, usecases
 from app.lib import auth, testing
+from app.lib import clients as libclients
 
 
 class QueueTest(unittest.TestCase):
@@ -15,6 +17,8 @@ class QueueTest(unittest.TestCase):
         cls.redis_queue = testing.get_test_redis_storage()
 
         logger = structlog.get_logger()
+        cls.clients = libclients.Clients("")
+        cls.clients.ads = mock.MagicMock()
 
         cls.actions = usecases.Actions(
             common_repo=repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
@@ -22,6 +26,7 @@ class QueueTest(unittest.TestCase):
             layer1_repo=repositories.Layer1Repository(cls.pg_storage.get_storage(), logger),
             queue_repo=repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
             authenticator=auth.NoopAuthenticator(),
+            clients=cls.clients,
             storage_config=cls.pg_storage.get_storage().get_config(),
             logger=logger,
         )

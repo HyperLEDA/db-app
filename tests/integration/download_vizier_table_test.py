@@ -8,6 +8,7 @@ from astropy import table
 from app.data import repositories
 from app.domain import tasks, usecases
 from app.lib import auth, testing
+from app.lib import clients as libclients
 
 
 class DownloadVizierTableTest(unittest.TestCase):
@@ -16,6 +17,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         cls.storage = testing.get_test_postgres_storage()
 
         logger = structlog.get_logger()
+        cls.clients = libclients.Clients("")
 
         cls.actions = usecases.Actions(
             common_repo=repositories.CommonRepository(cls.storage.get_storage(), logger),
@@ -23,6 +25,7 @@ class DownloadVizierTableTest(unittest.TestCase):
             layer1_repo=repositories.Layer1Repository(cls.storage.get_storage(), logger),
             queue_repo=None,
             authenticator=auth.NoopAuthenticator(),
+            clients=cls.clients,
             storage_config=None,
             logger=logger,
         )

@@ -1,11 +1,8 @@
 import datetime
-import os
 from typing import Any, Callable, final
 
 import pandas
 import structlog
-from astroquery import nasa_ads as ads
-from astroquery.vizier import Vizier
 
 from app import domain
 from app.data import interface
@@ -16,7 +13,7 @@ from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.store_l0_use_case import StoreL0UseCase
 from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib import auth
+from app.lib import auth, clients
 from app.lib.exceptions import new_not_found_error, new_unauthorized_error, new_validation_error
 from app.lib.storage import enums, mapping, postgres
 
@@ -37,6 +34,7 @@ class Actions(domain.Actions):
         layer1_repo: interface.Layer1Repository,
         queue_repo: interface.QueueRepository,
         authenticator: auth.Authenticator,
+        clients: clients.Clients,
         # remove this when actions are split
         storage_config: postgres.PgStorageConfig,
         logger: structlog.stdlib.BoundLogger,
@@ -47,16 +45,13 @@ class Actions(domain.Actions):
         self._queue_repo = queue_repo
         self._storage_config = storage_config
         self._authenticator = authenticator
+        self._clients = clients
         self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.bibcode is not None:
-            ads_client = ads.ADSClass()
-            ads_client.TOKEN = os.environ.get("ADS_TOKEN")
-            ads_client.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
-
             try:
-                publication = ads_client.query_simple(f'bibcode:"{r.bibcode}"')[0]
+                publication = self._clients.ads.query_simple(f'bibcode:"{r.bibcode}"')[0]
 
                 r.title = publication["title"][0]
                 r.authors = list(publication["author"])
@@ -116,7 +111,7 @@ class Actions(domain.Actions):
         )
 
     def search_catalogs(self, r: domain_model.SearchCatalogsRequest) -> domain_model.SearchCatalogsResponse:
-        catalogs = Vizier.find_catalogs(r.query)
+        catalogs = self._clients.vizier.find_catalogs(r.query)
 
         catalogs_info = []
         for catalog_key, catalog_info in catalogs.items():
@@ -126,7 +121,7 @@ class Actions(domain.Actions):
             try:
                 # TODO: this is a clutch, need to find a way to get catalog name reasonably
                 catalog_name = "/".join(catalog_key.split("/")[:-1])
-                catalog = Vizier.get_catalog_metadata(catalog=catalog_name)
+                catalog = self._clients.vizier.get_catalog_metadata(catalog=catalog_name)
                 try:
                     url = catalog["webpage"][0]
                 except KeyError:
