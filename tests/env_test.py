@@ -5,7 +5,7 @@ from pathlib import Path
 import pkg_resources
 from parameterized import parameterized
 
-from app.presentation.commands.runserver import config
+from app.commands.runserver import config
 
 REQUIREMENTS_PATH = Path("requirements.txt")
 MINIMAL_PYTHON_VERSION = (3, 10)

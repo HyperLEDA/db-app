@@ -3,6 +3,7 @@ from unittest import mock
 
 import structlog
 
+from app import commands
 from app.data import repositories
 from app.domain import model, usecases
 from app.lib import auth, testing
@@ -19,13 +20,14 @@ class SourcesTest(unittest.TestCase):
         cls.clients.ads = mock.MagicMock()
 
         cls.actions = usecases.Actions(
-            common_repo=repositories.CommonRepository(cls.storage.get_storage(), logger),
-            layer0_repo=repositories.Layer0Repository(cls.storage.get_storage(), logger),
-            queue_repo=None,
-            authenticator=auth.NoopAuthenticator(),
-            clients=cls.clients,
+            commands.Depot(
+                repositories.CommonRepository(cls.storage.get_storage(), logger),
+                repositories.Layer0Repository(cls.storage.get_storage(), logger),
+                None,
+                auth.NoopAuthenticator(),
+                cls.clients,
+            ),
             storage_config=None,
-            logger=logger,
         )
 
     def tearDown(self):

@@ -4,6 +4,7 @@ from unittest import mock
 import rq
 import structlog
 
+from app import commands
 from app.data import repositories
 from app.domain import model, usecases
 from app.lib import auth, testing
@@ -21,13 +22,14 @@ class QueueTest(unittest.TestCase):
         cls.clients.ads = mock.MagicMock()
 
         cls.actions = usecases.Actions(
-            common_repo=repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
-            layer0_repo=repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
-            queue_repo=repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
-            authenticator=auth.NoopAuthenticator(),
-            clients=cls.clients,
+            commands.Depot(
+                repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
+                repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
+                repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
+                auth.NoopAuthenticator(),
+                cls.clients,
+            ),
             storage_config=cls.pg_storage.get_storage().get_config(),
-            logger=logger,
         )
 
     def tearDown(self):
