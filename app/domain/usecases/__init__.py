@@ -2,10 +2,8 @@ import datetime
 from typing import Any, Callable, final
 
 import pandas
-import structlog
 
-from app import domain
-from app.data import interface
+from app import commands, domain
 from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain import tasks
@@ -13,7 +11,6 @@ from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
 from app.domain.usecases.store_l0_use_case import StoreL0UseCase
 from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
-from app.lib import auth, clients
 from app.lib.exceptions import new_not_found_error, new_unauthorized_error, new_validation_error
 from app.lib.storage import enums, mapping, postgres
 
@@ -29,27 +26,17 @@ TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
 class Actions(domain.Actions):
     def __init__(
         self,
-        common_repo: interface.CommonRepository,
-        layer0_repo: interface.Layer0Repository,
-        queue_repo: interface.QueueRepository,
-        authenticator: auth.Authenticator,
-        clients: clients.Clients,
+        depot: commands.Depot,
         # remove this when actions are split
         storage_config: postgres.PgStorageConfig,
-        logger: structlog.stdlib.BoundLogger,
     ) -> None:
-        self._common_repo = common_repo
-        self._layer0_repo = layer0_repo
-        self._queue_repo = queue_repo
+        self.depot = depot
         self._storage_config = storage_config
-        self._authenticator = authenticator
-        self._clients = clients
-        self._logger = logger
 
     def create_source(self, r: domain_model.CreateSourceRequest) -> domain_model.CreateSourceResponse:
         if r.bibcode is not None:
             try:
-                publication = self._clients.ads.query_simple(f'bibcode:"{r.bibcode}"')[0]
+                publication = self.depot.clients.ads.query_simple(f'bibcode:"{r.bibcode}"')[0]
 
                 r.title = publication["title"][0]
                 r.authors = list(publication["author"])
@@ -61,14 +48,14 @@ class Actions(domain.Actions):
             except RuntimeError as e:
                 raise new_validation_error("no search results returned for bibcode from ADS") from e
 
-        source_id = self._common_repo.create_bibliography(
+        source_id = self.depot.common_repo.create_bibliography(
             data_model.Bibliography(bibcode=r.bibcode, year=r.year, author=r.authors, title=r.title)
         )
 
         return domain_model.CreateSourceResponse(id=source_id)
 
     def get_source(self, r: domain_model.GetSourceRequest) -> domain_model.GetSourceResponse:
-        result = self._common_repo.get_bibliography(r.id)
+        result = self.depot.common_repo.get_bibliography(r.id)
 
         return domain_model.GetSourceResponse(
             result.bibcode,
@@ -85,9 +72,9 @@ class Actions(domain.Actions):
 
         params = params_type(**r.payload)
 
-        with self._common_repo.with_tx() as tx:
-            task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
-            self._queue_repo.enqueue(
+        with self.depot.common_repo.with_tx() as tx:
+            task_id = self.depot.common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
+            self.depot.queue_repo.enqueue(
                 tasks.task_runner,
                 func=task,
                 task_id=task_id,
@@ -98,7 +85,7 @@ class Actions(domain.Actions):
         return domain_model.StartTaskResponse(task_id)
 
     def get_task_info(self, r: domain_model.GetTaskInfoRequest) -> domain_model.GetTaskInfoResponse:
-        task_info = self._common_repo.get_task_info(r.task_id)
+        task_info = self.depot.common_repo.get_task_info(r.task_id)
         return domain_model.GetTaskInfoResponse(
             task_info.id,
             task_info.task_name,
@@ -124,8 +111,8 @@ class Actions(domain.Actions):
                 )
             )
 
-        with self._layer0_repo.with_tx() as tx:
-            table_id = self._layer0_repo.create_table(
+        with self.depot.layer0_repo.with_tx() as tx:
+            table_id = self.depot.layer0_repo.create_table(
                 data_model.Layer0Creation(
                     table_name=r.table_name,
                     column_descriptions=columns,
@@ -141,8 +128,8 @@ class Actions(domain.Actions):
     def add_data(self, r: domain_model.AddDataRequest) -> domain_model.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
 
-        with self._layer0_repo.with_tx() as tx:
-            self._layer0_repo.insert_raw_data(
+        with self.depot.layer0_repo.with_tx() as tx:
+            self.depot.layer0_repo.insert_raw_data(
                 data_model.Layer0RawData(
                     table_id=r.table_id,
                     data=data_df,
@@ -153,7 +140,7 @@ class Actions(domain.Actions):
         return domain_model.AddDataResponse()
 
     def login(self, r: domain_model.LoginRequest) -> domain_model.LoginResponse:
-        token, is_authenticated = self._authenticator.login(r.username, r.password)
+        token, is_authenticated = self.depot.authenticator.login(r.username, r.password)
 
         if not is_authenticated:
             raise new_unauthorized_error("invalid username or password")

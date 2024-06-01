@@ -1,5 +1,6 @@
 import structlog
 
+from app import commands
 from app.commands.runserver import config
 from app.data import repositories
 from app.domain import usecases
@@ -35,13 +36,14 @@ def start(config_path: str):
     client = clients.Clients(cfg.clients.ads_token)
 
     actions = usecases.Actions(
-        common_repo,
-        layer0_repo,
-        queue_repo,
-        authenticator,
-        client,
+        commands.Depot(
+            common_repo,
+            layer0_repo,
+            queue_repo,
+            authenticator,
+            client,
+        ),
         cfg.storage,
-        logger,
     )
 
     try:

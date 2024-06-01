@@ -5,6 +5,7 @@ import pandas
 import structlog
 from pandas import DataFrame
 
+from app import commands
 from app.data import repositories
 from app.data.model import Bibliography
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
@@ -23,18 +24,18 @@ class RawDataTableTest(unittest.TestCase):
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
-        logger = structlog.get_logger()
         cls.clients = libclients.Clients("")
         cls.clients.ads = mock.MagicMock()
 
         cls.actions = usecases.Actions(
-            common_repo=repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
-            layer0_repo=repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
-            queue_repo=None,
-            authenticator=auth.NoopAuthenticator(),
-            clients=cls.clients,
+            commands.Depot(
+                common_repo,
+                layer0_repo,
+                None,
+                auth.NoopAuthenticator(),
+                cls.clients,
+            ),
             storage_config=None,
-            logger=logger,
         )
 
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
