@@ -39,13 +39,6 @@ class CommonRepository(interface.CommonRepository):
 
         return model.Bibliography(**row)
 
-    def get_bibliography_list(
-        self, title: str, offset: int, limit: int, tx: psycopg.Transaction | None = None
-    ) -> list[model.Bibliography]:
-        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, params=[title, offset, limit], tx=tx)
-
-        return [model.Bibliography(**row) for row in rows]
-
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         row = self._storage.query_one(
             "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",

@@ -25,15 +25,3 @@ class GetSourceResponse:
     title: str
     authors: list[str]
     year: int
-
-
-@dataclass
-class GetSourceListRequest:
-    title: str
-    page_size: int
-    page: int
-
-
-@dataclass
-class GetSourceListResponse:
-    sources: list[GetSourceResponse]

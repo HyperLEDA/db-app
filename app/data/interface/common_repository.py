@@ -18,12 +18,6 @@ class CommonRepository(transactional.Transactional):
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_bibliography_list(
-        self, title: str, offset: int, limit: int, tx: psycopg.Transaction | None = None
-    ) -> list[model.Bibliography]:
-        raise NotImplementedError("not implemented")
-
-    @abc.abstractmethod
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         raise NotImplementedError("not implemented")
 

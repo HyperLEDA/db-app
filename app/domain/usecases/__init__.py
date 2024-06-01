@@ -31,7 +31,6 @@ class Actions(domain.Actions):
         self,
         common_repo: interface.CommonRepository,
         layer0_repo: interface.Layer0Repository,
-        layer1_repo: interface.Layer1Repository,
         queue_repo: interface.QueueRepository,
         authenticator: auth.Authenticator,
         clients: clients.Clients,
@@ -41,7 +40,6 @@ class Actions(domain.Actions):
     ) -> None:
         self._common_repo = common_repo
         self._layer0_repo = layer0_repo
-        self._layer1_repo = layer1_repo
         self._queue_repo = queue_repo
         self._storage_config = storage_config
         self._authenticator = authenticator
@@ -79,88 +77,6 @@ class Actions(domain.Actions):
             result.year,
         )
 
-    def get_source_list(self, r: domain_model.GetSourceListRequest) -> domain_model.GetSourceListResponse:
-        result = self._common_repo.get_bibliography_list(r.title, r.page * r.page_size, r.page_size)
-
-        response = [
-            domain_model.GetSourceResponse(
-                bib.bibcode,
-                bib.title,
-                bib.author,
-                bib.year,
-            )
-            for bib in result
-        ]
-        return domain_model.GetSourceListResponse(response)
-
-    def get_object_names(self, r: domain_model.GetObjectNamesRequest) -> domain_model.GetObjectNamesResponse:
-        designations = self._layer1_repo.get_designations(r.id, r.page, r.page_size)
-
-        if len(designations) == 0:
-            raise new_not_found_error("object does not exist or has no designations")
-
-        return domain_model.GetObjectNamesResponse(
-            [
-                domain_model.ObjectNameInfo(
-                    designation.design,
-                    designation.bib,
-                    designation.modification_time or datetime.datetime.now(tz=datetime.UTC),
-                )
-                for designation in designations
-            ]
-        )
-
-    def search_catalogs(self, r: domain_model.SearchCatalogsRequest) -> domain_model.SearchCatalogsResponse:
-        catalogs = self._clients.vizier.find_catalogs(r.query)
-
-        catalogs_info = []
-        for catalog_key, catalog_info in catalogs.items():
-            url = ""
-            bibcode = ""
-
-            try:
-                # TODO: this is a clutch, need to find a way to get catalog name reasonably
-                catalog_name = "/".join(catalog_key.split("/")[:-1])
-                catalog = self._clients.vizier.get_catalog_metadata(catalog=catalog_name)
-                try:
-                    url = catalog["webpage"][0]
-                except KeyError:
-                    self._logger.warn("unable to find webpage in catalog meta", catalog=catalog_name)
-
-                try:
-                    bibcode = catalog["origin_article"][0]
-                except KeyError:
-                    self._logger.warn("unable to find origin_article in catalog meta", catalog=catalog_name)
-
-            except IndexError:
-                self._logger.warn("unable to find metadata for the catalog", catalog=catalog_name or catalog_key)
-
-            tables = []
-
-            for curr_table in catalog_info.tables:
-                fields = [
-                    domain_model.Field(field.ID, field.description, str(field.unit)) for field in curr_table.fields
-                ]
-                tables.append(
-                    domain_model.Table(
-                        id=curr_table.ID,
-                        num_rows=curr_table.nrows,
-                        fields=fields,
-                    )
-                )
-
-            catalogs_info.append(
-                domain_model.Catalog(
-                    id=catalog_key,
-                    description=catalog_info.description,
-                    url=url,
-                    bibcode=bibcode,
-                    tables=tables,
-                )
-            )
-
-        return domain_model.SearchCatalogsResponse(catalogs=catalogs_info)
-
     def start_task(self, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
         if r.task_name not in TASK_REGISTRY:
             raise new_not_found_error(f"unable to find task '{r.task_name}'")
@@ -173,25 +89,6 @@ class Actions(domain.Actions):
             task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
             self._queue_repo.enqueue(
                 tasks.task_runner,
-                func=task,
-                task_id=task_id,
-                storage_config=self._storage_config,
-                params=params,
-            )
-
-        return domain_model.StartTaskResponse(task_id)
-
-    def debug_start_task(self, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
-        if r.task_name not in TASK_REGISTRY:
-            raise new_not_found_error(f"unable to find task '{r.task_name}'")
-
-        task, params_type = TASK_REGISTRY[r.task_name]
-
-        params = params_type(**r.payload)
-
-        with self._common_repo.with_tx() as tx:
-            task_id = self._common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
-            tasks.task_runner(
                 func=task,
                 task_id=task_id,
                 storage_config=self._storage_config,
