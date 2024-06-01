@@ -9,7 +9,7 @@ from app import commands
 from app.data import repositories
 from app.data.model import Bibliography
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
-from app.domain import model, usecases
+from app.domain import actions, model
 from app.lib import auth, exceptions, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums
@@ -27,15 +27,12 @@ class RawDataTableTest(unittest.TestCase):
         cls.clients = libclients.Clients("")
         cls.clients.ads = mock.MagicMock()
 
-        cls.actions = usecases.Actions(
-            commands.Depot(
-                common_repo,
-                layer0_repo,
-                None,
-                auth.NoopAuthenticator(),
-                cls.clients,
-            ),
-            storage_config=None,
+        cls.depot = commands.Depot(
+            common_repo,
+            layer0_repo,
+            None,
+            auth.NoopAuthenticator(),
+            cls.clients,
         )
 
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
@@ -54,9 +51,10 @@ class RawDataTableTest(unittest.TestCase):
             }
         ]
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
-        table_resp = self.actions.create_table(
+        table_resp = actions.create_table(
+            self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
@@ -66,17 +64,18 @@ class RawDataTableTest(unittest.TestCase):
                 bibliography_id=bib_resp.id,
                 datatype="regular",
                 description="",
-            )
+            ),
         )
 
-        self.actions.add_data(
+        actions.add_data(
+            self.depot,
             model.AddDataRequest(
                 table_resp.id,
                 data=[
                     {"test_col_1": 5.5, "test_col_2": "test data 1"},
                     {"test_col_1": 5.0, "test_col_2": "test data 2"},
                 ],
-            )
+            ),
         )
 
         rows = self.pg_storage.get_storage().query(
@@ -98,9 +97,10 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
-        table_resp = self.actions.create_table(
+        table_resp = actions.create_table(
+            self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
@@ -110,14 +110,15 @@ class RawDataTableTest(unittest.TestCase):
                 bibliography_id=bib_resp.id,
                 datatype="regular",
                 description="",
-            )
+            ),
         )
 
-        self.actions.add_data(
+        actions.add_data(
+            self.depot,
             model.AddDataRequest(
                 table_resp.id,
                 data=[{"test_col_1": 5.5}, {"test_col_1": 5.0}],
-            )
+            ),
         )
 
         rows = self.pg_storage.get_storage().query(
@@ -129,7 +130,8 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_unknown_bibliograhy(self):
         with self.assertRaises(exceptions.APIException):
-            _ = self.actions.create_table(
+            _ = actions.create_table(
+                self.depot,
                 model.CreateTableRequest(
                     "test_table",
                     [
@@ -139,7 +141,7 @@ class RawDataTableTest(unittest.TestCase):
                     bibliography_id=123456,
                     datatype="regular",
                     description="",
-                )
+                ),
             )
 
             # TODO: check that status code is 400
@@ -156,10 +158,11 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException):
-            _ = self.actions.create_table(
+            _ = actions.create_table(
+                self.depot,
                 model.CreateTableRequest(
                     "test_table",
                     [
@@ -169,7 +172,7 @@ class RawDataTableTest(unittest.TestCase):
                     bibliography_id=bib_resp.id,
                     datatype="regular",
                     description="",
-                )
+                ),
             )
 
             # TODO: check that status code is 400
@@ -186,10 +189,11 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
         with self.assertRaises(exceptions.APIException) as ctx:
-            _ = self.actions.create_table(
+            _ = actions.create_table(
+                self.depot,
                 model.CreateTableRequest(
                     "test_table",
                     [
@@ -199,7 +203,7 @@ class RawDataTableTest(unittest.TestCase):
                     bibliography_id=bib_resp.id,
                     datatype="regular",
                     description="",
-                )
+                ),
             )
 
             self.assertEqual(ctx.exception.status, 400)
@@ -216,9 +220,10 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
-        table_resp = self.actions.create_table(
+        table_resp = actions.create_table(
+            self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
@@ -228,15 +233,16 @@ class RawDataTableTest(unittest.TestCase):
                 bibliography_id=bib_resp.id,
                 datatype="regular",
                 description="",
-            )
+            ),
         )
 
         with self.assertRaises(exceptions.APIException):
-            self.actions.add_data(
+            actions.add_data(
+                self.depot,
                 model.AddDataRequest(
                     table_resp.id,
                     data=[{"totally_nonexistent_column": 5.5}],
-                )
+                ),
             )
 
     def test_duplicate_table(self):
@@ -251,9 +257,10 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = self.actions.create_source(model.CreateSourceRequest("2024arXiv240411942F"))
+        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
 
-        _ = self.actions.create_table(
+        _ = actions.create_table(
+            self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
@@ -263,18 +270,19 @@ class RawDataTableTest(unittest.TestCase):
                 bibliography_id=bib_resp.id,
                 datatype="regular",
                 description="",
-            )
+            ),
         )
 
         with self.assertRaises(exceptions.APIException):
-            _ = self.actions.create_table(
+            _ = actions.create_table(
+                self.depot,
                 model.CreateTableRequest(
                     "test_table",
                     [model.ColumnDescription("test_col_1", "float", "kpc", "test col 1")],
                     bibliography_id=bib_resp.id,
                     datatype="regular",
                     description="",
-                )
+                ),
             )
 
     def test_fetch_raw_table(self):
@@ -286,7 +294,7 @@ class RawDataTableTest(unittest.TestCase):
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
                 bib_id,
                 enums.DataType.REGULAR,
-            )
+            ),
         )
         self._layer0_repo.insert_raw_data(Layer0RawData(table_id, data))
         from_db = self._layer0_repo.fetch_raw_data(table_id)

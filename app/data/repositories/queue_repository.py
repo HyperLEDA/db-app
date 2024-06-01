@@ -19,4 +19,5 @@ class QueueRepository(interface.QueueRepository):
         self._logger = logger
 
     def enqueue(self, job: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+        kwargs["storage_config"] = self._storage_config
         self._queue.enqueue(job, *args, **kwargs)
