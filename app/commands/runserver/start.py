@@ -1,11 +1,11 @@
 import structlog
 
+from app.commands.runserver import config
 from app.data import repositories
 from app.domain import usecases
 from app.lib import auth, clients
 from app.lib.storage import postgres, redis
 from app.presentation import server
-from app.presentation.commands.runserver import config
 
 
 def start(config_path: str):

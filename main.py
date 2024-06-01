@@ -1,7 +1,7 @@
 import click
 
-import app.presentation.commands.generate_spec as generate_spec_cmd
-import app.presentation.commands.runserver as runserver_cmd
+import app.commands.generate_spec as generate_spec_cmd
+import app.commands.runserver as runserver_cmd
 
 
 @click.group()
