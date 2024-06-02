@@ -47,9 +47,9 @@ def layer_0_bibliography_mapper(domain: Layer0Model) -> Bibliography:
     Maps Layer0 domain model to data bibliography data model
     """
     return Bibliography(
+        domain.meta.biblio.id,
         domain.meta.biblio.ref_str,
         domain.meta.biblio.year,
         domain.meta.biblio.authors,
         domain.meta.biblio.title,
-        domain.meta.biblio.id,
     )

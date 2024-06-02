@@ -10,11 +10,17 @@ from app.lib.storage import enums
 
 class CommonRepository(transactional.Transactional):
     @abc.abstractmethod
-    def create_bibliography(self, bibliography: model.Bibliography, tx: psycopg.Transaction | None = None):
+    def create_bibliography(
+        self, bibcode: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
+    ) -> int:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_bibliography(self, bibliography_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+        raise NotImplementedError("not implemented")
+
+    @abc.abstractmethod
+    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod

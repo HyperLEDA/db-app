@@ -21,7 +21,7 @@ class GetSourceRequestSchema(Schema):
 
 
 class GetSourceResponseSchema(Schema):
-    bibcode = fields.Str(description="Bibcode of publication")
+    code = fields.Str(description="Bibcode or internal code of the publication")
     title = fields.Str(description="Title of publication")
     authors = fields.List(fields.Str, description="List of authors")
     year = fields.Int(description="Year of the publication")

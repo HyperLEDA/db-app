@@ -3,15 +3,14 @@ from dataclasses import dataclass
 
 @dataclass
 class CreateSourceRequest:
-    bibcode: str | None = None
-    title: str | None = None
-    authors: list[str] | None = None
-    year: int | None = None
+    title: str
+    authors: list[str]
+    year: int
 
 
 @dataclass
 class CreateSourceResponse:
-    id: int
+    code: str
 
 
 @dataclass

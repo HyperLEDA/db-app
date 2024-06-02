@@ -26,7 +26,10 @@ class CreateTableRequestSchema(Schema):
     columns = fields.List(
         fields.Nested(ColumnDescriptionSchema), required=True, description="List of columns in the table"
     )
-    bibliography_id = fields.Int(required=True, description="ID of the bibliographic data assosiated with this table")
+    bibcode = fields.Str(
+        required=True,
+        description="ADS bibcode of the article that published the data (or code of the internal communication)",
+    )
     datatype = fields.Str(
         load_default="regular",
         description="Type of the data in the table",

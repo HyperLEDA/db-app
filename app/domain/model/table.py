@@ -14,7 +14,7 @@ class ColumnDescription:
 class CreateTableRequest:
     table_name: str
     columns: list[ColumnDescription]
-    bibliography_id: int
+    bibcode: str
     datatype: str
     description: str
 

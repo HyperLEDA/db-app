@@ -30,8 +30,8 @@ COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object list of Principal Gala
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
 -- bibcode references the ADS database: https://ui.adsabs.harvard.edu/
-, bibcode	char(19)	UNIQUE	CHECK ( bibcode~'^(1[89]|20)[0-9]{2}[A-Za-z.]{5}[A-Za-z0-9.]{4}[ELPQ-Z0-9.][0-9.]{4}[A-Z]$' )
-, year	smallint	NOT NULL	CHECK (year>=1800 and extract(year from now())>=year)
+, bibcode	text	UNIQUE
+, year	smallint	NOT NULL	CHECK (year>=1600 and extract(year from now())>=year)
 , author	text[]	CHECK (array_length(author,1)>=1 and author[1] IS NOT NULL and author[1]!~'^ *$' and author[1]!~'^ +' and author[1]!~' +$' )
 , title	text	NOT NULL	CHECK (title!~'^ *$' and title!~'^ +' and title!~' +$' )
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
