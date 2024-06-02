@@ -55,74 +55,74 @@ class CrossIdDataProviderTest(unittest.TestCase):
         self.assertListEqual(inside, kd_inside)
         self.assertListEqual(inside, pg_inside)
 
-    def simple_provider(self):
+    @unittest.skip("Only for benchmarking")
+    def test_simple_provider(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
         def call_for_n_points(n_points: int):
             all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
 
-            print()
-            print(f"simple init {n_points} points, 10 calls")
-            self._print_benchmark(lambda: SimpleSimultaneousDataProvider(all_pts))
+            t_init, b_init = self._print_benchmark(lambda: SimpleSimultaneousDataProvider(all_pts))
 
             data_provider = SimpleSimultaneousDataProvider(all_pts)
 
             def call():
                 got_inside = data_provider.data_inside(center, r)
 
-            print(f"simple {n_points} points, 10 calls")
-            self._print_benchmark(call)
+            t_call, b_call = self._print_benchmark(call)
+            print()
+            print(f"{n_points} | simple | {t_init} s | {b_init} B | {t_call} s | {b_call} B")
 
         for n in [1000, 5000, 10000, 20000, 50000, 100000]:
             call_for_n_points(n)
 
-    def kd_provider(self):
+    @unittest.skip("Only for benchmarking")
+    def test_kd_provider(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
         def call_for_n_points(n_points: int):
             all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
 
-            print()
-            print(f"KDTree init {n_points} points, 10 calls")
-            self._print_benchmark(lambda: KDTreeSimultaneousDataProvider(all_pts))
+            t_init, b_init = self._print_benchmark(lambda: KDTreeSimultaneousDataProvider(all_pts))
 
             data_provider = KDTreeSimultaneousDataProvider(all_pts)
 
             def call():
                 got_inside = data_provider.data_inside(center, r)
 
-            print(f"KDTree {n_points} points, 10 calls")
-            self._print_benchmark(call)
+            t_call, b_call = self._print_benchmark(call)
+            print()
+            print(f"{n_points} | KDTree | {t_init} s | {b_init} B | {t_call} s | {b_call} B")
 
         for n in [1000, 5000, 10000, 20000, 50000, 100000]:
             call_for_n_points(n)
 
-    def pg_provider(self):
+    @unittest.skip("Only for benchmarking")
+    def test_pg_provider(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
         def call_for_n_points(n_points: int):
             all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
 
-            print()
-            print(f"Pg init {n_points} points, 2 calls")
-            self._print_benchmark(lambda: PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository), n_calls=2)
+            t_init, b_init = self._print_benchmark(lambda: PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository), n_calls=2)
 
             data_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
 
             def call():
                 got_inside = data_provider.data_inside(center, r)
 
-            print(f"Pg {n_points} points, 10 calls")
-            self._print_benchmark(call)
+            t_call, b_call = self._print_benchmark(call)
+            print()
+            print(f"{n_points} | PG | {t_init} s | {b_init} B | {t_call} s | {b_call} B")
 
         for n in [1000, 5000, 10000, 20000, 50000, 100000]:
             call_for_n_points(n)
 
     @staticmethod
-    def _print_benchmark(call: Callable, n_calls: int = 10):
+    def _print_benchmark(call: Callable, n_calls: int = 10) -> tuple[float, int]:
         tracemalloc.start()
 
         t_sec = timeit.timeit(call, number=n_calls) / n_calls
@@ -132,7 +132,7 @@ class CrossIdDataProviderTest(unittest.TestCase):
 
         n_bytes = sum(it.size for it in mem.traces)
 
-        print(f"t_sec = {t_sec}, n_bytes = {n_bytes}")
+        return t_sec, n_bytes
 
     def _make_points(
             self,

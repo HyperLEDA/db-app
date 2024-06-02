@@ -4,13 +4,12 @@ from app.domain.usecases.exceptions import CrossIdentificationException
 
 
 class CrossIdentifyUseCase:
-    def __init__(self, repository_l1: Layer1Repository):
-        self._repository_l1: Layer1Repository = repository_l1
-
     """
     Finds an object by name or coordinates and return's it's id, or creates a new id, if it's a new object.
     If there is a collision, returns this collision description
     """
+    def __init__(self, repository_l1: Layer1Repository):
+        self._repository_l1: Layer1Repository = repository_l1
 
     async def invoke(self, param: CrossIdentificationParam) -> int | CrossIdentificationException:
         """

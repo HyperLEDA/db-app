@@ -36,24 +36,15 @@ class TmpDataRepositoryImpl(TmpDataRepository):
 
             fields = data.columns
 
-            for row in data.to_dict(orient="records"):
-                obj = {}
-                params = []
-                for field in fields:
-                    value = row[field]
-                    params.append(value)
-                    obj[field] = "%s"
-
-                self._storage.exec(
-                    template.render_query(
-                        template.INSERT_TMP_RAW_DATA,
-                        table=name,
-                        fields=fields,
-                        objects=[obj],
-                    ),
-                    params=params,
-                    tx=tx,
-                )
+            self._storage.execute_many(
+                template.render_query(
+                    template.INSERT_TMP_RAW_DATA,
+                    table=name,
+                    fields=fields,
+                ),
+                params=data.to_numpy().tolist(),
+                tx=tx,
+            )
             if index_on is not None:
                 self._storage.exec(
                     template.render_query(
