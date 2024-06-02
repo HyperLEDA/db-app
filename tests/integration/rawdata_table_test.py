@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from app import commands
 from app.data import repositories
-from app.data.model import Bibliography
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.domain import actions, model
 from app.lib import auth, exceptions, testing
@@ -30,7 +29,7 @@ class RawDataTableTest(unittest.TestCase):
         cls.depot = commands.Depot(
             common_repo,
             layer0_repo,
-            None,
+            mock.MagicMock(),
             auth.NoopAuthenticator(),
             cls.clients,
         )
@@ -51,8 +50,6 @@ class RawDataTableTest(unittest.TestCase):
             }
         ]
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         table_resp = actions.create_table(
             self.depot,
             model.CreateTableRequest(
@@ -61,7 +58,7 @@ class RawDataTableTest(unittest.TestCase):
                     model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
                     model.ColumnDescription("test_col_2", "str", None, "test col 2"),
                 ],
-                bibliography_id=bib_resp.id,
+                bibcode="2024arXiv240411942F",
                 datatype="regular",
                 description="",
             ),
@@ -97,8 +94,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         table_resp = actions.create_table(
             self.depot,
             model.CreateTableRequest(
@@ -107,7 +102,7 @@ class RawDataTableTest(unittest.TestCase):
                     model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
                     model.ColumnDescription("test_col_2", "str", None, "test col 2"),
                 ],
-                bibliography_id=bib_resp.id,
+                bibcode="2024arXiv240411942F",
                 datatype="regular",
                 description="",
             ),
@@ -128,24 +123,6 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
         self.assertListEqual(data_df["test_col_2"].to_list(), [None, None])
 
-    def test_unknown_bibliograhy(self):
-        with self.assertRaises(exceptions.APIException):
-            _ = actions.create_table(
-                self.depot,
-                model.CreateTableRequest(
-                    "test_table",
-                    [
-                        model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                        model.ColumnDescription("test_col_2", "str", None, "test col 2"),
-                    ],
-                    bibliography_id=123456,
-                    datatype="regular",
-                    description="",
-                ),
-            )
-
-            # TODO: check that status code is 400
-
     def test_duplicate_column(self):
         self.clients.ads.query_simple = mock.MagicMock(
             return_value=[
@@ -158,8 +135,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         with self.assertRaises(exceptions.APIException):
             _ = actions.create_table(
                 self.depot,
@@ -169,7 +144,7 @@ class RawDataTableTest(unittest.TestCase):
                         model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
                         model.ColumnDescription("test_col_1", "str", None, "test col 2"),
                     ],
-                    bibliography_id=bib_resp.id,
+                    bibcode="2024arXiv240411942F",
                     datatype="regular",
                     description="",
                 ),
@@ -189,8 +164,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         with self.assertRaises(exceptions.APIException) as ctx:
             _ = actions.create_table(
                 self.depot,
@@ -200,7 +173,7 @@ class RawDataTableTest(unittest.TestCase):
                         model.ColumnDescription("test_col_1", "totally_real_type", "kpc", "test col 1"),
                         model.ColumnDescription("test_col_2", "str", None, "test col 2"),
                     ],
-                    bibliography_id=bib_resp.id,
+                    bibcode="2024arXiv240411942F",
                     datatype="regular",
                     description="",
                 ),
@@ -220,8 +193,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         table_resp = actions.create_table(
             self.depot,
             model.CreateTableRequest(
@@ -230,7 +201,7 @@ class RawDataTableTest(unittest.TestCase):
                     model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
                     model.ColumnDescription("test_col_2", "str", None, "test col 2"),
                 ],
-                bibliography_id=bib_resp.id,
+                bibcode="2024arXiv240411942F",
                 datatype="regular",
                 description="",
             ),
@@ -257,8 +228,6 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        bib_resp = actions.create_source(self.depot, model.CreateSourceRequest("2024arXiv240411942F"))
-
         _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
@@ -267,7 +236,7 @@ class RawDataTableTest(unittest.TestCase):
                     model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
                     model.ColumnDescription("test_col_2", "str", None, "test col 2"),
                 ],
-                bibliography_id=bib_resp.id,
+                bibcode="2024arXiv240411942F",
                 datatype="regular",
                 description="",
             ),
@@ -279,7 +248,7 @@ class RawDataTableTest(unittest.TestCase):
                 model.CreateTableRequest(
                     "test_table",
                     [model.ColumnDescription("test_col_1", "float", "kpc", "test col 1")],
-                    bibliography_id=bib_resp.id,
+                    bibcode="2024arXiv240411942F",
                     datatype="regular",
                     description="",
                 ),
@@ -287,7 +256,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self._common_repo.create_bibliography(Bibliography("2024arXiv240411942F", 1999, ["ade"], "title"))
+        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_id = self._layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
@@ -305,7 +274,7 @@ class RawDataTableTest(unittest.TestCase):
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
-        bib_id = self._common_repo.create_bibliography(Bibliography("2024arXiv240411942F", 1999, ["ade"], "title"))
+        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected_creation = Layer0Creation(
             table_name,

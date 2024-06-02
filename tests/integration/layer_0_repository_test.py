@@ -4,7 +4,7 @@ import structlog
 from pandas import DataFrame
 
 from app.data import repositories
-from app.data.model import Bibliography, ColumnDescription, Layer0Creation, Layer0RawData
+from app.data.model import ColumnDescription, Layer0Creation, Layer0RawData
 from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
@@ -34,7 +34,7 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_retrieve(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self._common_repo.create_bibliography(Bibliography("2024arXiv240411942F", 1999, ["ade"], "title"))
+        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         creation = Layer0Creation(
             "test_table",
             [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
