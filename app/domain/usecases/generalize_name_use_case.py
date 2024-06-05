@@ -1,7 +1,6 @@
 import re
 
-class GeneralizeNameUseCase:
-    def is_roman_number(num):  # checks if a string is a Roman numeral
+def is_roman_number(num):  # checks if a string is a Roman numeral
         num = num.upper()
         pattern = re.compile(r"""   
                                     ^M{0,3}
@@ -25,6 +24,7 @@ class GeneralizeNameUseCase:
                 result += integers[roman[i]]
         return str(result)
 
+class GeneralizeNameUseCase:
     """
     Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
     """
