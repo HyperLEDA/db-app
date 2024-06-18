@@ -110,7 +110,8 @@ class GeneralizeNameUseCase:
     Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
     """
 
-    def invoke(self, source: str) -> str:
+    @staticmethod
+    def invoke(source: str) -> str:
         request = source.split()
         name = ''
         index = ''
@@ -159,7 +160,7 @@ class GeneralizeNameUseCase:
 
             if is_roman_number(second):
                 index = roman_to_arabic(second)
-            elif name == 'ESO-LV':
+            elif name.upper() == 'ESO-LV':
                 second = second.replace('-', '').replace('+', '')
                 index = removing_extra_zeros(second)
             else:
