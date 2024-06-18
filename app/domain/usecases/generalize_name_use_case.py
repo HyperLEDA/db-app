@@ -110,8 +110,7 @@ class GeneralizeNameUseCase:
     Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
     """
 
-    @staticmethod
-    def invoke(source: str) -> str:
+    def invoke(self, source: str) -> str:
         request = source.split()
         name = ''
         index = ''
