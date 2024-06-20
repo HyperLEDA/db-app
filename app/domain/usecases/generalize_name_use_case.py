@@ -1,114 +1,114 @@
 import re
 
 
-def is_roman_number(num):  # checks if a string is a Roman numeral
-    num = num.upper()
-    pattern = re.compile(r"""   
-                                ^M{0,3}
-                                (CM|CD|D?C{0,3})?
-                                (XC|XL|L?X{0,3})?
-                                (IX|IV|V?I{0,3})?$
-            """, re.VERBOSE)
-    if re.match(pattern, num):
-        return True
-    return False
-
-
-integers = dict(I=1, V=5, X=10, L=50, C=100, D=500, M=1000)
-
-
-def roman_to_arabic(roman):  # converts Roman numerals to Arabic numerals
-    roman = roman.upper()
-    result = 0
-    for i, c in enumerate(roman):
-        if i + 1 < len(roman) and integers[roman[i]] < integers[roman[i + 1]]:
-            result -= integers[roman[i]]
-        else:
-            result += integers[roman[i]]
-    return str(result)
-
-
-def removing_extra_zeros(second_part):
-    end = len(second_part)
-    rez = ''
-    if second_part[0].isdigit():
-        for i in range(end):
-            if second_part[i] != '0':
-                rez = second_part[i:]
-                break
-            elif (i + 1 < end) and (second_part[i + 1] == '.' or second_part[i + 1] == ','):
-                rez = second_part[i:]
-                break
-    elif second_part[0] == '+':
-        for j in range(1, end):
-            if second_part[j] != '0':
-                rez = '+' + second_part[j:]
-                break
-            elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
-                rez = '+' + second_part[j:]
-                break
-    elif second_part[0] == '-':
-        for j in range(1, end):
-            if second_part[j] != '0':
-                rez = '-' + second_part[j:]
-                break
-            elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
-                rez = '-' + second_part[j:]
-                break
-    # elif second_part[0].lower() == 'j':
-    #     for j in range(1, end):
-    #         if second_part[j] != '0':
-    #             rez = 'J' + second_part[j:]
-    #             break
-    #         elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
-    #             rez = 'J' + second_part[j:]
-    #             break
-    else:
-        rez = second_part
-    end = len(rez)
-    for i in range(1, end):
-        if rez[i] == '+' and (i + 1) != end:
-            for j in range(i + 1, end):
-                if rez[j] != '0':
-                    rez = rez[:i] + '+' + rez[j:]
-                    break
-                elif (j + 1 < end) and (rez[j + 1] == '.' or rez[j + 1] == ','):
-                    rez = rez[:i] + '+' + rez[j:]
-                    break
-            break
-        elif rez[i] == '-' and (i + 1) != end:
-            for j in range(i + 1, end):
-                if rez[j] != '0':
-                    rez = rez[:i] + '-' + rez[j:]
-                    break
-                elif (j + 1 < end) and (rez[j + 1] == '.' or rez[j + 1] == ','):
-                    rez = rez[:i] + '-' + rez[j:]
-                    break
-            break
-    return rez
-
-
-reduction = {'aguero': 'Aguero', 'akn': 'Ark', 'and': 'Andromeda', 'anon': 'Anon', 'ark': 'Ark', 'arm': 'Arm', 'aztec':
-    'AzTEC', 'b-hizeles': 'B-HiZELES', 'boka': 'BoKa', 'borg': 'BoRG', 'bss': 'SBSG', 'cambridge': 'Cambridge', 'cas':
-    'Cas', 'caseg': 'CasG', 'casg': 'CasG', 'cgcg': 'Z', 'cgrabs': 'CGRaBS', 'coldz': 'COLDz', 'comacc': 'ComaCC',
-    'comafc': 'ComaFC', 'cowie': 'Cowie', 'cpga': 'AM', 'crgc': 'RGC', 'dcaz94': 'dCAZ94', '2dfgrs': '2dFGRS', '6dfgs':
-    '6dFGS', 'dickinson': 'HNM', 'dr5egal': 'dr5EGal', 'dr5ngal': 'dr5NGal', 'dragons': 'DRaGONS', 'dukst': 'DUGRS',
-    'dwingeloo': 'Dwingeloo', 'egnog': 'EGNoG', 'frl': 'Frl', 'gabods': 'GaBoDS', 'gwyn': 'Gwyn', 'herbs': 'HerBS',
-    'hhic': 'PGC', 'hic': 'PGC', 'hizels': 'HiZELS', 'holmberg': 'Holmberg', 'ho': 'Holmberg', 'holm': 'Holmberg',
-    'hsdf': 'hSDF', 'hz': 'Hz', 'k72': 'KPG', 'ka': 'Ka', 'kaz': 'Ka', 'kaza': 'Ka', 'kdg': 'K68', 'kissbx': 'KISSBx',
-    'kissrx': 'KISSRx', 'klem': 'Klem', 'leda': 'PGC', 'lu yc': 'Lu YC', 'macsg': 'MACSg', 'mailyan': 'Mailyan',
-    'malin': 'Malin', 'mark': 'Mrk', 'markarian': 'Mrk', '2masx1': '2MASXI', 'mkn': 'Mrk', 'mrk': 'Mrk', 'n': 'NGC',
-    'nhzg': 'NHzG', 'p': 'PGC', 'psc': 'Psc', 'reiz': 'Reiz', 'sawicki': 'Sawicki', 'sborg': 'sBoRG', 'sbs': 'SBSG',
-    'sbsss': 'SBSG', 'shizels': 'SHiZELS', 'shk': 'Shk', 'skk97': 'SKK98', 'ssrs2': 'GSC', 'super8': 'Super8', 'thg':
-    'ThG', 'tol': 'Tol', 'u': 'UGC', 'ua': 'UGCA', 'ugcg': 'UGC', 'vir': 'Virgo', 'was': 'Was', 'wein': 'Weinberger',
-    'weinberger': 'Weinberger', 'westphal': 'Westphal', 'wigglez': 'WiggleZ', 'wkk97': 'WKK98', 'zcosmos': 'zCOSMOS',
-    'zw': 'Zw'}
-
-
 class GeneralizeNameUseCase:
     """
     Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
     """
+
+    @staticmethod
+    def is_roman_number(num):  # checks if a string is a Roman numeral
+        num = num.upper()
+        pattern = re.compile(r"""   
+                                    ^M{0,3}
+                                    (CM|CD|D?C{0,3})?
+                                    (XC|XL|L?X{0,3})?
+                                    (IX|IV|V?I{0,3})?$
+                """, re.VERBOSE)
+        if re.match(pattern, num):
+            return True
+        return False
+
+    integers = dict(I=1, V=5, X=10, L=50, C=100, D=500, M=1000)
+
+    @classmethod
+    def roman_to_arabic(cls, roman):  # converts Roman numerals to Arabic numerals
+        roman = roman.upper()
+        result = 0
+        for i, c in enumerate(roman):
+            if i + 1 < len(roman) and cls.integers[roman[i]] < cls.integers[roman[i + 1]]:
+                result -= cls.integers[roman[i]]
+            else:
+                result += cls.integers[roman[i]]
+        return str(result)
+
+    @staticmethod
+    def removing_extra_zeros(second_part):
+        end = len(second_part)
+        rez = ''
+        if second_part[0].isdigit():
+            for i in range(end):
+                if second_part[i] != '0':
+                    rez = second_part[i:]
+                    break
+                elif (i + 1 < end) and (second_part[i + 1] == '.' or second_part[i + 1] == ','):
+                    rez = second_part[i:]
+                    break
+        elif second_part[0] == '+':
+            for j in range(1, end):
+                if second_part[j] != '0':
+                    rez = '+' + second_part[j:]
+                    break
+                elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
+                    rez = '+' + second_part[j:]
+                    break
+        elif second_part[0] == '-':
+            for j in range(1, end):
+                if second_part[j] != '0':
+                    rez = '-' + second_part[j:]
+                    break
+                elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
+                    rez = '-' + second_part[j:]
+                    break
+        # elif second_part[0].lower() == 'j':
+        #     for j in range(1, end):
+        #         if second_part[j] != '0':
+        #             rez = 'J' + second_part[j:]
+        #             break
+        #         elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
+        #             rez = 'J' + second_part[j:]
+        #             break
+        else:
+            rez = second_part
+        end = len(rez)
+        for i in range(1, end):
+            if rez[i] == '+' and (i + 1) != end:
+                for j in range(i + 1, end):
+                    if rez[j] != '0':
+                        rez = rez[:i] + '+' + rez[j:]
+                        break
+                    elif (j + 1 < end) and (rez[j + 1] == '.' or rez[j + 1] == ','):
+                        rez = rez[:i] + '+' + rez[j:]
+                        break
+                break
+            elif rez[i] == '-' and (i + 1) != end:
+                for j in range(i + 1, end):
+                    if rez[j] != '0':
+                        rez = rez[:i] + '-' + rez[j:]
+                        break
+                    elif (j + 1 < end) and (rez[j + 1] == '.' or rez[j + 1] == ','):
+                        rez = rez[:i] + '-' + rez[j:]
+                        break
+                break
+        return rez
+
+    reduction = {'aguero': 'Aguero', 'akn': 'Ark', 'and': 'Andromeda', 'anon': 'Anon', 'ark': 'Ark', 'arm': 'Arm',
+                 'aztec': 'AzTEC', 'b-hizeles': 'B-HiZELES', 'boka': 'BoKa', 'borg': 'BoRG', 'bss': 'SBSG',
+                 'cambridge': 'Cambridge', 'cas': 'Cas', 'caseg': 'CasG', 'casg': 'CasG', 'cgcg': 'Z', 'cgrabs':
+                     'CGRaBS', 'coldz': 'COLDz', 'comacc': 'ComaCC', 'comafc': 'ComaFC', 'cowie': 'Cowie', 'cpga':
+                     'AM', 'crgc': 'RGC', 'dcaz94': 'dCAZ94', '2dfgrs': '2dFGRS', '6dfgs': '6dFGS', 'dickinson': 'HNM',
+                 'dr5egal': 'dr5EGal', 'dr5ngal': 'dr5NGal', 'dragons': 'DRaGONS', 'dukst': 'DUGRS', 'dwingeloo':
+                     'Dwingeloo', 'egnog': 'EGNoG', 'frl': 'Frl', 'gabods': 'GaBoDS', 'gwyn': 'Gwyn', 'herbs': 'HerBS',
+                 'hhic': 'PGC', 'hic': 'PGC', 'hizels': 'HiZELS', 'holmberg': 'Holmberg', 'ho': 'Holmberg', 'holm':
+                     'Holmberg', 'hsdf': 'hSDF', 'hz': 'Hz', 'k72': 'KPG', 'ka': 'Ka', 'kaz': 'Ka', 'kaza': 'Ka', 'kdg':
+                     'K68', 'kissbx': 'KISSBx', 'kissrx': 'KISSRx', 'klem': 'Klem', 'leda': 'PGC', 'lu yc': 'Lu YC',
+                 'macsg': 'MACSg', 'mailyan': 'Mailyan', 'malin': 'Malin', 'mark': 'Mrk', 'markarian': 'Mrk', '2masx1':
+                     '2MASXI', 'mkn': 'Mrk', 'mrk': 'Mrk', 'n': 'NGC', 'nhzg': 'NHzG', 'p': 'PGC', 'psc': 'Psc', 'reiz':
+                     'Reiz', 'sawicki': 'Sawicki', 'sborg': 'sBoRG', 'sbs': 'SBSG', 'sbsss': 'SBSG', 'shizels':
+                     'SHiZELS', 'shk': 'Shk', 'skk97': 'SKK98', 'ssrs2': 'GSC', 'super8': 'Super8', 'thg': 'ThG', 'tol':
+                     'Tol', 'u': 'UGC', 'ua': 'UGCA', 'ugcg': 'UGC', 'vir': 'Virgo', 'was': 'Was', 'wein': 'Weinberger',
+                 'weinberger': 'Weinberger', 'westphal': 'Westphal', 'wigglez': 'WiggleZ', 'wkk97': 'WKK98', 'zcosmos':
+                     'zCOSMOS', 'zw': 'Zw'}
 
     def invoke(self, source: str) -> str:
         request = source.split()
@@ -135,16 +135,16 @@ class GeneralizeNameUseCase:
                             break
                 if name == '':
                     for i in range(len(request[0])):
-                        if request[0][:i].lower() in reduction and is_roman_number(request[0][i:]):
+                        if request[0][:i].lower() in self.reduction and self.is_roman_number(request[0][i:]):
                             name = request[0][:i]  # write all the letters on the left into the nominal part
                             end_name = i
                             break
             second = request[0][end_name:]
-            index = removing_extra_zeros(second)
+            index = self.removing_extra_zeros(second)
 
         elif len(request) == 2:  # if the request consists of two parts
             if request[0][0].isalpha():
-                if is_roman_number(request[0]):
+                if self.is_roman_number(request[0]):
                     name = request[1]
                     second = request[0]
                 else:
@@ -157,19 +157,19 @@ class GeneralizeNameUseCase:
                 name = request[1]
                 second = request[0]
 
-            if is_roman_number(second):
-                index = roman_to_arabic(second)
+            if self.is_roman_number(second):
+                index = self.roman_to_arabic(second)
             elif name.upper() == 'ESO-LV':
                 second = second.replace('-', '').replace('+', '')
-                index = removing_extra_zeros(second)
+                index = self.removing_extra_zeros(second)
             else:
-                index = removing_extra_zeros(second)
+                index = self.removing_extra_zeros(second)
 
         elif len(request) == 3:
             if request[0][0].isalpha():
-                if is_roman_number(request[0]):
+                if self.is_roman_number(request[0]):
                     if request[1].isalpha():
-                        name = roman_to_arabic(request[0]) + request[1]
+                        name = self.roman_to_arabic(request[0]) + request[1]
                         second = request[2]
                     else:
                         name = request[0] + request[2]
@@ -177,8 +177,8 @@ class GeneralizeNameUseCase:
                 elif request[0].lower() == 'lu' and request[1].lower() == 'yc':
                     name = request[0] + ' ' + request[1]
                     second = request[2]
-                elif is_roman_number(request[1]):
-                    name = roman_to_arabic(request[1]) + request[0]
+                elif self.is_roman_number(request[1]):
+                    name = self.roman_to_arabic(request[1]) + request[0]
                     second = request[2]
                 else:
                     name = request[0]
@@ -186,19 +186,19 @@ class GeneralizeNameUseCase:
             else:
                 name = request[0]
                 second = request[1] + request[2]
-            index = removing_extra_zeros(second)
+            index = self.removing_extra_zeros(second)
 
         elif len(request) == 4:
             if request[0][0].isalpha():
-                if is_roman_number(request[0]):
+                if self.is_roman_number(request[0]):
                     if request[1][0].isalpha():
-                        name = roman_to_arabic(request[0]) + request[1]
+                        name = self.roman_to_arabic(request[0]) + request[1]
                         second = request[2]
                     else:
                         name = request[0] + request[2]
                         second = request[1]
-                elif is_roman_number(request[1]):
-                    name = roman_to_arabic(request[1]) + request[0]
+                elif self.is_roman_number(request[1]):
+                    name = self.roman_to_arabic(request[1]) + request[0]
                     second = request[2]
                 else:
                     name = request[0]
@@ -206,15 +206,15 @@ class GeneralizeNameUseCase:
             else:
                 name = request[0]
                 second = request[1] + request[2] + request[3]
-            index = removing_extra_zeros(second)
+            index = self.removing_extra_zeros(second)
 
-        if name.lower() in reduction:
-            name = reduction[name.lower()]
+        if name.lower() in self.reduction:
+            name = self.reduction[name.lower()]
         else:
             name = name.upper()
 
-        if is_roman_number(index):
-            index = roman_to_arabic(index)
+        if self.is_roman_number(index):
+            index = self.roman_to_arabic(index)
 
         request_convert = name + ' ' + index.upper().replace(',', '.')
 
