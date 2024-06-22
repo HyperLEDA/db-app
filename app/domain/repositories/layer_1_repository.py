@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from app.domain.model import Layer1Model
+from app.domain.model.params.layer_1_query_param import Layer1QueryParam
 
 
 class Layer1Repository(ABC):
@@ -10,15 +10,16 @@ class Layer1Repository(ABC):
     """
 
     @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
-        pass
-
-    @abstractmethod
-    async def get_inside_square(
-        self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
-    ) -> list[Layer1Model]:
-        pass
+    async def query_data(self, param: Layer1QueryParam) -> list[Layer1Model]:
+        """
+        Get all objects around given point
+        :param param: Parameter, used to make specific query
+        :return: all Layer1Model, that meet criteria in param
+        """
 
     @abstractmethod
     async def save_update_instances(self, instances: list[Layer1Model]):
-        pass
+        """
+        Create or update provided objects
+        :param instances: Objects to be processed
+        """

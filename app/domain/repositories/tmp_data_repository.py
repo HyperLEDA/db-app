@@ -15,7 +15,6 @@ class TmpDataRepository(ABC):
         :param index_on: Names of columns to build index on
         :return: Name of the created table
         """
-        pass
 
     @abstractmethod
     async def query_table(self, param: TmpDataRepositoryQueryParam) -> list[dict[str, Any]]:
@@ -23,7 +22,6 @@ class TmpDataRepository(ABC):
         :param param: Query param, specifying table to query and query params
         :return: List of resulting rows
         """
-        pass
 
     @abstractmethod
     async def drop_table(self, name: str):
@@ -31,4 +29,3 @@ class TmpDataRepository(ABC):
         Drop and destroy temporary table
         :param name: Table name
         """
-        pass

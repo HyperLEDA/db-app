@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Iterable, Sequence, Union
 
-from astropy.coordinates import SkyCoord, ICRS
+from astropy.coordinates import ICRS, SkyCoord
 from pandas import DataFrame
 
 from app.domain.model.layer0.values.exceptions import ColumnNotFoundException

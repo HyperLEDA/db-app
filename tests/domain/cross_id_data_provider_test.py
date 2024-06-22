@@ -1,18 +1,20 @@
-import unittest
-from math import pi
-import random
-import tracemalloc
 import timeit
+import tracemalloc
+import unittest
 from typing import Callable
+from uuid import uuid4
 
-from astropy.coordinates import ICRS, angular_separation, Angle
 import astropy.units as u
+from astropy.coordinates import ICRS
 
 from app.data.repositories.tmp_data_repository_impl import TmpDataRepositoryImpl
-from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider, \
-    KDTreeSimultaneousDataProvider, PostgreSimultaneousDataProvider
+from app.domain.cross_id_simultaneous_data_provider import (
+    PostgreSimultaneousDataProvider,
+    SimpleSimultaneousDataProvider,
+)
 from app.domain.model.params import CrossIdentificationParam
-from app.lib import testing, exceptions
+from app.lib import exceptions, testing
+from tests.domain.util import make_points
 
 
 class CrossIdDataProviderTest(unittest.TestCase):
@@ -29,16 +31,12 @@ class CrossIdDataProviderTest(unittest.TestCase):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
-        all_pts, inside = self._make_points(n_points=5000, center=center, r=r)
+        all_pts, inside = make_points(n_points=5000, center=center, r=r)
         inside.sort(key=lambda it: it.coordinates.ra)
 
         data_provider = SimpleSimultaneousDataProvider(all_pts)
         got_inside = data_provider.data_inside(center, r)
         got_inside.sort(key=lambda it: it.coordinates.ra)
-
-        kdtree_provider = KDTreeSimultaneousDataProvider(all_pts)
-        kd_inside = kdtree_provider.data_inside(center, r)
-        kd_inside.sort(key=lambda it: it.coordinates.ra)
 
         pg_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
         pg_inside = pg_provider.data_inside(center, r)
@@ -48,12 +46,28 @@ class CrossIdDataProviderTest(unittest.TestCase):
         pg_provider.clear()
         self.assertRaises(
             exceptions.APIException,
-            lambda: self.storage.get_storage().query(f"SELECT * FROM {pg_provider._table_name}")
+            lambda: self.storage.get_storage().query(f"SELECT * FROM {pg_provider.table_name}"),
         )
 
         self.assertListEqual(inside, got_inside)
-        self.assertListEqual(inside, kd_inside)
         self.assertListEqual(inside, pg_inside)
+
+    def test_data_by_name(self):
+        all_pts = [CrossIdentificationParam(uuid4().hex, None) for _ in range(100)]
+        target = CrossIdentificationParam(uuid4().hex, None)
+        all_pts = all_pts + [target]
+
+        data_provider = SimpleSimultaneousDataProvider(all_pts)
+        provider_res = data_provider.by_name(target.name)
+
+        pg_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
+        pg_res = pg_provider.by_name(target.name)
+
+        self.assertEqual(len(provider_res), 1)
+        self.assertEqual(provider_res[0], target)
+
+        self.assertEqual(len(pg_res), 1)
+        self.assertEqual(pg_res[0], target)
 
     @unittest.skip("Only for benchmarking")
     def test_simple_provider(self):
@@ -61,40 +75,18 @@ class CrossIdDataProviderTest(unittest.TestCase):
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
         def call_for_n_points(n_points: int):
-            all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
+            all_pts, inside = make_points(n_points=n_points, center=center, r=r)
 
             t_init, b_init = self._print_benchmark(lambda: SimpleSimultaneousDataProvider(all_pts))
 
             data_provider = SimpleSimultaneousDataProvider(all_pts)
 
             def call():
-                got_inside = data_provider.data_inside(center, r)
+                data_provider.data_inside(center, r)
 
             t_call, b_call = self._print_benchmark(call)
             print()
             print(f"{n_points} | simple | {t_init} s | {b_init} B | {t_call} s | {b_call} B")
-
-        for n in [1000, 5000, 10000, 20000, 50000, 100000]:
-            call_for_n_points(n)
-
-    @unittest.skip("Only for benchmarking")
-    def test_kd_provider(self):
-        r = 10 * u.deg
-        center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-
-        def call_for_n_points(n_points: int):
-            all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
-
-            t_init, b_init = self._print_benchmark(lambda: KDTreeSimultaneousDataProvider(all_pts))
-
-            data_provider = KDTreeSimultaneousDataProvider(all_pts)
-
-            def call():
-                got_inside = data_provider.data_inside(center, r)
-
-            t_call, b_call = self._print_benchmark(call)
-            print()
-            print(f"{n_points} | KDTree | {t_init} s | {b_init} B | {t_call} s | {b_call} B")
 
         for n in [1000, 5000, 10000, 20000, 50000, 100000]:
             call_for_n_points(n)
@@ -105,14 +97,16 @@ class CrossIdDataProviderTest(unittest.TestCase):
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
 
         def call_for_n_points(n_points: int):
-            all_pts, inside = self._make_points(n_points=n_points, center=center, r=r)
+            all_pts, inside = make_points(n_points=n_points, center=center, r=r)
 
-            t_init, b_init = self._print_benchmark(lambda: PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository), n_calls=2)
+            t_init, b_init = self._print_benchmark(
+                lambda: PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository), n_calls=2
+            )
 
             data_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
 
             def call():
-                got_inside = data_provider.data_inside(center, r)
+                data_provider.data_inside(center, r)
 
             t_call, b_call = self._print_benchmark(call)
             print()
@@ -133,23 +127,3 @@ class CrossIdDataProviderTest(unittest.TestCase):
         n_bytes = sum(it.size for it in mem.traces)
 
         return t_sec, n_bytes
-
-    def _make_points(
-            self,
-            n_points: int,
-            center: ICRS,
-            r: Angle,
-    ) -> tuple[list[CrossIdentificationParam], list[CrossIdentificationParam]]:
-        ra = [2 * pi * random.random() for _ in range(0, n_points)]
-        dec = [pi * random.random() - pi / 2 for _ in range(0, n_points)]
-        all_pts = [
-            CrossIdentificationParam(None, ICRS(ra=it[0] * u.rad, dec=it[1] * u.rad))
-            for it in zip(ra, dec)
-        ]
-
-        inside = [
-            it for it in all_pts
-            if angular_separation(it.coordinates.ra, it.coordinates.dec, center.ra, center.dec) <= r
-        ]
-
-        return all_pts, inside

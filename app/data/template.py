@@ -117,6 +117,12 @@ WHERE
     sphdist(ra, dec, {{ ra0 }}, {{ dec0 }}) <= {{ delta }}
 """
 
+GET_TMP_DATA_BY_NAME = """
+SELECT idx FROM {{ table_name }}
+WHERE
+    name = %s
+"""
+
 GET_RAWDATA_TABLE = """
 SELECT table_name FROM rawdata.tables
 WHERE id = %s

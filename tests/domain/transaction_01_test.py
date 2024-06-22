@@ -2,6 +2,7 @@ import unittest
 
 from pandas import DataFrame
 
+from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
@@ -14,7 +15,7 @@ from app.domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
 )
-from tests.domain.transform_01_test import MockedCrossIdentifyUseCase, MockedLayer1Repo
+from tests.domain.util import MockedCrossIdentifyUseCase
 
 
 class MockedCoordinateParseFailResolver(ResolveCoordinateParseFail):
@@ -58,7 +59,9 @@ class Transaction01Test(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        transformation_use_case = TransformationO1UseCase(MockedCrossIdentifyUseCase(MockedLayer1Repo()))
+        transformation_use_case = TransformationO1UseCase(
+            MockedCrossIdentifyUseCase(), lambda it: SimpleSimultaneousDataProvider(it)
+        )
         transaction_use_case = Transaction01UseCase(transformation_use_case)
         source, models, fails = await transaction_use_case.invoke(data)
         self.assertEqual(2, len(models))

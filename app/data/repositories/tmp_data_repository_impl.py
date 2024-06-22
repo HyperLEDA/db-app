@@ -1,16 +1,14 @@
-import string
 import random
+import string
 from typing import Any
 
 import astropy.units as u
-
 from pandas import DataFrame
 
 from app.data import template
-from app.domain.model.params import TmpDataRepositoryQueryParam, TmpCoordinateTableQueryParam
+from app.domain.model.params import TmpCoordinateTableQueryParam, TmpDataRepositoryQueryParam, TmpNameTableQueryParam
 from app.domain.repositories.tmp_data_repository import TmpDataRepository
-from app.lib.storage import postgres
-from app.lib.storage import mapping
+from app.lib.storage import mapping, postgres
 
 
 class TmpDataRepositoryImpl(TmpDataRepository):
@@ -18,12 +16,9 @@ class TmpDataRepositoryImpl(TmpDataRepository):
         self._storage = storage
 
     async def make_table(self, data: DataFrame, index_on: list[str] | None) -> str:
-        name = ''.join(random.choices(string.ascii_lowercase, k=32))
+        name = "".join(random.choices(string.ascii_lowercase, k=32))
 
-        fields = [
-            (col_name, mapping.get_type_from_dtype(data[col_name].dtype))
-            for col_name in data.columns.values
-        ]
+        fields = [(col_name, mapping.get_type_from_dtype(data[col_name].dtype)) for col_name in data.columns.values]
 
         with self._storage.with_tx() as tx:
             self._storage.exec(
@@ -48,12 +43,9 @@ class TmpDataRepositoryImpl(TmpDataRepository):
             if index_on is not None:
                 self._storage.exec(
                     template.render_query(
-                        template.BUILD_INDEX,
-                        index_name=f"index_{name}",
-                        table_name=name,
-                        columns=index_on
+                        template.BUILD_INDEX, index_name=f"index_{name}", table_name=name, columns=index_on
                     ),
-                    tx=tx
+                    tx=tx,
                 )
 
         return name
@@ -63,13 +55,20 @@ class TmpDataRepositoryImpl(TmpDataRepository):
             delta = param.r.to(u.deg).value
             ra0 = param.center.ra.to(u.deg).value
             dec0 = param.center.dec.to(u.deg).value
-            return self._storage.query(template.render_query(
-                template.GET_TMP_DATA_INSIDE,
-                table_name=param.table_name(),
-                delta=delta,
-                ra0=ra0,
-                dec0=dec0
-            ))
+            return self._storage.query(
+                template.render_query(
+                    template.GET_TMP_DATA_INSIDE, table_name=param.table_name(), delta=delta, ra0=ra0, dec0=dec0
+                )
+            )
+
+        if isinstance(param, TmpNameTableQueryParam):
+            return self._storage.query(
+                template.render_query(
+                    template.GET_TMP_DATA_BY_NAME,
+                    table_name=param.table_name(),
+                ),
+                params=[param.names],
+            )
 
         raise ValueError(f"Unexpected query param: {param}")
 

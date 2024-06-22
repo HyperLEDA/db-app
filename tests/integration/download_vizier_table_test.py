@@ -106,7 +106,7 @@ class DownloadVizierTableTest(unittest.TestCase):
     def test_nans_in_data(self, vizier_mock):
         test_table = table.Table(names=("name", "ra", "dec"), dtype=("str", "f4", "f4"))
         test_table.meta = {"name": "test_table"}
-        test_table.add_row(("M333", np.NaN, 10))
+        test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
         vizier_mock.return_value.get_catalogs = mock.MagicMock(return_value=[test_table])
@@ -124,7 +124,7 @@ class DownloadVizierTableTest(unittest.TestCase):
     def test_caching_table(self, vizier_mock):
         test_table = table.Table(names=("name", "ra", "dec"), dtype=("str", "f4", "f4"))
         test_table.meta = {"name": "test_table"}
-        test_table.add_row(("M333", np.NaN, 10))
+        test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
         mock_vizier_class = vizier_mock.return_value

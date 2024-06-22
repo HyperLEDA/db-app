@@ -23,9 +23,26 @@ class TmpCoordinateTableQueryParam(TmpDataRepositoryQueryParam):
         `center`: Center of query circle
         `r`: Radius of query circle
     """
+
     name: str
     center: ICRS
     r: Angle
 
     def table_name(self):
         return self.name
+
+
+@dataclass
+class TmpNameTableQueryParam(TmpDataRepositoryQueryParam):
+    """
+    Parameter to query by names
+    Args:
+        `t_name`: Name of temporary table
+        `names`: Names to be queried
+    """
+
+    t_name: str
+    names: str
+
+    def table_name(self):
+        return self.t_name
