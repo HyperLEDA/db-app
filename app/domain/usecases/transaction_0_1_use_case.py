@@ -8,7 +8,7 @@ from app.domain.model.params.transaction_0_1_stages import (
     TransactionO1Sage,
     TransformingData,
 )
-from app.domain.usecases import TransformationO1UseCase
+from app.domain.usecases.transformation_0_1_use_case import TransformationO1UseCase
 from app.domain.util import GlobalDBLock
 
 

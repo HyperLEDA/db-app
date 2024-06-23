@@ -13,7 +13,7 @@ from aiohttp import web
 from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
-from app import domain
+from app import commands
 from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
@@ -23,7 +23,7 @@ from app.presentation.server import config, handlers
 def start(
     cfg: config.ServerConfig,
     authenticator: auth.Authenticator,
-    actions: domain.Actions,
+    depot: commands.Depot,
     logger: structlog.stdlib.BoundLogger,
 ):
     # silence warning from apispec since it is a desired behaviour in this case.
@@ -48,7 +48,7 @@ def start(
         route = app.router.add_route(
             route_description.method.value,
             route_description.endpoint,
-            json_wrapper(actions, route_description.handler),
+            json_wrapper(depot, route_description.handler),
         )
 
         if route_description.request_schema.__name__ not in spec.components.schemas:
@@ -94,11 +94,11 @@ def custom_dumps(obj):
 
 
 def json_wrapper(
-    actions: domain.Actions, func: Callable[[domain.Actions, web.Request], Any]
+    depot: commands.Depot, func: Callable[[commands.Depot, web.Request], Any]
 ) -> Callable[[web.Request], Awaitable[web.Response]]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
-        response = await func(actions, request)
+        response = await func(depot, request)
         return web.json_response({"data": dataclasses.asdict(response)}, dumps=custom_dumps)
 
     return inner

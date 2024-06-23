@@ -3,8 +3,8 @@ from typing import Any
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import domain
-from app.domain import model
+from app import commands
+from app.domain import actions, model
 from app.lib.exceptions import new_validation_error
 from app.presentation.server.handlers import common
 
@@ -27,7 +27,7 @@ class GetTaskInfoResponseSchema(Schema):
     message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")
 
 
-async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
+async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> Any:
     """---
     summary: Get information about the task
     description: Retrieves information about the task using its id.
@@ -52,7 +52,7 @@ async def get_task_info_handler(actions: domain.Actions, r: web.Request) -> Any:
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    return actions.get_task_info(request)
+    return actions.get_task_info(depot, request)
 
 
 description = common.HandlerDescription(

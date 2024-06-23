@@ -1,12 +1,16 @@
 import unittest
+from typing import Optional
 
 from pandas import DataFrame
 
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
-from app.domain.model import Layer0Model
+from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
+from app.domain.model.params.layer_0_query_param import Layer0QueryParam
+from app.domain.repositories.layer_0_repository import Layer0Repository
+from app.domain.repositories.layer_1_repository import Layer1Repository
 from app.domain.usecases import TransformationO1UseCase
 from app.domain.usecases.transaction_0_1_use_case import Transaction01UseCase
 from app.domain.user_interaction.interaction import ResolveCoordinateParseFail
@@ -30,13 +34,48 @@ class MockedCoordinateParseFailResolverFail(ResolveCoordinateParseFail):
         return ResolveCoordinateParseFailRes(False)
 
 
+class MockedCachingLayer0Repo(Layer0Repository):
+    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+        return []
+
+    def __init__(self):
+        self.last_saved_instances = None
+
+    async def create_update_instances(self, instances: list[Layer0Model]) -> bool:
+        self.last_saved_instances = instances
+        return True
+
+    async def create_instances(self, instances: list[Layer0Model]):
+        """
+        Used to create instances, fails on conflict
+        :param instances:
+        """
+
+
+class MockedCachingLayer1Repo(Layer1Repository):
+    def __init__(self):
+        self.last_saved_instances = None
+
+    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
+        return None
+
+    async def get_inside_square(
+        self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
+    ) -> list[Layer1Model]:
+        return []
+
+    async def save_update_instances(self, instances: list[Layer1Model]) -> bool:
+        self.last_saved_instances = instances
+        return True
+
+
 class Transaction01Test(unittest.IsolatedAsyncioTestCase):
     async def test_transaction_coordinate_fail_0(self):
         """
         Layer 0 data has three rows, one has corrupted coordinates
         """
         data = Layer0Model(
-            id=1,
+            id="1",
             processed=False,
             meta=Layer0Meta(
                 value_descriptions=[

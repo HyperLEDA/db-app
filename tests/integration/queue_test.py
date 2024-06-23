@@ -1,11 +1,14 @@
 import unittest
+from unittest import mock
 
 import rq
 import structlog
 
+from app import commands
 from app.data import repositories
-from app.domain import model, usecases
+from app.domain import actions, model
 from app.lib import auth, testing
+from app.lib import clients as libclients
 
 
 class QueueTest(unittest.TestCase):
@@ -15,15 +18,15 @@ class QueueTest(unittest.TestCase):
         cls.redis_queue = testing.get_test_redis_storage()
 
         logger = structlog.get_logger()
+        cls.clients = libclients.Clients("")
+        cls.clients.ads = mock.MagicMock()
 
-        cls.actions = usecases.Actions(
-            common_repo=repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
-            layer0_repo=repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
-            layer1_repo=repositories.Layer1Repository(cls.pg_storage.get_storage(), logger),
-            queue_repo=repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
-            authenticator=auth.NoopAuthenticator(),
-            storage_config=cls.pg_storage.get_storage().get_config(),
-            logger=logger,
+        cls.depot = commands.Depot(
+            repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
+            repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
+            repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
+            auth.NoopAuthenticator(),
+            cls.clients,
         )
 
     def tearDown(self):
@@ -31,8 +34,8 @@ class QueueTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_task_run_no_worker(self):
-        response = self.actions.start_task(model.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
-        info = self.actions.get_task_info(model.GetTaskInfoRequest(response.id))
+        response = actions.start_task(self.depot, model.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
+        info = actions.get_task_info(self.depot, model.GetTaskInfoRequest(response.id))
 
         self.assertEqual(info.id, response.id)
         self.assertEqual(info.status, "new")
@@ -42,15 +45,15 @@ class QueueTest(unittest.TestCase):
 
     def test_task_run_nonexistent_task(self):
         with self.assertRaises(Exception):
-            self.actions.start_task(model.StartTaskRequest("absolutely_real_task", {}))
+            actions.start_task(self.depot, model.StartTaskRequest("absolutely_real_task", {}))
 
     def test_task_run_success(self):
-        response = self.actions.start_task(model.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
+        response = actions.start_task(self.depot, model.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
 
         worker = rq.Worker("test_queue", connection=self.redis_queue.get_storage().get_connection())
         worker.work(burst=True)
 
-        info = self.actions.get_task_info(model.GetTaskInfoRequest(response.id))
+        info = actions.get_task_info(self.depot, model.GetTaskInfoRequest(response.id))
         self.assertEqual(info.id, response.id)
         self.assertEqual(info.status, "done")
         self.assertEqual(info.task_name, "echo")

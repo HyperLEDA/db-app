@@ -36,10 +36,27 @@ class CoordinateDescr(ABC):
         except ValueError as e:
             return e
 
+    def arg_number(self, col_name: str) -> int | None:
+        """
+        Returns argument number in constructor, if the name was passed in constructor
+        :param col_name: Column name
+        :return: Argument number or none if column not present
+        """
+        try:
+            return self._col_names.index(col_name)
+        except ValueError:
+            return None
+
     @abstractmethod
     def _parse_row(self, data: Iterable[Any]) -> SkyCoord:
         """
         Should be implemented for parsing
         :param data: Collection of values from table row, order is as specified in column_names in constructor
         :return: Parsed coordinates
+        """
+
+    @abstractmethod
+    def description_id(self):
+        """
+        Resturn's id of this coordinate description (e.g 'icrs' for ICRS system)
         """

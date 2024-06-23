@@ -3,8 +3,8 @@ from typing import Any
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
-from app import domain
-from app.domain import model
+from app import commands
+from app.domain import actions, model
 from app.lib.exceptions import new_validation_error
 from app.presentation.server.handlers import common
 
@@ -17,6 +17,26 @@ class CreateSourceRequestSchema(Schema):
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:
+        if ("bibcode" not in data or data["bibcode"] is None) and (
+            "title" not in data
+            or "authors" not in data
+            or "year" not in data
+            or data["title"] is None
+            or data["authors"] is None
+            or data["year"] is None
+        ):
+            raise ValueError("Either 'bibcode' or 'title', 'authors', and 'year' must be provided")
+        if (
+            "bibcode" in data
+            and data["bibcode"] is not None
+            and (
+                ("title" in data and data["title"] is not None)
+                or ("authors" in data and data["authors"] is not None)
+                or ("year" in data and data["year"] is not None)
+            )
+        ):
+            raise ValueError("'bibcode' cannot be provided with other data ('title', 'authors', or 'year')")
+
         return model.CreateSourceRequest(**data)
 
 
@@ -27,7 +47,7 @@ class CreateSourceResponseSchema(Schema):
     )
 
 
-async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
+async def create_source_handler(depot: commands.Depot, r: web.Request) -> Any:
     """---
     summary: New bibliographic entry
     description: Creates new bibliographic entry in the database.
@@ -54,7 +74,7 @@ async def create_source_handler(actions: domain.Actions, r: web.Request) -> Any:
     except ValidationError as e:
         raise new_validation_error(str(e)) from e
 
-    return actions.create_source(request)
+    return actions.create_source(depot, request)
 
 
 description = common.HandlerDescription(

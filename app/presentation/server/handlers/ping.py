@@ -4,7 +4,7 @@ from typing import Any
 from aiohttp import web
 from marshmallow import Schema, fields
 
-from app import domain
+from app import commands
 from app.presentation.server.handlers import common
 
 
@@ -26,7 +26,7 @@ class PingResponseSchema(Schema):
     ping = fields.Str(example="pong")
 
 
-async def ping_handler(_: domain.Actions, __: web.Request) -> Any:
+async def ping_handler(_: commands.Depot, __: web.Request) -> Any:
     """---
     summary: Test that service is up and running
     tags: [admin]
