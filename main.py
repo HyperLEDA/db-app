@@ -1,3 +1,5 @@
+import os
+
 import click
 
 import app.commands.generate_spec as generate_spec_cmd
@@ -10,7 +12,13 @@ def cli():
 
 
 @cli.command(short_help="Start API server")
-@click.option("-c", "--config", type=str, required=True, help="Path to configuration file")
+@click.option(
+    "-c",
+    "--config",
+    type=str,
+    default=lambda: os.environ.get("CONFIG", ""),
+    help="Path to configuration file",
+)
 def runserver(config: str):
     runserver_cmd.start(config)
 
