@@ -79,7 +79,7 @@ def start(
         swagger_ui=f"{cfg.host}:{cfg.port}{config.SWAGGER_UI_URL}",
     )
 
-    web.run_app(app, port=cfg.port, access_log_class=libserver.AccessLogger)
+    web.run_app(app, host=cfg.host, port=cfg.port, access_log_class=libserver.AccessLogger)
 
 
 def datetime_handler(obj: Any):
