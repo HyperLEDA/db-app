@@ -26,8 +26,8 @@
     },
     "/api/v1/admin/source": {
       "post": {
-        "summary": "New bibliographic entry",
-        "description": "Creates new bibliographic entry in the database.",
+        "summary": "New source entry",
+        "description": "Creates new source entry in the database for internal communication and unpublished articles.",
         "security": [
           {
             "TokenAuth": []
@@ -325,11 +325,6 @@
       "CreateSourceRequestSchema": {
         "type": "object",
         "properties": {
-          "bibcode": {
-            "type": "string",
-            "description": "Bibcode of publication",
-            "example": "2001quant.ph..1003R"
-          },
           "title": {
             "type": "string",
             "description": "Title of publication"
@@ -343,7 +338,7 @@
           },
           "year": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1500,
             "description": "Year of the publication"
           }
         }
@@ -351,13 +346,13 @@
       "CreateSourceResponseSchema": {
         "type": "object",
         "properties": {
-          "id": {
+          "code": {
             "type": "integer",
-            "description": "HyperLeda bibliography id"
+            "description": "Code for the source"
           }
         },
         "required": [
-          "id"
+          "code"
         ]
       },
       "GetSourceRequestSchema": {
@@ -375,9 +370,9 @@
       "GetSourceResponseSchema": {
         "type": "object",
         "properties": {
-          "bibcode": {
+          "code": {
             "type": "string",
-            "description": "Bibcode of publication"
+            "description": "Bibcode or internal code of the publication"
           },
           "title": {
             "type": "string",
@@ -520,9 +515,9 @@
               "$ref": "#/components/schemas/ColumnDescription"
             }
           },
-          "bibliography_id": {
-            "type": "integer",
-            "description": "ID of the bibliographic data assosiated with this table"
+          "bibcode": {
+            "type": "string",
+            "description": "ADS bibcode of the article that published the data (or code of the internal communication)"
           },
           "datatype": {
             "type": "string",
@@ -541,7 +536,7 @@
           }
         },
         "required": [
-          "bibliography_id",
+          "bibcode",
           "columns",
           "table_name"
         ]
