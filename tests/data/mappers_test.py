@@ -63,7 +63,7 @@ class MappersTest(unittest.TestCase):
             ),
         )
 
-        bibliography = data.model.Bibliography("fake_bibcode", 1999, ["a"], "t")
+        bibliography = data.model.Bibliography(42, "fake_bibcode", 1999, ["a"], "t")
 
         model = data_to_domain.layer_0_mapper(creation, raw, bibliography)
         self.assertListEqual(

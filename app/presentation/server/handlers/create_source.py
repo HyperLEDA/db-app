@@ -10,47 +10,26 @@ from app.presentation.server.handlers import common
 
 
 class CreateSourceRequestSchema(Schema):
-    bibcode = fields.Str(description="Bibcode of publication", example="2001quant.ph..1003R")
     title = fields.Str(description="Title of publication")
     authors = fields.List(fields.Str, description="List of authors")
-    year = fields.Int(description="Year of the publication", validate=validate.Range(0))
+    year = fields.Int(description="Year of the publication", validate=validate.Range(1500))
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:
-        if ("bibcode" not in data or data["bibcode"] is None) and (
-            "title" not in data
-            or "authors" not in data
-            or "year" not in data
-            or data["title"] is None
-            or data["authors"] is None
-            or data["year"] is None
-        ):
-            raise ValueError("Either 'bibcode' or 'title', 'authors', and 'year' must be provided")
-        if (
-            "bibcode" in data
-            and data["bibcode"] is not None
-            and (
-                ("title" in data and data["title"] is not None)
-                or ("authors" in data and data["authors"] is not None)
-                or ("year" in data and data["year"] is not None)
-            )
-        ):
-            raise ValueError("'bibcode' cannot be provided with other data ('title', 'authors', or 'year')")
-
         return model.CreateSourceRequest(**data)
 
 
 class CreateSourceResponseSchema(Schema):
-    id = fields.Int(
+    code = fields.Int(
         required=True,
-        description="HyperLeda bibliography id",
+        description="Code for the source",
     )
 
 
 async def create_source_handler(depot: commands.Depot, r: web.Request) -> Any:
     """---
-    summary: New bibliographic entry
-    description: Creates new bibliographic entry in the database.
+    summary: New source entry
+    description: Creates new source entry in the database for internal communication and unpublished articles.
     security:
         - TokenAuth: []
     tags: [admin, source]
