@@ -92,8 +92,11 @@ def removing_extra_zeros(second_part):
 
 
 reduction = {
+    "6df": "6dF",
+    "2df": "2dF",
     "aguero": "Aguero",
     "akn": "Ark",
+    "andromeda": "Andromeda",
     "and": "Andromeda",
     "anon": "Anon",
     "ark": "Ark",
@@ -175,6 +178,7 @@ reduction = {
     "ua": "UGCA",
     "ugcg": "UGC",
     "vir": "Virgo",
+    "virgo": "Virgo",
     "was": "Was",
     "wein": "Weinberger",
     "weinberger": "Weinberger",
