@@ -63,7 +63,7 @@ class GeneralizeNameTest(unittest.TestCase):
         inp = [
             "UGC 1493 A",
             "u1493a",
-            "ugc1439a",
+            "ugc1493a",
             "u1493A",
         ]
 
