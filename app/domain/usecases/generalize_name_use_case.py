@@ -17,13 +17,13 @@ def is_roman_number(num):  # checks if a string is a Roman numeral
     return False
 
 
-integers = dict(I=1, V=5, X=10, L=50, C=100, D=500, M=1000)
+integers = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
 
 
 def roman_to_arabic(roman):  # converts Roman numerals to Arabic numerals
     roman = roman.upper()
     result = 0
-    for i, c in enumerate(roman):
+    for i, _c in enumerate(roman):
         if i + 1 < len(roman) and integers[roman[i]] < integers[roman[i + 1]]:
             result -= integers[roman[i]]
         else:
@@ -36,55 +36,31 @@ def removing_extra_zeros(second_part):
     rez = ""
     if second_part[0].isdigit():
         for i in range(end):
-            if second_part[i] != "0":
+            if (second_part[i] != "0") or ((i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ",")):
                 rez = second_part[i:]
                 break
-            elif (i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ","):
+    elif second_part[0] in ("+", "-"):
+        sign_symbol = second_part[0]
+
+        for i in range(len(sign_symbol), end):
+            if second_part[i] != "0" or ((i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ",")):
                 rez = second_part[i:]
                 break
-    elif second_part[0] == "+":
-        for j in range(1, end):
-            if second_part[j] != "0":
-                rez = "+" + second_part[j:]
-                break
-            elif (j + 1 < end) and (second_part[j + 1] == "." or second_part[j + 1] == ","):
-                rez = "+" + second_part[j:]
-                break
-    elif second_part[0] == "-":
-        for j in range(1, end):
-            if second_part[j] != "0":
-                rez = "-" + second_part[j:]
-                break
-            elif (j + 1 < end) and (second_part[j + 1] == "." or second_part[j + 1] == ","):
-                rez = "-" + second_part[j:]
-                break
-    # elif second_part[0].lower() == 'j':
-    #     for j in range(1, end):
-    #         if second_part[j] != '0':
-    #             rez = 'J' + second_part[j:]
-    #             break
-    #         elif (j + 1 < end) and (second_part[j + 1] == '.' or second_part[j + 1] == ','):
-    #             rez = 'J' + second_part[j:]
-    #             break
+
+        rez = sign_symbol + rez
     else:
         rez = second_part
     end = len(rez)
     for i in range(1, end):
-        if rez[i] == "+" and (i + 1) != end:
+        if rez[i] == "+":
             for j in range(i + 1, end):
-                if rez[j] != "0":
-                    rez = rez[:i] + "+" + rez[j:]
-                    break
-                elif (j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ","):
+                if rez[j] != "0" or ((j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ",")):
                     rez = rez[:i] + "+" + rez[j:]
                     break
             break
-        elif rez[i] == "-" and (i + 1) != end:
+        if rez[i] == "-":
             for j in range(i + 1, end):
-                if rez[j] != "0":
-                    rez = rez[:i] + "-" + rez[j:]
-                    break
-                elif (j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ","):
+                if rez[j] != "0" or ((j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ",")):
                     rez = rez[:i] + "-" + rez[j:]
                     break
             break
@@ -202,7 +178,7 @@ class GeneralizeNameUseCase:
         end_name = 0
 
         if len(request) == 1:  # if there are no spaces in the request
-            if request[0][:3].lower() == "2df" or request[0][:3].lower() == "6df":
+            if request[0][:3].lower() in ("2df", "6df"):
                 name = request[0][:3]
                 end_name = 3
             else:
@@ -212,12 +188,11 @@ class GeneralizeNameUseCase:
                             name = request[0][: i - 1]  # write all the letters on the left into the nominal part
                             end_name = i - 1
                             break
-                        elif i == 0:
+                        if i == 0:
                             continue
-                        else:
-                            name = request[0][:i]  # write all the letters on the left into the nominal part
-                            end_name = i
-                            break
+                        name = request[0][:i]  # write all the letters on the left into the nominal part
+                        end_name = i
+                        break
                 if name == "":
                     for i in range(len(request[0])):
                         if request[0][:i].lower() in reduction and is_roman_number(request[0][i:]):
@@ -301,6 +276,4 @@ class GeneralizeNameUseCase:
         if is_roman_number(index):
             index = roman_to_arabic(index)
 
-        request_convert = name + " " + index.upper().replace(",", ".")
-
-        return request_convert
+        return name + " " + index.upper().replace(",", ".")
