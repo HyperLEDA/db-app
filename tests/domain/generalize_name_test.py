@@ -8,14 +8,7 @@ class GeneralizeNameTest(unittest.TestCase):
         self.use_case = GeneralizeNameUseCase()
 
     def test_andromeda(self):
-        inp = [
-            "And XXVIII",
-            "Andromeda XXVIII",
-            "And28",
-            "ANDXXVIII",
-            "andxxviii",
-            "andromeda28"
-        ]
+        inp = ["And XXVIII", "Andromeda XXVIII", "And28", "ANDXXVIII", "andxxviii", "andromeda28"]
 
         expected = "Andromeda 28"
 
