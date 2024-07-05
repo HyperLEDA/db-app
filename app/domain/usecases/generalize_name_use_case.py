@@ -210,7 +210,7 @@ class GeneralizeNameUseCase:
                 else:
                     name = request[0]
                     second = request[1]
-            elif request[0].lower() == "6df" or request[0].lower() == "2df":
+            elif request[0].lower() in ("2df", "6df"):
                 name = request[0]
                 second = request[1]
             else:
