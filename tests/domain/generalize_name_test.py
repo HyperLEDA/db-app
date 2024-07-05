@@ -80,7 +80,7 @@ class GeneralizeNameTest(unittest.TestCase):
             generalized = self.use_case.invoke(source)
             self.assertEqual(expected, generalized)
 
-    def test_UGCA(self):
+    def test_ugca(self):
         inp = [
             "UGCA 035",
             "ua35",
@@ -94,7 +94,7 @@ class GeneralizeNameTest(unittest.TestCase):
             generalized = self.use_case.invoke(source)
             self.assertEqual(expected, generalized)
 
-    def test_PGC(self):
+    def test_pgc(self):
         inp = [
             "LEDA9843",
             "PGC 9843",
@@ -109,7 +109,7 @@ class GeneralizeNameTest(unittest.TestCase):
             generalized = self.use_case.invoke(source)
             self.assertEqual(expected, generalized)
 
-    def test_ESO(self):
+    def test_eso(self):
         inp = [
             "ESO413-003",
             "eso 413-3",
@@ -123,7 +123,7 @@ class GeneralizeNameTest(unittest.TestCase):
             generalized = self.use_case.invoke(source)
             self.assertEqual(expected, generalized)
 
-    def test_ESOLV(self):
+    def test_esolv(self):
         inp = [
             "ESO-LV 2530200",
             "ESO-LV 2530200",
@@ -160,7 +160,7 @@ class GeneralizeNameTest(unittest.TestCase):
             generalized = self.use_case.invoke(source)
             self.assertEqual(expected, generalized)
 
-    def test_SDSS(self):
+    def test_sdss(self):
         inp = [
             "SDSS J123049.41+122328.1",
             "sdssJ123049.41+122328.1",
