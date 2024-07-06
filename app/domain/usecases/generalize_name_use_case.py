@@ -1,7 +1,10 @@
 import re
 
 
-def is_roman_number(num):  # checks if a string is a Roman numeral
+def _is_roman_number(num):
+    """
+    Checks if a string is a Roman numeral
+    """
     num = num.upper()
     pattern = re.compile(
         r"""   
@@ -17,57 +20,50 @@ def is_roman_number(num):  # checks if a string is a Roman numeral
     return False
 
 
-integers = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+_integers = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
 
 
-def roman_to_arabic(roman):  # converts Roman numerals to Arabic numerals
+def _roman_to_arabic(roman):
+    """
+    Converts Roman numerals to Arabic numerals
+    """
     roman = roman.upper()
     result = 0
-    for i, _c in enumerate(roman):
-        if i + 1 < len(roman) and integers[roman[i]] < integers[roman[i + 1]]:
-            result -= integers[roman[i]]
+    for i in range(len(roman)):
+        if i + 1 < len(roman) and _integers[roman[i]] < _integers[roman[i + 1]]:
+            result -= _integers[roman[i]]
         else:
-            result += integers[roman[i]]
+            result += _integers[roman[i]]
     return str(result)
 
 
-def removing_extra_zeros(second_part):
+def _removing_extra_zeros(second_part):
     end = len(second_part)
     rez = ""
     if second_part[0].isdigit():
-        for i in range(end):
-            if (second_part[i] != "0") or ((i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ",")):
-                rez = second_part[i:]
-                break
+        prefix = ""
     elif second_part[0] in ("+", "-"):
-        sign_symbol = second_part[0]
-
-        for i in range(len(sign_symbol), end):
-            if second_part[i] != "0" or ((i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ",")):
-                rez = second_part[i:]
-                break
-
-        rez = sign_symbol + rez
+        prefix = second_part[0]
     else:
-        rez = second_part
+        prefix = second_part
+
+    for i in range(len(prefix), end):
+        if second_part[i] != "0" or ((i + 1 < end) and (second_part[i + 1] == "." or second_part[i + 1] == ",")):
+            rez = second_part[i:]
+            break
+    rez = prefix + rez
     end = len(rez)
     for i in range(1, end):
-        if rez[i] == "+":
+        if rez[i] in ("+", "-"):
             for j in range(i + 1, end):
                 if rez[j] != "0" or ((j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ",")):
-                    rez = rez[:i] + "+" + rez[j:]
-                    break
-            break
-        if rez[i] == "-":
-            for j in range(i + 1, end):
-                if rez[j] != "0" or ((j + 1 < end) and (rez[j + 1] == "." or rez[j + 1] == ",")):
-                    rez = rez[:i] + "-" + rez[j:]
+                    rez = rez[: i + 1] + rez[j:]
                     break
             break
     return rez
 
 
-reduction = {
+_reduction = {
     "6df": "6dF",
     "2df": "2dF",
     "aguero": "Aguero",
@@ -166,114 +162,174 @@ reduction = {
 }
 
 
+def _rule_len_1(source: str) -> bool:
+    return len(source.split()) == 1
+
+
+def _rule_len_2(source: str) -> bool:
+    return len(source.split()) == 2
+
+
+def _rule_len_3(source: str) -> bool:
+    return len(source.split()) == 3
+
+
+def _rule_len_4(source: str) -> bool:
+    return len(source.split()) == 4
+
+
+def _algorithm_len_1(source: str) -> str:
+    request = source.split()
+    name = ""
+    if request[0][:3].lower() in ("2df", "6df"):
+        name = request[0][:3]
+    else:
+        for i in range(len(request[0])):
+            if not request[0][i].isalpha():  # define the end of the nominal part
+                if i > 0 and request[0][i - 1].lower() == "j":
+                    name = request[0][: i - 1]  # write all the letters on the left into the nominal part
+                    break
+                if i == 0:
+                    continue
+                name = request[0][:i]  # write all the letters on the left into the nominal part
+                break
+        if name == "":
+            for i in range(len(request[0])):
+                if request[0][:i].lower() in _reduction and _is_roman_number(request[0][i:]):
+                    name = request[0][:i]  # write all the letters on the left into the nominal part
+                    break
+    second = request[0][len(name) :]
+    index = _removing_extra_zeros(second)
+
+    if name.lower() in _reduction:
+        name = _reduction[name.lower()]
+    else:
+        name = name.upper()
+
+    if _is_roman_number(index):
+        index = _roman_to_arabic(index)
+
+    return name + " " + index.upper().replace(",", ".")
+
+
+def _algorithm_len_2(source: str) -> str:
+    request = source.split()
+    if request[0][0].isalpha():
+        if _is_roman_number(request[0]):
+            name = request[1]
+            second = request[0]
+        else:
+            name = request[0]
+            second = request[1]
+    elif request[0].lower() in ("2df", "6df"):
+        name = request[0]
+        second = request[1]
+    else:
+        name = request[1]
+        second = request[0]
+
+    if _is_roman_number(second):
+        index = _roman_to_arabic(second)
+    elif name.upper() == "ESO-LV":
+        second = second.replace("-", "").replace("+", "")
+        index = _removing_extra_zeros(second)
+    else:
+        index = _removing_extra_zeros(second)
+
+    if name.lower() in _reduction:
+        name = _reduction[name.lower()]
+    else:
+        name = name.upper()
+
+    if _is_roman_number(index):
+        index = _roman_to_arabic(index)
+
+    return name + " " + index.upper().replace(",", ".")
+
+
+def _algorithm_len_3(source: str) -> str:
+    request = source.split()
+    if request[0][0].isalpha():
+        if _is_roman_number(request[0]):
+            if request[1].isalpha():
+                name = _roman_to_arabic(request[0]) + request[1]
+                second = request[2]
+            else:
+                name = request[0] + request[2]
+                second = request[1]
+        elif request[0].lower() == "lu" and request[1].lower() == "yc":
+            name = request[0] + " " + request[1]
+            second = request[2]
+        elif _is_roman_number(request[1]):
+            name = _roman_to_arabic(request[1]) + request[0]
+            second = request[2]
+        else:
+            name = request[0]
+            second = request[1] + request[2]
+    else:
+        name = request[0]
+        second = request[1] + request[2]
+    index = _removing_extra_zeros(second)
+
+    if name.lower() in _reduction:
+        name = _reduction[name.lower()]
+    else:
+        name = name.upper()
+
+    if _is_roman_number(index):
+        index = _roman_to_arabic(index)
+
+    return name + " " + index.upper().replace(",", ".")
+
+
+def _algorithm_len_4(source: str) -> str:
+    request = source.split()
+    if request[0][0].isalpha():
+        if _is_roman_number(request[0]):
+            if request[1][0].isalpha():
+                name = _roman_to_arabic(request[0]) + request[1]
+                second = request[2]
+            else:
+                name = request[0] + request[2]
+                second = request[1]
+        elif _is_roman_number(request[1]):
+            name = _roman_to_arabic(request[1]) + request[0]
+            second = request[2]
+        else:
+            name = request[0]
+            second = request[1] + request[3]
+    else:
+        name = request[0]
+        second = request[1] + request[2] + request[3]
+    index = _removing_extra_zeros(second)
+
+    if name.lower() in _reduction:
+        name = _reduction[name.lower()]
+    else:
+        name = name.upper()
+
+    if _is_roman_number(index):
+        index = _roman_to_arabic(index)
+
+    return name + " " + index.upper().replace(",", ".")
+
+
+_rules = [
+    (_rule_len_1, _algorithm_len_1),
+    (_rule_len_2, _algorithm_len_2),
+    (_rule_len_3, _algorithm_len_3),
+    (_rule_len_4, _algorithm_len_4),
+]
+
+
 class GeneralizeNameUseCase:
     """
     Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
     """
 
     def invoke(self, source: str) -> str:
-        request = source.split()
-        name = ""
-        index = ""
-        end_name = 0
+        for rule, algorithm in _rules:
+            if rule(source):
+                return algorithm(source)
 
-        if len(request) == 1:  # if there are no spaces in the request
-            if request[0][:3].lower() in ("2df", "6df"):
-                name = request[0][:3]
-                end_name = 3
-            else:
-                for i in range(len(request[0])):
-                    if not request[0][i].isalpha():  # define the end of the nominal part
-                        if i > 0 and request[0][i - 1].lower() == "j":
-                            name = request[0][: i - 1]  # write all the letters on the left into the nominal part
-                            end_name = i - 1
-                            break
-                        if i == 0:
-                            continue
-                        name = request[0][:i]  # write all the letters on the left into the nominal part
-                        end_name = i
-                        break
-                if name == "":
-                    for i in range(len(request[0])):
-                        if request[0][:i].lower() in reduction and is_roman_number(request[0][i:]):
-                            name = request[0][:i]  # write all the letters on the left into the nominal part
-                            end_name = i
-                            break
-            second = request[0][end_name:]
-            index = removing_extra_zeros(second)
-
-        elif len(request) == 2:  # if the request consists of two parts
-            if request[0][0].isalpha():
-                if is_roman_number(request[0]):
-                    name = request[1]
-                    second = request[0]
-                else:
-                    name = request[0]
-                    second = request[1]
-            elif request[0].lower() in ("2df", "6df"):
-                name = request[0]
-                second = request[1]
-            else:
-                name = request[1]
-                second = request[0]
-
-            if is_roman_number(second):
-                index = roman_to_arabic(second)
-            elif name.upper() == "ESO-LV":
-                second = second.replace("-", "").replace("+", "")
-                index = removing_extra_zeros(second)
-            else:
-                index = removing_extra_zeros(second)
-
-        elif len(request) == 3:
-            if request[0][0].isalpha():
-                if is_roman_number(request[0]):
-                    if request[1].isalpha():
-                        name = roman_to_arabic(request[0]) + request[1]
-                        second = request[2]
-                    else:
-                        name = request[0] + request[2]
-                        second = request[1]
-                elif request[0].lower() == "lu" and request[1].lower() == "yc":
-                    name = request[0] + " " + request[1]
-                    second = request[2]
-                elif is_roman_number(request[1]):
-                    name = roman_to_arabic(request[1]) + request[0]
-                    second = request[2]
-                else:
-                    name = request[0]
-                    second = request[1] + request[2]
-            else:
-                name = request[0]
-                second = request[1] + request[2]
-            index = removing_extra_zeros(second)
-
-        elif len(request) == 4:
-            if request[0][0].isalpha():
-                if is_roman_number(request[0]):
-                    if request[1][0].isalpha():
-                        name = roman_to_arabic(request[0]) + request[1]
-                        second = request[2]
-                    else:
-                        name = request[0] + request[2]
-                        second = request[1]
-                elif is_roman_number(request[1]):
-                    name = roman_to_arabic(request[1]) + request[0]
-                    second = request[2]
-                else:
-                    name = request[0]
-                    second = request[1] + request[3]
-            else:
-                name = request[0]
-                second = request[1] + request[2] + request[3]
-            index = removing_extra_zeros(second)
-
-        if name.lower() in reduction:
-            name = reduction[name.lower()]
-        else:
-            name = name.upper()
-
-        if is_roman_number(index):
-            index = roman_to_arabic(index)
-
-        return name + " " + index.upper().replace(",", ".")
+        return source
