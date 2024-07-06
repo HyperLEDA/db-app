@@ -1,17 +1,19 @@
 import datetime
 from dataclasses import dataclass
 
+from app.data.model.common import Bibliography
+from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.data.model.task import Task
-from app.lib.queue import TaskStatus
+from app.lib.storage.enums import TaskStatus
 
-
-@dataclass
-class Bibliography:
-    bibcode: str
-    year: int
-    author: list[str]
-    title: str
-    id: int | None = None
+__all__ = [
+    "Bibliography",
+    "ColumnDescription",
+    "Layer0Creation",
+    "Layer0RawData",
+    "Task",
+    "TaskStatus",
+]
 
 
 @dataclass

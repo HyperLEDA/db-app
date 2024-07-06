@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from pandas import DataFrame
 
-from .layer_0_meta import Layer0Meta
+from app.domain.model.layer0.layer_0_meta import Layer0Meta
 
 
 @dataclass
@@ -14,10 +14,10 @@ class Layer0Model:
         processed: True, if node processed, and data transformed further. False if not transformed, or changed after
             last transformation
         meta: Metadata, used to transform data further
-        data: Data in form of table, to be processed
+        data: Data, to be processed
     """
 
-    id: int
+    id: str
     processed: bool
     meta: Layer0Meta
     data: DataFrame

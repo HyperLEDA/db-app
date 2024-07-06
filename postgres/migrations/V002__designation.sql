@@ -22,7 +22,7 @@ COMMENT ON SCHEMA designation IS 'Designation catalog' ;
 -- В Леда используется метод разработанный в NED парсинга имени и перекодирования его в стандартную форму.
 CREATE TABLE designation.data (
   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
-, design	text	NOT NULL
+, design	text	NOT NULL	UNIQUE
 , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
@@ -31,21 +31,29 @@ CREATE UNIQUE INDEX ON designation.data (upper(replace(design,' ',''))) ;
 CREATE INDEX ON designation.data (bib) ;
 
 COMMENT ON TABLE designation.data IS 'List of unique object names' ;
-COMMENT ON COLUMN designation.data.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN designation.data.design IS 'Unique designation the object. It must follow the IAU recommendations: https://cdsweb.u-strasbg.fr/Dic/iau-spec.html' ;
-COMMENT ON COLUMN designation.data.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.data.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON COLUMN designation.data.pgc IS '{"description" : "PGC number of the object" , "ucd" : "meta.id"}' ;
+COMMENT ON COLUMN designation.data.design IS '{"description" : "Unique designation the object. It must follow the IAU recommendations: https://cdsweb.u-strasbg.fr/Dic/iau-spec.html" , "ucd" : "meta.id"}' ;
+COMMENT ON COLUMN designation.data.bib IS '{"description" : "Bibliography reference" , "ucd" : "meta.bib"}' ;
+COMMENT ON COLUMN designation.data.modification_time IS '{"description" : "Timestamp when the record was added to the database" , "ucd" : "time.creation"}' ;
 
 
 CREATE TABLE designation.ambiguity (
-  pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
-, design	text	NOT NULL
-, bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
-, PRIMARY KEY (pgc,design)
-) ;
+  PRIMARY KEY (pgc,design)
+, FOREIGN KEY (pgc)	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
+, FOREIGN KEY (bib)	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
+) INHERITS (designation.data) ;
 CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
 CREATE INDEX ON designation.ambiguity (bib) ;
+
+-- CREATE TABLE designation.ambiguity (
+--   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
+-- , design	text	NOT NULL
+-- , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
+-- , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
+-- , PRIMARY KEY (pgc,design)
+-- ) ;
+-- CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
+-- CREATE INDEX ON designation.ambiguity (bib) ;
 
 COMMENT ON TABLE designation.ambiguity IS 'List of ambiguous designations' ;
 COMMENT ON COLUMN designation.ambiguity.pgc IS 'PGC number of the object' ;
@@ -55,9 +63,10 @@ COMMENT ON COLUMN designation.ambiguity.modification_time IS 'Timestamp when the
 
 
 CREATE VIEW designation.list AS
-SELECT * FROM designation.data
-UNION
-SELECT * FROM designation.ambiguity
+SELECT 
+  *
+, tableoid::regclass::text~'(designation\.)?data$'	AS isunique
+FROM designation.data
 ;
 
 COMMENT ON VIEW designation.list IS 'List of designations' ;
@@ -65,6 +74,7 @@ COMMENT ON COLUMN designation.list.pgc IS 'PGC number of the object' ;
 COMMENT ON COLUMN designation.list.design IS 'Designation' ;
 COMMENT ON COLUMN designation.list.bib IS 'Bibliography reference' ;
 COMMENT ON COLUMN designation.list.modification_time IS 'Timestamp when the record was added to the database' ;
+COMMENT ON COLUMN designation.list.isunique IS 'True if designation is unique and False if it is ambiguous' ;
 
 
 
@@ -73,11 +83,11 @@ CREATE VIEW designation.main AS
 SELECT DISTINCT ON (pgc)
   d.*
 FROM 
-  designation.data AS d
+  ONLY designation.data AS d
   LEFT JOIN common.bib AS b ON (d.bib = b.id)
 ORDER BY 
   pgc
-, CASE WHEN d.design~'^MESSIER' THEN 1
+, CASE WHEN d.design~'^M ' THEN 1   -- Messier
        WHEN d.design~'^NGC' THEN 2
        WHEN d.design~'^IC'  THEN 3
        WHEN d.design~'^DDO' THEN 4

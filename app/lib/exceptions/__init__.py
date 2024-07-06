@@ -5,6 +5,8 @@ INTERNAL_ERROR_CODE = "internal_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
 DATABASE_ERROR = "database_error"
+UNAUTHORIZED_ERROR = "unauthorized"
+FORBIDDEN_ERROR = "forbidden"
 
 
 @dataclass
@@ -34,3 +36,11 @@ def new_not_found_error(error: str) -> APIException:
 
 def new_database_error(error: str) -> APIException:
     return APIException(DATABASE_ERROR, 500, error)
+
+
+def new_unauthorized_error(error: str) -> APIException:
+    return APIException(UNAUTHORIZED_ERROR, 401, error)
+
+
+def new_forbidden_error(error: str) -> APIException:
+    return APIException(FORBIDDEN_ERROR, 403, error)

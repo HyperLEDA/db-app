@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.domain.model import Layer0Model
+from app.domain.model.params.layer_0_query_param import Layer0QueryParam
 
 
 class Layer0Repository(ABC):
@@ -20,4 +21,12 @@ class Layer0Repository(ABC):
         """
         Used to create instances, fails on conflict
         :param instances:
+        """
+
+    @abstractmethod
+    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+        """
+        Fetches Layer0Model from DB
+        :param param: Used to specify needed Layer0 instances
+        :return: Fetched data models
         """

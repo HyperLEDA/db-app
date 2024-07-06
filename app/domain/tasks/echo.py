@@ -14,8 +14,8 @@ class EchoTaskParams:
 def echo_task(
     _: postgres.PgStorage,
     params: EchoTaskParams,
-    __: structlog.stdlib.BoundLogger,
+    logger: structlog.stdlib.BoundLogger,
 ) -> None:
-    print(f"sleeping for {params.sleep_time_seconds} seconds")
+    logger.info("sleeping", seconds=params.sleep_time_seconds)
     time.sleep(params.sleep_time_seconds)
-    print("done!")
+    logger.info("done!")

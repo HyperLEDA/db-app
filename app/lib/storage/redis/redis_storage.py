@@ -1,10 +1,9 @@
-import functools
 from typing import Any, Callable
 
-import redis
 import rq
 import structlog
 
+import redis
 from app.lib.storage.redis import config
 
 

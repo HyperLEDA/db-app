@@ -1,10 +1,11 @@
 server:
   host: http://localhost
   port: 8000
+  auth_enabled: false
 
 storage:
   endpoint: localhost
-  port: 5432
+  port: 6432
   dbname: hyperleda
   user: hyperleda
   password: password

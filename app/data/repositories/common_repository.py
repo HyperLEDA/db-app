@@ -5,14 +5,13 @@ import structlog
 from psycopg.types import json
 
 from app.data import interface, model, template
-from app.lib import queue
 from app.lib.exceptions import new_database_error
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 
 @final
 class CommonRepository(interface.CommonRepository):
-    def __init__(self, storage: postgres.PgStorage, logger: structlog.BoundLogger) -> None:
+    def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
 
@@ -20,38 +19,39 @@ class CommonRepository(interface.CommonRepository):
         return self._storage.with_tx()
 
     def create_bibliography(
-        self, bibliography: model.Bibliography, tx: psycopg.Transaction | None = None
-    ) -> int | None:
+        self, bibcode: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
+    ) -> int:
         result = self._storage.query_one(
-            "INSERT INTO common.bib (bibcode, year, author, title) VALUES (%s, %s, %s, %s) RETURNING id",
-            [
-                bibliography.bibcode,
-                bibliography.year,
-                bibliography.author,
-                bibliography.title,
-            ],
-            tx,
+            """
+            INSERT INTO common.bib (bibcode, year, author, title) 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (bibcode) DO UPDATE SET year = EXCLUDED.year, author = EXCLUDED.author, title = EXCLUDED.title
+            RETURNING id 
+            """,
+            params=[bibcode, year, authors, title],
+            tx=tx,
         )
 
-        return result.get("id")
+        if result is None:
+            raise new_database_error("no result returned from query")
 
-    def get_bibliography(self, bibliography_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
-        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, [bibliography_id], tx)
+        return int(result.get("id"))
+
+    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name], tx=tx)
 
         return model.Bibliography(**row)
 
-    def get_bibliography_list(
-        self, offset: int, limit: int, tx: psycopg.Transaction | None = None
-    ) -> list[model.Bibliography]:
-        rows = self._storage.query(template.BIBLIOGRAPHY_TEMPLATE, [offset, limit], tx)
+    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id], tx=tx)
 
-        return [model.Bibliography(**row) for row in rows]
+        return model.Bibliography(**row)
 
     def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
         row = self._storage.query_one(
             "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
-            [task.task_name, json.Jsonb(task.payload)],
-            tx,
+            params=[task.task_name, json.Jsonb(task.payload)],
+            tx=tx,
         )
 
         row_id = row.get("id")
@@ -60,29 +60,21 @@ class CommonRepository(interface.CommonRepository):
 
         return int(row_id)
 
-    def get_task_info(
-        self,
-        task_id: int,
-        tx: psycopg.Transaction | None = None,
-    ) -> model.Task:
-        row = self._storage.query_one(
-            "SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s",
-            [task_id],
-            tx,
-        )
+    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> model.Task:
+        row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id], tx=tx)
 
         return model.Task(**row)
 
     def set_task_status(
         self,
         task_id: int,
-        task_status: queue.TaskStatus,
+        task_status: enums.TaskStatus,
         tx: psycopg.Transaction | None = None,
     ) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s WHERE id = %s",
-            [task_status, task_id],
-            tx,
+            params=[task_status, task_id],
+            tx=tx,
         )
 
     def fail_task(
@@ -93,6 +85,6 @@ class CommonRepository(interface.CommonRepository):
     ) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
-            [queue.TaskStatus.FAILED, json.Jsonb(message), task_id],
-            tx,
+            params=[enums.TaskStatus.FAILED, json.Jsonb(message), task_id],
+            tx=tx,
         )

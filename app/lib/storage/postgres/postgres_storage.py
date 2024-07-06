@@ -1,15 +1,13 @@
-from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import psycopg
 import structlog
-from marshmallow import Schema, fields, post_load
-from psycopg import adapt, rows
+from psycopg import rows
 from psycopg.types import enum, numeric
 
 from app.lib.exceptions import new_database_error, new_internal_error
-from app.lib.queue.task_status import TaskStatus
+from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
 
@@ -36,7 +34,9 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
 ]
 
 DEFAULT_ENUMS = [
-    (TaskStatus, "task_status"),
+    (enums.TaskStatus, "common.task_status"),
+    (enums.DataType, "common.datatype"),
+    (enums.RawDataStatus, "rawdata.status"),
 ]
 
 
@@ -60,16 +60,22 @@ class PgStorage:
             self._connection.adapters.register_dumper(python_type, dumper)
 
         for python_type, pg_type in DEFAULT_ENUMS:
-            type_info = enum.EnumInfo.fetch(self._connection, pg_type)
-            if type_info is None:
-                raise RuntimeError(f"Unable to find enum {pg_type} in DB")
+            self.register_type(python_type, pg_type)
 
-            enum.register_enum(
-                type_info,
-                self._connection,
-                python_type,
-                mapping={m: m.value for m in python_type},
-            )
+    def register_type(self, enum_type: type[enum.Enum], pg_type: str) -> None:
+        if self._connection is None:
+            raise RuntimeError("did not connect to database")
+
+        type_info = enum.EnumInfo.fetch(self._connection, pg_type)
+        if type_info is None:
+            raise RuntimeError(f"Unable to find enum {pg_type} in DB")
+
+        enum.register_enum(
+            type_info,
+            self._connection,
+            enum_type,
+            mapping={m: m.value for m in enum_type},
+        )
 
     def with_tx(self) -> psycopg.Transaction:
         if self._connection is None:
@@ -83,7 +89,7 @@ class PgStorage:
 
             self._connection.close()
 
-    def exec(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> None:
+    def exec(self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None) -> None:
         if params is None:
             params = []
         if self._connection is None:
@@ -94,9 +100,14 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
+            try:
+                cursor.execute(query, params)
+            except psycopg.Error as e:
+                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
 
-    def query(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> list[rows.DictRow]:
+    def query(
+        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
+    ) -> list[rows.DictRow]:
         if params is None:
             params = []
         if self._connection is None:
@@ -107,15 +118,19 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
-            result_rows = cursor.fetchall()
+            try:
+                cursor.execute(query, params)
+            except psycopg.Error as e:
+                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
 
-        return result_rows
+            return cursor.fetchall()
 
-    def query_one(self, query: str, params: list[Any], tx: psycopg.Transaction | None = None) -> rows.DictRow:
-        result = self.query(query, params, tx)
+    def query_one(
+        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
+    ) -> rows.DictRow:
+        result = self.query(query, params=params, tx=tx)
 
-        if len(result) < 1:
-            raise new_database_error("was unable to fetch one value")
+        if len(result) != 1:
+            raise RuntimeError("was unable to fetch one value")
 
         return result[0]

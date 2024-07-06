@@ -1,35 +1,45 @@
-[tool.pylint.messages_control]
-max-line-length = 120
-disable = [
-    "duplicate-code",
-    "missing-docstring",
-    "missing-class-docstring",
-    "missing-module-docstring",
-    "too-few-public-methods",
-    "too-many-branches",
-    "too-many-locals",
-    "too-many-instance-attributes",
-    "too-many-ancestors",
-    "too-many-arguments",
-    "line-too-long",
-    "fixme",
-    "unused-argument",
-    "function-redefined",
-    "abstract-class-instantiated",
-    "no-member",
-    "broad-exception-caught",
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 60
+
+[tool.ruff.lint]
+ignore = [
+    "N818", # ignore SomeException -> SomeError rule
+    "B024", # abstract class without abstract methods
+    "B017", # ignore assertRaises(Exception)
 ]
-ignore-paths = "^.venv/.*$"
+# see https://docs.astral.sh/ruff/rules/ for description of each rule set.
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "YTT",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "PIE",
+    "RET",
+    "SLF",
+    "PTH",
+    "PLE",
+    "FLY",
+    "NPY201",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+    "F403", # ignore star imports warning in __init__ files
+]
 
 [tool.pytest.ini_options]
 addopts = "-W ignore::DeprecationWarning"
 testpaths = ["tests"]
-
-[tool.black]
-line-length = 120
-
-[tool.isort]
-profile = "black"
 
 [[tool.mypy.overrides]]
 module = "astropy.*"

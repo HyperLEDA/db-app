@@ -4,7 +4,7 @@ from typing import Sequence
 from astropy.units import Quantity, Unit
 from pandas import DataFrame, Series
 
-from .exceptions import ColumnNotFoundException
+from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
 
 
 class ValueDescr(ABC):
@@ -41,10 +41,6 @@ class ValueDescr(ABC):
     @column_name.getter
     def column_name(self) -> str:
         return self._column_name
-
-    @property
-    def units(self):
-        return self._units
 
     @column_name.getter
     def units(self) -> str:

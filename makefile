@@ -1,5 +1,7 @@
 PYTHON := python
 
+.PHONY: docs
+
 all: test
 
 ## General targets
@@ -18,22 +20,37 @@ start-db:
 stop-db:
 	docker compose down
 
+docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
+	$(PYTHON) -m mkdocs serve -a localhost:8080
+
+deploy-docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
+	$(PYTHON) -m mkdocs gh-deploy
+
+build-docs:
+	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
+	$(PYTHON) -m mkdocs build
+
 ## Testing
 
-test: dryrun-black dryrun-isort test-unit
+test: check test-unit
 
-test-all: dryrun-black dryrun-isort test-unit test-integration
+test-all: check test-unit test-integration
 
-test-extra: pylint mypy
+test-extra: mypy
 
-dryrun-black:
-	$(PYTHON) -m black . --config pyproject.toml --check
+check: check-format check-lint
 
-dryrun-isort:
-	$(PYTHON) -m isort . --settings-path pyproject.toml --check-only
+check-format: dryrun-ruff-format
 
-pylint:
-	$(PYTHON) -m pylint . --recursive true --rcfile pyproject.toml
+check-lint: dryrun-ruff-lint
+
+dryrun-ruff-format:
+	$(PYTHON) -m ruff format --config=pyproject.toml --check
+
+dryrun-ruff-lint:
+	$(PYTHON) -m ruff check --config=pyproject.toml
 
 test-unit: # we use pytest to run unittest test cases
 # first test that environment is installed correctly.
@@ -56,12 +73,20 @@ coverage:
 	$(PYTHON) -m coverage run -m unittest discover -s tests -p "*_test.py" -v
 	$(PYTHON) -m coverage html
 
-## Linters
+## Fix code
 
-fix-lint: black isort
+# alias
+fix: fix-lint
 
-black:
-	$(PYTHON) -m black . --config pyproject.toml
+fix-unsafe: lint-ruff-unsafe
 
-isort:
-	$(PYTHON) -m isort . --settings-path pyproject.toml
+fix-lint: format-ruff lint-ruff
+
+format-ruff:
+	$(PYTHON) -m ruff format --config=pyproject.toml
+
+lint-ruff:
+	$(PYTHON) -m ruff check --config=pyproject.toml --fix
+
+lint-ruff-unsafe:
+	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
