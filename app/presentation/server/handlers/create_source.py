@@ -20,7 +20,7 @@ class CreateSourceRequestSchema(Schema):
 
 
 class CreateSourceResponseSchema(Schema):
-    code = fields.Int(
+    code = fields.Str(
         required=True,
         description="Code for the source",
     )
