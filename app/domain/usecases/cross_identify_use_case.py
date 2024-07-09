@@ -5,16 +5,16 @@ from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
-from app.domain.model.params.layer_2_query_param import Layer2QueryByName, Layer2QueryInCircle
+from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
 
-default_r1 = 1.5 * u.arcsec  # inner radius
-default_r2 = 1.5 * u.arcsec  # outer radius
+DEFAULT_R1 = 1.5 * u.arcsec  # inner radius
+DEFAULT_R2 = 1.5 * u.arcsec  # outer radius
 
 
 class CrossIdentifyUseCase:
     """
-    Finds an object by name or coordinates and return's it's id, or creates a new id, if it's a new object.
+    Finds an object by name or coordinates and returns it's id, or creates a new id, if it's a new object.
     If there is a collision, returns this collision description
     """
 
@@ -33,19 +33,17 @@ class CrossIdentifyUseCase:
         :param user_param: User defined parameters for cross identification
         :return: id for this object
         """
-        if param.name is None and param.coordinates is None:
+        if param.names is None and param.coordinates is None:
             return result.CrossIdentificationEmptyException()
 
-        r1 = user_param.r1 if user_param.r1 is not None else default_r1
-        r2 = user_param.r2 if user_param.r2 is not None else default_r2
+        r1 = user_param.r1 if user_param.r1 is not None else DEFAULT_R1
+        r2 = user_param.r2 if user_param.r2 is not None else DEFAULT_R2
 
-        name_hit = None
+        names_hit = None
         simultaneous_name_hit = []
-        if param.name is not None:
-            name_query_res = await self._repository_l2.query_data(Layer2QueryByName(param.name))
-            if len(name_query_res) == 1:
-                name_hit = name_query_res[0]
-            simultaneous_name_hit = simultaneous_data_provider.by_name(param.name)
+        if param.names is not None:
+            names_hit = await self._repository_l2.query_data(Layer2QueryByNames(param.names))
+            simultaneous_name_hit = simultaneous_data_provider.by_name(param.names)
 
         coord_r1_hit = None
         coord_r2_hit = None
@@ -55,14 +53,14 @@ class CrossIdentifyUseCase:
             coord_r2_hit = await self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r2))
             simultaneous_r1_hit = simultaneous_data_provider.data_inside(param.coordinates, r1)
 
-        if param.coordinates is not None and param.name is None:
+        if param.coordinates is not None and param.names is None:
             coord_res = self._only_coord_known(param, coord_r1_hit, coord_r2_hit)
-        elif param.name is not None and param.coordinates is None:
-            coord_res = self._only_name_known(param, name_hit)
+        elif param.names is not None and param.coordinates is None:
+            coord_res = self._only_names_known(param, names_hit)
         else:
-            coord_res = self._name_and_coord_known(param, coord_r1_hit, coord_r2_hit, name_hit)
+            coord_res = self._name_and_coord_known(param, coord_r1_hit, coord_r2_hit, names_hit)
 
-        if len(simultaneous_name_hit) > 0 or len(simultaneous_r1_hit) > 1:
+        if len(simultaneous_name_hit) > 1 or len(simultaneous_r1_hit) > 1:
             return result.CrossIdentificationDuplicateException(
                 param, simultaneous_name_hit + simultaneous_r1_hit, coord_res
             )
@@ -97,65 +95,74 @@ class CrossIdentifyUseCase:
 
         raise ValueError(f"Unexpected R1 and R2 query results: len(r1) = {len(coord_r1)}, len(r2) = {len(coord_r2)}")
 
-    def _only_name_known(
-        self, param: CrossIdentificationParam, name_hit: Layer2Model | None
+    def _only_names_known(
+        self, param: CrossIdentificationParam, names_hit: list[Layer2Model]
     ) -> result.CrossIdentifySuccess | result.CrossIdentificationException:
         """
         Case only name known
         :param param: Current identification param
-        :param name_hit: Database entry with matching name
+        :param names_hit: Database entries with matching names
         :return: UseCase result
         """
-        if name_hit is not None:
-            return result.CrossIdentifySuccess(name_hit)
+        if len(names_hit) == 0:
+            # no hits, pass object to user identification
+            return result.CrossIdentificationNamesNotFoundException(param.names)
 
-        return result.CrossIdentifySuccess(None)
+        if len(names_hit) == 1:
+            # object identified in DB
+            return result.CrossIdentifySuccess(names_hit[0])
+
+        # else, names found for different objects
+        return result.CrossIdentificationNamesDuplicateException(param.names)
 
     def _name_and_coord_known(
         self,
         param: CrossIdentificationParam,
         coord_r1: list[Layer2Model],
         coord_r2: list[Layer2Model],
-        name_hit: Layer2Model | None,
+        names_hit: list[Layer2Model],
     ) -> result.CrossIdentifySuccess | result.CrossIdentificationException:
         """
         Case name and coordinates known
         :param param: Current identification param
         :param coord_r1: Hits inside R1 in DB
         :param coord_r2: Hits inside R2 in DB
-        :param name_hit: Database entry with matching name
+        :param names_hit: Database entry with matching name
         :return: UseCase result
         """
 
-        name_res = self._only_name_known(param, name_hit)
+        names_res = self._only_names_known(param, names_hit)
         coord_res = self._only_coord_known(param, coord_r1, coord_r2)
 
         # name and coordinate cross identification success
-        if isinstance(name_res, result.CrossIdentifySuccess) and isinstance(coord_res, result.CrossIdentifySuccess):
-            if name_res.result is None and coord_res.result is None:
+        if isinstance(names_res, result.CrossIdentifySuccess) and isinstance(coord_res, result.CrossIdentifySuccess):
+            if names_res.result is None and coord_res.result is None:
                 # no hit by coordinates and name, new object
                 return result.CrossIdentifySuccess(None)
 
             if (
-                name_res.result is not None
+                names_res.result is not None
                 and coord_res.result is not None
-                and name_res.result.pgc == coord_res.result.pgc
+                and names_res.result.pgc == coord_res.result.pgc
             ):
                 # same hit by name and coordinates, object identified
-                return result.CrossIdentifySuccess(name_res.result)
+                return result.CrossIdentifySuccess(names_res.result)
 
             # Different results for name and coordinates, error
-            return result.CrossIdentificationNameCoordCollisionException(param, name_res.result, coord_res.result)
+            return result.CrossIdentificationNameCoordCollisionException(param, names_res.result, coord_res.result)
 
-        if isinstance(name_res, result.CrossIdentificationException) and isinstance(
+        if isinstance(names_res, result.CrossIdentificationException) and isinstance(
             coord_res, result.CrossIdentificationException
         ):
             # both coordinates and name cross identification results need user interaction
-            return result.CrossIdentificationNameCoordFailException(param, name_res, coord_res)
+            return result.CrossIdentificationNameCoordFailException(param, names_res, coord_res)
 
-        if isinstance(name_res, result.CrossIdentificationException):
+        if isinstance(names_res, result.CrossIdentificationException):
             # name cross identification fail, coordinate cross identification success
-            return result.CrossIdentificationNameCoordNameFailException(param, name_res, coord_res.result)
+            if isinstance(names_res, result.CrossIdentificationNamesNotFoundException):
+                # special case, when we have no hits by name, but we can use coordinate result
+                return result.CrossIdentifySuccess(coord_res.result)
+            return result.CrossIdentificationNameCoordNameFailException(param, names_res, coord_res.result)
 
         # name cross identification success, coordinate cross identification fail
-        return result.CrossIdentificationNameCoordCoordException(param, name_res.result, coord_res)
+        return result.CrossIdentificationNameCoordCoordException(param, names_res.result, coord_res)

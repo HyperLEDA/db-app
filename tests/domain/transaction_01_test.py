@@ -83,7 +83,7 @@ class Transaction01Test(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                name_col=None,
+                names_descr=None,
                 dataset=None,
                 comment=None,
                 biblio=None,

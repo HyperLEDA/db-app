@@ -57,7 +57,7 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                name_col=None,
+                names_descr=None,
                 dataset=None,
                 comment=None,
                 biblio=Biblio(None, "2024arXiv240411942G", ["gafsrf"], 1999, "t"),

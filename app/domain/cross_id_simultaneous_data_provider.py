@@ -1,4 +1,3 @@
-import asyncio
 from abc import ABC, abstractmethod
 from math import acos, cos, sin
 
@@ -29,10 +28,10 @@ class CrossIdSimultaneousDataProvider(ABC):
         """
 
     @abstractmethod
-    def by_name(self, name: str) -> list[CrossIdentificationParam]:
+    def by_name(self, names: list[str]) -> list[CrossIdentificationParam]:
         """
-        Select items by name
-        :param name: Name
+        Select items by names
+        :param names: All known names in raw table
         :return: Items with matching name
         """
 
@@ -50,8 +49,9 @@ class SimpleSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
             and self._sph_dist(it.coordinates, center) < r
         ]
 
-    def by_name(self, name: str) -> list[CrossIdentificationParam]:
-        return [it for it in self._data if it.name == name]
+    def by_name(self, names: list[str]) -> list[CrossIdentificationParam]:
+        names_set = set(names)
+        return [it for it in self._data if len(set(it.names or []) & names_set) > 0]
 
     @staticmethod
     def _sph_dist(a: ICRS, b: ICRS) -> Angle:
@@ -66,29 +66,26 @@ class PostgreSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
     def __init__(self, data: list[CrossIdentificationParam], tmp_data_repository: TmpDataRepository):
         super().__init__(data)
         self._tmp_data_repository = tmp_data_repository
-        task = tmp_data_repository.make_table(
+        self.table_name: str = tmp_data_repository.make_table(
             DataFrame(
                 {
                     "idx": list(range(len(data))),
-                    "name": [it.name for it in data],
+                    "name": [it.names for it in data],
                     "ra": [it.coordinates.ra.to(u.deg).value if it.coordinates is not None else None for it in data],
                     "dec": [it.coordinates.dec.to(u.deg).value if it.coordinates is not None else None for it in data],
                 }
             ),
             index_on=["ra", "dec"],
         )
-        self.table_name: str = asyncio.run(task)
 
     def data_inside(self, center: ICRS, r: Angle) -> list[CrossIdentificationParam]:
-        res = asyncio.run(
-            self._tmp_data_repository.query_table(TmpCoordinateTableQueryParam(self.table_name, center, r))
-        )
+        res = self._tmp_data_repository.query_table(TmpCoordinateTableQueryParam(self.table_name, center, r))
         return [self._data[it["idx"]] for it in res]
 
-    def by_name(self, name: str) -> list[CrossIdentificationParam]:
-        res = asyncio.run(self._tmp_data_repository.query_table(TmpNameTableQueryParam(self.table_name, name)))
+    def by_name(self, names: list[str]) -> list[CrossIdentificationParam]:
+        res = self._tmp_data_repository.query_table(TmpNameTableQueryParam(self.table_name, names))
 
         return [self._data[it["idx"]] for it in res]
 
     def clear(self):
-        asyncio.run(self._tmp_data_repository.drop_table(self.table_name))
+        self._tmp_data_repository.drop_table(self.table_name)

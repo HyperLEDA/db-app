@@ -18,7 +18,7 @@ def make_points(
 ) -> tuple[list[CrossIdentificationParam], list[CrossIdentificationParam]]:
     ra = [2 * pi * random.random() for _ in range(n_points)]
     dec = [pi * random.random() - pi / 2 for _ in range(n_points)]
-    all_pts = [CrossIdentificationParam(None, ICRS(ra=it[0] * u.rad, dec=it[1] * u.rad)) for it in zip(ra, dec)]
+    all_pts = [CrossIdentificationParam(None, None, ICRS(ra=it[0] * u.rad, dec=it[1] * u.rad)) for it in zip(ra, dec)]
 
     inside = [
         it for it in all_pts if angular_separation(it.coordinates.ra, it.coordinates.dec, center.ra, center.dec) <= r

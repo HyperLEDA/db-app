@@ -14,12 +14,15 @@ from app.domain.model.params.cross_identification_result import (
     CrossIdentificationNameCoordCollisionException,
     CrossIdentificationNameCoordCoordException,
     CrossIdentificationNameCoordFailException,
+    CrossIdentificationNameCoordNameFailException,
+    CrossIdentificationNamesDuplicateException,
+    CrossIdentificationNamesNotFoundException,
     CrossIdentifySuccess,
 )
-from app.domain.model.params.layer_2_query_param import Layer2QueryByName, Layer2QueryInCircle, Layer2QueryParam
+from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.domain.usecases import CrossIdentifyUseCase
-from app.domain.usecases.cross_identify_use_case import default_r1
+from app.domain.usecases.cross_identify_use_case import DEFAULT_R1
 from tests.domain.util import make_points
 
 
@@ -28,8 +31,9 @@ class MockedLayer2Repository(Layer2Repository):
         self._data = data
 
     async def query_data(self, param: Layer2QueryParam) -> list[Layer2Model]:
-        if isinstance(param, Layer2QueryByName):
-            return [it for it in self._data if it.name == param.name]
+        if isinstance(param, Layer2QueryByNames):
+            names_set = set(param.names)
+            return [it for it in self._data if len(set(it.names) & names_set) > 0]
 
         if isinstance(param, Layer2QueryInCircle):
             return [
@@ -45,22 +49,32 @@ class MockedLayer2Repository(Layer2Repository):
         pass
 
 
-def _make_l2(pgc: int, coord: ICRS | None, name: str | None) -> Layer2Model:
+def _make_l2(pgc: int, coord: ICRS | None, names: list[str] | None, common_name: str | None) -> Layer2Model:
     return Layer2Model(
         pgc,
         coord,
-        name,
+        names if names is not None else [],
+        common_name,
         0 * u.rad,
         0 * u.rad,
         0,
     )
 
 
+def _make_names(n_names: int) -> tuple[list[str], str]:
+    """
+    :param n_names: Number of names to generate
+    :return: all_names, common_name
+    """
+    all_names = [uuid4().hex for _ in range(n_names)]
+    return all_names, all_names[0]
+
+
 class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_coord_new_object(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = CrossIdentificationParam(None, center)
+        target = CrossIdentificationParam(None, None, center)
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
@@ -70,7 +84,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc + [target])
 
-        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None) for i, it in enumerate(outside)])
+        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)])
 
         use_case = CrossIdentifyUseCase(repo)
 
@@ -82,7 +96,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_in_default_r(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
+        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target_id = 256
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -94,13 +108,14 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, None) for i, it in enumerate(outside)] + [_make_l2(target_id, target, None)]
+            [_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)]
+            + [_make_l2(target_id, target, None, None)]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(None, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
 
         self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
@@ -122,13 +137,14 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, None) for i, it in enumerate(outside)] + [_make_l2(target_id, target, None)]
+            [_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)]
+            + [_make_l2(target_id, target, None, None)]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(None, center), data_provider, CrossIdentificationUserParam(r1, 1.1 * r1)
+            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(r1, 1.1 * r1)
         )
 
         self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
@@ -137,9 +153,9 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_coord_fail(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + default_r1 / 2)
+        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
         target2_id = 666
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -151,64 +167,83 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, None) for i, it in enumerate(outside)]
-            + [_make_l2(target1_id, target1, None), _make_l2(target2_id, target2, None)]
+            [_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)]
+            + [_make_l2(target1_id, target1, None, None), _make_l2(target2_id, target2, None, None)]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(None, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
         if not isinstance(res, CrossIdentificationCoordCollisionException):
             self.fail("Cross identification must fail with 'CrossIdentificationCoordCollisionException'")
 
     async def test_identify_by_name(self):
-        target = uuid4().hex
+        target_names = [uuid4().hex, uuid4().hex, uuid4().hex]
         target_id = 256
 
         all_pts, _ = make_points(n_points=100, center=ICRS(ra=20 * u.deg, dec=40 * u.deg), r=10 * u.deg)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(all_pts[:-1])]
-            + [_make_l2(target_id, all_pts[-1].coordinates, target)]
+            [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts[:-1])]
+            + [_make_l2(target_id, all_pts[-1].coordinates, target_names, target_names[0])]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(target, None),
-            SimpleSimultaneousDataProvider([CrossIdentificationParam(uuid4().hex, None) for _ in range(20)]),
+            CrossIdentificationParam(target_names[:1], target_names[0], None),
+            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
         )
 
         self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
-    async def test_identify_by_name_new_object(self):
+    async def test_identify_by_name_unfounded(self):
+        """When whe hane only names, and no matches in DB, we need user decision"""
         all_pts, _ = make_points(n_points=100, center=ICRS(ra=20 * u.deg, dec=40 * u.deg), r=10 * u.deg)
 
-        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(all_pts[:-1])])
+        repo = MockedLayer2Repository(
+            [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts[:-1])]
+        )
 
         use_case = CrossIdentifyUseCase(repo)
 
+        all_names, name = _make_names(1)
         res = await use_case.invoke(
-            CrossIdentificationParam(uuid4().hex, None),
-            SimpleSimultaneousDataProvider([CrossIdentificationParam(uuid4().hex, None) for _ in range(20)]),
+            CrossIdentificationParam(all_names, name, None),
+            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
-        self.assertEqual(res.result, None)
+        self.assertIsInstance(res, CrossIdentificationNamesNotFoundException)
+        self.assertEqual(res.names, all_names)
 
-    @unittest.skip("No fail case for name identification")
-    async def test_identify_by_name_fail(self):
-        pass
+    async def test_identify_by_name_duplicate(self):
+        """Case, when provided names found for multiple objects in DB"""
+        all_pts, _ = make_points(n_points=100, center=ICRS(ra=20 * u.deg, dec=40 * u.deg), r=10 * u.deg)
+
+        all_in_repo = [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts[:-1])]
+        repo = MockedLayer2Repository(all_in_repo)
+
+        use_case = CrossIdentifyUseCase(repo)
+
+        obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
+        res = await use_case.invoke(
+            CrossIdentificationParam(obj_names, obj_names[0], None),
+            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
+            CrossIdentificationUserParam(None, None),
+        )
+
+        self.assertIsInstance(res, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.names, obj_names)
 
     async def test_identify_by_name_and_coordinates(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
+        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target_name = uuid4().hex
         target_id = 256
 
@@ -216,19 +251,23 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [it for it in all_pts if it not in inside_proc]
+        outside_proc = [
+            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [CrossIdentificationParam([target_name], target_name, target)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)]
-            + [_make_l2(target_id, target, target_name)]
+            [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(outside)]
+            + [_make_l2(target_id, target, [target_name, uuid4().hex, uuid4().hex], target_name)]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(target_name, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam([target_name], target_name, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
 
         self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
@@ -243,17 +282,17 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
         outside_proc = [
-            CrossIdentificationParam(uuid4().hex, it.coordinates) for it in all_pts if it not in inside_proc
+            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
         ]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
-        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)])
+        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, *_make_names(1)) for i, it in enumerate(outside)])
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(uuid4().hex, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(*_make_names(1), center), data_provider, CrossIdentificationUserParam(None, None)
         )
 
         self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
@@ -262,10 +301,10 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_name_coord_collision(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target1_name = uuid4().hex
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + default_r1 * 30)
+        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 * 30)
         target2_name = uuid4().hex
         target2_id = 666
 
@@ -278,14 +317,19 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)]
-            + [_make_l2(target1_id, target1, target1_name), _make_l2(target2_id, target2, target2_name)]
+            [_make_l2(i, it.coordinates, *_make_names(1)) for i, it in enumerate(outside)]
+            + [
+                _make_l2(target1_id, target1, [target1_name], target1_name),
+                _make_l2(target2_id, target2, [target2_name], target2_name),
+            ]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(target2_name, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam([target2_name], target2_name, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
         self.assertIsInstance(
             res,
@@ -293,83 +337,128 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             "Cross identification must fail with 'CrossIdentificationNameCoordCollisionException'",
         )
 
-    @unittest.skip("No fail case for name identification")
-    async def test_name_coord_fail(self):
+    async def test_name_coord_both_fail(self):
+        """
+        Case, where names collide by CrossIdentificationNamesDuplicateException,
+        and coordinates collide by CrossIdentificationCoordCollisionException
+        """
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
-        target1_name = uuid4().hex
+        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + default_r1 / 2)
-        target2_name = uuid4().hex
+        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
         target2_id = 666
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [it for it in all_pts if it not in inside_proc]
+        outside_proc = [
+            CrossIdentificationParam(*_make_names(2), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [CrossIdentificationParam(*_make_names(2), center)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
-        repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)]
-            + [_make_l2(target1_id, target1, target1_name), _make_l2(target2_id, target2, target2_name)]
-        )
+        all_in_repo = [_make_l2(i, it.coordinates, *_make_names(2)) for i, it in enumerate(outside)] + [
+            _make_l2(target1_id, target1, *_make_names(2)),
+            _make_l2(target2_id, target2, *_make_names(2)),
+        ]
+        repo = MockedLayer2Repository(all_in_repo)
 
         use_case = CrossIdentifyUseCase(repo)
 
+        obj_names = [all_in_repo[-1].names[0], all_in_repo[-2].names[1]]
         res = await use_case.invoke(
-            CrossIdentificationParam(target2_name, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(obj_names, obj_names[0], center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
+
         self.assertIsInstance(
             res,
             CrossIdentificationNameCoordFailException,
             "Cross identification must fail with 'CrossIdentificationNameCoordFailException'",
         )
+        self.assertIsInstance(res.name_collision, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.name_collision.names, obj_names)
+        self.assertIsInstance(res.coord_collision, CrossIdentificationCoordCollisionException)
+        self.assertEqual(res.coord_collision.collisions, all_in_repo[-2:])
 
-    @unittest.skip("No fail case for name identification")
     async def test_name_coord_fail_name(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
-        target1_name = uuid4().hex
-        target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + default_r1 / 2)
-        target2_name = uuid4().hex
-        target2_id = 666
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [it for it in all_pts if it not in inside_proc]
+        outside_proc = [
+            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ]
+
+        data_provider = SimpleSimultaneousDataProvider(outside_proc)
+
+        all_in_repo = [_make_l2(i, it.coordinates, *_make_names(1)) for i, it in enumerate(outside)]
+        repo = MockedLayer2Repository(all_in_repo)
+
+        use_case = CrossIdentifyUseCase(repo)
+
+        obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
+        res = await use_case.invoke(
+            CrossIdentificationParam(obj_names, obj_names[0], center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
+        )
+
+        self.assertIsInstance(
+            res,
+            CrossIdentificationNameCoordNameFailException,
+            "Cross identification must fail with 'CrossIdentificationNameCoordNameFailException'",
+        )
+        self.assertEqual(res.coord_hit, None)
+        self.assertIsInstance(res.name_collision, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.name_collision.names, obj_names)
+
+    async def test_name_coord_name_fail_coord_success(self):
+        r = 10 * u.deg
+        center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
+        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target_id = 256
+
+        all_pts, inside = make_points(n_points=100, center=center, r=r)
+        outside = [it for it in all_pts if it not in inside]
+
+        all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
+        outside_proc = [
+            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [CrossIdentificationParam(*_make_names(2), target)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)]
-            + [_make_l2(target1_id, target1, target1_name), _make_l2(target2_id, target2, target2_name)]
+            [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(outside)]
+            + [_make_l2(target_id, target, *_make_names(3))]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
+        obj_names, obj_name = outside_proc[-1].names, outside_proc[-1].primary_name
         res = await use_case.invoke(
-            CrossIdentificationParam(target2_name, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(obj_names, obj_name, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
-        self.assertIsInstance(
-            res,
-            CrossIdentificationNameCoordFailException,
-            "Cross identification must fail with 'CrossIdentificationNameCoordFailException'",
-        )
+
+        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertEqual(target_id, res.result.pgc)
 
     async def test_name_coord_fail_coord(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + default_r1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
         target1_name = uuid4().hex
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + default_r1 / 2)
+        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
         target2_name = uuid4().hex
         target2_id = 666
 
@@ -377,34 +466,58 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [it for it in all_pts if it not in inside_proc]
+        outside_proc = [
+            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [CrossIdentificationParam([target2_name], target2_name, target2)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
         repo = MockedLayer2Repository(
-            [_make_l2(i, it.coordinates, uuid4().hex) for i, it in enumerate(outside)]
-            + [_make_l2(target1_id, target1, target1_name), _make_l2(target2_id, target2, target2_name)]
+            [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(outside)]
+            + [
+                _make_l2(target1_id, target1, [target1_name], target1_name),
+                _make_l2(target2_id, target2, [target2_name], target2_name),
+            ]
         )
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(target2_name, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam([target2_name], target2_name, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
         if isinstance(res, CrossIdentificationNameCoordCoordException):
             self.assertEqual(res.name_hit.pgc, target2_id)
         else:
             self.fail("Cross identification must fail with 'CrossIdentificationNameCoordCoordException'")
 
-    @unittest.skip("Name data model incomplete")
     async def test_simultaneous_name_fail(self):
-        pass
+        target1 = CrossIdentificationParam(*_make_names(2), None)
+        target2 = CrossIdentificationParam(*_make_names(2), None)
+
+        all_pts, inside = make_points(n_points=100, center=ICRS(ra=20 * u.deg, dec=40 * u.deg), r=10 * u.deg)
+
+        data_provider = SimpleSimultaneousDataProvider(all_pts + [target1, target2])
+
+        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts)])
+
+        use_case = CrossIdentifyUseCase(repo)
+
+        res = await use_case.invoke(
+            CrossIdentificationParam(target1.names + target2.names, target2.primary_name, None),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
+        )
+        self.assertIsInstance(res, CrossIdentificationDuplicateException)
+        self.assertTrue(target1 in res.collisions)
+        self.assertTrue(target2 in res.collisions)
 
     async def test_simultaneous_coord_fail(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = CrossIdentificationParam(None, ICRS(ra=center.ra + default_r1 / 2, dec=center.dec))
-        target2 = CrossIdentificationParam(None, ICRS(ra=center.ra, dec=center.dec + default_r1 / 2))
+        target1 = CrossIdentificationParam(None, None, ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec))
+        target2 = CrossIdentificationParam(None, None, ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2))
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
@@ -414,12 +527,12 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc + [target1, target2])
 
-        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None) for i, it in enumerate(outside)])
+        repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)])
 
         use_case = CrossIdentifyUseCase(repo)
 
         res = await use_case.invoke(
-            CrossIdentificationParam(None, center), data_provider, CrossIdentificationUserParam(None, None)
+            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
         self.assertIsInstance(res, CrossIdentificationDuplicateException)
         self.assertIsInstance(res.db_cross_id_result, CrossIdentifySuccess)

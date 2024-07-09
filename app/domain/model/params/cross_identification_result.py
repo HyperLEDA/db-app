@@ -20,6 +20,26 @@ class CrossIdentificationEmptyException(CrossIdentificationException):
     """Both coordinates and name provided are empty"""
 
 
+class CrossIdentificationNamesNotFoundException(CrossIdentificationException):
+    """Case, when only name known, but it has no matches in DB"""
+
+    def __init__(self, names: list[str]):
+        """
+        :param names: Names, provided in raw table
+        """
+        self.names = names
+
+
+class CrossIdentificationNamesDuplicateException(CrossIdentificationException):
+    """Case, when provided names found for multiple objects in DB"""
+
+    def __init__(self, names: list[str]):
+        """
+        :param names: Names, provided in raw table
+        """
+        self.names = names
+
+
 class CrossIdentificationCoordCollisionException(CrossIdentificationException):
     """
     Describes collisions from cross identification use case
@@ -76,7 +96,7 @@ class CrossIdentificationNameCoordFailException(CrossIdentificationException):
 class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
     """
     Describes collision, name cross identification is successful, but coordinate cross identification needs user
-     interaction
+    interaction
     """
 
     def __init__(
@@ -97,7 +117,8 @@ class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
 
 class CrossIdentificationNameCoordNameFailException(CrossIdentificationException):
     """
-    Describes collision, when both cross identification by name and by coordinates need user interaction
+    Describes collision, coordinate cross identification is successful, but name cross identification needs user
+    interaction
     """
 
     def __init__(

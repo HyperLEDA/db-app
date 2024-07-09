@@ -11,7 +11,8 @@ class Layer2Model:
     Args:
         `pgc`: PGC. This object unique id
         `coordinates`: This object averaged coordinates in ICRS
-        `name`: Common name for this object
+        `names`: All known names for this object
+        `common_name`: Common name for this object
         `err_ra`: RA error
         `err_dec`: DEC error
         `modified`: Last modification time
@@ -19,7 +20,8 @@ class Layer2Model:
 
     pgc: int
     coordinates: ICRS
-    name: Optional[str]
+    names: list[str]
+    common_name: Optional[str]
     err_ra: Angle
     err_dec: Angle
     modified: int

@@ -91,9 +91,10 @@ WHERE
 """
 
 GET_TMP_DATA_BY_NAME = """
-SELECT idx FROM {{ table_name }}
+SELECT idx
+FROM {{ table_name }}
 WHERE
-    name = %s
+    name && array[{% for n in all_names %}'{{ n }}'{% if not loop.last %},{% endif %}{% endfor %}]
 """
 
 GET_RAWDATA_TABLE = """

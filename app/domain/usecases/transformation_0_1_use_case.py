@@ -3,9 +3,8 @@ from typing import Callable, Optional
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
-from app.domain.model.layer0.values.exceptions import ColumnNotFoundException
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.layer1.layer_1_value import Layer1Value
+from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
@@ -69,10 +68,8 @@ class TransformationO1UseCase:
         values = [vd.parse_values(data.data) for vd in data.meta.value_descriptions]
 
         # extract names
-        if data.meta.name_col is not None:
-            names = data.data.get(data.meta.name_col)
-            if names is None:
-                raise ColumnNotFoundException([data.meta.name_col])
+        if data.meta.names_descr is not None:
+            names = data.meta.names_descr.parse_name(data.data)
         else:
             names = n_rows * [None]
 
@@ -80,16 +77,26 @@ class TransformationO1UseCase:
         identification_params = []
         for coordinate, name in zip(coordinates, names):
             if isinstance(coordinate, BaseException):
-                # case, where there was an error parsing coordinates, we still can make cross identification
-                identification_params.append(CrossIdentificationParam(name, None))
+                identification_params.append(coordinate)
+            elif isinstance(name, BaseException):
+                identification_params.append(name)
+            elif name is None:
+                identification_params.append(CrossIdentificationParam(None, None, coordinate))
             else:
-                identification_params.append(CrossIdentificationParam(name, coordinate))
-        simultaneous_data_provider = self._simultaneous_data_provider(identification_params)
+                primary_name, all_names = name
+                identification_params.append(CrossIdentificationParam(all_names, primary_name, coordinate))
+        # Simultaneous data provider needs only valid CrossIdentificationParam's
+        simultaneous_data_provider = self._simultaneous_data_provider(
+            [it for it in identification_params if not isinstance(it, BaseException)]
+        )
         identification_results = []
         for i, param in zip(list(range(n_rows)), identification_params):
-            identification_results.append(
-                await self._cross_identify_use_case.invoke(param, simultaneous_data_provider, user_param)
-            )
+            if isinstance(param, BaseException):
+                identification_results.append(param)
+            else:
+                identification_results.append(
+                    await self._cross_identify_use_case.invoke(param, simultaneous_data_provider, user_param)
+                )
             if on_progress is not None:
                 on_progress(CrossIdentification(n_rows, i + 1))
         simultaneous_data_provider.clear()

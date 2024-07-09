@@ -9,8 +9,8 @@ class Layer2QueryParam(ABC):
 
 
 @dataclass
-class Layer2QueryByName(Layer2QueryParam):
-    name: str
+class Layer2QueryByNames(Layer2QueryParam):
+    names: list[str]
 
 
 @dataclass

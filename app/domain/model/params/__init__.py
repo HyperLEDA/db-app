@@ -42,7 +42,7 @@ class TmpNameTableQueryParam(TmpDataRepositoryQueryParam):
     """
 
     t_name: str
-    names: str
+    names: list[str]
 
     def table_name(self):
         return self.t_name

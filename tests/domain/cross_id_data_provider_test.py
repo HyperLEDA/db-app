@@ -53,15 +53,18 @@ class CrossIdDataProviderTest(unittest.TestCase):
         self.assertListEqual(inside, pg_inside)
 
     def test_data_by_name(self):
-        all_pts = [CrossIdentificationParam(uuid4().hex, None) for _ in range(100)]
-        target = CrossIdentificationParam(uuid4().hex, None)
+        all_pts = [
+            CrossIdentificationParam(lst, lst[0], None) for lst in [[uuid4().hex, uuid4().hex] for _ in range(100)]
+        ]
+        lst = [uuid4().hex, uuid4().hex, uuid4().hex, uuid4().hex]
+        target = CrossIdentificationParam(lst, lst[0], None)
         all_pts = all_pts + [target]
 
         data_provider = SimpleSimultaneousDataProvider(all_pts)
-        provider_res = data_provider.by_name(target.name)
+        provider_res = data_provider.by_name(target.names)
 
         pg_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
-        pg_res = pg_provider.by_name(target.name)
+        pg_res = pg_provider.by_name(target.names[:2])
 
         self.assertEqual(len(provider_res), 1)
         self.assertEqual(provider_res[0], target)
