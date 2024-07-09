@@ -347,7 +347,7 @@
         "type": "object",
         "properties": {
           "code": {
-            "type": "integer",
+            "type": "string",
             "description": "Code for the source"
           }
         },
@@ -492,6 +492,7 @@
           },
           "description": {
             "type": "string",
+            "default": "",
             "description": "Human-readable description of the column"
           }
         },
@@ -532,6 +533,7 @@
           },
           "description": {
             "type": "string",
+            "default": "",
             "description": "Human-readable description of the table"
           }
         },
@@ -548,7 +550,10 @@
             "type": "integer",
             "description": "Output id of the table"
           }
-        }
+        },
+        "required": [
+          "id"
+        ]
       },
       "AddDataRequestSchema": {
         "type": "object",
