@@ -30,6 +30,7 @@ select = [
     "PTH",
     "PLE",
     "FLY",
+    "NPY201",
 ]
 
 [tool.ruff.lint.per-file-ignores]

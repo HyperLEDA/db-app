@@ -22,7 +22,7 @@ from app.domain.model.params.cross_identification_result import (
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.domain.usecases import CrossIdentifyUseCase
-from app.domain.usecases.cross_identify_use_case import DEFAULT_R1
+from app.domain.usecases.cross_identify_use_case import INNER_RADIUS
 from tests.domain.util import make_points
 
 
@@ -96,7 +96,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_in_default_r(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target_id = 256
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -153,9 +153,9 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_coord_fail(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
+        target2 = ICRS(ra=center.ra, dec=center.dec + INNER_RADIUS / 2)
         target2_id = 666
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -243,7 +243,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_identify_by_name_and_coordinates(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target_name = uuid4().hex
         target_id = 256
 
@@ -301,10 +301,10 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_name_coord_collision(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target1_name = uuid4().hex
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 * 30)
+        target2 = ICRS(ra=center.ra, dec=center.dec + INNER_RADIUS * 30)
         target2_name = uuid4().hex
         target2_id = 666
 
@@ -344,9 +344,9 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         """
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
+        target2 = ICRS(ra=center.ra, dec=center.dec + INNER_RADIUS / 2)
         target2_id = 666
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -422,7 +422,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_name_coord_name_fail_coord_success(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target_id = 256
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
@@ -455,10 +455,10 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_name_coord_fail_coord(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec)
+        target1 = ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec)
         target1_name = uuid4().hex
         target1_id = 256
-        target2 = ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2)
+        target2 = ICRS(ra=center.ra, dec=center.dec + INNER_RADIUS / 2)
         target2_name = uuid4().hex
         target2_id = 666
 
@@ -516,8 +516,8 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
     async def test_simultaneous_coord_fail(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = CrossIdentificationParam(None, None, ICRS(ra=center.ra + DEFAULT_R1 / 2, dec=center.dec))
-        target2 = CrossIdentificationParam(None, None, ICRS(ra=center.ra, dec=center.dec + DEFAULT_R1 / 2))
+        target1 = CrossIdentificationParam(None, None, ICRS(ra=center.ra + INNER_RADIUS / 2, dec=center.dec))
+        target2 = CrossIdentificationParam(None, None, ICRS(ra=center.ra, dec=center.dec + INNER_RADIUS / 2))
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]

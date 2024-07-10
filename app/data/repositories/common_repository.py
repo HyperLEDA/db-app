@@ -19,23 +19,31 @@ class CommonRepository(interface.CommonRepository):
         return self._storage.with_tx()
 
     def create_bibliography(
-        self, bibliography: model.Bibliography, tx: psycopg.Transaction | None = None
-    ) -> int | None:
+        self, bibcode: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
+    ) -> int:
         result = self._storage.query_one(
-            "INSERT INTO common.bib (bibcode, year, author, title) VALUES (%s, %s, %s, %s) RETURNING id",
-            params=[
-                bibliography.bibcode,
-                bibliography.year,
-                bibliography.author,
-                bibliography.title,
-            ],
+            """
+            INSERT INTO common.bib (bibcode, year, author, title) 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (bibcode) DO UPDATE SET year = EXCLUDED.year, author = EXCLUDED.author, title = EXCLUDED.title
+            RETURNING id 
+            """,
+            params=[bibcode, year, authors, title],
             tx=tx,
         )
 
-        return result.get("id")
+        if result is None:
+            raise new_database_error("no result returned from query")
 
-    def get_bibliography(self, bibliography_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
-        row = self._storage.query_one(template.ONE_BIBLIOGRAPHY, params=[bibliography_id], tx=tx)
+        return int(result.get("id"))
+
+    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name], tx=tx)
+
+        return model.Bibliography(**row)
+
+    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id], tx=tx)
 
         return model.Bibliography(**row)
 
@@ -52,11 +60,7 @@ class CommonRepository(interface.CommonRepository):
 
         return int(row_id)
 
-    def get_task_info(
-        self,
-        task_id: int,
-        tx: psycopg.Transaction | None = None,
-    ) -> model.Task:
+    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> model.Task:
         row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id], tx=tx)
 
         return model.Task(**row)

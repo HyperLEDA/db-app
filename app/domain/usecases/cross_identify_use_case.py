@@ -8,8 +8,8 @@ from app.domain.model.params.cross_identification_param import CrossIdentificati
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
 
-DEFAULT_R1 = 1.5 * u.arcsec  # inner radius
-DEFAULT_R2 = 1.5 * u.arcsec  # outer radius
+INNER_RADIUS = 1.5 * u.arcsec  # default inner radius
+OUTER_RADIUS = 1.5 * u.arcsec  # default outer radius
 
 
 class CrossIdentifyUseCase:
@@ -36,8 +36,8 @@ class CrossIdentifyUseCase:
         if param.names is None and param.coordinates is None:
             return result.CrossIdentificationEmptyException()
 
-        r1 = user_param.r1 if user_param.r1 is not None else DEFAULT_R1
-        r2 = user_param.r2 if user_param.r2 is not None else DEFAULT_R2
+        r1 = user_param.r1 if user_param.r1 is not None else INNER_RADIUS
+        r2 = user_param.r2 if user_param.r2 is not None else OUTER_RADIUS
 
         names_hit = None
         simultaneous_name_hit = []

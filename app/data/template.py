@@ -7,33 +7,20 @@ def render_query(query_string: str, **kwargs) -> str:
     return tpl.render(**kwargs)
 
 
-ONE_BIBLIOGRAPHY = """
+GET_SOURCE_BY_CODE = """
 SELECT id, bibcode, year, author, title FROM common.bib
-WHERE id = %s
+WHERE bibcode = %s
+LIMIT 1
 """
 
-BIBLIOGRAPHY_TEMPLATE = """
-SELECT
-    id, bibcode, year, author, title
-FROM common.bib
-WHERE
-    1 = 1
-    AND
-    title LIKE CONCAT('%%', %s::text, '%%')
-ORDER BY modification_time DESC
-OFFSET %s
-LIMIT %s
+GET_SOURCE_BY_ID = """
+SELECT id, bibcode, year, author, title FROM common.bib
+WHERE id = %s
+LIMIT 1
 """
 
 GET_TASK_INFO = """
 SELECT id, task_name, payload, user_id, status, start_time, end_time, message FROM common.tasks WHERE id = %s
-"""
-
-
-NEW_OBJECTS = """
-INSERT INTO common.pgc
-VALUES {% for _ in range(n) %}(DEFAULT){% if not loop.last %},{% endif %}{% endfor %}
-RETURNING id;
 """
 
 CREATE_TABLE = """

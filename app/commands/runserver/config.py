@@ -11,7 +11,7 @@ from app.presentation.server import ServerConfig, ServerConfigSchema
 
 @dataclass
 class ClientsConfig:
-    ads_token: str
+    ads_token: str = ""
 
 
 class ClientsConfigSchema(Schema):
@@ -27,7 +27,7 @@ class Config:
     server: ServerConfig
     storage: postgres.PgStorageConfig
     queue: redis.QueueConfig
-    clients: ClientsConfig = field(default_factory=lambda: ClientsConfig(""))
+    clients: ClientsConfig = field(default_factory=ClientsConfig)
 
 
 class ConfigSchema(Schema):
