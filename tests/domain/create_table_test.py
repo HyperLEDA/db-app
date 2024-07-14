@@ -95,12 +95,12 @@ class MappingTest(unittest.TestCase):
             ),
         ]
 
-        for name, input_columns, expected, err_message in tests:
+        for name, input_columns, expected, err_message_substr in tests:
             with self.subTest(name):
-                if err_message:
+                if err_message_substr:
                     with self.assertRaises(exceptions.APIException) as err:
                         _ = domain_descriptions_to_data(input_columns)
 
-                    self.assertIn(err_message, err.exception.message)
+                    self.assertIn(err_message_substr, err.exception.message)
                 else:
                     self.assertEqual(domain_descriptions_to_data(input_columns), expected)
