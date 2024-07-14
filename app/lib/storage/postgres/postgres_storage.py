@@ -6,10 +6,10 @@ import structlog
 from psycopg import rows
 from psycopg.types import enum, numeric
 
-from app.lib.exceptions import DatabaseError, InternalError
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
+from app.lib.web.errors import DatabaseError, InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 

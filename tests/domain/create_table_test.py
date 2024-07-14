@@ -4,7 +4,7 @@ from unittest import mock
 from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain.actions.create_table import domain_descriptions_to_data, get_source_id
-from app.lib import exceptions
+from app.lib.web import errors
 
 
 class GetSourceIDTest(unittest.TestCase):
@@ -42,7 +42,7 @@ class GetSourceIDTest(unittest.TestCase):
         ads_client = mock.MagicMock()
         ads_client.query_simple.side_effect = RuntimeError("Not found")
 
-        with self.assertRaises(exceptions.RuleValidationError):
+        with self.assertRaises(errors.RuleValidationError):
             _ = get_source_id(common_repo, ads_client, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
@@ -50,7 +50,7 @@ class GetSourceIDTest(unittest.TestCase):
         common_repo.get_source_entry.side_effect = RuntimeError("Not found")
         ads_client = mock.MagicMock()
 
-        with self.assertRaises(exceptions.RuleValidationError):
+        with self.assertRaises(errors.RuleValidationError):
             _ = get_source_id(common_repo, ads_client, "some_internal_code")
 
 
@@ -98,7 +98,7 @@ class MappingTest(unittest.TestCase):
         for name, input_columns, expected, err_message_substr in tests:
             with self.subTest(name):
                 if err_message_substr:
-                    with self.assertRaises(exceptions.RuleValidationError) as err:
+                    with self.assertRaises(errors.RuleValidationError) as err:
                         _ = domain_descriptions_to_data(input_columns)
 
                     self.assertIn(err_message_substr, err.exception.message())

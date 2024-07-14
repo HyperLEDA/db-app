@@ -4,7 +4,7 @@ from app import commands
 from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain import tasks
-from app.lib.exceptions import NotFoundError
+from app.lib.web.errors import NotFoundError
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),

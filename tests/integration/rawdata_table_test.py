@@ -9,10 +9,11 @@ from app import commands
 from app.data import repositories
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.domain import actions, model
-from app.lib import auth, exceptions, testing
+from app.lib import auth, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
+from app.lib.web import errors
 
 
 class RawDataTableTest(unittest.TestCase):
@@ -135,7 +136,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(exceptions.DatabaseError):
+        with self.assertRaises(errors.DatabaseError):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
@@ -176,7 +177,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(exceptions.DatabaseError):
+        with self.assertRaises(errors.DatabaseError):
             actions.add_data(
                 self.depot,
                 model.AddDataRequest(
@@ -211,7 +212,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(exceptions.DatabaseError):
+        with self.assertRaises(errors.DatabaseError):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(

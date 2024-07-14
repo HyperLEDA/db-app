@@ -1,19 +1,21 @@
-from typing import Any
+from functools import wraps
+from typing import Any, TypeVar
 
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import commands
 from app.domain import actions, model
-from app.lib.exceptions import RuleValidationError
 from app.lib.storage import enums, mapping
+from app.lib.web import responses
+from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
 
 class ColumnDescriptionSchema(Schema):
     name = fields.Str(required=True, description="Name of the column")
     data_type = fields.Str(required=True, description="Type of data", validate=validate.OneOf(mapping.type_map.keys()))
-    unit = fields.Str(required=True, description="Unit of the data")
+    unit = fields.Str(required=True, description="Unit of the data", example="m/s")
     description = fields.Str(load_default="", description="Human-readable description of the column")
 
     @post_load
@@ -29,6 +31,7 @@ class CreateTableRequestSchema(Schema):
     bibcode = fields.Str(
         required=True,
         description="ADS bibcode of the article that published the data (or code of the internal communication)",
+        example="2024NatAs.tmp..120M",
     )
     datatype = fields.Str(
         load_default="regular",
@@ -42,11 +45,22 @@ class CreateTableRequestSchema(Schema):
         return model.CreateTableRequest(**data)
 
 
+# def wrap_response_schema(source_schema: type) -> type:
+#     class WrappedResponseSchema(Schema):
+#         data = fields.Nested(source_schema, required=True)
+
+#     WrappedResponseSchema.__name__ = source_schema.__name__
+#     WrappedResponseSchema.somenonsence = "here"
+#     return WrappedResponseSchema
+
+
 class CreateTableResponseSchema(Schema):
     id = fields.Int(description="Output id of the table", required=True)
 
+# CreateTableResponseSchema = wrap_response_schema(CreateTableResponseSchema)
 
-async def create_table_handler(depot: commands.Depot, r: web.Request) -> Any:
+
+async def create_table_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Create table with unprocessed data
     description: Describes schema of the table without any data.
@@ -62,10 +76,7 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> Any:
             description: Table was successfully created
             content:
                 application/json:
-                    schema:
-                        type: object
-                        properties:
-                            data: CreateTableResponseSchema
+                    schema: CreateTableResponseSchema
     """
     request_dict = await r.json()
     try:
@@ -73,7 +84,7 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> Any:
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return actions.create_table(depot, request)
+    return responses.APIOkResponse(actions.create_table(depot, request))
 
 
 description = common.HandlerDescription(

@@ -17,6 +17,7 @@ from app import commands
 from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
+from app.lib.web import responses
 from app.presentation.server import config, handlers
 
 
@@ -94,11 +95,16 @@ def custom_dumps(obj):
 
 
 def json_wrapper(
-    depot: commands.Depot, func: Callable[[commands.Depot, web.Request], Any]
+    depot: commands.Depot, func: Callable[[commands.Depot, web.Request], responses.APIOkResponse]
 ) -> Callable[[web.Request], Awaitable[web.Response]]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
         response = await func(depot, request)
-        return web.json_response({"data": dataclasses.asdict(response)}, dumps=custom_dumps)
+
+        return web.json_response(
+            {"data": dataclasses.asdict(response.data)},
+            dumps=custom_dumps,
+            status=response.status,
+        )
 
     return inner

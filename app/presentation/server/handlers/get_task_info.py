@@ -5,7 +5,8 @@ from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands
 from app.domain import actions, model
-from app.lib.exceptions import RuleValidationError
+from app.lib.web import responses
+from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
 
@@ -27,7 +28,7 @@ class GetTaskInfoResponseSchema(Schema):
     message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")
 
 
-async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> Any:
+async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get information about the task
     description: Retrieves information about the task using its id.
@@ -52,7 +53,7 @@ async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> Any:
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return actions.get_task_info(depot, request)
+    return responses.APIOkResponse(actions.get_task_info(depot, request))
 
 
 description = common.HandlerDescription(

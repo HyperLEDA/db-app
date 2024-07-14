@@ -8,8 +8,8 @@ from app import commands
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
-from app.lib.exceptions import RuleValidationError
 from app.lib.storage import enums, mapping
+from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 

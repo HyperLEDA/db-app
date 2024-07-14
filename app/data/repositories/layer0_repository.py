@@ -8,9 +8,8 @@ from pandas import DataFrame
 from app.data import interface, model, template
 from app.data.model import ColumnDescription, Layer0Creation
 from app.data.model.layer0 import CoordinatePart
-from app.lib import exceptions
-from app.lib.exceptions import DatabaseError
 from app.lib.storage import postgres
+from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
 
@@ -212,7 +211,7 @@ class Layer0Repository(interface.Layer0Repository):
     def table_exists(self, schema: str, table_name: str) -> bool:
         try:
             self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except exceptions.DatabaseError:
+        except DatabaseError:
             return False
 
         return True
