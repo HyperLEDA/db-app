@@ -7,7 +7,7 @@ from app.domain.actions.create_table import domain_descriptions_to_data, get_sou
 from app.lib import exceptions
 
 
-class GetBibliographyIDTest(unittest.TestCase):
+class GetSourceIDTest(unittest.TestCase):
     def test_branching(self):
         tests = [
             ("1982euse.book.....L", True),
@@ -59,22 +59,48 @@ class MappingTest(unittest.TestCase):
         tests = [
             (
                 "normal run",
-                [domain_model.ColumnDescription("name", "str", "unit", "description")],
-                [data_model.ColumnDescription("name", "text", "unit", "description")],
-                False,
+                [domain_model.ColumnDescription("name", "str", "m / s", "description")],
+                [data_model.ColumnDescription("name", "text", "m / s", "description")],
+                None,
             ),
             (
                 "wrong type",
-                [domain_model.ColumnDescription("name", "obscure_type", "unit", "description")],
+                [domain_model.ColumnDescription("name", "obscure_type", "m / s", "description")],
                 [],
-                True,
+                "unknown type of data",
+            ),
+            (
+                "wrong unit",
+                [domain_model.ColumnDescription("name", "str", "wrong", "description")],
+                [],
+                "unknown unit",
+            ),
+            (
+                "unit is None",
+                [domain_model.ColumnDescription("name", "str", None, "description")],
+                [data_model.ColumnDescription("name", "text", None, "description")],
+                None,
+            ),
+            (
+                "unit has extra spaces",
+                [domain_model.ColumnDescription("name", "str", "m     /       s", "description")],
+                [data_model.ColumnDescription("name", "text", "m / s", "description")],
+                None,
+            ),
+            (
+                "data type has extra spaces",
+                [domain_model.ColumnDescription("name", "   str    ", None, "description")],
+                [data_model.ColumnDescription("name", "text", None, "description")],
+                None,
             ),
         ]
 
-        for name, input_columns, expected, should_raise in tests:
+        for name, input_columns, expected, err_message_substr in tests:
             with self.subTest(name):
-                if should_raise:
-                    with self.assertRaises(exceptions.APIException):
+                if err_message_substr:
+                    with self.assertRaises(exceptions.APIException) as err:
                         _ = domain_descriptions_to_data(input_columns)
+
+                    self.assertIn(err_message_substr, err.exception.message)
                 else:
                     self.assertEqual(domain_descriptions_to_data(input_columns), expected)
