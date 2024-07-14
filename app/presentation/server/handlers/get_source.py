@@ -1,7 +1,7 @@
 from typing import Any
 
 from aiohttp import web
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands
 from app.domain import actions, model
@@ -47,7 +47,7 @@ async def get_source_handler(depot: commands.Depot, r: web.Request) -> Any:
     """
     try:
         request = GetSourceRequestSchema().load(r.rel_url.query)
-    except RuleValidationError as e:
+    except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
     return actions.get_source(depot, request)
