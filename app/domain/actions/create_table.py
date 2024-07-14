@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import regex
+from astropy import units
 from astroquery import nasa_ads as ads
 
 from app import commands
@@ -38,12 +39,24 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
     result = []
 
     for col in columns:
-        if col.data_type not in mapping.type_map:
-            raise new_validation_error(f"unknown type of data: {col.data_type}")
+        data_type = col.data_type.strip()
+        unit = col.unit
+
+        if data_type not in mapping.type_map:
+            raise new_validation_error(f"unknown type of data: '{col.data_type}'")
+
+        if col.unit is not None:
+            try:
+                unit = units.Unit(col.unit).to_string()
+            except ValueError:
+                raise new_validation_error(f"unknown unit: '{col.unit}'") from None
 
         result.append(
             data_model.ColumnDescription(
-                name=col.name, data_type=mapping.type_map[col.data_type], unit=col.unit, description=col.description
+                name=col.name,
+                data_type=mapping.type_map[data_type],
+                unit=unit,
+                description=col.description,
             )
         )
 
