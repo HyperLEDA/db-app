@@ -5,7 +5,7 @@ import structlog
 from psycopg.types import json
 
 from app.data import interface, model, template
-from app.lib.exceptions import new_database_error
+from app.lib.exceptions import DatabaseError
 from app.lib.storage import enums, postgres
 
 
@@ -33,7 +33,7 @@ class CommonRepository(interface.CommonRepository):
         )
 
         if result is None:
-            raise new_database_error("no result returned from query")
+            raise DatabaseError("no result returned from query")
 
         return int(result.get("id"))
 
@@ -56,7 +56,7 @@ class CommonRepository(interface.CommonRepository):
 
         row_id = row.get("id")
         if row_id is None:
-            raise new_database_error("found row but it has no 'id' field")
+            raise DatabaseError("found row but it has no 'id' field")
 
         return int(row_id)
 

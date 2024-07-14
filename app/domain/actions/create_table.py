@@ -8,7 +8,7 @@ from app import commands
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
-from app.lib.exceptions import new_validation_error
+from app.lib.exceptions import RuleValidationError
 from app.lib.storage import enums, mapping
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
@@ -19,14 +19,14 @@ def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, co
         try:
             entry_id = repo.get_source_entry(code).id
         except RuntimeError as e:
-            raise new_validation_error(f"source with code '{code}' not found") from e
+            raise RuleValidationError(f"source with code '{code}' not found") from e
 
         return entry_id
 
     try:
         publication = ads_client.query_simple(f'bibcode:"{code}"')[0]
     except RuntimeError as e:
-        raise new_validation_error(f"bibcode '{code}' not found in ADS") from e
+        raise RuleValidationError(f"bibcode '{code}' not found in ADS") from e
 
     title = publication["title"][0]
     authors = list(publication["author"])
@@ -43,13 +43,13 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
         unit = col.unit
 
         if data_type not in mapping.type_map:
-            raise new_validation_error(f"unknown type of data: '{col.data_type}'")
+            raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
             try:
                 unit = units.Unit(col.unit).to_string()
             except ValueError:
-                raise new_validation_error(f"unknown unit: '{col.unit}'") from None
+                raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
 
         result.append(
             data_model.ColumnDescription(

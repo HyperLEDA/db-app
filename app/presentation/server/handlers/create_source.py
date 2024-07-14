@@ -5,7 +5,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import commands
 from app.domain import actions, model
-from app.lib.exceptions import new_validation_error
+from app.lib.exceptions import RuleValidationError
 from app.presentation.server.handlers import common
 
 
@@ -51,7 +51,7 @@ async def create_source_handler(depot: commands.Depot, r: web.Request) -> Any:
     try:
         request = CreateSourceRequestSchema().load(request_dict)
     except ValidationError as e:
-        raise new_validation_error(str(e)) from e
+        raise RuleValidationError(str(e)) from e
 
     return actions.create_source(depot, request)
 

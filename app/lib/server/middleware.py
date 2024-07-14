@@ -17,11 +17,11 @@ async def exception_middleware(
 ) -> web.StreamResponse:
     try:
         response = await handler(request)
-    except exceptions.APIException as e:
+    except exceptions.APIError as e:
         log.exception(str(e))
-        response = web.json_response(e.dict(), status=e.status)
+        response = web.json_response(e.dict(), status=e.status())
     except Exception as e:
-        exc = exceptions.new_internal_error(e)
+        exc = exceptions.InternalError(str(e))
         log.exception(str(exc))
         response = web.json_response(exc.dict(), status=500)
 
@@ -37,16 +37,16 @@ def get_auth_middleware(
     ) -> web.StreamResponse:
         if request.path.startswith(admin_prefix):
             if AUTHORIZATION_HEADER not in request.headers:
-                raise exceptions.new_unauthorized_error("No authorization header")
+                raise exceptions.UnauthorizedError("No authorization header")
 
             token = request.headers[AUTHORIZATION_HEADER].removeprefix(AUTHORIZATION_PREFIX)
             user, is_authenticated = authenticator.authenticate(token)
 
             if not is_authenticated:
-                raise exceptions.new_unauthorized_error("Invalid token")
+                raise exceptions.UnauthorizedError("Invalid token")
 
             if user.role != auth.Role.ADMIN:
-                raise exceptions.new_forbidden_error("Not enough permissions to access this method")
+                raise exceptions.ForbiddenError("Not enough permissions to access this method")
 
         return await handler(request)
 
