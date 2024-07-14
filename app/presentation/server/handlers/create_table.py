@@ -14,7 +14,7 @@ class ColumnDescriptionSchema(Schema):
     name = fields.Str(required=True, description="Name of the column")
     data_type = fields.Str(required=True, description="Type of data", validate=validate.OneOf(mapping.type_map.keys()))
     unit = fields.Str(required=True, description="Unit of the data")
-    description = fields.Str(load_deafult="", description="Human-readable description of the column")
+    description = fields.Str(load_default="", description="Human-readable description of the column")
 
     @post_load
     def make(self, data, **kwargs) -> model.ColumnDescription:
@@ -35,7 +35,7 @@ class CreateTableRequestSchema(Schema):
         description="Type of the data in the table",
         validate=validate.OneOf([e.value for e in enums.DataType]),
     )
-    description = fields.Str(load_deafult="", description="Human-readable description of the table")
+    description = fields.Str(load_default="", description="Human-readable description of the table")
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateTableRequest:
@@ -43,7 +43,7 @@ class CreateTableRequestSchema(Schema):
 
 
 class CreateTableResponseSchema(Schema):
-    id = fields.Int(description="Output id of the table")
+    id = fields.Int(description="Output id of the table", required=True)
 
 
 async def create_table_handler(depot: commands.Depot, r: web.Request) -> Any:
