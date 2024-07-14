@@ -42,7 +42,7 @@ class GetSourceIDTest(unittest.TestCase):
         ads_client = mock.MagicMock()
         ads_client.query_simple.side_effect = RuntimeError("Not found")
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(exceptions.RuleValidationError):
             _ = get_source_id(common_repo, ads_client, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
@@ -50,7 +50,7 @@ class GetSourceIDTest(unittest.TestCase):
         common_repo.get_source_entry.side_effect = RuntimeError("Not found")
         ads_client = mock.MagicMock()
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(exceptions.RuleValidationError):
             _ = get_source_id(common_repo, ads_client, "some_internal_code")
 
 
@@ -58,7 +58,7 @@ class MappingTest(unittest.TestCase):
     def test_mapping(self):
         tests = [
             (
-                "normal run",
+                "simple column",
                 [domain_model.ColumnDescription("name", "str", "m / s", "description")],
                 [data_model.ColumnDescription("name", "text", "m / s", "description")],
                 None,
@@ -98,9 +98,9 @@ class MappingTest(unittest.TestCase):
         for name, input_columns, expected, err_message_substr in tests:
             with self.subTest(name):
                 if err_message_substr:
-                    with self.assertRaises(exceptions.APIException) as err:
+                    with self.assertRaises(exceptions.RuleValidationError) as err:
                         _ = domain_descriptions_to_data(input_columns)
 
-                    self.assertIn(err_message_substr, err.exception.message)
+                    self.assertIn(err_message_substr, err.exception.message())
                 else:
                     self.assertEqual(domain_descriptions_to_data(input_columns), expected)

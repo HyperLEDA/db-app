@@ -4,7 +4,7 @@ from app import commands
 from app.data import model as data_model
 from app.domain import model as domain_model
 from app.domain import tasks
-from app.lib.exceptions import new_not_found_error
+from app.lib.exceptions import NotFoundError
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
@@ -14,7 +14,7 @@ TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
 
 def start_task(depot: commands.Depot, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
     if r.task_name not in TASK_REGISTRY:
-        raise new_not_found_error(f"unable to find task '{r.task_name}'")
+        raise NotFoundError(f"unable to find task '{r.task_name}'")
 
     task, params_type = TASK_REGISTRY[r.task_name]
 

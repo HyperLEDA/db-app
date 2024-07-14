@@ -9,7 +9,7 @@ from app.data import interface, model, template
 from app.data.model import ColumnDescription, Layer0Creation
 from app.data.model.layer0 import CoordinatePart
 from app.lib import exceptions
-from app.lib.exceptions import new_database_error
+from app.lib.exceptions import DatabaseError
 from app.lib.storage import postgres
 
 RAWDATA_SCHEMA = "rawdata"
@@ -109,7 +109,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {data.table_id}")
+            raise DatabaseError(f"unable to fetch table with id {data.table_id}")
 
         params = []
         objects = []
@@ -149,7 +149,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {table_id}")
+            raise DatabaseError(f"unable to fetch table with id {table_id}")
 
         query = template.render_query(template.FETCH_RAWDATA, schema=RAWDATA_SCHEMA, table=table_name, rows=row_ids)
 
@@ -161,7 +161,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {table_id}")
+            raise DatabaseError(f"unable to fetch table with id {table_id}")
 
         rows = self._storage.query(template.GET_COLUMN_NAMES, params=[RAWDATA_SCHEMA, table_name])
         column_names = [it["column_name"] for it in rows]
@@ -173,7 +173,7 @@ class Layer0Repository(interface.Layer0Repository):
             )
 
             if param is None:
-                raise new_database_error(f"unable to metadata for table {table_name}, column {column_name}")
+                raise DatabaseError(f"unable to metadata for table {table_name}, column {column_name}")
 
             coordinate_part = None
             if param["param"].get("coordinate_part") is not None:
@@ -198,7 +198,7 @@ class Layer0Repository(interface.Layer0Repository):
         registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name], tx=tx)
 
         if param is None:
-            raise new_database_error(f"unable to metadata for table {table_name}")
+            raise DatabaseError(f"unable to metadata for table {table_name}")
 
         return Layer0Creation(
             table_name,
@@ -212,7 +212,7 @@ class Layer0Repository(interface.Layer0Repository):
     def table_exists(self, schema: str, table_name: str) -> bool:
         try:
             self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except exceptions.APIException:
+        except exceptions.DatabaseError:
             return False
 
         return True

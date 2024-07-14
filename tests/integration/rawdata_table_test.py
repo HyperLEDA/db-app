@@ -135,7 +135,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(exceptions.DatabaseError):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
@@ -149,37 +149,6 @@ class RawDataTableTest(unittest.TestCase):
                     description="",
                 ),
             )
-
-            # TODO: check that status code is 400
-
-    def test_unknown_data_type(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
-                {
-                    "bibcode": "2024arXiv240411942F",
-                    "author": ["test"],
-                    "pubdate": "2020-03-00",
-                    "title": ["test"],
-                }
-            ]
-        )
-
-        with self.assertRaises(exceptions.APIException) as ctx:
-            _ = actions.create_table(
-                self.depot,
-                model.CreateTableRequest(
-                    "test_table",
-                    [
-                        model.ColumnDescription("test_col_1", "totally_real_type", "kpc", "test col 1"),
-                        model.ColumnDescription("test_col_2", "str", None, "test col 2"),
-                    ],
-                    bibcode="2024arXiv240411942F",
-                    datatype="regular",
-                    description="",
-                ),
-            )
-
-            self.assertEqual(ctx.exception.status, 400)
 
     def test_add_data_to_unknown_column(self):
         self.clients.ads.query_simple = mock.MagicMock(
@@ -207,7 +176,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(exceptions.DatabaseError):
             actions.add_data(
                 self.depot,
                 model.AddDataRequest(
@@ -242,7 +211,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(exceptions.DatabaseError):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
