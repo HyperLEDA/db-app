@@ -25,7 +25,7 @@ class Layer0Repository(interface.Layer0Repository):
 
     def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> int:
         """
-        Creates table, writes metadata and returns string that identifies the table for
+        Creates table, writes metadata and returns integer that identifies the table for
         further requests.
         """
         # TODO: use tx or new transaction here
@@ -211,7 +211,7 @@ class Layer0Repository(interface.Layer0Repository):
     def table_exists(self, schema: str, table_name: str) -> bool:
         try:
             self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except DatabaseError:
+        except psycopg.errors.UndefinedTable:
             return False
 
         return True

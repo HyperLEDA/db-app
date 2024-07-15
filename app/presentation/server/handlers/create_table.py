@@ -1,6 +1,3 @@
-from functools import wraps
-from typing import Any, TypeVar
-
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
@@ -45,19 +42,8 @@ class CreateTableRequestSchema(Schema):
         return model.CreateTableRequest(**data)
 
 
-# def wrap_response_schema(source_schema: type) -> type:
-#     class WrappedResponseSchema(Schema):
-#         data = fields.Nested(source_schema, required=True)
-
-#     WrappedResponseSchema.__name__ = source_schema.__name__
-#     WrappedResponseSchema.somenonsence = "here"
-#     return WrappedResponseSchema
-
-
 class CreateTableResponseSchema(Schema):
     id = fields.Int(description="Output id of the table", required=True)
-
-# CreateTableResponseSchema = wrap_response_schema(CreateTableResponseSchema)
 
 
 async def create_table_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
@@ -76,7 +62,10 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> respons
             description: Table was successfully created
             content:
                 application/json:
-                    schema: CreateTableResponseSchema
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateTableResponseSchema
     """
     request_dict = await r.json()
     try:

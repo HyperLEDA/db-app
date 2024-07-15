@@ -1,5 +1,3 @@
-from typing import Any
-
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 

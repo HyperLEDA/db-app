@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import pandas
+import psycopg
 import structlog
 from pandas import DataFrame
 
@@ -13,7 +14,6 @@ from app.lib import auth, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
-from app.lib.web import errors
 
 
 class RawDataTableTest(unittest.TestCase):
@@ -136,7 +136,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(errors.DatabaseError):
+        with self.assertRaises(psycopg.errors.DuplicateColumn):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
@@ -177,7 +177,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(errors.DatabaseError):
+        with self.assertRaises(psycopg.errors.UndefinedColumn):
             actions.add_data(
                 self.depot,
                 model.AddDataRequest(
@@ -212,7 +212,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(errors.DatabaseError):
+        with self.assertRaises(psycopg.errors.UniqueViolation):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
