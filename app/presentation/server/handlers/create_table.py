@@ -48,7 +48,7 @@ class CreateTableResponseSchema(Schema):
 
 async def create_table_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Create table with unprocessed data
+    summary: Create or get table with unprocessed data
     description: Describes schema of the table without any data.
     tags: [admin, table]
     security:
@@ -66,6 +66,14 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> respons
                         type: object
                         properties:
                             data: CreateTableResponseSchema
+        201:
+            description: Table with this name already existed, its id is returned
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            data: CreateTableResponseSchema
     """
     request_dict = await r.json()
     try:
@@ -73,7 +81,12 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> respons
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.create_table(depot, request))
+    result, created = actions.create_table(depot, request)
+
+    if created:
+        return responses.APIOkResponse(result)
+
+    return responses.APIOkResponse(result, status=201)
 
 
 description = common.HandlerDescription(

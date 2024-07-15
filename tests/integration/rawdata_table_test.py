@@ -51,7 +51,7 @@ class RawDataTableTest(unittest.TestCase):
             }
         ]
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
@@ -95,7 +95,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
@@ -163,7 +163,7 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
@@ -186,48 +186,10 @@ class RawDataTableTest(unittest.TestCase):
                 ),
             )
 
-    def test_duplicate_table(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
-                {
-                    "bibcode": "2024arXiv240411942F",
-                    "author": ["test"],
-                    "pubdate": "2020-03-00",
-                    "title": ["test"],
-                }
-            ]
-        )
-
-        _ = actions.create_table(
-            self.depot,
-            model.CreateTableRequest(
-                "test_table",
-                [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
-                ],
-                bibcode="2024arXiv240411942F",
-                datatype="regular",
-                description="",
-            ),
-        )
-
-        with self.assertRaises(psycopg.errors.UniqueViolation):
-            _ = actions.create_table(
-                self.depot,
-                model.CreateTableRequest(
-                    "test_table",
-                    [model.ColumnDescription("test_col_1", "float", "kpc", "test col 1")],
-                    bibcode="2024arXiv240411942F",
-                    datatype="regular",
-                    description="",
-                ),
-            )
-
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_id = self._layer0_repo.create_table(
+        table_id, _ = self._layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
@@ -252,7 +214,7 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_id = self._layer0_repo.create_table(expected_creation)
+        table_id, _ = self._layer0_repo.create_table(expected_creation)
 
         from_db = self._layer0_repo.fetch_metadata(table_id)
 

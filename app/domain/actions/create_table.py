@@ -63,12 +63,15 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
     return result
 
 
-def create_table(depot: commands.Depot, r: domain_model.CreateTableRequest) -> domain_model.CreateTableResponse:
+def create_table(
+    depot: commands.Depot,
+    r: domain_model.CreateTableRequest,
+) -> tuple[domain_model.CreateTableResponse, bool]:
     bibliography_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
     columns = domain_descriptions_to_data(r.columns)
 
     with depot.layer0_repo.with_tx() as tx:
-        table_id = depot.layer0_repo.create_table(
+        table_id, created = depot.layer0_repo.create_table(
             data_model.Layer0Creation(
                 table_name=r.table_name,
                 column_descriptions=columns,
@@ -79,4 +82,4 @@ def create_table(depot: commands.Depot, r: domain_model.CreateTableRequest) -> d
             tx=tx,
         )
 
-    return domain_model.CreateTableResponse(table_id)
+    return domain_model.CreateTableResponse(table_id), created

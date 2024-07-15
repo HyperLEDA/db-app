@@ -62,7 +62,8 @@ def download_vizier_table(
     layer0 = repositories.Layer0Repository(storage, logger)
     table_name = construct_table_name(params.table_id)
 
-    if layer0.table_exists(RAWDATA_SCHEMA, table_name):
+    table_id, ok = layer0.get_table_id(table_name)
+    if ok:
         logger.warn(f"table '{RAWDATA_SCHEMA}.{table_name}' already exists, skipping download")
         return
 
@@ -145,7 +146,7 @@ def download_vizier_table(
             tx=tx,
         )
 
-        table_id = layer0.create_table(
+        table_id, _ = layer0.create_table(
             model.Layer0Creation(
                 table_name,
                 fields,
