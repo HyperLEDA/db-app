@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from astropy.coordinates import Angle
+
 
 @dataclass
 class CrossIdentificationUserParam:
-    r1: Optional[float]
-    r2: Optional[float]
+    r1: Optional[Angle]
+    r2: Optional[Angle]
