@@ -67,7 +67,7 @@ def create_table(
     depot: commands.Depot,
     r: domain_model.CreateTableRequest,
 ) -> tuple[domain_model.CreateTableResponse, bool]:
-    bibliography_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
+    source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
     columns = domain_descriptions_to_data(r.columns)
 
     with depot.layer0_repo.with_tx() as tx:
@@ -75,7 +75,7 @@ def create_table(
             data_model.Layer0Creation(
                 table_name=r.table_name,
                 column_descriptions=columns,
-                bibliography_id=bibliography_id,
+                bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
                 comment=r.description,
             ),
