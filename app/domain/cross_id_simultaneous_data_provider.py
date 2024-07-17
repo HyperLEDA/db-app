@@ -9,6 +9,14 @@ from app.domain.model.params import CrossIdentificationParam, TmpCoordinateTable
 from app.domain.repositories.tmp_data_repository import TmpDataRepository
 
 
+def _sph_dist(a: ICRS, b: ICRS) -> Angle:
+    a_ra = a.ra.to(u.rad).value
+    a_dec = a.dec.to(u.rad).value
+    b_ra = b.ra.to(u.rad).value
+    b_dec = b.dec.to(u.rad).value
+    return acos(sin(b_dec) * sin(a_dec) + cos(b_dec) * cos(a_dec) * cos(b_ra - a_ra)) * u.rad
+
+
 class CrossIdSimultaneousDataProvider(ABC):
     """
     Used to access currently processing data from CrossIdentifyUseCase. We must cross identify not only objects,
@@ -46,20 +54,12 @@ class SimpleSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
             for it in self._data
             if it.coordinates is not None
             and center.dec - r <= it.coordinates.dec <= center.dec + r
-            and self._sph_dist(it.coordinates, center) < r
+            and _sph_dist(it.coordinates, center) < r
         ]
 
     def by_name(self, names: list[str]) -> list[CrossIdentificationParam]:
         names_set = set(names)
         return [it for it in self._data if len(set(it.names or []) & names_set) > 0]
-
-    @staticmethod
-    def _sph_dist(a: ICRS, b: ICRS) -> Angle:
-        a_ra = a.ra.to(u.rad).value
-        a_dec = a.dec.to(u.rad).value
-        b_ra = b.ra.to(u.rad).value
-        b_dec = b.dec.to(u.rad).value
-        return acos(sin(b_dec) * sin(a_dec) + cos(b_dec) * cos(a_dec) * cos(b_ra - a_ra)) * u.rad
 
 
 class PostgreSimultaneousDataProvider(CrossIdSimultaneousDataProvider):

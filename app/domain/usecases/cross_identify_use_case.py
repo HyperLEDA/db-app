@@ -9,7 +9,7 @@ from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Laye
 from app.domain.repositories.layer_2_repository import Layer2Repository
 
 INNER_RADIUS = 1.5 * u.arcsec  # default inner radius
-OUTER_RADIUS = 1.5 * u.arcsec  # default outer radius
+OUTER_RADIUS = 4.5 * u.arcsec  # default outer radius
 
 
 class CrossIdentifyUseCase:
@@ -47,8 +47,13 @@ class CrossIdentifyUseCase:
         if param.coordinates is not None:
             simultaneous_r1_hit = simultaneous_data_provider.data_inside(param.coordinates, r1)
 
-        coord_res = await self._identify_by_coordinates(param, r1, r2)
-        names_res = await self._identify_by_names(param)
+        coord_res = None
+        if param.coordinates is not None:
+            coord_res = await self._identify_by_coordinates(param, r1, r2)
+
+        names_res = None
+        if param.names is not None:
+            names_res = await self._identify_by_names(param)
 
         res = self._compile_results(param, coord_res, names_res)
 
@@ -62,18 +67,14 @@ class CrossIdentifyUseCase:
         param: CrossIdentificationParam,
         r1: Angle,
         r2: Angle,
-    ) -> result.CrossIdentifySuccess | result.CrossIdentificationException | None:
+    ) -> result.CrossIdentifySuccess | result.CrossIdentificationException:
         """
         Cross identification by coordinates
         :param param: Current identification param
         :param r1: Inner radius
         :param r2: Outer radius
-        :return: UseCase result or None if not enough info
+        :return: UseCase result
         """
-
-        # Not enough info for identification by coordinates
-        if param.coordinates is None:
-            return None
 
         r1_hit = await self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r1))
         r2_hit = await self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r2))
@@ -98,12 +99,8 @@ class CrossIdentifyUseCase:
         """
         Cross identification by names
         :param param: Current identification param
-        :return: UseCase result or None if not enough info
+        :return: UseCase result
         """
-
-        # Not enough info for identification by names
-        if param.names is None:
-            return None
 
         names_hit = await self._repository_l2.query_data(Layer2QueryByNames(param.names))
 

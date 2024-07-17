@@ -85,12 +85,12 @@ class TransformationO1UseCase:
             else:
                 primary_name, all_names = name
                 identification_params.append(CrossIdentificationParam(all_names, primary_name, coordinate))
-        # Simultaneous data provider needs only valid CrossIdentificationParam's
+        # Simultaneous data provider needs only valid CrossIdentificationParams
         simultaneous_data_provider = self._simultaneous_data_provider(
             [it for it in identification_params if not isinstance(it, BaseException)]
         )
         identification_results = []
-        for i, param in zip(list(range(n_rows)), identification_params):
+        for i, param in enumerate(identification_params):
             if isinstance(param, BaseException):
                 identification_results.append(param)
             else:
