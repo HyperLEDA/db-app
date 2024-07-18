@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 jobs:
   build:
@@ -35,7 +32,6 @@ jobs:
   push:
     needs: build
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
       packages: write
