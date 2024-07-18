@@ -44,11 +44,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Docker image artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: hyperleda_image
+          path: .
 
-      - name: Load Docker image from artifact
+      - name: Load Docker image
         run: docker load -i hyperleda_image.tar
 
       - name: Push Docker image to GitHub Packages
