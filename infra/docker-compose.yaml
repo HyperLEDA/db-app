@@ -16,6 +16,7 @@ services:
     image: ghcr.io/hyperleda/hyperleda:latest
     environment:
       - CONFIG=configs/prod/config.yaml
+      - ADS_TOKEN
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped
