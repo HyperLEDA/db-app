@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   nginx:
     image: nginx:latest
@@ -9,9 +8,26 @@ services:
       - ./logs:/var/log/nginx
     depends_on:
       - backend
+    restart: unless-stopped
+    logging:
+      driver: local
+
   backend:
     image: ghcr.io/hyperleda/hyperleda:latest
     environment:
       - CONFIG=configs/prod/config.yaml
     volumes:
-      - ./../configs:/usr/src/app/configs
+      - ./configs:/usr/src/app/configs
+    restart: unless-stopped
+    logging:
+      driver: local
+
+  grafana:
+    image: grafana/grafana-enterprise
+    ports:
+      - "3000:3000"
+    container_name: grafana
+    restart: unless-stopped
+    logging:
+      driver: local
+
