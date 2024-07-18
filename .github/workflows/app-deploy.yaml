@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -28,7 +28,7 @@ jobs:
           docker save ghcr.io/hyperleda/hyperleda:$GIT_VERSION -o hyperleda_image.tar
 
       - name: Upload Docker image as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: hyperleda_image
           path: hyperleda_image.tar
@@ -41,7 +41,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download Docker image artifact
         uses: actions/download-artifact@v2
@@ -51,15 +51,9 @@ jobs:
       - name: Load Docker image from artifact
         run: docker load -i hyperleda_image.tar
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Push Docker image to GitHub Packages
         run: |
           GIT_VERSION=$(git rev-parse --short HEAD)
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker push ghcr.io/hyperleda/hyperleda:$GIT_VERSION
           docker push ghcr.io/hyperleda/hyperleda:latest
