@@ -1,15 +1,14 @@
-version: "3.9"
 services:
   hyperledadb:
     image: postgres:16
     environment:
       POSTGRES_DB: "hyperleda"
       POSTGRES_USER: "hyperleda"
-      POSTGRES_PASSWORD: "password"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
       - "6432:5432"
     healthcheck:
-      test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=password' -qtA -c 'select 1;' || exit 1
+      test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
       timeout: 3s
       interval: 3s
       retries: 5
@@ -22,9 +21,10 @@ services:
   migrate:
     build: 
       dockerfile: postgres/dockerfile
-    image: hyperleda-migrate
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     entrypoint:
-      /bin/sh -c "cd database/postgres && pgmigrate -c \"postgresql://hyperledadb:5432/hyperleda?user=hyperleda&password=password\" -t latest migrate"
+      /bin/sh -c "cd database/postgres && pgmigrate -c \"postgresql://hyperledadb:5432/hyperleda?user=hyperleda&password=$${POSTGRES_PASSWORD}\" -t latest migrate"
     volumes:
       - .:/database
     depends_on:

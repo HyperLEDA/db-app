@@ -4,15 +4,13 @@ server:
   auth_enabled: false
 
 storage:
-  endpoint: localhost
-  # endpoint: host.docker.internal # if inside a docker container
+  endpoint: 172.17.0.1
   port: 6432
   dbname: hyperleda
   user: hyperleda
   password: password
 
 queue:
-  endpoint: localhost
-  # endpoint: host.docker.internal # if inside a docker container
+  endpoint: 172.17.0.1
   port: 6379
   queue_name: default

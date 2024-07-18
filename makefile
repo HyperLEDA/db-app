@@ -90,3 +90,15 @@ lint-ruff:
 
 lint-ruff-unsafe:
 	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
+
+## Deploy
+
+GIT_VERSION = `git rev-parse --short master`
+
+image-build:
+	docker build . -t ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
+	docker tag ghcr.io/hyperleda/hyperleda:$(GIT_VERSION) ghcr.io/hyperleda/hyperleda:latest
+
+image-push:
+	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
+	docker push ghcr.io/hyperleda/hyperleda:latest
