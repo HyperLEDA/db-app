@@ -1,9 +1,9 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
 
 jobs:
   build:
@@ -55,3 +55,30 @@ jobs:
           docker push ghcr.io/hyperleda/hyperleda:$GIT_VERSION    
           docker tag ghcr.io/hyperleda/hyperleda:$GIT_VERSION ghcr.io/hyperleda/hyperleda:latest
           docker push ghcr.io/hyperleda/hyperleda:latest
+
+  deploy:
+    needs: push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Add environments
+        run: |
+          echo "${{ secrets.JOB_ENVS }}" > infra/.env.local
+          echo "${{ secrets.BACKEND_ENVS }}" >> infra/.env.remote
+
+          set -a && source infra/.env.local && set +a
+
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Copy files to backend
+        run: |
+          cd infra/scripts && ./deploy.sh
+
+      - name: Restart application on backend
+        run: |
+          cd infra/scripts && ./restart.sh
