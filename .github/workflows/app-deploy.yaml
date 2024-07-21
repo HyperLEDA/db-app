@@ -1,7 +1,7 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_dispatch:
+  # workflow_dispatch:
   pull_request:
     branches: [master]
 
@@ -29,7 +29,7 @@ jobs:
           name: hyperleda_image
           path: hyperleda_image.tar
 
-  push:
+  push-docker:
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -69,6 +69,7 @@ jobs:
           echo "${{ secrets.BACKEND_ENVS }}" >> infra/.env.remote
 
           set -a && source infra/.env.local && set +a
+          export HOST=${{ secrets.BACKEND_HOST }}
 
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.5.3
