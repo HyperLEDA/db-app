@@ -74,6 +74,10 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Add SSH key to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.BACKEND_HOST }} >> ~/.ssh/known_hosts
+
       - name: Copy files to backend
         run: |
           cd infra/scripts && ./deploy.sh
