@@ -57,7 +57,7 @@ jobs:
           docker push ghcr.io/hyperleda/hyperleda:latest
 
   deploy:
-    needs: push
+    needs: push-docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
