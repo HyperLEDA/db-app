@@ -23,7 +23,7 @@ def layer_0_mapper(creation: Layer0Creation, raw: Layer0RawData, bibliography: B
         creation.name_col,
         None,
         creation.comment,
-        Biblio(bibliography.id, bibliography.bibcode, bibliography.author, bibliography.year, bibliography.title),
+        Biblio(bibliography.id, bibliography.code, bibliography.author, bibliography.year, bibliography.title),
     )
 
     return Layer0Model(creation.table_name, False, meta, raw.data)

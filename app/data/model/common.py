@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class Bibliography:
     id: int
-    bibcode: str
+    code: str
     year: int
     author: list[str]
     title: str

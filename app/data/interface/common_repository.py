@@ -11,7 +11,7 @@ from app.lib.storage import enums
 class CommonRepository(transactional.Transactional):
     @abc.abstractmethod
     def create_bibliography(
-        self, bibcode: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
+        self, code: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
     ) -> int:
         raise NotImplementedError("not implemented")
 

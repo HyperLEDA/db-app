@@ -20,7 +20,7 @@ class GetSourceRequest:
 
 @dataclass
 class GetSourceResponse:
-    bibcode: str
+    code: str
     title: str
     authors: list[str]
     year: int
