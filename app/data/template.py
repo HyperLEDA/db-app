@@ -8,13 +8,13 @@ def render_query(query_string: str, **kwargs) -> str:
 
 
 GET_SOURCE_BY_CODE = """
-SELECT id, bibcode, year, author, title FROM common.bib
-WHERE bibcode = %s
+SELECT id, code, year, author, title FROM common.bib
+WHERE code = %s
 LIMIT 1
 """
 
 GET_SOURCE_BY_ID = """
-SELECT id, bibcode, year, author, title FROM common.bib
+SELECT id, code, year, author, title FROM common.bib
 WHERE id = %s
 LIMIT 1
 """

@@ -29,8 +29,7 @@ COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object list of Principal Gala
 -- Помимо ссылок на литературу содержит ID работ, которые выполняются в рамках Леда, а также на частные сообщения
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
--- bibcode references the ADS database: https://ui.adsabs.harvard.edu/
-, bibcode	text	UNIQUE
+, code	text	UNIQUE
 , year	smallint	NOT NULL	CHECK (year>=1600 and extract(year from now())>=year)
 , author	text[]	CHECK (array_length(author,1)>=1 and author[1] IS NOT NULL and author[1]!~'^ *$' and author[1]!~'^ +' and author[1]!~' +$' )
 , title	text	NOT NULL	CHECK (title!~'^ *$' and title!~'^ +' and title!~' +$' )
@@ -42,7 +41,7 @@ CREATE INDEX ON common.bib (title) ;
 
 COMMENT ON TABLE common.bib IS 'Bibliography catalog' ;
 COMMENT ON COLUMN common.bib.id IS 'Bibliography ID' ;
-COMMENT ON COLUMN common.bib.bibcode IS 'The bibcode references the ADS database: https://ui.adsabs.harvard.edu/' ;
+COMMENT ON COLUMN common.bib.code IS 'This field contains symbolic code for the bibliography entry. If it is the ADS bibcode, it references the ADS database: https://ui.adsabs.harvard.edu/';
 COMMENT ON COLUMN common.bib.year IS 'Year of publication' ;
 COMMENT ON COLUMN common.bib.author IS 'Author list' ;
 COMMENT ON COLUMN common.bib.title IS 'Publication title' ;

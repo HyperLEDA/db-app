@@ -138,7 +138,7 @@ def download_vizier_table(
 
         # TODO: parse real bibliographic data from vizier response
         bib_id = common.create_bibliography(
-            bibcode="2024arXiv240403522G",
+            code="2024arXiv240403522G",
             year=2024,
             authors=["Pović, Mirjana"],
             title="The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",

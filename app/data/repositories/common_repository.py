@@ -19,16 +19,16 @@ class CommonRepository(interface.CommonRepository):
         return self._storage.with_tx()
 
     def create_bibliography(
-        self, bibcode: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
+        self, code: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
     ) -> int:
         result = self._storage.query_one(
             """
-            INSERT INTO common.bib (bibcode, year, author, title) 
+            INSERT INTO common.bib (code, year, author, title) 
             VALUES (%s, %s, %s, %s) 
-            ON CONFLICT (bibcode) DO UPDATE SET year = EXCLUDED.year, author = EXCLUDED.author, title = EXCLUDED.title
+            ON CONFLICT (code) DO UPDATE SET year = EXCLUDED.year, author = EXCLUDED.author, title = EXCLUDED.title
             RETURNING id 
             """,
-            params=[bibcode, year, authors, title],
+            params=[code, year, authors, title],
             tx=tx,
         )
 

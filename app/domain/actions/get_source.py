@@ -6,7 +6,7 @@ def get_source(depot: commands.Depot, r: domain_model.GetSourceRequest) -> domai
     result = depot.common_repo.get_bibliography(r.id)
 
     return domain_model.GetSourceResponse(
-        result.bibcode,
+        result.code,
         result.title,
         result.author,
         result.year,
