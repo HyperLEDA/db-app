@@ -17,7 +17,7 @@ from app.domain.model.params.cross_identification_result import (
     CrossIdentificationNameCoordNameFailException,
     CrossIdentificationNamesDuplicateException,
     CrossIdentificationNamesNotFoundException,
-    CrossIdentifySuccess,
+    CrossIdentifyResult,
 )
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
@@ -90,7 +90,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
 
         res = await use_case.invoke(target, data_provider, CrossIdentificationUserParam(None, None))
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(res.result, None)
 
     async def test_identify_in_default_r(self):
@@ -118,7 +118,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
     async def test_identify_in_custom_r(self):
@@ -147,7 +147,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(r1, 1.1 * r1)
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
     async def test_identify_coord_fail(self):
@@ -176,8 +176,10 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         res = await use_case.invoke(
             CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
-        if not isinstance(res, CrossIdentificationCoordCollisionException):
-            self.fail("Cross identification must fail with 'CrossIdentificationCoordCollisionException'")
+        self.assertIsInstance(
+            res.fail, CrossIdentificationCoordCollisionException,
+            "Cross identification must fail with 'CrossIdentificationCoordCollisionException'"
+        )
 
     async def test_identify_by_name(self):
         target_names = [uuid4().hex, uuid4().hex, uuid4().hex]
@@ -198,7 +200,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
     async def test_identify_by_name_unfounded(self):
@@ -218,8 +220,8 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentificationNamesNotFoundException)
-        self.assertEqual(res.names, all_names)
+        self.assertIsInstance(res.fail, CrossIdentificationNamesNotFoundException)
+        self.assertEqual(res.fail.names, all_names)
 
     async def test_identify_by_name_duplicate(self):
         """Case, when provided names found for multiple objects in DB"""
@@ -237,8 +239,8 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentificationNamesDuplicateException)
-        self.assertEqual(res.names, obj_names)
+        self.assertIsInstance(res.fail, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.fail.names, obj_names)
 
     async def test_identify_by_name_and_coordinates(self):
         r = 10 * u.deg
@@ -270,7 +272,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
     async def test_identify_by_name_and_coordinates_new_object(self):
@@ -295,7 +297,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationParam(*_make_names(1), center), data_provider, CrossIdentificationUserParam(None, None)
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(res.result, None)
 
     async def test_name_coord_collision(self):
@@ -332,7 +334,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
         self.assertIsInstance(
-            res,
+            res.fail,
             CrossIdentificationNameCoordCollisionException,
             "Cross identification must fail with 'CrossIdentificationNameCoordCollisionException'",
         )
@@ -375,14 +377,14 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIsInstance(
-            res,
+            res.fail,
             CrossIdentificationNameCoordFailException,
             "Cross identification must fail with 'CrossIdentificationNameCoordFailException'",
         )
-        self.assertIsInstance(res.name_collision, CrossIdentificationNamesDuplicateException)
-        self.assertEqual(res.name_collision.names, obj_names)
-        self.assertIsInstance(res.coord_collision, CrossIdentificationCoordCollisionException)
-        self.assertEqual(res.coord_collision.collisions, all_in_repo[-2:])
+        self.assertIsInstance(res.fail.name_collision, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.fail.name_collision.names, obj_names)
+        self.assertIsInstance(res.fail.coord_collision, CrossIdentificationCoordCollisionException)
+        self.assertEqual(res.fail.coord_collision.collisions, all_in_repo[-2:])
 
     async def test_name_coord_fail_name(self):
         r = 10 * u.deg
@@ -411,13 +413,13 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIsInstance(
-            res,
+            res.fail,
             CrossIdentificationNameCoordNameFailException,
             "Cross identification must fail with 'CrossIdentificationNameCoordNameFailException'",
         )
-        self.assertEqual(res.coord_hit, None)
-        self.assertIsInstance(res.name_collision, CrossIdentificationNamesDuplicateException)
-        self.assertEqual(res.name_collision.names, obj_names)
+        self.assertEqual(res.fail.coord_hit, None)
+        self.assertIsInstance(res.fail.name_collision, CrossIdentificationNamesDuplicateException)
+        self.assertEqual(res.fail.name_collision.names, obj_names)
 
     async def test_name_coord_name_fail_coord_success(self):
         r = 10 * u.deg
@@ -449,7 +451,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             CrossIdentificationUserParam(None, None),
         )
 
-        self.assertIsInstance(res, CrossIdentifySuccess, "Cross identification must pass")
+        self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(target_id, res.result.pgc)
 
     async def test_name_coord_fail_coord(self):
@@ -487,8 +489,8 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
-        if isinstance(res, CrossIdentificationNameCoordCoordException):
-            self.assertEqual(res.name_hit.pgc, target2_id)
+        if isinstance(res.fail, CrossIdentificationNameCoordCoordException):
+            self.assertEqual(res.fail.name_hit.pgc, target2_id)
         else:
             self.fail("Cross identification must fail with 'CrossIdentificationNameCoordCoordException'")
 
@@ -509,9 +511,9 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
-        self.assertIsInstance(res, CrossIdentificationDuplicateException)
-        self.assertTrue(target1 in res.collisions)
-        self.assertTrue(target2 in res.collisions)
+        self.assertIsInstance(res.fail, CrossIdentificationDuplicateException)
+        self.assertTrue(target1 in res.fail.collisions)
+        self.assertTrue(target2 in res.fail.collisions)
 
     async def test_simultaneous_coord_fail(self):
         r = 10 * u.deg
@@ -534,7 +536,7 @@ class CrossIdentifyTest(unittest.IsolatedAsyncioTestCase):
         res = await use_case.invoke(
             CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
-        self.assertIsInstance(res, CrossIdentificationDuplicateException)
-        self.assertIsInstance(res.db_cross_id_result, CrossIdentifySuccess)
-        self.assertTrue(target1 in res.collisions)
-        self.assertTrue(target2 in res.collisions)
+        self.assertIsInstance(res.fail, CrossIdentificationDuplicateException)
+        self.assertIsInstance(res.fail.db_cross_id_result, CrossIdentifyResult)
+        self.assertTrue(target1 in res.fail.collisions)
+        self.assertTrue(target2 in res.fail.collisions)

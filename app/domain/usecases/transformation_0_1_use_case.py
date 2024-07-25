@@ -110,8 +110,8 @@ class TransformationO1UseCase:
                 fails.append(Transformation01Fail(coordinate, i))
                 continue
 
-            if isinstance(identification_result, BaseException):
-                fails.append(Transformation01Fail(identification_result, i))
+            if identification_result.fail is not None:
+                fails.append(Transformation01Fail(identification_result.fail, i))
                 continue
 
             pgc = identification_result.result.pgc if identification_result.result is not None else None

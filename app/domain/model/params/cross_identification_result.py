@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 
 
-class CrossIdentifySuccess:
-    def __init__(self, result: Layer2Model | None):
+class CrossIdentifyResult:
+    def __init__(self, result: Layer2Model | None, fail: CrossIdentificationException | None):
         """
         :param result: None if new object, Layer2Model if existing object
+        :param fail: None if success, CrossIdentificationException if fail
         """
         self.result: Layer2Model | None = result
+        self.fail: CrossIdentificationException | None = fail
 
 
 class CrossIdentificationException(BaseException):
@@ -146,7 +150,7 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
         self,
         target_param: CrossIdentificationParam,
         collisions: list[CrossIdentificationParam],
-        db_cross_id_result: CrossIdentifySuccess | CrossIdentificationCoordCollisionException,
+        db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException,
     ):
         """
         :param target_param: The configuration, that caused collision
@@ -155,4 +159,4 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
         """
         self.target_param: CrossIdentificationParam = target_param
         self.collisions: list[CrossIdentificationParam] = collisions
-        self.db_cross_id_result: CrossIdentifySuccess | CrossIdentificationCoordCollisionException = db_cross_id_result
+        self.db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException = db_cross_id_result

@@ -36,5 +36,5 @@ class MockedCrossIdentifyUseCase(CrossIdentifyUseCase):
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
         user_param: CrossIdentificationUserParam,
-    ) -> result.CrossIdentifySuccess | result.CrossIdentificationException:
-        return result.CrossIdentifySuccess(None)
+    ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
+        return result.CrossIdentifyResult(None, None)

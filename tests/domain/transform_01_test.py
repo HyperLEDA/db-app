@@ -37,10 +37,10 @@ class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
         user_param: CrossIdentificationUserParam,
-    ) -> result.CrossIdentifySuccess | result.CrossIdentificationException:
+    ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
         if self.fail_condition(param):
-            return CrossIdentificationCoordCollisionException(param, [])
-        return result.CrossIdentifySuccess(None)
+            return result.CrossIdentifyResult(None, CrossIdentificationCoordCollisionException(param, []))
+        return result.CrossIdentifyResult(None, None)
 
 
 class Transform01Test(unittest.IsolatedAsyncioTestCase):
