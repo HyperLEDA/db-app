@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from astropy.coordinates import ICRS, Angle
+
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 
@@ -49,12 +51,16 @@ class CrossIdentificationCoordCollisionException(CrossIdentificationException):
     Describes collisions from cross identification use case
     """
 
-    def __init__(self, target_param: CrossIdentificationParam, collisions: list[Layer2Model]):
+    def __init__(self, coordinates: ICRS, r1: Angle, r2: Angle, collisions: list[Layer2Model]):
         """
-        :param target_param: The configuration, that caused collision
+        :param coordinates: Coordinates to identify
+        :param r1: Inner radius
+        :param r2: Outer radius
         :param collisions: The collided objects from DB
         """
-        self.target_param: CrossIdentificationParam = target_param
+        self.coordinates: ICRS = coordinates
+        self.r1: Angle = r1
+        self.r2: Angle = r2
         self.collisions: list[Layer2Model] = collisions
 
 

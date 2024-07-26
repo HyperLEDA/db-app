@@ -7,7 +7,6 @@ from astropy.coordinates import ICRS, angular_separation
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params import CrossIdentificationParam
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_result import (
     CrossIdentificationCoordCollisionException,
     CrossIdentificationDuplicateException,
@@ -19,6 +18,7 @@ from app.domain.model.params.cross_identification_result import (
     CrossIdentificationNamesNotFoundException,
     CrossIdentifyResult,
 )
+from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.domain.usecases import CrossIdentifyUseCase
@@ -177,8 +177,9 @@ class CrossIdentifyTest(unittest.TestCase):
             CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
         self.assertIsInstance(
-            res.fail, CrossIdentificationCoordCollisionException,
-            "Cross identification must fail with 'CrossIdentificationCoordCollisionException'"
+            res.fail,
+            CrossIdentificationCoordCollisionException,
+            "Cross identification must fail with 'CrossIdentificationCoordCollisionException'",
         )
 
     def test_identify_by_name(self):

@@ -13,12 +13,12 @@ from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.names import SingleColNameDescr
 from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.params import cross_identification_result as result
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.cross_identification_result import (
     CrossIdentificationCoordCollisionException,
     CrossIdentificationException,
 )
+from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
     ParseCoordinates,
@@ -39,7 +39,9 @@ class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
         user_param: CrossIdentificationUserParam,
     ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
         if self.fail_condition(param):
-            return result.CrossIdentifyResult(None, CrossIdentificationCoordCollisionException(param, []))
+            return result.CrossIdentifyResult(
+                None, CrossIdentificationCoordCollisionException(param.coordinates, None, None, [])
+            )
         return result.CrossIdentifyResult(None, None)
 
 

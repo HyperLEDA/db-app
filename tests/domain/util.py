@@ -7,7 +7,7 @@ from astropy.coordinates import ICRS, Angle, angular_separation
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model.params import CrossIdentificationParam
 from app.domain.model.params import cross_identification_result as result
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
+from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.usecases import CrossIdentifyUseCase
 
 

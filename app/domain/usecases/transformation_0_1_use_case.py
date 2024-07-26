@@ -4,8 +4,8 @@ from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDa
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
 from app.domain.model.layer1.layer_1_value import Layer1Value
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
     ParseCoordinates,

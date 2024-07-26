@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from astropy.coordinates import ICRS
 
@@ -12,6 +11,6 @@ class CrossIdentificationParam:
     :param coordinates: Sky coordinates of the object
     """
 
-    names: Optional[list[str]]
-    primary_name: Optional[str]
-    coordinates: Optional[ICRS]
+    names: list[str] | None
+    primary_name: str | None
+    coordinates: ICRS | None

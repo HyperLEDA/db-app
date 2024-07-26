@@ -1,10 +1,10 @@
 import astropy.units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import ICRS, Angle
 
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model.params import cross_identification_result as result
-from app.domain.model.params.cross_dentification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
 
@@ -49,25 +49,25 @@ class CrossIdentifyUseCase:
 
         coord_res = None
         if param.coordinates is not None:
-            coord_res = self._identify_by_coordinates(param, r1, r2)
+            coord_res = self._identify_by_coordinates(param.coordinates, r1, r2)
 
         names_res = None
         if param.names is not None:
-            names_res = self._identify_by_names(param)
+            names_res = self._identify_by_names(param.names)
 
         res = self._compile_results(param, coord_res, names_res)
 
         if len(simultaneous_name_hit) > 1 or len(simultaneous_r1_hit) > 1:
             return result.CrossIdentifyResult(
                 None,
-                result.CrossIdentificationDuplicateException(param, simultaneous_name_hit + simultaneous_r1_hit, res)
+                result.CrossIdentificationDuplicateException(param, simultaneous_name_hit + simultaneous_r1_hit, res),
             )
 
         return res
 
     def _identify_by_coordinates(
         self,
-        param: CrossIdentificationParam,
+        coordinates: ICRS,
         r1: Angle,
         r2: Angle,
     ) -> result.CrossIdentifyResult:
@@ -79,8 +79,8 @@ class CrossIdentifyUseCase:
         :return: UseCase result
         """
 
-        r1_hit = self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r1))
-        r2_hit = self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r2))
+        r1_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, r1))
+        r2_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, r2))
 
         # no hits, new objects
         if len(r2_hit) == 0:
@@ -92,37 +92,37 @@ class CrossIdentifyUseCase:
 
         # potential collision
         if len(r2_hit) > 1:
-            return result.CrossIdentifyResult(None, result.CrossIdentificationCoordCollisionException(param, r2_hit))
+            return result.CrossIdentifyResult(
+                None, result.CrossIdentificationCoordCollisionException(coordinates, r1, r2, r2_hit)
+            )
 
         raise ValueError(f"Unexpected R1 and R2 query results: len(r1) = {len(r1_hit)}, len(r2) = {len(r2_hit)}")
 
-    def _identify_by_names(
-        self, param: CrossIdentificationParam
-    ) -> result.CrossIdentifyResult:
+    def _identify_by_names(self, names: list[str]) -> result.CrossIdentifyResult:
         """
         Cross identification by names
-        :param param: Current identification param
+        :param names: Names to identify
         :return: UseCase result
         """
 
-        names_hit = self._repository_l2.query_data(Layer2QueryByNames(param.names))
+        names_hit = self._repository_l2.query_data(Layer2QueryByNames(names))
 
         if len(names_hit) == 0:
             # no hits, pass object to user identification
-            return result.CrossIdentifyResult(None, result.CrossIdentificationNamesNotFoundException(param.names))
+            return result.CrossIdentifyResult(None, result.CrossIdentificationNamesNotFoundException(names))
 
         if len(names_hit) == 1:
             # object identified in DB
             return result.CrossIdentifyResult(names_hit[0], None)
 
         # else, names found for different objects
-        return result.CrossIdentifyResult(None, result.CrossIdentificationNamesDuplicateException(param.names))
+        return result.CrossIdentifyResult(None, result.CrossIdentificationNamesDuplicateException(names))
 
     def _compile_results(
         self,
         param: CrossIdentificationParam,
-        coord_res: result.CrossIdentifyResult | result.CrossIdentificationException | None,
-        names_res: result.CrossIdentifyResult | result.CrossIdentificationException | None,
+        coord_res: result.CrossIdentifyResult | None,
+        names_res: result.CrossIdentifyResult | None,
     ) -> result.CrossIdentifyResult:
         """
         Compile results of name and coordinates cross identification
@@ -152,15 +152,13 @@ class CrossIdentifyUseCase:
 
             # Different results for name and coordinates, error
             return result.CrossIdentifyResult(
-                None,
-                result.CrossIdentificationNameCoordCollisionException(param, names_res.result, coord_res.result)
+                None, result.CrossIdentificationNameCoordCollisionException(param, names_res.result, coord_res.result)
             )
 
         if names_res.fail is not None and coord_res.fail is not None:
             # both coordinates and name cross identification results need user interaction
             return result.CrossIdentifyResult(
-                None,
-                result.CrossIdentificationNameCoordFailException(param, names_res.fail, coord_res.fail)
+                None, result.CrossIdentificationNameCoordFailException(param, names_res.fail, coord_res.fail)
             )
 
         if names_res.fail is not None:
@@ -169,12 +167,10 @@ class CrossIdentifyUseCase:
                 # special case, when we have no hits by name, but we can use coordinate result
                 return result.CrossIdentifyResult(coord_res.result, None)
             return result.CrossIdentifyResult(
-                None,
-                result.CrossIdentificationNameCoordNameFailException(param, names_res.fail, coord_res.result)
+                None, result.CrossIdentificationNameCoordNameFailException(param, names_res.fail, coord_res.result)
             )
 
         # name cross identification success, coordinate cross identification fail
         return result.CrossIdentifyResult(
-            None,
-            result.CrossIdentificationNameCoordCoordException(param, names_res.result, coord_res)
+            None, result.CrossIdentificationNameCoordCoordException(param, names_res.result, coord_res.fail)
         )
