@@ -32,7 +32,7 @@ class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
     def __init__(self, fail_condition: Callable[[CrossIdentificationParam], bool]):
         self.fail_condition: Callable[[CrossIdentificationParam], bool] = fail_condition
 
-    async def invoke(
+    def invoke(
         self,
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,

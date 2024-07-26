@@ -10,7 +10,7 @@ class Layer2Repository(ABC):
     """
 
     @abstractmethod
-    async def query_data(self, param: Layer2QueryParam) -> list[Layer2Model]:
+    def query_data(self, param: Layer2QueryParam) -> list[Layer2Model]:
         """
         Get all objects around given point
         :param param: Parameter, used to make specific query
@@ -18,7 +18,7 @@ class Layer2Repository(ABC):
         """
 
     @abstractmethod
-    async def save_update_instances(self, instances: list[Layer2Model]):
+    def save_update_instances(self, instances: list[Layer2Model]):
         """
         Create or update provided objects
         :param instances: Objects to be processed

@@ -95,7 +95,7 @@ class TransformationO1UseCase:
                 identification_results.append(param)
             else:
                 identification_results.append(
-                    await self._cross_identify_use_case.invoke(param, simultaneous_data_provider, user_param)
+                    self._cross_identify_use_case.invoke(param, simultaneous_data_provider, user_param)
                 )
             if on_progress is not None:
                 on_progress(CrossIdentification(n_rows, i + 1))

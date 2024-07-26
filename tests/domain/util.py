@@ -31,7 +31,7 @@ class MockedCrossIdentifyUseCase(CrossIdentifyUseCase):
     def __init__(self):
         pass
 
-    async def invoke(
+    def invoke(
         self,
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,

@@ -21,7 +21,7 @@ class CrossIdentifyUseCase:
     def __init__(self, repository_l2: Layer2Repository):
         self._repository_l2: Layer2Repository = repository_l2
 
-    async def invoke(
+    def invoke(
         self,
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
@@ -49,11 +49,11 @@ class CrossIdentifyUseCase:
 
         coord_res = None
         if param.coordinates is not None:
-            coord_res = await self._identify_by_coordinates(param, r1, r2)
+            coord_res = self._identify_by_coordinates(param, r1, r2)
 
         names_res = None
         if param.names is not None:
-            names_res = await self._identify_by_names(param)
+            names_res = self._identify_by_names(param)
 
         res = self._compile_results(param, coord_res, names_res)
 
@@ -65,7 +65,7 @@ class CrossIdentifyUseCase:
 
         return res
 
-    async def _identify_by_coordinates(
+    def _identify_by_coordinates(
         self,
         param: CrossIdentificationParam,
         r1: Angle,
@@ -79,8 +79,8 @@ class CrossIdentifyUseCase:
         :return: UseCase result
         """
 
-        r1_hit = await self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r1))
-        r2_hit = await self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r2))
+        r1_hit = self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r1))
+        r2_hit = self._repository_l2.query_data(Layer2QueryInCircle(param.coordinates, r2))
 
         # no hits, new objects
         if len(r2_hit) == 0:
@@ -96,7 +96,7 @@ class CrossIdentifyUseCase:
 
         raise ValueError(f"Unexpected R1 and R2 query results: len(r1) = {len(r1_hit)}, len(r2) = {len(r2_hit)}")
 
-    async def _identify_by_names(
+    def _identify_by_names(
         self, param: CrossIdentificationParam
     ) -> result.CrossIdentifyResult:
         """
@@ -105,7 +105,7 @@ class CrossIdentifyUseCase:
         :return: UseCase result
         """
 
-        names_hit = await self._repository_l2.query_data(Layer2QueryByNames(param.names))
+        names_hit = self._repository_l2.query_data(Layer2QueryByNames(param.names))
 
         if len(names_hit) == 0:
             # no hits, pass object to user identification
