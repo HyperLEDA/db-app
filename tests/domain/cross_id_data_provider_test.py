@@ -118,6 +118,15 @@ class CrossIdDataProviderTest(unittest.TestCase):
         for n in [1000, 5000, 10000, 20000, 50000, 100000]:
             call_for_n_points(n)
 
+    def test_65_fail(self):
+        r = 10 * u.deg
+        center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
+
+        n_points = 100000
+
+        all_pts, inside = make_points(n_points=n_points, center=center, r=r)
+        data_provider = PostgreSimultaneousDataProvider(all_pts, self._tmp_data_repository)
+
     @staticmethod
     def _print_benchmark(call: Callable, n_calls: int = 10) -> tuple[float, int]:
         tracemalloc.start()
