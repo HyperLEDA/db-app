@@ -12,8 +12,8 @@ class Layer1Model:
     """
     Data model for layer 1 data. Represents one observation of concrete object
     Args:
-        id: This observation id
-        object_id: id of this object (e.g. galaxy)
+        pgc: PGC. id of this object (e.g. galaxy). May be None, if Layer 2 object is not currently created (the object
+            is just identified as new)
         source_id: Layer0Model id, from where this data came
         processed: True, if object processed, and data transformed further. False if not transformed, or changed after
             last transformation
@@ -23,9 +23,8 @@ class Layer1Model:
         dataset: Describes where data came from, measurements specifics
     """
 
-    id: int
-    object_id: int
-    source_id: str
+    pgc: Optional[int]
+    source_id: int
     processed: bool
     coordinates: Optional[SkyCoord]
     name: Optional[str]

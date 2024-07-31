@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 import psycopg
@@ -104,6 +104,20 @@ class PgStorage:
                 cursor.execute(query, params)
             except psycopg.Error as e:
                 raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
+
+    def execute_many(self, query: str, params: Sequence[Sequence[Any]], tx: psycopg.Transaction | None = None):
+        if self._connection is None:
+            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
+
+        log.debug("SQL many", query=query.replace("\n", " "), args=params)
+
+        cursor = self._connection.cursor()
+
+        with storageutils.get_or_create_transaction(self._connection, tx):
+            try:
+                cursor.executemany(query, params)
+            except psycopg.Error as e:
+                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
 
     def query(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
