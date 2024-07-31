@@ -8,8 +8,8 @@ from app.domain.model.params.cross_identification_user_param import CrossIdentif
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
 
-INNER_RADIUS = 1.5 * u.arcsec  # default inner radius
-OUTER_RADIUS = 4.5 * u.arcsec  # default outer radius
+DEFAULT_INNER_RADIUS = 1.5 * u.arcsec  # default inner radius
+DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec  # default outer radius
 
 
 class CrossIdentifyUseCase:
@@ -36,8 +36,8 @@ class CrossIdentifyUseCase:
         if param.names is None and param.coordinates is None:
             return result.CrossIdentifyResult(None, result.CrossIdentificationEmptyException())
 
-        r1 = user_param.r1 if user_param.r1 is not None else INNER_RADIUS
-        r2 = user_param.r2 if user_param.r2 is not None else OUTER_RADIUS
+        r1 = user_param.r1 if user_param.r1 is not None else DEFAULT_INNER_RADIUS
+        r2 = user_param.r2 if user_param.r2 is not None else DEFAULT_OUTER_RADIUS
 
         simultaneous_name_hit = []
         if param.names is not None:
@@ -68,19 +68,19 @@ class CrossIdentifyUseCase:
     def _identify_by_coordinates(
         self,
         coordinates: ICRS,
-        r1: Angle,
-        r2: Angle,
+        inner_r: Angle,
+        outer_r: Angle,
     ) -> result.CrossIdentifyResult:
         """
         Cross identification by coordinates
-        :param param: Current identification param
-        :param r1: Inner radius
-        :param r2: Outer radius
+        :param coordinates: Sky koordinates of identified object
+        :param inner_r: Inner radius
+        :param outer_r: Outer radius
         :return: UseCase result
         """
 
-        r1_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, r1))
-        r2_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, r2))
+        r1_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, inner_r))
+        r2_hit = self._repository_l2.query_data(Layer2QueryInCircle(coordinates, outer_r))
 
         # no hits, new objects
         if len(r2_hit) == 0:
@@ -93,7 +93,7 @@ class CrossIdentifyUseCase:
         # potential collision
         if len(r2_hit) > 1:
             return result.CrossIdentifyResult(
-                None, result.CrossIdentificationCoordCollisionException(coordinates, r1, r2, r2_hit)
+                None, result.CrossIdentificationCoordCollisionException(coordinates, inner_r, outer_r, r2_hit)
             )
 
         raise ValueError(f"Unexpected R1 and R2 query results: len(r1) = {len(r1_hit)}, len(r2) = {len(r2_hit)}")
