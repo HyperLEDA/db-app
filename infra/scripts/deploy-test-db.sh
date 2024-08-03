@@ -1,7 +1,8 @@
 HOST=$HOST
+BACKEND_USER=$BACKEND_USER
 
-ssh $HOST "rm -rf ~/hyperleda/dev && mkdir ~/hyperleda/dev"
-scp ../docker-compose.yaml $HOST:~/hyperleda/dev/docker-compose.yaml
-scp -r ../postgres $HOST:~/hyperleda/dev
+ssh $BACKEND_USER@$HOST "rm -rf ~/hyperleda/dev && mkdir ~/hyperleda/dev"
+scp ../docker-compose.yaml $BACKEND_USER@$HOST:~/hyperleda/dev/docker-compose.yaml
+scp -r ../postgres $BACKEND_USER@$HOST:~/hyperleda/dev
 
-ssh $HOST "cd ~/hyperleda/dev && docker compose up -d"
+ssh $BACKEND_USER@$HOST "cd ~/hyperleda/dev && docker compose up -d"

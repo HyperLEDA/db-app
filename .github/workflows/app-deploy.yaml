@@ -65,6 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HOST: ${{ secrets.BACKEND_HOST }}
+      BACKEND_USER: ${{ secrets.BACKEND_USER }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
