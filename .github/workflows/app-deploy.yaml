@@ -60,7 +60,7 @@ jobs:
 
   deploy-test:
     name: Deploy to test environment
-    needs: push-docker
+    # needs: push-docker
     environment: testing
     runs-on: ubuntu-latest
     env:
