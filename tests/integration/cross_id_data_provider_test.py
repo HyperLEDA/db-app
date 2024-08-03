@@ -5,6 +5,7 @@ from typing import Callable
 from uuid import uuid4
 
 import astropy.units as u
+import psycopg
 from astropy.coordinates import ICRS
 
 from app.data.repositories.tmp_data_repository_impl import TmpDataRepositoryImpl
@@ -13,7 +14,7 @@ from app.domain.cross_id_simultaneous_data_provider import (
     SimpleSimultaneousDataProvider,
 )
 from app.domain.model.params import CrossIdentificationParam
-from app.lib import exceptions, testing
+from app.lib import testing
 from tests.domain.util import make_points
 
 
@@ -45,7 +46,7 @@ class CrossIdDataProviderTest(unittest.TestCase):
         # Check PostgreSimultaneousDataProvider removed temporary table
         pg_provider.clear()
         self.assertRaises(
-            exceptions.APIException,
+            psycopg.errors.UndefinedTable,
             lambda: self.storage.get_storage().query(f"SELECT * FROM {pg_provider.table_name}"),
         )
 

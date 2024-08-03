@@ -9,7 +9,7 @@ from psycopg.types import enum, numeric
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
-from app.lib.web.errors import InternalError
+from app.lib.web.errors import DatabaseError, InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -114,7 +114,7 @@ class PgStorage:
             try:
                 cursor.executemany(query, params)
             except psycopg.Error as e:
-                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
+                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
 
     def query(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
