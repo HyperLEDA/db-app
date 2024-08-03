@@ -73,19 +73,23 @@ jobs:
         run: |
           echo "${{ secrets.BACKEND_ENVS }}" >> infra/.env.remote
 
-      - name: Set up SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Add SSH key to known hosts
+      - name: Setup SSH Keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.BACKEND_HOST }} >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
 
       - name: Copy files to backend
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd infra/scripts && ./deploy.sh
 
       - name: Restart application on backend
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd infra/scripts && ./restart.sh
