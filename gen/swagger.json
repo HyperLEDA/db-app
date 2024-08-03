@@ -186,7 +186,7 @@
     },
     "/api/v1/admin/table": {
       "post": {
-        "summary": "Create table with unprocessed data",
+        "summary": "Create or get table with unprocessed data",
         "description": "Describes schema of the table without any data.",
         "tags": [
           "admin",
@@ -209,6 +209,21 @@
         "responses": {
           "200": {
             "description": "Table was successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreateTableResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Table with this name already existed, its id is returned",
             "content": {
               "application/json": {
                 "schema": {
@@ -488,7 +503,8 @@
           },
           "unit": {
             "type": "string",
-            "description": "Unit of the data"
+            "description": "Unit of the data",
+            "example": "m/s"
           },
           "description": {
             "type": "string",
@@ -518,7 +534,8 @@
           },
           "bibcode": {
             "type": "string",
-            "description": "ADS bibcode of the article that published the data (or code of the internal communication)"
+            "description": "ADS bibcode of the article that published the data (or code of the internal communication)",
+            "example": "2024NatAs.tmp..120M"
           },
           "datatype": {
             "type": "string",
