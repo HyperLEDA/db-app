@@ -8,9 +8,8 @@ from pandas import DataFrame
 from app.data import interface, model, template
 from app.data.model import ColumnDescription, Layer0Creation
 from app.data.model.layer0 import CoordinatePart
-from app.lib import exceptions
-from app.lib.exceptions import DatabaseError
 from app.lib.storage import postgres
+from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
 
@@ -24,10 +23,12 @@ class Layer0Repository(interface.Layer0Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> int:
+    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> tuple[int, bool]:
         """
-        Creates table, writes metadata and returns string that identifies the table for
-        further requests.
+        Creates table, writes metadata and returns integer that identifies the table for
+        further requests. If table already exists, returns the id of the existing table.
+
+        Returns tuple of table_id and bool, where bool is True if table was created and False if it already existed.
         """
         # TODO: use tx or new transaction here
         fields = []
@@ -57,6 +58,10 @@ class Layer0Repository(interface.Layer0Repository):
                     params=json.dumps(col_params),
                 )
             )
+
+        table_id, ok = self.get_table_id(data.table_name)
+        if ok:
+            return table_id, False
 
         row = self._storage.query_one(
             template.INSERT_TABLE_REGISTRY_ITEM,
@@ -88,7 +93,7 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        return table_id
+        return table_id, True
 
     def insert_raw_data(
         self,
@@ -209,13 +214,16 @@ class Layer0Repository(interface.Layer0Repository):
             param["param"].get("description"),
         )
 
-    def table_exists(self, schema: str, table_name: str) -> bool:
+    def get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
-            self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except exceptions.DatabaseError:
-            return False
+            row = self._storage.query_one(
+                f"SELECT id FROM {RAWDATA_SCHEMA}.tables WHERE table_name = %s",
+                params=[table_name],
+            )
+        except RuntimeError:
+            return 0, False
 
-        return True
+        return row["id"], True
 
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")

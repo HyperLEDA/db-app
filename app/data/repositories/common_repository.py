@@ -5,8 +5,8 @@ import structlog
 from psycopg.types import json
 
 from app.data import interface, model, template
-from app.lib.exceptions import DatabaseError
 from app.lib.storage import enums, postgres
+from app.lib.web.errors import DatabaseError
 
 
 @final

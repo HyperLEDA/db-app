@@ -5,6 +5,12 @@ PYTHON := python
 all: test
 
 ## General targets
+
+recreate-venv:
+	rm -rf .venv
+	python3.10 -m venv .venv
+	. .venv/bin/activate && make install
+
 install:
 	$(PYTHON) -m pip install -r requirements.txt
 

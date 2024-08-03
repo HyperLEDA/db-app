@@ -41,7 +41,7 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_id = self._layer0_repo.create_table(creation)
+        table_id, _ = self._layer0_repo.create_table(creation)
         self._layer0_repo.insert_raw_data(Layer0RawData(table_id, data))
 
         from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())

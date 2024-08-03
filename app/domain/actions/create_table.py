@@ -8,8 +8,8 @@ from app import commands
 from app.data import interface
 from app.data import model as data_model
 from app.domain import model as domain_model
-from app.lib.exceptions import RuleValidationError
 from app.lib.storage import enums, mapping
+from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 
@@ -63,20 +63,23 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
     return result
 
 
-def create_table(depot: commands.Depot, r: domain_model.CreateTableRequest) -> domain_model.CreateTableResponse:
-    bibliography_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
+def create_table(
+    depot: commands.Depot,
+    r: domain_model.CreateTableRequest,
+) -> tuple[domain_model.CreateTableResponse, bool]:
+    source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
     columns = domain_descriptions_to_data(r.columns)
 
     with depot.layer0_repo.with_tx() as tx:
-        table_id = depot.layer0_repo.create_table(
+        table_id, created = depot.layer0_repo.create_table(
             data_model.Layer0Creation(
                 table_name=r.table_name,
                 column_descriptions=columns,
-                bibliography_id=bibliography_id,
+                bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
                 comment=r.description,
             ),
             tx=tx,
         )
 
-    return domain_model.CreateTableResponse(table_id)
+    return domain_model.CreateTableResponse(table_id), created

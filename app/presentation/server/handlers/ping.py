@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any
 
 from aiohttp import web
 from marshmallow import Schema, fields
 
 from app import commands
+from app.lib.web import responses
 from app.presentation.server.handlers import common
 
 
@@ -26,7 +26,7 @@ class PingResponseSchema(Schema):
     ping = fields.Str(example="pong")
 
 
-async def ping_handler(_: commands.Depot, __: web.Request) -> Any:
+async def ping_handler(_: commands.Depot, __: web.Request) -> responses.APIOkResponse:
     """---
     summary: Test that service is up and running
     tags: [admin]
@@ -39,7 +39,7 @@ async def ping_handler(_: commands.Depot, __: web.Request) -> Any:
                         properties:
                             data: PingResponseSchema
     """
-    return PingResponse()
+    return responses.APIOkResponse(PingResponse())
 
 
 description = common.HandlerDescription(

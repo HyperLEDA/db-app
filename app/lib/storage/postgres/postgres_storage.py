@@ -6,10 +6,10 @@ import structlog
 from psycopg import rows
 from psycopg.types import enum, numeric
 
-from app.lib.exceptions import DatabaseError, InternalError
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
+from app.lib.web.errors import DatabaseError, InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -100,10 +100,7 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            try:
-                cursor.execute(query, params)
-            except psycopg.Error as e:
-                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
+            cursor.execute(query, params)
 
     def execute_many(self, query: str, params: Sequence[Sequence[Any]], tx: psycopg.Transaction | None = None):
         if self._connection is None:
@@ -117,7 +114,7 @@ class PgStorage:
             try:
                 cursor.executemany(query, params)
             except psycopg.Error as e:
-                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
+                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
 
     def query(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
@@ -132,10 +129,7 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            try:
-                cursor.execute(query, params)
-            except psycopg.Error as e:
-                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
+            cursor.execute(query, params)
 
             return cursor.fetchall()
 
