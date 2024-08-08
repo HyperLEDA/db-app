@@ -11,6 +11,7 @@ from app.lib.storage import enums
 class ColumnDescription:
     name: str
     data_type: str
+    is_primary_key: bool = False
     unit: str | None = None  # TODO: validate that the unit is one that we know how to transform
     description: str | None = None
     ucd: str | None = None
@@ -49,6 +50,20 @@ class Layer0Creation:
     datatype: enums.DataType
     name_col: str | None = None
     comment: str | None = None
+
+
+@dataclass
+class Layer0CreationResponse:
+    """
+    Response from the data layer after the creation of the table.
+
+    Args:
+        `table_id`: id of the table in the internal registry
+        `created`: False if table with this name already existed, True otherwise
+    """
+
+    table_id: int
+    created: bool
 
 
 @dataclass

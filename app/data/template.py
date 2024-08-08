@@ -25,8 +25,8 @@ SELECT id, task_name, payload, user_id, status, start_time, end_time, message FR
 
 CREATE_TABLE = """
 CREATE TABLE {{ schema }}.{{ name }} (
-    {% for field_name, field_type in fields %}
-    {{field_name}} {{field_type}}{% if not loop.last %},{% endif %}
+    {% for field_name, field_type, constraint in fields %}
+    {{field_name}} {{field_type}} {{constraint}}{% if not loop.last %},{% endif %}
     {% endfor %}
 )
 """

@@ -12,6 +12,36 @@ from app.lib.storage import enums, mapping
 from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
+INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
+
+FORBIDDEN_COLUMN_NAMES = {INTERNAL_ID_COLUMN_NAME}
+
+
+def create_table(
+    depot: commands.Depot,
+    r: domain_model.CreateTableRequest,
+) -> tuple[domain_model.CreateTableResponse, bool]:
+    source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
+
+    for col in r.columns:
+        if col.name in FORBIDDEN_COLUMN_NAMES:
+            raise RuleValidationError(f"{col} is a reserved column name for internal storage")
+
+    columns = domain_descriptions_to_data(r.columns)
+
+    with depot.layer0_repo.with_tx() as tx:
+        table_resp = depot.layer0_repo.create_table(
+            data_model.Layer0Creation(
+                table_name=r.table_name,
+                column_descriptions=columns,
+                bibliography_id=source_id,
+                datatype=enums.DataType(r.datatype),
+                comment=r.description,
+            ),
+            tx=tx,
+        )
+
+    return domain_model.CreateTableResponse(table_resp.table_id), table_resp.created
 
 
 def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
@@ -36,7 +66,13 @@ def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, co
 
 
 def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -> list[data_model.ColumnDescription]:
-    result = []
+    result = [
+        data_model.ColumnDescription(
+            name=INTERNAL_ID_COLUMN_NAME,
+            data_type=mapping.TYPE_TEXT,
+            is_primary_key=True,
+        )
+    ]
 
     for col in columns:
         data_type = col.data_type.strip()
@@ -61,25 +97,3 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
         )
 
     return result
-
-
-def create_table(
-    depot: commands.Depot,
-    r: domain_model.CreateTableRequest,
-) -> tuple[domain_model.CreateTableResponse, bool]:
-    source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
-    columns = domain_descriptions_to_data(r.columns)
-
-    with depot.layer0_repo.with_tx() as tx:
-        table_id, created = depot.layer0_repo.create_table(
-            data_model.Layer0Creation(
-                table_name=r.table_name,
-                column_descriptions=columns,
-                bibliography_id=source_id,
-                datatype=enums.DataType(r.datatype),
-                comment=r.description,
-            ),
-            tx=tx,
-        )
-
-    return domain_model.CreateTableResponse(table_id), created

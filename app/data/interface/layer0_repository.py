@@ -8,7 +8,9 @@ from app.data.interface import transactional
 
 class Layer0Repository(transactional.Transactional):
     @abc.abstractmethod
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> tuple[int, bool]:
+    def create_table(
+        self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None
+    ) -> model.Layer0CreationResponse:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod

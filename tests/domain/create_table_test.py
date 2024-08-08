@@ -6,19 +6,25 @@ from app import commands
 from app.data import model as data_model
 from app.domain import actions
 from app.domain import model as domain_model
-from app.domain.actions.create_table import domain_descriptions_to_data, get_source_id
+from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME, domain_descriptions_to_data, get_source_id
 from app.lib import auth
+from app.lib.storage import mapping
 from app.lib.web import errors
 
 
 class GetSourceIDTest(unittest.TestCase):
     def test_get_source_id(self):
+        @dataclass
+        class TestData:
+            code: str
+            ads_query_needed: bool
+
         tests = [
-            ("1982euse.book.....L", True),
-            ("1975ApJS...45..113M", True),
-            ("2011A&A...534A..31G", True),
-            ("2011A&A.....31G", False),
-            ("some_custom_code", False),
+            TestData("1982euse.book.....L", True),
+            TestData("1975ApJS...45..113M", True),
+            TestData("2011A&A...534A..31G", True),
+            TestData("2011A&A.....31G", False),
+            TestData("some_custom_code", False),
         ]
 
         common_repo = mock.MagicMock()
@@ -33,10 +39,10 @@ class GetSourceIDTest(unittest.TestCase):
             }
         ]
 
-        for source_name, ads_query_needed in tests:
-            with self.subTest(source_name):
-                result = get_source_id(common_repo, ads_client, source_name)
-                if ads_query_needed:
+        for tc in tests:
+            with self.subTest(tc.code):
+                result = get_source_id(common_repo, ads_client, tc.code)
+                if tc.ads_query_needed:
                     self.assertEqual(result, 41)
                 else:
                     self.assertEqual(result, 42)
@@ -64,45 +70,57 @@ class MappingTest(unittest.TestCase):
         class TestData:
             name: str
             input_columns: list[domain_model.ColumnDescription]
-            expected: list[data_model.ColumnDescription]
-            err_substr: str | None
+            expected: list[data_model.ColumnDescription] | None = None
+            err_substr: str | None = None
+
+        internal_id_column = data_model.ColumnDescription(
+            name=INTERNAL_ID_COLUMN_NAME,
+            data_type=mapping.TYPE_TEXT,
+            is_primary_key=True,
+        )
 
         tests = [
             TestData(
                 "simple column",
                 [domain_model.ColumnDescription("name", "str", "m / s", "description")],
-                [data_model.ColumnDescription("name", "text", "m / s", "description")],
-                None,
+                [
+                    internal_id_column,
+                    data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
+                ],
             ),
             TestData(
                 "wrong type",
-                [domain_model.ColumnDescription("name", "obscure_type", "m / s", "description")],
-                [],
-                "unknown type of data",
+                [domain_model.ColumnDescription("name", "obscure_type", unit="m / s", description="description")],
+                err_substr="unknown type of data",
             ),
             TestData(
                 "wrong unit",
                 [domain_model.ColumnDescription("name", "str", "wrong", "description")],
-                [],
-                "unknown unit",
+                err_substr="unknown unit",
             ),
             TestData(
                 "unit is None",
                 [domain_model.ColumnDescription("name", "str", None, "description")],
-                [data_model.ColumnDescription("name", "text", None, "description")],
-                None,
+                [
+                    internal_id_column,
+                    data_model.ColumnDescription("name", "text", unit=None, description="description"),
+                ],
             ),
             TestData(
                 "unit has extra spaces",
                 [domain_model.ColumnDescription("name", "str", "m     /       s", "description")],
-                [data_model.ColumnDescription("name", "text", "m / s", "description")],
-                None,
+                [
+                    internal_id_column,
+                    data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
+                ],
             ),
             TestData(
                 "data type has extra spaces",
                 [domain_model.ColumnDescription("name", "   str    ", None, "description")],
-                [data_model.ColumnDescription("name", "text", None, "description")],
-                None,
+                [
+                    internal_id_column,
+                    data_model.ColumnDescription("name", "text", unit=None, description="description"),
+                ],
             ),
         ]
 
@@ -140,36 +158,54 @@ class CreateTableTest(unittest.TestCase):
         @dataclass
         class TestData:
             name: str
-            table_exists: bool
-            expected_created: bool
+            request: domain_model.CreateTableRequest
+            table_already_existed: bool = False
+            expected_created: bool = True
+            err_substr: str | None = None
 
         tests = [
             TestData(
                 "create new table",
-                False,
-                True,
+                domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
             ),
             TestData(
                 "create already existing table",
-                True,
-                False,
+                domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
+                table_already_existed=True,
+                expected_created=False,
+            ),
+            TestData(
+                "create table with forbidden name",
+                domain_model.CreateTableRequest(
+                    "test",
+                    [domain_model.ColumnDescription("hyperleda_internal_id", "str", None, "")],
+                    "totally real bibcode",
+                    "regular",
+                    "",
+                ),
+                err_substr="is a reserved column name for internal storage",
             ),
         ]
 
         for tc in tests:
             with self.subTest(tc.name):
                 self.common_repo_mock.get_source_entry.return_value.id = 41
-                self.layer0_repo_mock.create_table.return_value = 51, not tc.table_exists
-
-                resp, created = actions.create_table(
-                    self.depot,
-                    domain_model.CreateTableRequest(
-                        "test",
-                        [],
-                        "totally real source id",
-                        "regular",
-                        "",
-                    ),
+                self.layer0_repo_mock.create_table.return_value = data_model.Layer0CreationResponse(
+                    51, not tc.table_already_existed
                 )
-                self.assertEqual(51, resp.id)
-                self.assertEqual(tc.expected_created, created)
+
+                if tc.err_substr is not None:
+                    with self.assertRaises(errors.RuleValidationError) as err:
+                        _, _ = actions.create_table(
+                            self.depot,
+                            tc.request,
+                        )
+
+                    self.assertIn(tc.err_substr, err.exception.message())
+                else:
+                    resp, created = actions.create_table(
+                        self.depot,
+                        tc.request,
+                    )
+                    self.assertEqual(51, resp.id)
+                    self.assertEqual(tc.expected_created, created)
