@@ -22,6 +22,10 @@ theme:
 
 nav:
   - Главная: index.md
+  - Загрузка данных:
+      - upload/index.ru.md
+      - Создание схемы таблицы: upload/create_table.ru.md
+      - Загрузка данных в таблицу: upload/upload_data.ru.md
   - Документация API: openapi.md
   - Документация разработчика:
       - Установка окружения: dev/environment.ru.md
@@ -31,17 +35,15 @@ nav:
       - Диаграмма системы: dev/system_diagram.ru.md
   - Описание каталогов в БД:
       - Каталог фотометрии: dev/db_photometry.ru.md
-  - Загрузка данных:
-      - upload/index.ru.md
-      - Создание схемы таблицы: upload/create_table.ru.md
-      - Загрузка данных в таблицу: upload/upload_data.ru.md
 
 plugins:
   - search
   - section-index
-  - swagger-ui-tag:
-      syntaxHighlightTheme: monokai
-      supportedSubmitMethods: []
+  - neoteroi.mkdocsoad:
+      use_pymdownx: true
+
+extra_css:
+  - css/mkdocsoad.css
 
 markdown_extensions:
   - toc:
@@ -52,4 +54,7 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true

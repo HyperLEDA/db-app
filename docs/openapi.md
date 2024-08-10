@@ -1,1 +1,1 @@
-<swagger-ui src="gen/swagger.json"/>
+[OAD(docs/gen/swagger.json)]
