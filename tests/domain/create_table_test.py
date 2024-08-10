@@ -2,6 +2,8 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
+from parameterized import param, parameterized
+
 from app import commands
 from app.data import model as data_model
 from app.domain import actions
@@ -13,20 +15,16 @@ from app.lib.web import errors
 
 
 class GetSourceIDTest(unittest.TestCase):
-    def test_get_source_id(self):
-        @dataclass
-        class TestData:
-            code: str
-            ads_query_needed: bool
-
-        tests = [
-            TestData("1982euse.book.....L", True),
-            TestData("1975ApJS...45..113M", True),
-            TestData("2011A&A...534A..31G", True),
-            TestData("2011A&A.....31G", False),
-            TestData("some_custom_code", False),
+    @parameterized.expand(
+        [
+            param("1982euse.book.....L", True),
+            param("1975ApJS...45..113M", True),
+            param("2011A&A...534A..31G", True),
+            param("2011A&A.....31G", False),
+            param("some_custom_code", False),
         ]
-
+    )
+    def test_get_source_id(self, code: str, ads_query_needed: bool):
         common_repo = mock.MagicMock()
         common_repo.create_bibliography.return_value = 41
         common_repo.get_source_entry.return_value.id = 42
@@ -39,13 +37,11 @@ class GetSourceIDTest(unittest.TestCase):
             }
         ]
 
-        for tc in tests:
-            with self.subTest(tc.code):
-                result = get_source_id(common_repo, ads_client, tc.code)
-                if tc.ads_query_needed:
-                    self.assertEqual(result, 41)
-                else:
-                    self.assertEqual(result, 42)
+        result = get_source_id(common_repo, ads_client, code)
+        if ads_query_needed:
+            self.assertEqual(result, 41)
+        else:
+            self.assertEqual(result, 42)
 
     def test_ads_not_found(self):
         common_repo = mock.MagicMock()
@@ -65,22 +61,22 @@ class GetSourceIDTest(unittest.TestCase):
 
 
 class MappingTest(unittest.TestCase):
-    def test_mapping(self):
-        @dataclass
-        class TestData:
-            name: str
-            input_columns: list[domain_model.ColumnDescription]
-            expected: list[data_model.ColumnDescription] | None = None
-            err_substr: str | None = None
+    @dataclass
+    class TestData:
+        name: str
+        input_columns: list[domain_model.ColumnDescription]
+        expected: list[data_model.ColumnDescription] | None = None
+        err_substr: str | None = None
 
-        internal_id_column = data_model.ColumnDescription(
-            name=INTERNAL_ID_COLUMN_NAME,
-            data_type=mapping.TYPE_TEXT,
-            is_primary_key=True,
-        )
+    internal_id_column = data_model.ColumnDescription(
+        name=INTERNAL_ID_COLUMN_NAME,
+        data_type=mapping.TYPE_TEXT,
+        is_primary_key=True,
+    )
 
-        tests = [
-            TestData(
+    @parameterized.expand(
+        [
+            param(
                 "simple column",
                 [domain_model.ColumnDescription("name", "str", "m / s", "description")],
                 [
@@ -88,17 +84,17 @@ class MappingTest(unittest.TestCase):
                     data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
                 ],
             ),
-            TestData(
+            param(
                 "wrong type",
                 [domain_model.ColumnDescription("name", "obscure_type", unit="m / s", description="description")],
                 err_substr="unknown type of data",
             ),
-            TestData(
+            param(
                 "wrong unit",
                 [domain_model.ColumnDescription("name", "str", "wrong", "description")],
                 err_substr="unknown unit",
             ),
-            TestData(
+            param(
                 "unit is None",
                 [domain_model.ColumnDescription("name", "str", None, "description")],
                 [
@@ -106,7 +102,7 @@ class MappingTest(unittest.TestCase):
                     data_model.ColumnDescription("name", "text", unit=None, description="description"),
                 ],
             ),
-            TestData(
+            param(
                 "unit has extra spaces",
                 [domain_model.ColumnDescription("name", "str", "m     /       s", "description")],
                 [
@@ -114,7 +110,7 @@ class MappingTest(unittest.TestCase):
                     data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
                 ],
             ),
-            TestData(
+            param(
                 "data type has extra spaces",
                 [domain_model.ColumnDescription("name", "   str    ", None, "description")],
                 [
@@ -122,17 +118,22 @@ class MappingTest(unittest.TestCase):
                     data_model.ColumnDescription("name", "text", unit=None, description="description"),
                 ],
             ),
-        ]
+        ],
+    )
+    def test_mapping(
+        self,
+        name: str,
+        input_columns: list[domain_model.ColumnDescription],
+        expected: list[data_model.ColumnDescription] | None = None,
+        err_substr: str | None = None,
+    ):
+        if err_substr:
+            with self.assertRaises(errors.RuleValidationError) as err:
+                _ = domain_descriptions_to_data(input_columns)
 
-        for tc in tests:
-            with self.subTest(tc.name):
-                if tc.err_substr:
-                    with self.assertRaises(errors.RuleValidationError) as err:
-                        _ = domain_descriptions_to_data(tc.input_columns)
-
-                    self.assertIn(tc.err_substr, err.exception.message())
-                else:
-                    self.assertEqual(domain_descriptions_to_data(tc.input_columns), tc.expected)
+            self.assertIn(err_substr, err.exception.message())
+        else:
+            self.assertEqual(domain_descriptions_to_data(input_columns), expected)
 
 
 class CreateTableTest(unittest.TestCase):
@@ -154,27 +155,19 @@ class CreateTableTest(unittest.TestCase):
 
         self.depot = depot
 
-    def test_create_table(self):
-        @dataclass
-        class TestData:
-            name: str
-            request: domain_model.CreateTableRequest
-            table_already_existed: bool = False
-            expected_created: bool = True
-            err_substr: str | None = None
-
-        tests = [
-            TestData(
+    @parameterized.expand(
+        [
+            param(
                 "create new table",
                 domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
             ),
-            TestData(
+            param(
                 "create already existing table",
                 domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
                 table_already_existed=True,
                 expected_created=False,
             ),
-            TestData(
+            param(
                 "create table with forbidden name",
                 domain_model.CreateTableRequest(
                     "test",
@@ -185,27 +178,33 @@ class CreateTableTest(unittest.TestCase):
                 ),
                 err_substr="is a reserved column name for internal storage",
             ),
-        ]
+        ],
+    )
+    def test_create_table(
+        self,
+        name: str,
+        request: domain_model.CreateTableRequest,
+        table_already_existed: bool = False,
+        expected_created: bool = True,
+        err_substr: str | None = None,
+    ):
+        self.common_repo_mock.get_source_entry.return_value.id = 41
+        self.layer0_repo_mock.create_table.return_value = data_model.Layer0CreationResponse(
+            51, not table_already_existed
+        )
 
-        for tc in tests:
-            with self.subTest(tc.name):
-                self.common_repo_mock.get_source_entry.return_value.id = 41
-                self.layer0_repo_mock.create_table.return_value = data_model.Layer0CreationResponse(
-                    51, not tc.table_already_existed
+        if err_substr is not None:
+            with self.assertRaises(errors.RuleValidationError) as err:
+                _, _ = actions.create_table(
+                    self.depot,
+                    request,
                 )
 
-                if tc.err_substr is not None:
-                    with self.assertRaises(errors.RuleValidationError) as err:
-                        _, _ = actions.create_table(
-                            self.depot,
-                            tc.request,
-                        )
-
-                    self.assertIn(tc.err_substr, err.exception.message())
-                else:
-                    resp, created = actions.create_table(
-                        self.depot,
-                        tc.request,
-                    )
-                    self.assertEqual(51, resp.id)
-                    self.assertEqual(tc.expected_created, created)
+            self.assertIn(err_substr, err.exception.message())
+        else:
+            resp, created = actions.create_table(
+                self.depot,
+                request,
+            )
+            self.assertEqual(51, resp.id)
+            self.assertEqual(expected_created, created)

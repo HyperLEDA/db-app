@@ -12,6 +12,7 @@ mypy
 mkdocs
 mkdocs-material
 mkdocs-swagger-ui-tag
+mkdocs-section-index
 pandas
 pandas-stubs
 parameterized

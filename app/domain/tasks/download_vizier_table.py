@@ -146,7 +146,7 @@ def download_vizier_table(
             tx=tx,
         )
 
-        table_id, _ = layer0.create_table(
+        table_resp = layer0.create_table(
             model.Layer0Creation(
                 table_name,
                 fields,
@@ -158,4 +158,4 @@ def download_vizier_table(
             tx=tx,
         )
 
-        layer0.insert_raw_data(model.Layer0RawData(table_id, catalog.to_pandas()), tx)
+        layer0.insert_raw_data(model.Layer0RawData(table_resp.table_id, catalog.to_pandas()), tx)

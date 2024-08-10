@@ -31,9 +31,14 @@ nav:
       - Диаграмма системы: dev/system_diagram.ru.md
   - Описание каталогов в БД:
       - Каталог фотометрии: dev/db_photometry.ru.md
+  - Загрузка данных:
+      - upload/index.ru.md
+      - Создание схемы таблицы: upload/create_table.ru.md
+      - Загрузка данных в таблицу: upload/upload_data.ru.md
 
 plugins:
   - search
+  - section-index
   - swagger-ui-tag:
       syntaxHighlightTheme: monokai
       supportedSubmitMethods: []

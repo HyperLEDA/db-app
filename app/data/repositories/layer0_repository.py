@@ -196,10 +196,10 @@ class Layer0Repository(interface.Layer0Repository):
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    param["param"]["unit"],
-                    param["param"]["description"],
-                    param["param"].get("ucd"),
-                    coordinate_part,
+                    unit=param["param"]["unit"],
+                    description=param["param"]["description"],
+                    ucd=param["param"].get("ucd"),
+                    coordinate_part=coordinate_part,
                 )
             )
 
