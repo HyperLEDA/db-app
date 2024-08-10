@@ -41,8 +41,8 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_id, _ = self._layer0_repo.create_table(creation)
-        self._layer0_repo.insert_raw_data(Layer0RawData(table_id, data))
+        resp = self._layer0_repo.create_table(creation)
+        self._layer0_repo.insert_raw_data(Layer0RawData(resp.table_id, data))
 
         from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
         self.assertTrue(data.equals(from_db[0].data))

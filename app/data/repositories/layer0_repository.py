@@ -23,19 +23,23 @@ class Layer0Repository(interface.Layer0Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> tuple[int, bool]:
+    def create_table(
+        self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None
+    ) -> model.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
-        further requests. If table already exists, returns the id of the existing table.
-
-        Returns tuple of table_id and bool, where bool is True if table was created and False if it already existed.
+        further requests. If table already exists, returns its ID instead of creating a new one.
         """
         # TODO: use tx or new transaction here
         fields = []
         comment_queries = []
 
         for column_descr in data.column_descriptions:
-            fields.append((column_descr.name, column_descr.data_type))
+            constraint = ""
+            if column_descr.is_primary_key:
+                constraint = "PRIMARY KEY"
+
+            fields.append((column_descr.name, column_descr.data_type, constraint))
             col_params = {
                 "description": column_descr.description,
                 "unit": column_descr.unit,
@@ -61,7 +65,7 @@ class Layer0Repository(interface.Layer0Repository):
 
         table_id, ok = self.get_table_id(data.table_name)
         if ok:
-            return table_id, False
+            return model.Layer0CreationResponse(table_id, False)
 
         row = self._storage.query_one(
             template.INSERT_TABLE_REGISTRY_ITEM,
@@ -93,7 +97,7 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        return table_id, True
+        return model.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(
         self,
@@ -192,10 +196,10 @@ class Layer0Repository(interface.Layer0Repository):
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    param["param"]["unit"],
-                    param["param"]["description"],
-                    param["param"].get("ucd"),
-                    coordinate_part,
+                    unit=param["param"]["unit"],
+                    description=param["param"]["description"],
+                    ucd=param["param"].get("ucd"),
+                    coordinate_part=coordinate_part,
                 )
             )
 
