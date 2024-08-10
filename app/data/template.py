@@ -61,6 +61,7 @@ INSERT INTO
     ({% for field_name in fields %}
         {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
     {% endfor %}
+ON CONFLICT DO NOTHING
 """
 
 INSERT_TMP_RAW_DATA = """
