@@ -186,8 +186,8 @@
     },
     "/api/v1/admin/table": {
       "post": {
-        "summary": "Create or get table with unprocessed data",
-        "description": "Describes schema of the table without any data.",
+        "summary": "Get or create schema for the table.",
+        "description": "Creates new schema for the table which can later be used to upload data.\n\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.\n",
         "tags": [
           "admin",
           "table"
@@ -223,7 +223,7 @@
             }
           },
           "201": {
-            "description": "Table with this name already existed, its id is returned",
+            "description": "Table with this name already existed, its ID is returned",
             "content": {
               "application/json": {
                 "schema": {
@@ -243,7 +243,7 @@
     "/api/v1/admin/table/data": {
       "post": {
         "summary": "Add new raw data to the table",
-        "description": "Inserts new data to the table.",
+        "description": "Inserts new data to the table.\n\nDeduplicates the rows based on their contents.\nIf the two rows were identical this method will only insert the last one.\n",
         "security": [
           {
             "TokenAuth": []
@@ -487,7 +487,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Name of the column"
+            "description": "Name of the column. Should not equal `hyperleda_internal_id`."
           },
           "data_type": {
             "type": "string",
