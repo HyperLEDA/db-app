@@ -56,8 +56,8 @@ class RawDataTableTest(unittest.TestCase):
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -100,8 +100,8 @@ class RawDataTableTest(unittest.TestCase):
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -142,8 +142,8 @@ class RawDataTableTest(unittest.TestCase):
                 model.CreateTableRequest(
                     "test_table",
                     [
-                        model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                        model.ColumnDescription("test_col_1", "str", None, "test col 2"),
+                        model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                        model.ColumnDescription("test_col_1", "str", description="test col 2"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
@@ -168,8 +168,8 @@ class RawDataTableTest(unittest.TestCase):
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",

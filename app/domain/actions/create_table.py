@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import astropy.io.votable.ucd as ucd
 import regex
 from astropy import units
 from astroquery import nasa_ads as ads
@@ -87,11 +88,15 @@ def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -
             except ValueError:
                 raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
 
+        if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=True):
+            raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
+
         result.append(
             data_model.ColumnDescription(
                 name=col.name,
                 data_type=mapping.type_map[data_type],
                 unit=unit,
+                ucd=col.ucd,
                 description=col.description,
             )
         )

@@ -78,45 +78,47 @@ class MappingTest(unittest.TestCase):
         [
             param(
                 "simple column",
-                [domain_model.ColumnDescription("name", "str", "m / s", "description")],
+                [
+                    domain_model.ColumnDescription(
+                        "name", "str", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                    )
+                ],
                 [
                     internal_id_column,
-                    data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
+                    data_model.ColumnDescription(
+                        "name", "text", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                    ),
                 ],
             ),
             param(
                 "wrong type",
-                [domain_model.ColumnDescription("name", "obscure_type", unit="m / s", description="description")],
+                [domain_model.ColumnDescription("name", "obscure_type", unit="m / s")],
                 err_substr="unknown type of data",
             ),
             param(
                 "wrong unit",
-                [domain_model.ColumnDescription("name", "str", "wrong", "description")],
+                [domain_model.ColumnDescription("name", "str", unit="wrong")],
                 err_substr="unknown unit",
             ),
             param(
                 "unit is None",
-                [domain_model.ColumnDescription("name", "str", None, "description")],
-                [
-                    internal_id_column,
-                    data_model.ColumnDescription("name", "text", unit=None, description="description"),
-                ],
+                [domain_model.ColumnDescription("name", "str")],
+                [internal_id_column, data_model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
-                [domain_model.ColumnDescription("name", "str", "m     /       s", "description")],
-                [
-                    internal_id_column,
-                    data_model.ColumnDescription("name", "text", unit="m / s", description="description"),
-                ],
+                [domain_model.ColumnDescription("name", "str", unit="m     /       s")],
+                [internal_id_column, data_model.ColumnDescription("name", "text", unit="m / s")],
             ),
             param(
                 "data type has extra spaces",
-                [domain_model.ColumnDescription("name", "   str    ", None, "description")],
-                [
-                    internal_id_column,
-                    data_model.ColumnDescription("name", "text", unit=None, description="description"),
-                ],
+                [domain_model.ColumnDescription("name", "   str    ")],
+                [internal_id_column, data_model.ColumnDescription("name", "text", unit=None)],
+            ),
+            param(
+                "invalid ucd",
+                [domain_model.ColumnDescription("name", "str", ucd="totally invalid ucd")],
+                err_substr="invalid or unknown UCD",
             ),
         ],
     )
