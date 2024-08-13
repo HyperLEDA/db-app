@@ -506,6 +506,11 @@
             "description": "Unit of the data",
             "example": "m/s"
           },
+          "ucd": {
+            "type": "string",
+            "description": "Unified Content Descriptor for the column (UCD1+)",
+            "example": "pos.eq.ra"
+          },
           "description": {
             "type": "string",
             "default": "",
@@ -515,6 +520,7 @@
         "required": [
           "data_type",
           "name",
+          "ucd",
           "unit"
         ]
       },
