@@ -3,14 +3,23 @@ import numpy as np
 TYPE_TEXT = "text"
 TYPE_INTEGER = "integer"
 TYPE_DOUBLE_PRECISION = "double precision"
+TYPE_BIT = "bit"
+TYPE_TIMESTAMP = "timestamp without time zone"
 
 type_map = {
     "str": TYPE_TEXT,
     "string": TYPE_TEXT,
+    "character varying": TYPE_TEXT,
+    "character": TYPE_TEXT,
     "int": TYPE_INTEGER,
     "integer": TYPE_INTEGER,
+    "smallint": TYPE_INTEGER,
     "float": TYPE_DOUBLE_PRECISION,
     "double": TYPE_DOUBLE_PRECISION,
+    "double precision": TYPE_DOUBLE_PRECISION,
+    "real": TYPE_DOUBLE_PRECISION,
+    "bit": TYPE_BIT,
+    "timestamp without time zone": TYPE_TIMESTAMP,
 }
 
 
