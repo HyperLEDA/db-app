@@ -519,9 +519,7 @@
         },
         "required": [
           "data_type",
-          "name",
-          "ucd",
-          "unit"
+          "name"
         ]
       },
       "CreateTableRequestSchema": {
