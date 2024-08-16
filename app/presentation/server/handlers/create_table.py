@@ -12,10 +12,8 @@ from app.presentation.server.handlers import common
 class ColumnDescriptionSchema(Schema):
     name = fields.Str(required=True, description="Name of the column. Should not equal `hyperleda_internal_id`.")
     data_type = fields.Str(required=True, description="Type of data", validate=validate.OneOf(mapping.type_map.keys()))
-    unit = fields.Str(required=True, description="Unit of the data", example="m/s")
-    ucd = fields.Str(
-        required=True, description="Unified Content Descriptor for the column (UCD1+)", example="pos.eq.ra"
-    )
+    unit = fields.Str(description="Unit of the data", example="m/s")
+    ucd = fields.Str(description="Unified Content Descriptor for the column (UCD1+)", example="pos.eq.ra")
     description = fields.Str(load_default="", description="Human-readable description of the column")
 
     @post_load
