@@ -494,10 +494,17 @@
             "enum": [
               "str",
               "string",
+              "character varying",
+              "character",
               "int",
               "integer",
+              "smallint",
               "float",
-              "double"
+              "double",
+              "double precision",
+              "real",
+              "bit",
+              "timestamp without time zone"
             ],
             "description": "Type of data"
           },
