@@ -356,7 +356,12 @@
             "minimum": 1500,
             "description": "Year of the publication"
           }
-        }
+        },
+        "required": [
+          "authors",
+          "title",
+          "year"
+        ]
       },
       "CreateSourceResponseSchema": {
         "type": "object",
@@ -511,17 +516,20 @@
           "unit": {
             "type": "string",
             "description": "Unit of the data",
-            "example": "m/s"
+            "example": "m/s",
+            "nullable": true
           },
           "ucd": {
             "type": "string",
             "description": "Unified Content Descriptor for the column (UCD1+)",
-            "example": "pos.eq.ra"
+            "example": "pos.eq.ra",
+            "nullable": true
           },
           "description": {
             "type": "string",
             "default": "",
-            "description": "Human-readable description of the column"
+            "description": "Human-readable description of the column",
+            "nullable": true
           }
         },
         "required": [
@@ -555,14 +563,17 @@
               "regular",
               "reprocessing",
               "preliminary",
-              "compilation"
+              "compilation",
+              null
             ],
-            "description": "Type of the data in the table"
+            "description": "Type of the data in the table",
+            "nullable": true
           },
           "description": {
             "type": "string",
             "default": "",
-            "description": "Human-readable description of the table"
+            "description": "Human-readable description of the table",
+            "nullable": true
           }
         },
         "required": [
