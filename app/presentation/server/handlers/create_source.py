@@ -9,9 +9,9 @@ from app.presentation.server.handlers import common
 
 
 class CreateSourceRequestSchema(Schema):
-    title = fields.Str(description="Title of publication")
-    authors = fields.List(fields.Str, description="List of authors")
-    year = fields.Int(description="Year of the publication", validate=validate.Range(1500))
+    title = fields.Str(required=True, description="Title of publication")
+    authors = fields.List(fields.Str, required=True, description="List of authors")
+    year = fields.Int(required=True, description="Year of the publication", validate=validate.Range(1500))
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateSourceRequest:

@@ -12,9 +12,11 @@ from app.presentation.server.handlers import common
 class ColumnDescriptionSchema(Schema):
     name = fields.Str(required=True, description="Name of the column. Should not equal `hyperleda_internal_id`.")
     data_type = fields.Str(required=True, description="Type of data", validate=validate.OneOf(mapping.type_map.keys()))
-    unit = fields.Str(description="Unit of the data", example="m/s")
-    ucd = fields.Str(description="Unified Content Descriptor for the column (UCD1+)", example="pos.eq.ra")
-    description = fields.Str(load_default="", description="Human-readable description of the column")
+    unit = fields.Str(allow_none=True, description="Unit of the data", example="m/s")
+    ucd = fields.Str(
+        allow_none=True, description="Unified Content Descriptor for the column (UCD1+)", example="pos.eq.ra"
+    )
+    description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the column")
 
     @post_load
     def make(self, data, **kwargs) -> model.ColumnDescription:
@@ -32,11 +34,12 @@ class CreateTableRequestSchema(Schema):
         example="2024NatAs.tmp..120M",
     )
     datatype = fields.Str(
+        allow_none=True,
         load_default="regular",
         description="Type of the data in the table",
         validate=validate.OneOf([e.value for e in enums.DataType]),
     )
-    description = fields.Str(load_default="", description="Human-readable description of the table")
+    description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the table")
 
     @post_load
     def make(self, data, **kwargs) -> model.CreateTableRequest:
