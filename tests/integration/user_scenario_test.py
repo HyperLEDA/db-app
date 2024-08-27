@@ -15,7 +15,7 @@ from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.params.layer_0_query_param import Layer0QueryParam
 from app.lib import testing
-from tests.domain.util import MockedCrossIdentifyUseCase
+from tests.domain.util import noop_cross_identify_function
 
 
 class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
@@ -29,7 +29,9 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
 
         layer0_repo_impl = Layer0RepositoryImpl(layer0_repo, common_repo)
         transformation_use_case = usecases.TransformationO1UseCase(
-            MockedCrossIdentifyUseCase(), lambda it: PostgreSimultaneousDataProvider(it, tmp_repo)
+            None,
+            noop_cross_identify_function,
+            lambda it: PostgreSimultaneousDataProvider(it, tmp_repo),
         )
         cls._transaction_use_case: usecases.Transaction01UseCase = usecases.Transaction01UseCase(
             transformation_use_case

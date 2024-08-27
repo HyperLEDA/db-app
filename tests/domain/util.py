@@ -8,7 +8,7 @@ from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDa
 from app.domain.model.params import CrossIdentificationParam
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
-from app.domain.usecases import CrossIdentifyUseCase
+from app.domain.repositories.layer_2_repository import Layer2Repository
 
 
 def make_points(
@@ -27,14 +27,10 @@ def make_points(
     return all_pts, inside
 
 
-class MockedCrossIdentifyUseCase(CrossIdentifyUseCase):
-    def __init__(self):
-        pass
-
-    def invoke(
-        self,
-        param: CrossIdentificationParam,
-        simultaneous_data_provider: CrossIdSimultaneousDataProvider,
-        user_param: CrossIdentificationUserParam,
-    ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
-        return result.CrossIdentifyResult(None, None)
+def noop_cross_identify_function(
+    layer2_repo: Layer2Repository,
+    param: CrossIdentificationParam,
+    simultaneous_data_provider: CrossIdSimultaneousDataProvider,
+    user_param: CrossIdentificationUserParam,
+) -> result.CrossIdentifyResult:
+    return result.CrossIdentifyResult(None, None)

@@ -4,6 +4,7 @@ from uuid import uuid4
 import astropy.units as u
 from astropy.coordinates import ICRS, angular_separation
 
+from app.domain.actions.table_process import DEFAULT_INNER_RADIUS, cross_identification
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params import CrossIdentificationParam
@@ -21,8 +22,6 @@ from app.domain.model.params.cross_identification_result import (
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
-from app.domain.usecases import CrossIdentifyUseCase
-from app.domain.usecases.cross_identify_use_case import DEFAULT_INNER_RADIUS
 from tests.domain.util import make_points
 
 
@@ -86,9 +85,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)])
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(target, data_provider, CrossIdentificationUserParam(None, None))
+        res = cross_identification(repo, target, data_provider, CrossIdentificationUserParam(None, None))
 
         self.assertIsNone(res.fail, "Cross identification must pass")
         self.assertEqual(res.result, None)
@@ -112,10 +109,11 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target_id, target, None, None)]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
-            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
+        res = cross_identification(
+            repo,
+            CrossIdentificationParam(None, None, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
 
         self.assertIsNone(res.fail, "Cross identification must pass")
@@ -141,10 +139,11 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target_id, target, None, None)]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
-            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(r1, 1.1 * r1)
+        res = cross_identification(
+            repo,
+            CrossIdentificationParam(None, None, center),
+            data_provider,
+            CrossIdentificationUserParam(r1, 1.1 * r1),
         )
 
         self.assertIsNone(res.fail, "Cross identification must pass")
@@ -171,10 +170,11 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target1_id, target1, None, None), _make_l2(target2_id, target2, None, None)]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
-            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
+        res = cross_identification(
+            repo,
+            CrossIdentificationParam(None, None, center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
         self.assertIsInstance(
             res.fail,
@@ -193,9 +193,8 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target_id, all_pts[-1].coordinates, target_names, target_names[0])]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(target_names[:1], target_names[0], None),
             SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
@@ -212,10 +211,9 @@ class CrossIdentifyTest(unittest.TestCase):
             [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts[:-1])]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
         all_names, name = _make_names(1)
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(all_names, name, None),
             SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
@@ -231,10 +229,9 @@ class CrossIdentifyTest(unittest.TestCase):
         all_in_repo = [_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts[:-1])]
         repo = MockedLayer2Repository(all_in_repo)
 
-        use_case = CrossIdentifyUseCase(repo)
-
         obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(obj_names, obj_names[0], None),
             SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
@@ -265,9 +262,8 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target_id, target, [target_name, uuid4().hex, uuid4().hex], target_name)]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam([target_name], target_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -292,10 +288,11 @@ class CrossIdentifyTest(unittest.TestCase):
 
         repo = MockedLayer2Repository([_make_l2(i, it.coordinates, *_make_names(1)) for i, it in enumerate(outside)])
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
-            CrossIdentificationParam(*_make_names(1), center), data_provider, CrossIdentificationUserParam(None, None)
+        res = cross_identification(
+            repo,
+            CrossIdentificationParam(*_make_names(1), center),
+            data_provider,
+            CrossIdentificationUserParam(None, None),
         )
 
         self.assertIsNone(res.fail, "Cross identification must pass")
@@ -327,9 +324,8 @@ class CrossIdentifyTest(unittest.TestCase):
             ]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam([target2_name], target2_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -368,10 +364,9 @@ class CrossIdentifyTest(unittest.TestCase):
         ]
         repo = MockedLayer2Repository(all_in_repo)
 
-        use_case = CrossIdentifyUseCase(repo)
-
         obj_names = [all_in_repo[-1].names[0], all_in_repo[-2].names[1]]
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(obj_names, obj_names[0], center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -404,10 +399,9 @@ class CrossIdentifyTest(unittest.TestCase):
         all_in_repo = [_make_l2(i, it.coordinates, *_make_names(1)) for i, it in enumerate(outside)]
         repo = MockedLayer2Repository(all_in_repo)
 
-        use_case = CrossIdentifyUseCase(repo)
-
         obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(obj_names, obj_names[0], center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -443,10 +437,9 @@ class CrossIdentifyTest(unittest.TestCase):
             + [_make_l2(target_id, target, *_make_names(3))]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
         obj_names, obj_name = outside_proc[-1].names, outside_proc[-1].primary_name
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(obj_names, obj_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -483,9 +476,8 @@ class CrossIdentifyTest(unittest.TestCase):
             ]
         )
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam([target2_name], target2_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -505,9 +497,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         repo = MockedLayer2Repository([_make_l2(i, it.coordinates, *_make_names(3)) for i, it in enumerate(all_pts)])
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
+        res = cross_identification(
+            repo,
             CrossIdentificationParam(target1.names + target2.names, target2.primary_name, None),
             data_provider,
             CrossIdentificationUserParam(None, None),
@@ -532,10 +523,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)])
 
-        use_case = CrossIdentifyUseCase(repo)
-
-        res = use_case.invoke(
-            CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
+        res = cross_identification(
+            repo, CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
         self.assertIsInstance(res.fail, CrossIdentificationDuplicateException)
         self.assertIsInstance(res.fail.db_cross_id_result, CrossIdentifyResult)
