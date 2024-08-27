@@ -5,6 +5,7 @@ from app.domain.actions.get_source import get_source
 from app.domain.actions.get_task_info import get_task_info
 from app.domain.actions.login import login
 from app.domain.actions.start_task import start_task
+from app.domain.actions.table_process import table_process
 
 __all__ = [
     "add_data",
@@ -14,4 +15,5 @@ __all__ = [
     "get_task_info",
     "login",
     "start_task",
+    "table_process",
 ]
