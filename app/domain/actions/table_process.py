@@ -3,7 +3,10 @@ from astropy.coordinates import ICRS, Angle
 
 from app import commands
 from app.domain import model as domain_model
-from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
+from app.domain.cross_id_simultaneous_data_provider import (
+    CrossIdSimultaneousDataProvider,
+    # PostgreSimultaneousDataProvider,
+)
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
@@ -30,8 +33,8 @@ def cross_identification(
     :param user_param: User defined parameters for cross identification
     :return: Result, containing identification result or fail description
 
-    Finds an object by name or coordinates and returns it's id, or creates a new id, if it's a new object.
-    If there is a collision, returns this collision description
+    Finds an object by name or coordinates and returns its id, or creates a new id, if it is a new object.
+    If there is a collision, returns this collision description.
     """
     if param.names is None and param.coordinates is None:
         return result.CrossIdentifyResult(None, result.CrossIdentificationEmptyException())

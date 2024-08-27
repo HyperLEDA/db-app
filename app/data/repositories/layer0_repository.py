@@ -146,11 +146,22 @@ class Layer0Repository(interface.Layer0Repository):
         )
 
     def fetch_raw_data(
-        self, table_id: int, row_ids: list[str] | None = None, tx: psycopg.Transaction | None = None
+        self,
+        table_id: int,
+        columns: list[str] | None = None,
+        order_column: str | None = None,
+        order_direction: str = "asc",
+        offset: int = 0,
+        limit: int | None = None,
+        tx: psycopg.Transaction | None = None,
     ) -> model.Layer0RawData:
         """
-        :param table_id: Id of the raw table
-        :param row_ids: If provided, select only given rows
+        :param table_id: ID of the raw table
+        :param columns: select only given columns
+        :param order_column: orders result by a provided column
+        :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
+        :param offset: allows to retrieve rows starting from the `offset` row
+        :param limit: allows to retrieve no more than `limit` rows
         :param tx: Transaction
         :return: Layer0RawData
         """
@@ -160,9 +171,22 @@ class Layer0Repository(interface.Layer0Repository):
         if table_name is None:
             raise DatabaseError(f"unable to fetch table with id {table_id}")
 
-        query = template.render_query(template.FETCH_RAWDATA, schema=RAWDATA_SCHEMA, table=table_name, rows=row_ids)
+        columns_str = ",".join(columns or ["*"])
 
-        rows = self._storage.query(query)
+        params = []
+        query = f"SELECT {columns_str} FROM {RAWDATA_SCHEMA}.{table_name}\n"
+
+        if order_column is not None:
+            query += f"ORDER BY {order_column} {order_direction}\n"
+
+        query += "OFFSET %s\n"
+        params.append(offset)
+
+        if limit is not None:
+            query += "LIMIT %s\n"
+            params.append(limit)
+
+        rows = self._storage.query(query, params=params)
         return model.Layer0RawData(table_id, DataFrame(rows))
 
     def fetch_metadata(self, table_id: int, tx: psycopg.Transaction | None = None) -> Layer0Creation:

@@ -105,16 +105,6 @@ WHERE
     AND table_name = %s
 """
 
-FETCH_RAWDATA = """
-SELECT 
-    {% if rows is not none %}
-        {% for row in rows %} {{ row }}{% if not loop.last %},{% endif %} {% endfor %}
-    {% else %}
-        *
-    {% endif %}
-FROM {{ schema }}.{{ table }}
-"""
-
 FETCH_COLUMN_METADATA = """
 SELECT param
 FROM meta.column_info 

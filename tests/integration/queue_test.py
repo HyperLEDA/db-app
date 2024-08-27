@@ -24,6 +24,8 @@ class QueueTest(unittest.TestCase):
         cls.depot = commands.Depot(
             repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
             repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
+            mock.MagicMock(),
+            mock.MagicMock(),
             repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
             auth.NoopAuthenticator(),
             cls.clients,

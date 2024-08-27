@@ -19,6 +19,8 @@ class AddDataTest(unittest.TestCase):
         depot = commands.Depot(
             self.common_repo_mock,
             self.layer0_repo_mock,
+            mock.MagicMock(),
+            mock.MagicMock(),
             self.queue_repo_mock,
             auth.NoopAuthenticator(),
             self.clients_mock,

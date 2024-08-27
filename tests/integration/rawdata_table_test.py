@@ -31,6 +31,8 @@ class RawDataTableTest(unittest.TestCase):
             common_repo,
             layer0_repo,
             mock.MagicMock(),
+            mock.MagicMock(),
+            mock.MagicMock(),
             auth.NoopAuthenticator(),
             cls.clients,
         )
@@ -202,7 +204,7 @@ class RawDataTableTest(unittest.TestCase):
 
         self.assertTrue(from_db.data.equals(data))
 
-        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id, ["col1"])
+        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
