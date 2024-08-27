@@ -20,11 +20,11 @@ class Layer0RepositoryImpl(Layer0Repository):
             for instance in instances:
                 bibliography = domain_to_data.layer_0_bibliography_mapper(instance)
                 bibliography_id = self._common_repository.create_bibliography(
-                    bibliography.bibcode, bibliography.year, bibliography.author, bibliography.title, tx
+                    bibliography.code, bibliography.year, bibliography.author, bibliography.title, tx
                 )
                 creation = domain_to_data.layer_0_creation_mapper(instance, bibliography_id)
-                table_id = self._data_repository.create_table(creation, tx)
-                raw = domain_to_data.layer_0_raw_mapper(instance, table_id)
+                table_resp = self._data_repository.create_table(creation, tx)
+                raw = domain_to_data.layer_0_raw_mapper(instance, table_resp.table_id)
                 self._data_repository.insert_raw_data(raw, tx)
 
     async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:

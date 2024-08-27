@@ -29,7 +29,7 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> Layer0
         ],
         bibliography_id,
         enums.DataType.REGULAR,
-        domain.meta.name_col,
+        domain.meta.names_descr,
         domain.meta.comment,
     )
 

@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build Docker image
+        run: |
+          GIT_VERSION=$(git rev-parse --short HEAD)
+          docker build . -t ghcr.io/hyperleda/hyperleda:$GIT_VERSION
+          docker save ghcr.io/hyperleda/hyperleda:$GIT_VERSION -o hyperleda_image.tar
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperleda_image
+          path: hyperleda_image.tar
+
+  push-docker:
+    name: Push Docker image to GitHub Packages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hyperleda_image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i hyperleda_image.tar
+
+      - name: Push Docker image to GitHub Packages
+        run: |
+          GIT_VERSION=$(git rev-parse --short HEAD)
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker push ghcr.io/hyperleda/hyperleda:$GIT_VERSION
+          docker tag ghcr.io/hyperleda/hyperleda:$GIT_VERSION ghcr.io/hyperleda/hyperleda:latest
+          docker push ghcr.io/hyperleda/hyperleda:latest
+
+  deploy-test:
+    name: Deploy to test environment
+    needs: push-docker
+    environment: testing
+    runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.BACKEND_HOST }}
+      BACKEND_USER: ${{ secrets.BACKEND_USER }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Add environments
+        run: |
+          echo "${{ secrets.BACKEND_ENVS }}" >> infra/.env.remote
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add backend to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.BACKEND_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy files to backend
+        run: |
+          cd infra/scripts && ./deploy.sh
+
+      - name: Restart application on backend
+        run: |
+          cd infra/scripts && ./restart.sh

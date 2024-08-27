@@ -1,11 +1,10 @@
-from typing import Any
-
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands
 from app.domain import actions, model
-from app.lib.exceptions import new_validation_error
+from app.lib.web import responses
+from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
 
@@ -30,10 +29,14 @@ class AddDataResponseSchema(Schema):
     pass
 
 
-async def add_data_handler(depot: commands.Depot, r: web.Request) -> Any:
+async def add_data_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Add new raw data to the table
-    description: Inserts new data to the table.
+    description: |
+        Inserts new data to the table.
+
+        Deduplicates the rows based on their contents.
+        If the two rows were identical this method will only insert the last one.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -55,9 +58,9 @@ async def add_data_handler(depot: commands.Depot, r: web.Request) -> Any:
     try:
         request = AddDataRequestSchema().load(request_dict)
     except ValidationError as e:
-        raise new_validation_error(str(e)) from e
+        raise RuleValidationError(str(e)) from e
 
-    return actions.add_data(depot, request)
+    return responses.APIOkResponse(actions.add_data(depot, request))
 
 
 description = common.HandlerDescription(

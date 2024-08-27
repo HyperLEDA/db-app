@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import pandas
+import psycopg
 import structlog
 from pandas import DataFrame
 
@@ -9,7 +10,7 @@ from app import commands
 from app.data import repositories
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.domain import actions, model
-from app.lib import auth, exceptions, testing
+from app.lib import auth, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
@@ -50,13 +51,13 @@ class RawDataTableTest(unittest.TestCase):
             }
         ]
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -67,7 +68,7 @@ class RawDataTableTest(unittest.TestCase):
         actions.add_data(
             self.depot,
             model.AddDataRequest(
-                table_resp.id,
+                table_id=table_resp.id,
                 data=[
                     {"test_col_1": 5.5, "test_col_2": "test data 1"},
                     {"test_col_1": 5.0, "test_col_2": "test data 2"},
@@ -94,13 +95,13 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -135,51 +136,20 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(psycopg.errors.DuplicateColumn):
             _ = actions.create_table(
                 self.depot,
                 model.CreateTableRequest(
                     "test_table",
                     [
-                        model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                        model.ColumnDescription("test_col_1", "str", None, "test col 2"),
+                        model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                        model.ColumnDescription("test_col_1", "str", description="test col 2"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
                     description="",
                 ),
             )
-
-            # TODO: check that status code is 400
-
-    def test_unknown_data_type(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
-                {
-                    "bibcode": "2024arXiv240411942F",
-                    "author": ["test"],
-                    "pubdate": "2020-03-00",
-                    "title": ["test"],
-                }
-            ]
-        )
-
-        with self.assertRaises(exceptions.APIException) as ctx:
-            _ = actions.create_table(
-                self.depot,
-                model.CreateTableRequest(
-                    "test_table",
-                    [
-                        model.ColumnDescription("test_col_1", "totally_real_type", "kpc", "test col 1"),
-                        model.ColumnDescription("test_col_2", "str", None, "test col 2"),
-                    ],
-                    bibcode="2024arXiv240411942F",
-                    datatype="regular",
-                    description="",
-                ),
-            )
-
-            self.assertEqual(ctx.exception.status, 400)
 
     def test_add_data_to_unknown_column(self):
         self.clients.ads.query_simple = mock.MagicMock(
@@ -193,13 +163,13 @@ class RawDataTableTest(unittest.TestCase):
             ]
         )
 
-        table_resp = actions.create_table(
+        table_resp, _ = actions.create_table(
             self.depot,
             model.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
+                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -207,7 +177,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        with self.assertRaises(exceptions.APIException):
+        with self.assertRaises(psycopg.errors.UndefinedColumn):
             actions.add_data(
                 self.depot,
                 model.AddDataRequest(
@@ -216,48 +186,10 @@ class RawDataTableTest(unittest.TestCase):
                 ),
             )
 
-    def test_duplicate_table(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
-                {
-                    "bibcode": "2024arXiv240411942F",
-                    "author": ["test"],
-                    "pubdate": "2020-03-00",
-                    "title": ["test"],
-                }
-            ]
-        )
-
-        _ = actions.create_table(
-            self.depot,
-            model.CreateTableRequest(
-                "test_table",
-                [
-                    model.ColumnDescription("test_col_1", "float", "kpc", "test col 1"),
-                    model.ColumnDescription("test_col_2", "str", None, "test col 2"),
-                ],
-                bibcode="2024arXiv240411942F",
-                datatype="regular",
-                description="",
-            ),
-        )
-
-        with self.assertRaises(exceptions.APIException):
-            _ = actions.create_table(
-                self.depot,
-                model.CreateTableRequest(
-                    "test_table",
-                    [model.ColumnDescription("test_col_1", "float", "kpc", "test col 1")],
-                    bibcode="2024arXiv240411942F",
-                    datatype="regular",
-                    description="",
-                ),
-            )
-
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_id = self._layer0_repo.create_table(
+        table_resp = self._layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
@@ -265,12 +197,12 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self._layer0_repo.insert_raw_data(Layer0RawData(table_id, data))
-        from_db = self._layer0_repo.fetch_raw_data(table_id)
+        self._layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
+        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id)
 
         self.assertTrue(from_db.data.equals(data))
 
-        from_db = self._layer0_repo.fetch_raw_data(table_id, ["col1"])
+        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id, ["col1"])
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
@@ -282,8 +214,8 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_id = self._layer0_repo.create_table(expected_creation)
+        table_resp = self._layer0_repo.create_table(expected_creation)
 
-        from_db = self._layer0_repo.fetch_metadata(table_id)
+        from_db = self._layer0_repo.fetch_metadata(table_resp.table_id)
 
         self.assertEqual(expected_creation, from_db)

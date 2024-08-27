@@ -5,6 +5,12 @@ PYTHON := python
 all: test
 
 ## General targets
+
+recreate-venv:
+	rm -rf .venv
+	python3.10 -m venv .venv
+	. .venv/bin/activate && make install
+
 install:
 	$(PYTHON) -m pip install -r requirements.txt
 
@@ -90,3 +96,15 @@ lint-ruff:
 
 lint-ruff-unsafe:
 	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
+
+## Deploy
+
+GIT_VERSION = `git rev-parse --short master`
+
+image-build:
+	docker build . -t ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
+	docker tag ghcr.io/hyperleda/hyperleda:$(GIT_VERSION) ghcr.io/hyperleda/hyperleda:latest
+
+image-push:
+	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
+	docker push ghcr.io/hyperleda/hyperleda:latest

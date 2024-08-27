@@ -1,11 +1,10 @@
-from typing import Any
-
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands
 from app.domain import actions, model
-from app.lib.exceptions import new_validation_error
+from app.lib.web import responses
+from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
 
@@ -27,7 +26,7 @@ class GetSourceResponseSchema(Schema):
     year = fields.Int(description="Year of the publication")
 
 
-async def get_source_handler(depot: commands.Depot, r: web.Request) -> Any:
+async def get_source_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get information about source
     description: Retrieves information about the source using its id
@@ -48,9 +47,9 @@ async def get_source_handler(depot: commands.Depot, r: web.Request) -> Any:
     try:
         request = GetSourceRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
-        raise new_validation_error(str(e)) from e
+        raise RuleValidationError(str(e)) from e
 
-    return actions.get_source(depot, request)
+    return responses.APIOkResponse(actions.get_source(depot, request))
 
 
 description = common.HandlerDescription(

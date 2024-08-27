@@ -93,7 +93,7 @@ ORDER BY
        WHEN d.design~'^DDO' THEN 4
        WHEN d.design~'^UGC' THEN 5
        WHEN d.design~'^PGC' and d.pgc<1000000 THEN 6
-       WHEN b.bibcode IS NOT NULL THEN b.year-1800
+       WHEN b.code IS NOT NULL THEN b.year-1800
        ELSE b.year
   END
 ;

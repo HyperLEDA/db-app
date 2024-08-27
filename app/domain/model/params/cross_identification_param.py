@@ -1,15 +1,16 @@
 from dataclasses import dataclass
-from typing import Optional
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import ICRS
 
 
 @dataclass
 class CrossIdentificationParam:
     """
-    :param name: Well known name of the object
+    :param names: All names, provided by source
+    :param primary_name: The name, that is provided as primary by author of transaction
     :param coordinates: Sky coordinates of the object
     """
 
-    name: Optional[str]
-    coordinates: Optional[SkyCoord]
+    names: list[str] | None
+    primary_name: str | None
+    coordinates: ICRS | None

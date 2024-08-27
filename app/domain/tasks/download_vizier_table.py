@@ -62,7 +62,8 @@ def download_vizier_table(
     layer0 = repositories.Layer0Repository(storage, logger)
     table_name = construct_table_name(params.table_id)
 
-    if layer0.table_exists(RAWDATA_SCHEMA, table_name):
+    table_id, ok = layer0.get_table_id(table_name)
+    if ok:
         logger.warn(f"table '{RAWDATA_SCHEMA}.{table_name}' already exists, skipping download")
         return
 
@@ -138,14 +139,14 @@ def download_vizier_table(
 
         # TODO: parse real bibliographic data from vizier response
         bib_id = common.create_bibliography(
-            bibcode="2024arXiv240403522G",
+            code="2024arXiv240403522G",
             year=2024,
             authors=["Pović, Mirjana"],
             title="The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",
             tx=tx,
         )
 
-        table_id = layer0.create_table(
+        table_resp = layer0.create_table(
             model.Layer0Creation(
                 table_name,
                 fields,
@@ -157,4 +158,4 @@ def download_vizier_table(
             tx=tx,
         )
 
-        layer0.insert_raw_data(model.Layer0RawData(table_id, catalog.to_pandas()), tx)
+        layer0.insert_raw_data(model.Layer0RawData(table_resp.table_id, catalog.to_pandas()), tx)

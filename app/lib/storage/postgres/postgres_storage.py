@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 import psycopg
@@ -6,10 +6,10 @@ import structlog
 from psycopg import rows
 from psycopg.types import enum, numeric
 
-from app.lib.exceptions import new_database_error, new_internal_error
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
 from app.lib.storage.postgres import transaction as storageutils
+from app.lib.web.errors import DatabaseError, InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -52,7 +52,7 @@ class PgStorage:
     def connect(self) -> None:
         self._connection = psycopg.connect(self._config.get_dsn(), row_factory=rows.dict_row, autocommit=True)
         if self._connection is None:
-            raise new_internal_error("unable to create database connection")
+            raise InternalError("unable to create database connection")
 
         self._logger.debug("connecting to Postgres", endpoint=self._config.endpoint, port=self._config.port)
 
@@ -100,10 +100,21 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
+            cursor.execute(query, params)
+
+    def execute_many(self, query: str, params: Sequence[Sequence[Any]], tx: psycopg.Transaction | None = None):
+        if self._connection is None:
+            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
+
+        log.debug("SQL many", query=query.replace("\n", " "), args=params)
+
+        cursor = self._connection.cursor()
+
+        with storageutils.get_or_create_transaction(self._connection, tx):
             try:
-                cursor.execute(query, params)
+                cursor.executemany(query, params)
             except psycopg.Error as e:
-                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
+                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
 
     def query(
         self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
@@ -118,10 +129,7 @@ class PgStorage:
         cursor = self._connection.cursor()
 
         with storageutils.get_or_create_transaction(self._connection, tx):
-            try:
-                cursor.execute(query, params)
-            except psycopg.Error as e:
-                raise new_database_error(f"{type(e).__name__}: {str(e)}") from e
+            cursor.execute(query, params)
 
             return cursor.fetchall()
 

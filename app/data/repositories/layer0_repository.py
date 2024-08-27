@@ -8,9 +8,8 @@ from pandas import DataFrame
 from app.data import interface, model, template
 from app.data.model import ColumnDescription, Layer0Creation
 from app.data.model.layer0 import CoordinatePart
-from app.lib import exceptions
-from app.lib.exceptions import new_database_error
 from app.lib.storage import postgres
+from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
 
@@ -24,17 +23,23 @@ class Layer0Repository(interface.Layer0Repository):
     def with_tx(self) -> psycopg.Transaction:
         return self._storage.with_tx()
 
-    def create_table(self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None) -> int:
+    def create_table(
+        self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None
+    ) -> model.Layer0CreationResponse:
         """
-        Creates table, writes metadata and returns string that identifies the table for
-        further requests.
+        Creates table, writes metadata and returns integer that identifies the table for
+        further requests. If table already exists, returns its ID instead of creating a new one.
         """
         # TODO: use tx or new transaction here
         fields = []
         comment_queries = []
 
         for column_descr in data.column_descriptions:
-            fields.append((column_descr.name, column_descr.data_type))
+            constraint = ""
+            if column_descr.is_primary_key:
+                constraint = "PRIMARY KEY"
+
+            fields.append((column_descr.name, column_descr.data_type, constraint))
             col_params = {
                 "description": column_descr.description,
                 "unit": column_descr.unit,
@@ -57,6 +62,10 @@ class Layer0Repository(interface.Layer0Repository):
                     params=json.dumps(col_params),
                 )
             )
+
+        table_id, ok = self.get_table_id(data.table_name)
+        if ok:
+            return model.Layer0CreationResponse(table_id, False)
 
         row = self._storage.query_one(
             template.INSERT_TABLE_REGISTRY_ITEM,
@@ -88,7 +97,7 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        return table_id
+        return model.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(
         self,
@@ -109,7 +118,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {data.table_id}")
+            raise DatabaseError(f"unable to fetch table with id {data.table_id}")
 
         params = []
         objects = []
@@ -149,7 +158,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {table_id}")
+            raise DatabaseError(f"unable to fetch table with id {table_id}")
 
         query = template.render_query(template.FETCH_RAWDATA, schema=RAWDATA_SCHEMA, table=table_name, rows=row_ids)
 
@@ -161,7 +170,7 @@ class Layer0Repository(interface.Layer0Repository):
         table_name = row.get("table_name")
 
         if table_name is None:
-            raise new_database_error(f"unable to fetch table with id {table_id}")
+            raise DatabaseError(f"unable to fetch table with id {table_id}")
 
         rows = self._storage.query(template.GET_COLUMN_NAMES, params=[RAWDATA_SCHEMA, table_name])
         column_names = [it["column_name"] for it in rows]
@@ -173,7 +182,7 @@ class Layer0Repository(interface.Layer0Repository):
             )
 
             if param is None:
-                raise new_database_error(f"unable to metadata for table {table_name}, column {column_name}")
+                raise DatabaseError(f"unable to metadata for table {table_name}, column {column_name}")
 
             coordinate_part = None
             if param["param"].get("coordinate_part") is not None:
@@ -187,10 +196,10 @@ class Layer0Repository(interface.Layer0Repository):
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    param["param"]["unit"],
-                    param["param"]["description"],
-                    param["param"].get("ucd"),
-                    coordinate_part,
+                    unit=param["param"]["unit"],
+                    description=param["param"]["description"],
+                    ucd=param["param"].get("ucd"),
+                    coordinate_part=coordinate_part,
                 )
             )
 
@@ -198,7 +207,7 @@ class Layer0Repository(interface.Layer0Repository):
         registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name], tx=tx)
 
         if param is None:
-            raise new_database_error(f"unable to metadata for table {table_name}")
+            raise DatabaseError(f"unable to metadata for table {table_name}")
 
         return Layer0Creation(
             table_name,
@@ -209,13 +218,16 @@ class Layer0Repository(interface.Layer0Repository):
             param["param"].get("description"),
         )
 
-    def table_exists(self, schema: str, table_name: str) -> bool:
+    def get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
-            self._storage.exec(f"SELECT 1 FROM {schema}.{table_name}")
-        except exceptions.APIException:
-            return False
+            row = self._storage.query_one(
+                f"SELECT id FROM {RAWDATA_SCHEMA}.tables WHERE table_name = %s",
+                params=[table_name],
+            )
+        except RuntimeError:
+            return 0, False
 
-        return True
+        return row["id"], True
 
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")

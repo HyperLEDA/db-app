@@ -7,6 +7,7 @@ from pandas import DataFrame
 from app.data import repositories
 from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain import usecases
+from app.domain.cross_id_simultaneous_data_provider import PostgreSimultaneousDataProvider
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -14,14 +15,7 @@ from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.params.layer_0_query_param import Layer0QueryParam
 from app.lib import testing
-
-
-class MockedCrossIdentifyUseCase(usecases.CrossIdentifyUseCase):
-    def __init__(self):
-        super().__init__(None)
-
-    async def invoke(self, param):
-        return 0
+from tests.domain.util import MockedCrossIdentifyUseCase
 
 
 class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
@@ -31,9 +25,12 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
 
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        tmp_repo = repositories.TmpDataRepositoryImpl(cls.pg_storage.get_storage())
 
         layer0_repo_impl = Layer0RepositoryImpl(layer0_repo, common_repo)
-        transformation_use_case = usecases.TransformationO1UseCase(MockedCrossIdentifyUseCase())
+        transformation_use_case = usecases.TransformationO1UseCase(
+            MockedCrossIdentifyUseCase(), lambda it: PostgreSimultaneousDataProvider(it, tmp_repo)
+        )
         cls._transaction_use_case: usecases.Transaction01UseCase = usecases.Transaction01UseCase(
             transformation_use_case
         )
@@ -54,7 +51,7 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
                     NoErrorValue("path;ucd", "dist_col", "km"),
                 ],
                 coordinate_descr=ICRSDescrStr("col_ra", "col_dec"),
-                name_col=None,
+                names_descr=None,
                 dataset=None,
                 comment=None,
                 biblio=Biblio(None, "2024arXiv240411942G", ["gafsrf"], 1999, "t"),

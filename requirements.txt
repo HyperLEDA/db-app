@@ -11,11 +11,13 @@ marshmallow
 mypy
 mkdocs
 mkdocs-material
-mkdocs-swagger-ui-tag
+mkdocs-section-index
+neoteroi-mkdocs
 pandas
 pandas-stubs
 parameterized
 psycopg[binary,pool]
+pymdown-extensions
 pytest
 pyyaml
 redis

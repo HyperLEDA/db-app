@@ -6,8 +6,9 @@ from typing import Any
 class ColumnDescription:
     name: str
     data_type: str
-    unit: str | None
-    description: str
+    ucd: str | None = None
+    unit: str | None = None
+    description: str | None = None
 
 
 @dataclass

@@ -8,13 +8,13 @@ def render_query(query_string: str, **kwargs) -> str:
 
 
 GET_SOURCE_BY_CODE = """
-SELECT id, bibcode, year, author, title FROM common.bib
-WHERE bibcode = %s
+SELECT id, code, year, author, title FROM common.bib
+WHERE code = %s
 LIMIT 1
 """
 
 GET_SOURCE_BY_ID = """
-SELECT id, bibcode, year, author, title FROM common.bib
+SELECT id, code, year, author, title FROM common.bib
 WHERE id = %s
 LIMIT 1
 """
@@ -25,6 +25,14 @@ SELECT id, task_name, payload, user_id, status, start_time, end_time, message FR
 
 CREATE_TABLE = """
 CREATE TABLE {{ schema }}.{{ name }} (
+    {% for field_name, field_type, constraint in fields %}
+    {{field_name}} {{field_type}} {{constraint}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+)
+"""
+
+CREATE_TMP_TABLE = """
+CREATE TEMPORARY TABLE {{ name }} (
     {% for field_name, field_type in fields %}
     {{field_name}} {{field_type}}{% if not loop.last %},{% endif %}
     {% endfor %}
@@ -53,12 +61,41 @@ INSERT INTO
     ({% for field_name in fields %}
         {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
     {% endfor %}
+ON CONFLICT DO NOTHING
+"""
+
+INSERT_TMP_RAW_DATA = """
+INSERT INTO 
+    {{ table }} 
+    ({% for field_name in fields %}{{ field_name }}{% if not loop.last %},{% endif %}{% endfor %})
+    VALUES ({% for _ in fields %}%s{% if not loop.last %},{% endif %} {% endfor %})
+"""
+
+GET_TMP_DATA_INSIDE = """
+SELECT idx FROM {{ table_name }}
+WHERE
+    dec >= {{ dec0 - delta }} AND dec <= {{ dec0 + delta }} AND
+    sphdist(ra, dec, {{ ra0 }}, {{ dec0 }}) <= {{ delta }}
+"""
+
+GET_TMP_DATA_BY_NAME = """
+SELECT idx
+FROM {{ table_name }}
+WHERE
+    name && array[{% for n in all_names %}'{{ n }}'{% if not loop.last %},{% endif %}{% endfor %}]
 """
 
 GET_RAWDATA_TABLE = """
 SELECT table_name FROM rawdata.tables
 WHERE id = %s
 """
+
+BUILD_INDEX = """
+CREATE INDEX {{ index_name }} 
+ON {{ table_name }}({% for col_name in columns %}{{ col_name }}{% if not loop.last %},{% endif %}{% endfor %})
+"""
+
+DROP_TABLE = """DROP TABLE {{ table_name }}"""
 
 GET_COLUMN_NAMES = """
 SELECT column_name
