@@ -508,7 +508,6 @@
               "double",
               "double precision",
               "real",
-              "bit",
               "timestamp without time zone"
             ],
             "description": "Type of data"
