@@ -24,32 +24,32 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseCoordinates,
     ParseValues,
 )
-from app.domain.usecases import CrossIdentifyUseCase, TransformationO1UseCase
-from tests.domain.util import MockedCrossIdentifyUseCase
+from app.domain.repositories.layer_2_repository import Layer2Repository
+from app.domain.usecases import TransformationO1UseCase
+from tests.domain.util import noop_cross_identify_function
 
 
-class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
-    def __init__(self, fail_condition: Callable[[CrossIdentificationParam], bool]):
-        self.fail_condition: Callable[[CrossIdentificationParam], bool] = fail_condition
-
-    def invoke(
-        self,
+def get_purposefully_failing_cross_identification_function(fail_condition: Callable[[CrossIdentificationParam], bool]):
+    def func(
+        layer2_repo: Layer2Repository,
         param: CrossIdentificationParam,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
         user_param: CrossIdentificationUserParam,
-    ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
-        if self.fail_condition(param):
+    ) -> result.CrossIdentifyResult:
+        if fail_condition(param):
             return result.CrossIdentifyResult(
                 None, CrossIdentificationCoordCollisionException(param.coordinates, None, None, [])
             )
         return result.CrossIdentifyResult(None, None)
+
+    return func
 
 
 class Transform01Test(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         super().setUp()
         self.transformation_use_case = TransformationO1UseCase(
-            MockedCrossIdentifyUseCase(), lambda it: SimpleSimultaneousDataProvider(it)
+            None, noop_cross_identify_function, lambda it: SimpleSimultaneousDataProvider(it)
         )
 
     async def test_transform_general(self):
@@ -183,7 +183,8 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
         )
 
         transformation_use_case = TransformationO1UseCase(
-            PurposefullyFailingCrossIdentifyUseCase(lambda el: el.primary_name in {"fail", "fail2"}),
+            None,
+            get_purposefully_failing_cross_identification_function(lambda el: el.primary_name in {"fail", "fail2"}),
             lambda it: SimpleSimultaneousDataProvider(it),
         )
         res, fails = await transformation_use_case.invoke(data)

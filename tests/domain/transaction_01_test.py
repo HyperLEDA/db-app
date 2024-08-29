@@ -19,7 +19,7 @@ from app.domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
 )
-from tests.domain.util import MockedCrossIdentifyUseCase
+from tests.domain.util import noop_cross_identify_function
 
 
 class MockedCoordinateParseFailResolver(ResolveCoordinateParseFail):
@@ -99,7 +99,7 @@ class Transaction01Test(unittest.IsolatedAsyncioTestCase):
         )
 
         transformation_use_case = TransformationO1UseCase(
-            MockedCrossIdentifyUseCase(), lambda it: SimpleSimultaneousDataProvider(it)
+            None, noop_cross_identify_function, lambda it: SimpleSimultaneousDataProvider(it)
         )
         transaction_use_case = Transaction01UseCase(transformation_use_case)
         source, models, fails = await transaction_use_case.invoke(data)

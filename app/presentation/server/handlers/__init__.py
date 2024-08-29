@@ -7,6 +7,7 @@ from app.presentation.server.handlers import (
     login,
     ping,
     start_task,
+    table_process,
 )
 
 routes = [
@@ -18,4 +19,5 @@ routes = [
     create_table.description,
     add_data.description,
     login.description,
+    table_process.description,
 ]

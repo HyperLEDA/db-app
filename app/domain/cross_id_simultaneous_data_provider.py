@@ -19,8 +19,9 @@ def _sph_dist(a: ICRS, b: ICRS) -> Angle:
 
 class CrossIdSimultaneousDataProvider(ABC):
     """
-    Used to access currently processing data from CrossIdentifyUseCase. We must cross identify not only objects,
-    that are already in the DB, but also currently processed objects
+    Used to access currently processing data from cross identification action.
+    We must cross identify not only objects that are already in the DB
+    but also currently processed objects
     """
 
     def __init__(self, data: list[CrossIdentificationParam]):

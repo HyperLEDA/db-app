@@ -8,7 +8,7 @@ import astropy.units as u
 import psycopg
 from astropy.coordinates import ICRS
 
-from app.data.repositories.tmp_data_repository_impl import TmpDataRepositoryImpl
+from app.data.repositories import TmpDataRepositoryImpl
 from app.domain.cross_id_simultaneous_data_provider import (
     PostgreSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,

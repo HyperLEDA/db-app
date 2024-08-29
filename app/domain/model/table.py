@@ -34,3 +34,20 @@ class AddDataRequest:
 @dataclass
 class AddDataResponse:
     pass
+
+
+@dataclass
+class CrossIdentification:
+    inner_radius_arcsec: float
+    outer_radius_arcsec: float
+
+
+@dataclass
+class TableProcessRequest:
+    table_id: int
+    cross_identification: CrossIdentification
+
+
+@dataclass
+class TableProcessResponse:
+    pass

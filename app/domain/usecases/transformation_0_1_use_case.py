@@ -5,6 +5,7 @@ from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
 from app.domain.model.layer1.layer_1_value import Layer1Value
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+from app.domain.model.params.cross_identification_result import CrossIdentifyResult
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.transformation_0_1_stages import (
     CrossIdentification,
@@ -12,7 +13,7 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseValues,
     Transformation01Stage,
 )
-from app.domain.usecases.cross_identify_use_case import CrossIdentifyUseCase
+from app.domain.repositories.layer_2_repository import Layer2Repository
 
 
 class TransformationO1UseCase:
@@ -22,18 +23,30 @@ class TransformationO1UseCase:
 
     def __init__(
         self,
-        cross_identify_use_case: CrossIdentifyUseCase,
+        layer2_repo: Layer2Repository,
+        cross_identification_function: Callable[
+            [Layer2Repository, CrossIdentificationParam, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
+            CrossIdentifyResult,
+        ],
         simultaneous_data_provider: Callable[[list[CrossIdentificationParam]], CrossIdSimultaneousDataProvider],
     ):
         """
         :param cross_identify_use_case: Cross identification logic
         :param simultaneous_data_provider: Function, used to obtain simultaneous data provider for cross identification
         """
-        self._cross_identify_use_case: CrossIdentifyUseCase = cross_identify_use_case
+        self._layer2_repo = layer2_repo
+        self._cross_identification_function = cross_identification_function
         self._simultaneous_data_provider = simultaneous_data_provider
 
-    def with_mocked_cross_identify_use_case(self, new_use_case: CrossIdentifyUseCase):
-        return TransformationO1UseCase(new_use_case, self._simultaneous_data_provider)
+    def with_mocked_cross_identification(
+        self,
+        layer2_repo: Layer2Repository,
+        cross_identification_function: Callable[
+            [Layer2Repository, CrossIdentificationParam, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
+            CrossIdentifyResult,
+        ],
+    ):
+        return TransformationO1UseCase(layer2_repo, cross_identification_function, self._simultaneous_data_provider)
 
     async def invoke(
         self,
@@ -95,7 +108,12 @@ class TransformationO1UseCase:
                 identification_results.append(param)
             else:
                 identification_results.append(
-                    self._cross_identify_use_case.invoke(param, simultaneous_data_provider, user_param)
+                    self._cross_identification_function(
+                        self._layer2_repo,
+                        param,
+                        simultaneous_data_provider,
+                        user_param,
+                    )
                 )
             if on_progress is not None:
                 on_progress(CrossIdentification(n_rows, i + 1))
