@@ -14,7 +14,7 @@ from app.lib.storage import mapping
 
 class MappersTest(unittest.TestCase):
     def test_layer_0_to_data(self):
-        domain_model = Layer0Model(
+        schema = Layer0Model(
             id="1",
             processed=False,
             meta=Layer0Meta(
@@ -38,9 +38,9 @@ class MappersTest(unittest.TestCase):
             ),
         )
 
-        creation = domain_to_data.layer_0_creation_mapper(domain_model, 0)
-        self.assertEqual(creation.column_descriptions[0].name, domain_model.meta.value_descriptions[0].column_name)
-        self.assertEqual(creation.column_descriptions[0].unit, domain_model.meta.value_descriptions[0].units)
+        creation = domain_to_data.layer_0_creation_mapper(schema, 0)
+        self.assertEqual(creation.column_descriptions[0].name, schema.meta.value_descriptions[0].column_name)
+        self.assertEqual(creation.column_descriptions[0].unit, schema.meta.value_descriptions[0].units)
 
     def test_layer_0_to_domain(self):
         creation = Layer0Creation(

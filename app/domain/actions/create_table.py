@@ -5,10 +5,9 @@ import regex
 from astropy import units
 from astroquery import nasa_ads as ads
 
-from app import commands
+from app import commands, schema
 from app.data import interface
 from app.data import model as data_model
-from app.domain import model as domain_model
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import RuleValidationError
 
@@ -20,8 +19,8 @@ FORBIDDEN_COLUMN_NAMES = {INTERNAL_ID_COLUMN_NAME}
 
 def create_table(
     depot: commands.Depot,
-    r: domain_model.CreateTableRequest,
-) -> tuple[domain_model.CreateTableResponse, bool]:
+    r: schema.CreateTableRequest,
+) -> tuple[schema.CreateTableResponse, bool]:
     source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
 
     for col in r.columns:
@@ -42,7 +41,7 @@ def create_table(
             tx=tx,
         )
 
-    return domain_model.CreateTableResponse(table_resp.table_id), table_resp.created
+    return schema.CreateTableResponse(table_resp.table_id), table_resp.created
 
 
 def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
@@ -66,7 +65,7 @@ def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, co
     return repo.create_bibliography(code, year, authors, title)
 
 
-def domain_descriptions_to_data(columns: list[domain_model.ColumnDescription]) -> list[data_model.ColumnDescription]:
+def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[data_model.ColumnDescription]:
     result = [
         data_model.ColumnDescription(
             name=INTERNAL_ID_COLUMN_NAME,

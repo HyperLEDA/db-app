@@ -1,8 +1,7 @@
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
-from app import commands
-from app.domain import model as domain_model
+from app import commands, schema
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
@@ -14,7 +13,7 @@ DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 
 
-def table_process(depot: commands.Depot, r: domain_model.TableProcessRequest) -> domain_model.TableProcessResponse:
+def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
     raise NotImplementedError("not implemented")
 
 

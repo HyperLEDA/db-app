@@ -6,10 +6,10 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app import commands
+from app import commands, schema
 from app.data import repositories
 from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
-from app.domain import actions, model
+from app.domain import actions
 from app.lib import auth, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums
@@ -55,11 +55,11 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = actions.create_table(
             self.depot,
-            model.CreateTableRequest(
+            schema.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -69,7 +69,7 @@ class RawDataTableTest(unittest.TestCase):
 
         actions.add_data(
             self.depot,
-            model.AddDataRequest(
+            schema.AddDataRequest(
                 table_id=table_resp.id,
                 data=[
                     {"test_col_1": 5.5, "test_col_2": "test data 1"},
@@ -99,11 +99,11 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = actions.create_table(
             self.depot,
-            model.CreateTableRequest(
+            schema.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -113,7 +113,7 @@ class RawDataTableTest(unittest.TestCase):
 
         actions.add_data(
             self.depot,
-            model.AddDataRequest(
+            schema.AddDataRequest(
                 table_resp.id,
                 data=[{"test_col_1": 5.5}, {"test_col_1": 5.0}],
             ),
@@ -141,11 +141,11 @@ class RawDataTableTest(unittest.TestCase):
         with self.assertRaises(psycopg.errors.DuplicateColumn):
             _ = actions.create_table(
                 self.depot,
-                model.CreateTableRequest(
+                schema.CreateTableRequest(
                     "test_table",
                     [
-                        model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                        model.ColumnDescription("test_col_1", "str", description="test col 2"),
+                        schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                        schema.ColumnDescription("test_col_1", "str", description="test col 2"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
@@ -167,11 +167,11 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = actions.create_table(
             self.depot,
-            model.CreateTableRequest(
+            schema.CreateTableRequest(
                 "test_table",
                 [
-                    model.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    model.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
+                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -182,7 +182,7 @@ class RawDataTableTest(unittest.TestCase):
         with self.assertRaises(psycopg.errors.UndefinedColumn):
             actions.add_data(
                 self.depot,
-                model.AddDataRequest(
+                schema.AddDataRequest(
                     table_resp.id,
                     data=[{"totally_nonexistent_column": 5.5}],
                 ),

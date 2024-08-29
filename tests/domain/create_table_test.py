@@ -4,10 +4,9 @@ from unittest import mock
 
 from parameterized import param, parameterized
 
-from app import commands
+from app import commands, schema
 from app.data import model as data_model
 from app.domain import actions
-from app.domain import model as domain_model
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME, domain_descriptions_to_data, get_source_id
 from app.lib import auth
 from app.lib.storage import mapping
@@ -64,7 +63,7 @@ class MappingTest(unittest.TestCase):
     @dataclass
     class TestData:
         name: str
-        input_columns: list[domain_model.ColumnDescription]
+        input_columns: list[schema.ColumnDescription]
         expected: list[data_model.ColumnDescription] | None = None
         err_substr: str | None = None
 
@@ -79,7 +78,7 @@ class MappingTest(unittest.TestCase):
             param(
                 "simple column",
                 [
-                    domain_model.ColumnDescription(
+                    schema.ColumnDescription(
                         "name", "str", ucd="phys.veloc.orbital", unit="m / s", description="description"
                     )
                 ],
@@ -92,32 +91,32 @@ class MappingTest(unittest.TestCase):
             ),
             param(
                 "wrong type",
-                [domain_model.ColumnDescription("name", "obscure_type", unit="m / s")],
+                [schema.ColumnDescription("name", "obscure_type", unit="m / s")],
                 err_substr="unknown type of data",
             ),
             param(
                 "wrong unit",
-                [domain_model.ColumnDescription("name", "str", unit="wrong")],
+                [schema.ColumnDescription("name", "str", unit="wrong")],
                 err_substr="unknown unit",
             ),
             param(
                 "unit is None",
-                [domain_model.ColumnDescription("name", "str")],
+                [schema.ColumnDescription("name", "str")],
                 [internal_id_column, data_model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
-                [domain_model.ColumnDescription("name", "str", unit="m     /       s")],
+                [schema.ColumnDescription("name", "str", unit="m     /       s")],
                 [internal_id_column, data_model.ColumnDescription("name", "text", unit="m / s")],
             ),
             param(
                 "data type has extra spaces",
-                [domain_model.ColumnDescription("name", "   str    ")],
+                [schema.ColumnDescription("name", "   str    ")],
                 [internal_id_column, data_model.ColumnDescription("name", "text", unit=None)],
             ),
             param(
                 "invalid ucd",
-                [domain_model.ColumnDescription("name", "str", ucd="totally invalid ucd")],
+                [schema.ColumnDescription("name", "str", ucd="totally invalid ucd")],
                 err_substr="invalid or unknown UCD",
             ),
         ],
@@ -125,7 +124,7 @@ class MappingTest(unittest.TestCase):
     def test_mapping(
         self,
         name: str,
-        input_columns: list[domain_model.ColumnDescription],
+        input_columns: list[schema.ColumnDescription],
         expected: list[data_model.ColumnDescription] | None = None,
         err_substr: str | None = None,
     ):
@@ -163,19 +162,19 @@ class CreateTableTest(unittest.TestCase):
         [
             param(
                 "create new table",
-                domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
+                schema.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
             ),
             param(
                 "create already existing table",
-                domain_model.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
+                schema.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
                 table_already_existed=True,
                 expected_created=False,
             ),
             param(
                 "create table with forbidden name",
-                domain_model.CreateTableRequest(
+                schema.CreateTableRequest(
                     "test",
-                    [domain_model.ColumnDescription("hyperleda_internal_id", "str", None, "")],
+                    [schema.ColumnDescription("hyperleda_internal_id", "str", None, "")],
                     "totally real bibcode",
                     "regular",
                     "",
@@ -187,7 +186,7 @@ class CreateTableTest(unittest.TestCase):
     def test_create_table(
         self,
         name: str,
-        request: domain_model.CreateTableRequest,
+        request: schema.CreateTableRequest,
         table_already_existed: bool = False,
         expected_created: bool = True,
         err_substr: str | None = None,

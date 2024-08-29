@@ -1,8 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands
-from app.domain import actions, model
+from app import commands, schema
+from app.domain import actions
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
@@ -21,8 +21,8 @@ class CrossIdentificationSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> model.CrossIdentification:
-        return model.CrossIdentification(**data)
+    def make(self, data, **kwargs) -> schema.CrossIdentification:
+        return schema.CrossIdentification(**data)
 
 
 class TableProcessRequestSchema(Schema):
@@ -34,8 +34,8 @@ class TableProcessRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> model.TableProcessRequest:
-        return model.TableProcessRequest(**data)
+    def make(self, data, **kwargs) -> schema.TableProcessRequest:
+        return schema.TableProcessRequest(**data)
 
 
 class TableProcessResponseSchema(Schema):

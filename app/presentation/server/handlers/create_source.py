@@ -1,8 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
-from app import commands
-from app.domain import actions, model
+from app import commands, schema
+from app.domain import actions
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
@@ -14,8 +14,8 @@ class CreateSourceRequestSchema(Schema):
     year = fields.Int(required=True, description="Year of the publication", validate=validate.Range(1500))
 
     @post_load
-    def make(self, data, **kwargs) -> model.CreateSourceRequest:
-        return model.CreateSourceRequest(**data)
+    def make(self, data, **kwargs) -> schema.CreateSourceRequest:
+        return schema.CreateSourceRequest(**data)
 
 
 class CreateSourceResponseSchema(Schema):
