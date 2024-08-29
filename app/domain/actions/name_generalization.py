@@ -479,14 +479,9 @@ _rules = [
 ]
 
 
-class GeneralizeNameUseCase:
-    """
-    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
-    """
+def generalize_name(source: str) -> str:
+    for rule, algorithm in _rules:
+        if rule(source):
+            return algorithm(source)
 
-    def invoke(self, source: str) -> str:
-        for rule, algorithm in _rules:
-            if rule(source):
-                return algorithm(source)
-
-        return source
+    return source
