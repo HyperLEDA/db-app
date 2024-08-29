@@ -1,19 +1,16 @@
 import unittest
 
-from app.domain.usecases.generalize_name_use_case import GeneralizeNameUseCase
+from app.domain.actions.name_generalization import generalize_name
 
 
 class GeneralizeNameTest(unittest.TestCase):
-    def setUp(self):
-        self.use_case = GeneralizeNameUseCase()
-
     def test_andromeda(self):
         inp = ["And XXVIII", "Andromeda XXVIII", "And28", "ANDXXVIII", "andxxviii", "andromeda28"]
 
         expected = "Andromeda 28"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_holmberg(self):
@@ -29,7 +26,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "Holmberg 2"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_zw(self):
@@ -42,7 +39,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "7ZW 223"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_ngc(self):
@@ -56,7 +53,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "NGC 17"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_ugc(self):
@@ -70,7 +67,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "UGC 1493A"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_ugca(self):
@@ -84,7 +81,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "UGCA 35"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_pgc(self):
@@ -99,7 +96,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "PGC 9843"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_eso(self):
@@ -113,7 +110,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "ESO 413-3"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_esolv(self):
@@ -126,7 +123,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "ESO-LV 2530200"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_df(self):
@@ -138,7 +135,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "6dF J0544383-434609"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_virgo(self):
@@ -150,7 +147,7 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "Virgo A"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
 
     def test_sdss(self):
@@ -162,5 +159,5 @@ class GeneralizeNameTest(unittest.TestCase):
         expected = "SDSS J123049.41+122328.1"
 
         for source in inp:
-            generalized = self.use_case.invoke(source)
+            generalized = generalize_name(source)
             self.assertEqual(expected, generalized)
