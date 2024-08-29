@@ -1,4 +1,4 @@
-from app.data.model import Bibliography, ColumnDescription, Layer0Creation, Layer0RawData
+from app import entities
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -8,7 +8,9 @@ from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.layer0.values.value_descr import ValueDescr
 
 
-def layer_0_mapper(creation: Layer0Creation, raw: Layer0RawData, bibliography: Bibliography) -> Layer0Model:
+def layer_0_mapper(
+    creation: entities.Layer0Creation, raw: entities.Layer0RawData, bibliography: entities.Bibliography
+) -> Layer0Model:
     coordinate_cols = [it.coordinate_part for it in creation.column_descriptions if it.coordinate_part is not None]
     coordinate_cols.sort(key=lambda it: it.arg_num)
 
@@ -29,7 +31,7 @@ def layer_0_mapper(creation: Layer0Creation, raw: Layer0RawData, bibliography: B
     return Layer0Model(creation.table_name, False, meta, raw.data)
 
 
-def _make_value_descr(descr: ColumnDescription) -> ValueDescr | None:
+def _make_value_descr(descr: entities.ColumnDescription) -> ValueDescr | None:
     if descr.ucd is None:
         return None
 

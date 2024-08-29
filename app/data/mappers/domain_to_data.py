@@ -1,18 +1,18 @@
-from app.data.model import Bibliography, ColumnDescription, Layer0Creation, Layer0RawData
-from app.data.model.layer0 import CoordinatePart
+from app import entities
 from app.domain.model import Layer0Model
+from app.entities import CoordinatePart
 from app.lib.storage import enums, mapping
 
 
-def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> Layer0Creation:
+def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> entities.Layer0Creation:
     """
     Maps Layer0 domain model to data creation model
     """
     descr_dict = dict([[d.column_name, d] for d in domain.meta.value_descriptions])
-    return Layer0Creation(
+    return entities.Layer0Creation(
         domain.id,
         [
-            ColumnDescription(
+            entities.ColumnDescription(
                 name=col_name,
                 data_type=mapping.get_type_from_dtype(domain.data[col_name].dtype),
                 unit=descr_dict.get(col_name).units if descr_dict.get(col_name) is not None else None,
@@ -34,19 +34,19 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> Layer0
     )
 
 
-def layer_0_raw_mapper(domain: Layer0Model, table_id: int) -> Layer0RawData:
+def layer_0_raw_mapper(domain: Layer0Model, table_id: int) -> entities.Layer0RawData:
     """
     Maps Layer0 domain model to data raw data model
     """
 
-    return Layer0RawData(table_id, domain.data)
+    return entities.Layer0RawData(table_id, domain.data)
 
 
-def layer_0_bibliography_mapper(domain: Layer0Model) -> Bibliography:
+def layer_0_bibliography_mapper(domain: Layer0Model) -> entities.Bibliography:
     """
     Maps Layer0 domain model to data bibliography data model
     """
-    return Bibliography(
+    return entities.Bibliography(
         domain.meta.biblio.id,
         domain.meta.biblio.ref_str,
         domain.meta.biblio.year,

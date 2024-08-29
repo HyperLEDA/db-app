@@ -5,8 +5,7 @@ import uuid
 import pandas
 
 import app.domain.actions.create_table as create_table
-from app import commands, schema
-from app.data import model as data_model
+from app import commands, entities, schema
 
 
 def add_data(depot: commands.Depot, r: schema.AddDataRequest) -> schema.AddDataResponse:
@@ -16,7 +15,7 @@ def add_data(depot: commands.Depot, r: schema.AddDataRequest) -> schema.AddDataR
 
     with depot.layer0_repo.with_tx() as tx:
         depot.layer0_repo.insert_raw_data(
-            data_model.Layer0RawData(
+            entities.Layer0RawData(
                 table_id=r.table_id,
                 data=data_df,
             ),

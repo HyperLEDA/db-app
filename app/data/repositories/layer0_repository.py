@@ -5,9 +5,9 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app.data import interface, model, template
-from app.data.model import ColumnDescription, Layer0Creation
-from app.data.model.layer0 import CoordinatePart
+from app import entities
+from app.data import interface, template
+from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
 from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
 
@@ -24,8 +24,8 @@ class Layer0Repository(interface.Layer0Repository):
         return self._storage.with_tx()
 
     def create_table(
-        self, data: model.Layer0Creation, tx: psycopg.Transaction | None = None
-    ) -> model.Layer0CreationResponse:
+        self, data: entities.Layer0Creation, tx: psycopg.Transaction | None = None
+    ) -> entities.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
@@ -65,7 +65,7 @@ class Layer0Repository(interface.Layer0Repository):
 
         table_id, ok = self.get_table_id(data.table_name)
         if ok:
-            return model.Layer0CreationResponse(table_id, False)
+            return entities.Layer0CreationResponse(table_id, False)
 
         row = self._storage.query_one(
             template.INSERT_TABLE_REGISTRY_ITEM,
@@ -97,11 +97,11 @@ class Layer0Repository(interface.Layer0Repository):
         for query in comment_queries:
             self._storage.exec(query, tx=tx)
 
-        return model.Layer0CreationResponse(table_id, True)
+        return entities.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(
         self,
-        data: model.Layer0RawData,
+        data: entities.Layer0RawData,
         tx: psycopg.Transaction | None = None,
     ) -> None:
         """
@@ -154,7 +154,7 @@ class Layer0Repository(interface.Layer0Repository):
         offset: int = 0,
         limit: int | None = None,
         tx: psycopg.Transaction | None = None,
-    ) -> model.Layer0RawData:
+    ) -> entities.Layer0RawData:
         """
         :param table_id: ID of the raw table
         :param columns: select only given columns
@@ -187,7 +187,7 @@ class Layer0Repository(interface.Layer0Repository):
             params.append(limit)
 
         rows = self._storage.query(query, params=params)
-        return model.Layer0RawData(table_id, DataFrame(rows))
+        return entities.Layer0RawData(table_id, DataFrame(rows))
 
     def fetch_metadata(self, table_id: int, tx: psycopg.Transaction | None = None) -> Layer0Creation:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id], tx=tx)

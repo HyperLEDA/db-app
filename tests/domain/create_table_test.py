@@ -4,8 +4,7 @@ from unittest import mock
 
 from parameterized import param, parameterized
 
-from app import commands, schema
-from app.data import model as data_model
+from app import commands, entities, schema
 from app.domain import actions
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME, domain_descriptions_to_data, get_source_id
 from app.lib import auth
@@ -64,10 +63,10 @@ class MappingTest(unittest.TestCase):
     class TestData:
         name: str
         input_columns: list[schema.ColumnDescription]
-        expected: list[data_model.ColumnDescription] | None = None
+        expected: list[entities.ColumnDescription] | None = None
         err_substr: str | None = None
 
-    internal_id_column = data_model.ColumnDescription(
+    internal_id_column = entities.ColumnDescription(
         name=INTERNAL_ID_COLUMN_NAME,
         data_type=mapping.TYPE_TEXT,
         is_primary_key=True,
@@ -84,7 +83,7 @@ class MappingTest(unittest.TestCase):
                 ],
                 [
                     internal_id_column,
-                    data_model.ColumnDescription(
+                    entities.ColumnDescription(
                         "name", "text", ucd="phys.veloc.orbital", unit="m / s", description="description"
                     ),
                 ],
@@ -102,17 +101,17 @@ class MappingTest(unittest.TestCase):
             param(
                 "unit is None",
                 [schema.ColumnDescription("name", "str")],
-                [internal_id_column, data_model.ColumnDescription("name", "text")],
+                [internal_id_column, entities.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
                 [schema.ColumnDescription("name", "str", unit="m     /       s")],
-                [internal_id_column, data_model.ColumnDescription("name", "text", unit="m / s")],
+                [internal_id_column, entities.ColumnDescription("name", "text", unit="m / s")],
             ),
             param(
                 "data type has extra spaces",
                 [schema.ColumnDescription("name", "   str    ")],
-                [internal_id_column, data_model.ColumnDescription("name", "text", unit=None)],
+                [internal_id_column, entities.ColumnDescription("name", "text", unit=None)],
             ),
             param(
                 "invalid ucd",
@@ -125,7 +124,7 @@ class MappingTest(unittest.TestCase):
         self,
         name: str,
         input_columns: list[schema.ColumnDescription],
-        expected: list[data_model.ColumnDescription] | None = None,
+        expected: list[entities.ColumnDescription] | None = None,
         err_substr: str | None = None,
     ):
         if err_substr:
@@ -192,9 +191,7 @@ class CreateTableTest(unittest.TestCase):
         err_substr: str | None = None,
     ):
         self.common_repo_mock.get_source_entry.return_value.id = 41
-        self.layer0_repo_mock.create_table.return_value = data_model.Layer0CreationResponse(
-            51, not table_already_existed
-        )
+        self.layer0_repo_mock.create_table.return_value = entities.Layer0CreationResponse(51, not table_already_existed)
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:

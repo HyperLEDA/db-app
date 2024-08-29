@@ -7,7 +7,8 @@ from astropy import table
 from astroquery import vizier
 from numpy import ma
 
-from app.data import model, repositories
+from app import entities
+from app.data import repositories
 from app.lib.storage import enums, mapping, postgres
 
 RAWDATA_SCHEMA = "rawdata"
@@ -123,7 +124,7 @@ def download_vizier_table(
     for field, field_meta in catalog.columns.items():
         t = mapping.get_type_from_dtype(field_meta.dtype)
         fields.append(
-            model.ColumnDescription(
+            entities.ColumnDescription(
                 name=field,
                 data_type=t,
                 unit=str(field_meta.unit),
@@ -147,7 +148,7 @@ def download_vizier_table(
         )
 
         table_resp = layer0.create_table(
-            model.Layer0Creation(
+            entities.Layer0Creation(
                 table_name,
                 fields,
                 bib_id,
@@ -158,4 +159,4 @@ def download_vizier_table(
             tx=tx,
         )
 
-        layer0.insert_raw_data(model.Layer0RawData(table_resp.table_id, catalog.to_pandas()), tx)
+        layer0.insert_raw_data(entities.Layer0RawData(table_resp.table_id, catalog.to_pandas()), tx)

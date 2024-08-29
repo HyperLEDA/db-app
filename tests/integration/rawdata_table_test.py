@@ -8,8 +8,8 @@ from pandas import DataFrame
 
 from app import commands, schema
 from app.data import repositories
-from app.data.model.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.domain import actions
+from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.lib import auth, testing
 from app.lib import clients as libclients
 from app.lib.storage import enums

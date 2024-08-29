@@ -3,7 +3,7 @@ from typing import Any
 
 import psycopg
 
-from app.data import model
+from app import entities
 from app.data.interface import transactional
 from app.lib.storage import enums
 
@@ -16,19 +16,19 @@ class CommonRepository(transactional.Transactional):
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
+    def insert_task(self, task: entities.Task, tx: psycopg.Transaction | None = None) -> int:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
-    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> model.Task:
+    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> entities.Task:
         raise NotImplementedError("not implemented")
 
     @abc.abstractmethod

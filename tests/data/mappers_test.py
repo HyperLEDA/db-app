@@ -2,9 +2,8 @@ import unittest
 
 from pandas import DataFrame
 
-from app import data
+from app import entities
 from app.data.mappers import data_to_domain, domain_to_data
-from app.data.model import ColumnDescription, Layer0Creation
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
@@ -43,17 +42,17 @@ class MappersTest(unittest.TestCase):
         self.assertEqual(creation.column_descriptions[0].unit, schema.meta.value_descriptions[0].units)
 
     def test_layer_0_to_domain(self):
-        creation = Layer0Creation(
+        creation = entities.Layer0Creation(
             "test_name",
             [
-                ColumnDescription("col0", mapping.TYPE_TEXT, ucd="fake-ucd"),
-                ColumnDescription("col1", mapping.TYPE_DOUBLE_PRECISION, unit="km/s", ucd="fake-ucd"),
+                entities.ColumnDescription("col0", mapping.TYPE_TEXT, ucd="fake-ucd"),
+                entities.ColumnDescription("col1", mapping.TYPE_DOUBLE_PRECISION, unit="km/s", ucd="fake-ucd"),
             ],
             0,
             None,
             None,
         )
-        raw = data.model.Layer0RawData(
+        raw = entities.Layer0RawData(
             0,
             DataFrame(
                 {
@@ -63,7 +62,7 @@ class MappersTest(unittest.TestCase):
             ),
         )
 
-        bibliography = data.model.Bibliography(42, "fake_bibcode", 1999, ["a"], "t")
+        bibliography = entities.Bibliography(42, "fake_bibcode", 1999, ["a"], "t")
 
         model = data_to_domain.layer_0_mapper(creation, raw, bibliography)
         self.assertListEqual(
