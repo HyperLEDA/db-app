@@ -315,6 +315,47 @@
           }
         }
       }
+    },
+    "/api/v1/admin/table/process": {
+      "post": {
+        "summary": "Start processing of the table",
+        "description": "Starts different processing steps on the table: for example, cross-identification.\n",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "admin",
+          "table"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableProcessRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Processing successfully started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TableProcessResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "info": {
@@ -642,6 +683,45 @@
             "description": "Token used to authenticate user in handlers that require a specific role to access"
           }
         }
+      },
+      "CrossIdentification": {
+        "type": "object",
+        "properties": {
+          "inner_radius_arcsec": {
+            "type": "number",
+            "default": 1.5,
+            "description": "Inner radius for the cross-identification collision detection"
+          },
+          "outer_radius_arcsec": {
+            "type": "number",
+            "default": 3.0,
+            "description": "Outer radius for the cross-identification collision detection"
+          }
+        }
+      },
+      "TableProcessRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "Identifier of the table"
+          },
+          "cross_identification": {
+            "description": "Cross-identification parameters for the processing",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CrossIdentification"
+              }
+            ]
+          }
+        },
+        "required": [
+          "table_id"
+        ]
+      },
+      "TableProcessResponseSchema": {
+        "type": "object",
+        "properties": {}
       }
     }
   }
