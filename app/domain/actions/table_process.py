@@ -3,10 +3,7 @@ from astropy.coordinates import ICRS, Angle
 
 from app import commands
 from app.domain import model as domain_model
-from app.domain.cross_id_simultaneous_data_provider import (
-    CrossIdSimultaneousDataProvider,
-    # PostgreSimultaneousDataProvider,
-)
+from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
@@ -18,7 +15,7 @@ DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 
 
 def table_process(depot: commands.Depot, r: domain_model.TableProcessRequest) -> domain_model.TableProcessResponse:
-    return domain_model.TableProcessResponse()
+    raise NotImplementedError("not implemented")
 
 
 def cross_identification(
@@ -42,20 +39,16 @@ def cross_identification(
     r1 = user_param.r1 if user_param.r1 is not None else DEFAULT_INNER_RADIUS
     r2 = user_param.r2 if user_param.r2 is not None else DEFAULT_OUTER_RADIUS
 
-    simultaneous_name_hit = []
-    if param.names is not None:
-        simultaneous_name_hit = simultaneous_data_provider.by_name(param.names)
-
     simultaneous_r1_hit = []
-    if param.coordinates is not None:
-        simultaneous_r1_hit = simultaneous_data_provider.data_inside(param.coordinates, r1)
-
     coord_res = None
     if param.coordinates is not None:
+        simultaneous_r1_hit = simultaneous_data_provider.data_inside(param.coordinates, r1)
         coord_res = _identify_by_coordinates(layer2_repo, param.coordinates, r1, r2)
 
+    simultaneous_name_hit = []
     names_res = None
     if param.names is not None:
+        simultaneous_name_hit = simultaneous_data_provider.by_name(param.names)
         names_res = _identify_by_names(layer2_repo, param.names)
 
     res = _compile_results(param, coord_res, names_res)
