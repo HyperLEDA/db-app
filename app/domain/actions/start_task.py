@@ -1,8 +1,7 @@
 from typing import Any, Callable
 
-from app import commands
+from app import commands, schema
 from app.data import model as data_model
-from app.domain import model as domain_model
 from app.domain import tasks
 from app.lib.web.errors import NotFoundError
 
@@ -12,7 +11,7 @@ TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
 }
 
 
-def start_task(depot: commands.Depot, r: domain_model.StartTaskRequest) -> domain_model.StartTaskResponse:
+def start_task(depot: commands.Depot, r: schema.StartTaskRequest) -> schema.StartTaskResponse:
     if r.task_name not in TASK_REGISTRY:
         raise NotFoundError(f"unable to find task '{r.task_name}'")
 
@@ -29,4 +28,4 @@ def start_task(depot: commands.Depot, r: domain_model.StartTaskRequest) -> domai
             params=params,
         )
 
-    return domain_model.StartTaskResponse(task_id)
+    return schema.StartTaskResponse(task_id)

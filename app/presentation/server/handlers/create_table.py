@@ -1,8 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
-from app import commands
-from app.domain import actions, model
+from app import commands, schema
+from app.domain import actions
 from app.lib.storage import enums, mapping
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
@@ -19,8 +19,8 @@ class ColumnDescriptionSchema(Schema):
     description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the column")
 
     @post_load
-    def make(self, data, **kwargs) -> model.ColumnDescription:
-        return model.ColumnDescription(**data)
+    def make(self, data, **kwargs) -> schema.ColumnDescription:
+        return schema.ColumnDescription(**data)
 
 
 class CreateTableRequestSchema(Schema):
@@ -42,8 +42,8 @@ class CreateTableRequestSchema(Schema):
     description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the table")
 
     @post_load
-    def make(self, data, **kwargs) -> model.CreateTableRequest:
-        return model.CreateTableRequest(**data)
+    def make(self, data, **kwargs) -> schema.CreateTableRequest:
+        return schema.CreateTableRequest(**data)
 
 
 class CreateTableResponseSchema(Schema):

@@ -1,9 +1,8 @@
 import unittest
 from unittest import mock
 
-from app import commands
+from app import commands, schema
 from app.domain import actions
-from app.domain import model as domain_model
 from app.lib import auth
 
 
@@ -29,7 +28,7 @@ class AddDataTest(unittest.TestCase):
         self.depot = depot
 
     def test_add_data(self):
-        request = domain_model.AddDataRequest(
+        request = schema.AddDataRequest(
             42,
             data=[
                 {
@@ -55,7 +54,7 @@ class AddDataTest(unittest.TestCase):
         )
 
     def test_add_data_identical_rows(self):
-        request = domain_model.AddDataRequest(
+        request = schema.AddDataRequest(
             42,
             data=[
                 {

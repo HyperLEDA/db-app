@@ -1,8 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands
-from app.domain import actions, model
+from app import commands, schema
+from app.domain import actions
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
@@ -13,8 +13,8 @@ class LoginRequestSchema(Schema):
     password = fields.Str(required=True, description="Password")
 
     @post_load
-    def make(self, data, **kwargs) -> model.LoginRequest:
-        return model.LoginRequest(**data)
+    def make(self, data, **kwargs) -> schema.LoginRequest:
+        return schema.LoginRequest(**data)
 
 
 class LoginResponseSchema(Schema):

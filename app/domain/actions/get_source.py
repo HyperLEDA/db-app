@@ -1,11 +1,10 @@
-from app import commands
-from app.domain import model as domain_model
+from app import commands, schema
 
 
-def get_source(depot: commands.Depot, r: domain_model.GetSourceRequest) -> domain_model.GetSourceResponse:
+def get_source(depot: commands.Depot, r: schema.GetSourceRequest) -> schema.GetSourceResponse:
     result = depot.common_repo.get_bibliography(r.id)
 
-    return domain_model.GetSourceResponse(
+    return schema.GetSourceResponse(
         result.code,
         result.title,
         result.author,

@@ -1,8 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands
-from app.domain import actions, model
+from app import commands, schema
+from app.domain import actions
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
@@ -21,8 +21,8 @@ class AddDataRequestSchema(Schema):
     )
 
     @post_load
-    def make(self, data, **kwargs) -> model.AddDataRequest:
-        return model.AddDataRequest(**data)
+    def make(self, data, **kwargs) -> schema.AddDataRequest:
+        return schema.AddDataRequest(**data)
 
 
 class AddDataResponseSchema(Schema):

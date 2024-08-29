@@ -5,12 +5,11 @@ import uuid
 import pandas
 
 import app.domain.actions.create_table as create_table
-from app import commands
+from app import commands, schema
 from app.data import model as data_model
-from app.domain import model as domain_model
 
 
-def add_data(depot: commands.Depot, r: domain_model.AddDataRequest) -> domain_model.AddDataResponse:
+def add_data(depot: commands.Depot, r: schema.AddDataRequest) -> schema.AddDataResponse:
     data_df = pandas.DataFrame.from_records(r.data)
     data_df[create_table.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_compute_hash, axis=1)
     data_df = data_df.drop_duplicates(subset=create_table.INTERNAL_ID_COLUMN_NAME, keep="last")
@@ -24,7 +23,7 @@ def add_data(depot: commands.Depot, r: domain_model.AddDataRequest) -> domain_mo
             tx=tx,
         )
 
-    return domain_model.AddDataResponse()
+    return schema.AddDataResponse()
 
 
 def _compute_hash(row: pandas.Series) -> str:
