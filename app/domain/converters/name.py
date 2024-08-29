@@ -1,5 +1,33 @@
 import re
 
+import numpy as np
+from numpy.typing import NDArray
+
+from app.domain.converters import errors, interface
+
+
+class NameConverter(interface.QuantityConverter):
+    def convert(self, columns: list[NDArray]) -> NDArray:
+        if len(columns) != 1:
+            raise errors.ConverterError("Wrong number of columns to convert from")
+
+        result = []
+        for name in columns[0]:
+            result.append(generalize_name(name))
+
+        return np.array(result)
+
+
+def generalize_name(source: str) -> str:
+    """
+    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
+    """
+    for rule, algorithm in _rules:
+        if rule(source):
+            return algorithm(source)
+
+    return source
+
 
 def _is_roman_number(num):
     """
@@ -477,14 +505,3 @@ _rules = [
     (_rule_len_3, _algorithm_len_3),
     (_rule_len_4, _algorithm_len_4),
 ]
-
-
-def generalize_name(source: str) -> str:
-    """
-    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
-    """
-    for rule, algorithm in _rules:
-        if rule(source):
-            return algorithm(source)
-
-    return source

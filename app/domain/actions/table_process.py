@@ -14,7 +14,7 @@ DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 
 
 def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
-    raise NotImplementedError("not implemented")
+    raise NotImplementedError()
 
 
 def cross_identification(

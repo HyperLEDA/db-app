@@ -3,6 +3,7 @@ from typing import final
 
 import psycopg
 import structlog
+from astropy import units as u
 from pandas import DataFrame
 
 from app import entities
@@ -42,17 +43,22 @@ class Layer0Repository(interface.Layer0Repository):
             fields.append((column_descr.name, column_descr.data_type, constraint))
             col_params = {
                 "description": column_descr.description,
-                "unit": column_descr.unit,
                 "data_type": column_descr.data_type,
             }
+
+            if column_descr.unit is not None:
+                col_params["unit"] = column_descr.unit.to_string()
+
             if column_descr.coordinate_part is not None:
                 col_params["coordinate_part"] = {
                     "descr_id": column_descr.coordinate_part.descr_id,
                     "arg_num": column_descr.coordinate_part.arg_num,
                     "column_name": column_descr.coordinate_part.column_name,
                 }
+
             if column_descr.ucd is not None:
                 col_params["ucd"] = column_descr.ucd
+
             comment_queries.append(
                 template.render_query(
                     template.ADD_COLUMN_COMMENT,
@@ -106,7 +112,7 @@ class Layer0Repository(interface.Layer0Repository):
     ) -> None:
         """
         This method puts everything in parameters for prepared statement. This should not be a big
-        issue but one would be better off using this function in batches since prepared statement make
+        issue but one would be better off using this function in batches since prepared statements make
         this quite cheap (excluding network slow down, though).
         """
 
@@ -216,11 +222,15 @@ class Layer0Repository(interface.Layer0Repository):
                     param["param"]["coordinate_part"]["column_name"],
                 )
 
+            unit = None
+            if param["param"].get("unit") is not None:
+                unit = u.Unit(param["param"]["unit"])
+
             descriptions.append(
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    unit=param["param"]["unit"],
+                    unit=unit,
                     description=param["param"]["description"],
                     ucd=param["param"].get("ucd"),
                     coordinate_part=coordinate_part,

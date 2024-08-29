@@ -1,3 +1,5 @@
+from astropy import units as u
+
 from app import entities
 from app.domain.model import Layer0Model
 from app.entities import CoordinatePart
@@ -15,7 +17,7 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> entiti
             entities.ColumnDescription(
                 name=col_name,
                 data_type=mapping.get_type_from_dtype(domain.data[col_name].dtype),
-                unit=descr_dict.get(col_name).units if descr_dict.get(col_name) is not None else None,
+                unit=u.Unit(descr_dict.get(col_name).units) if descr_dict.get(col_name) is not None else None,
                 coordinate_part=CoordinatePart(
                     domain.meta.coordinate_descr.description_id(),
                     domain.meta.coordinate_descr.arg_number(col_name),

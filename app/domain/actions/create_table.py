@@ -75,14 +75,14 @@ def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list
 
     for col in columns:
         data_type = col.data_type.strip()
-        unit = col.unit
+        unit = None
 
         if data_type not in mapping.type_map:
             raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
             try:
-                unit = units.Unit(col.unit).to_string()
+                unit = units.Unit(col.unit)
             except ValueError:
                 raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
 

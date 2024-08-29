@@ -1,21 +1,9 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import pandas
+from astropy import units as u
 
 from app.lib.storage import enums
-
-
-@dataclass
-class ColumnDescription:
-    name: str
-    data_type: str
-    is_primary_key: bool = False
-    unit: str | None = None  # TODO: validate that the unit is one that we know how to transform
-    description: str | None = None
-    ucd: str | None = None
-    coordinate_part: CoordinatePart | None = None
 
 
 @dataclass
@@ -29,6 +17,17 @@ class CoordinatePart:
     descr_id: str
     arg_num: int
     column_name: str
+
+
+@dataclass
+class ColumnDescription:
+    name: str
+    data_type: str
+    is_primary_key: bool = False
+    unit: u.Unit | None = None
+    description: str | None = None
+    ucd: str | None = None
+    coordinate_part: CoordinatePart | None = None
 
 
 @dataclass

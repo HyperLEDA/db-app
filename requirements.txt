@@ -31,3 +31,4 @@ testcontainers-postgres
 testcontainers-redis
 types-psycopg2
 types-pyyaml
+types-regex
