@@ -45,23 +45,6 @@ def get_purposefully_failing_cross_identification_function(fail_condition: Calla
     return func
 
 
-# class PurposefullyFailingCrossIdentifyUseCase(CrossIdentifyUseCase):
-#     def __init__(self, fail_condition: Callable[[CrossIdentificationParam], bool]):
-#         self.fail_condition: Callable[[CrossIdentificationParam], bool] = fail_condition
-
-#     def invoke(
-#         self,
-#         param: CrossIdentificationParam,
-#         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
-#         user_param: CrossIdentificationUserParam,
-#     ) -> result.CrossIdentifyResult | result.CrossIdentificationException:
-#         if self.fail_condition(param):
-#             return result.CrossIdentifyResult(
-#                 None, CrossIdentificationCoordCollisionException(param.coordinates, None, None, [])
-#             )
-#         return result.CrossIdentifyResult(None, None)
-
-
 class Transform01Test(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         super().setUp()
