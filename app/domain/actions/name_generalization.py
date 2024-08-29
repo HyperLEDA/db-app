@@ -480,6 +480,9 @@ _rules = [
 
 
 def generalize_name(source: str) -> str:
+    """
+    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
+    """
     for rule, algorithm in _rules:
         if rule(source):
             return algorithm(source)
