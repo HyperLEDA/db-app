@@ -4,7 +4,8 @@ import psycopg
 import structlog
 from psycopg.types import json
 
-from app.data import interface, model, template
+from app import entities
+from app.data import interface, template
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
@@ -37,17 +38,17 @@ class CommonRepository(interface.CommonRepository):
 
         return int(result.get("id"))
 
-    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
         row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name], tx=tx)
 
-        return model.Bibliography(**row)
+        return entities.Bibliography(**row)
 
-    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> model.Bibliography:
+    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
         row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id], tx=tx)
 
-        return model.Bibliography(**row)
+        return entities.Bibliography(**row)
 
-    def insert_task(self, task: model.Task, tx: psycopg.Transaction | None = None) -> int:
+    def insert_task(self, task: entities.Task, tx: psycopg.Transaction | None = None) -> int:
         row = self._storage.query_one(
             "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
             params=[task.task_name, json.Jsonb(task.payload)],
@@ -60,10 +61,10 @@ class CommonRepository(interface.CommonRepository):
 
         return int(row_id)
 
-    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> model.Task:
+    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> entities.Task:
         row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id], tx=tx)
 
-        return model.Task(**row)
+        return entities.Task(**row)
 
     def set_task_status(
         self,

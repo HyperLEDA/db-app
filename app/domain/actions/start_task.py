@@ -1,7 +1,6 @@
 from typing import Any, Callable
 
-from app import commands, schema
-from app.data import model as data_model
+from app import commands, entities, schema
 from app.domain import tasks
 from app.lib.web.errors import NotFoundError
 
@@ -20,7 +19,7 @@ def start_task(depot: commands.Depot, r: schema.StartTaskRequest) -> schema.Star
     params = params_type(**r.payload)
 
     with depot.common_repo.with_tx() as tx:
-        task_id = depot.common_repo.insert_task(data_model.Task(r.task_name, r.payload, 1), tx)
+        task_id = depot.common_repo.insert_task(entities.Task(r.task_name, r.payload, 1), tx)
         depot.queue_repo.enqueue(
             tasks.task_runner,
             func=task,

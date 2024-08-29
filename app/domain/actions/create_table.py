@@ -5,9 +5,8 @@ import regex
 from astropy import units
 from astroquery import nasa_ads as ads
 
-from app import commands, schema
+from app import commands, entities, schema
 from app.data import interface
-from app.data import model as data_model
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import RuleValidationError
 
@@ -31,7 +30,7 @@ def create_table(
 
     with depot.layer0_repo.with_tx() as tx:
         table_resp = depot.layer0_repo.create_table(
-            data_model.Layer0Creation(
+            entities.Layer0Creation(
                 table_name=r.table_name,
                 column_descriptions=columns,
                 bibliography_id=source_id,
@@ -65,9 +64,9 @@ def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, co
     return repo.create_bibliography(code, year, authors, title)
 
 
-def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[data_model.ColumnDescription]:
+def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[entities.ColumnDescription]:
     result = [
-        data_model.ColumnDescription(
+        entities.ColumnDescription(
             name=INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
             is_primary_key=True,
@@ -91,7 +90,7 @@ def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
 
         result.append(
-            data_model.ColumnDescription(
+            entities.ColumnDescription(
                 name=col.name,
                 data_type=mapping.type_map[data_type],
                 unit=unit,

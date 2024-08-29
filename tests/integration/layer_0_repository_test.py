@@ -3,8 +3,8 @@ import unittest
 import structlog
 from pandas import DataFrame
 
+from app import entities
 from app.data import repositories
-from app.data.model import ColumnDescription, Layer0Creation, Layer0RawData
 from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
@@ -35,14 +35,14 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
     async def test_retrieve(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        creation = Layer0Creation(
+        creation = entities.Layer0Creation(
             "test_table",
-            [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
+            [entities.ColumnDescription("col0", TYPE_INTEGER), entities.ColumnDescription("col1", TYPE_TEXT)],
             bib_id,
             enums.DataType.REGULAR,
         )
         resp = self._layer0_repo.create_table(creation)
-        self._layer0_repo.insert_raw_data(Layer0RawData(resp.table_id, data))
+        self._layer0_repo.insert_raw_data(entities.Layer0RawData(resp.table_id, data))
 
         from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
         self.assertTrue(data.equals(from_db[0].data))
