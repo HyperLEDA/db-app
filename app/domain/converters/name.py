@@ -1,18 +1,28 @@
 import re
+from typing import final
 
 import numpy as np
-from numpy.typing import NDArray
+import pandas
+from numpy.typing import ArrayLike
 
-from app.domain.converters import errors, interface
+from app import entities
+from app.domain.converters import common, errors, interface
 
 
+@final
 class NameConverter(interface.QuantityConverter):
-    def convert(self, columns: list[NDArray]) -> NDArray:
-        if len(columns) != 1:
-            raise errors.ConverterError("Wrong number of columns to convert from")
+    def __init__(self) -> None:
+        self.column = None
+
+    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
+        self.column = common.get_main_column(columns, "meta.id")
+
+    def convert(self, data: pandas.DataFrame) -> ArrayLike:
+        if self.column is None:
+            raise errors.ConverterError("unknown rules for name specification")
 
         result = []
-        for name in columns[0]:
+        for name in data[self.column.name]:
             result.append(generalize_name(name))
 
         return np.array(result)

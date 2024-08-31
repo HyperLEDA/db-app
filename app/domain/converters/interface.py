@@ -1,6 +1,9 @@
 import abc
 
+import pandas
 from numpy.typing import ArrayLike
+
+from app import entities
 
 
 class QuantityConverter(abc.ABC):
@@ -15,8 +18,17 @@ class QuantityConverter(abc.ABC):
     """
 
     @abc.abstractmethod
-    def convert(self, columns: list[ArrayLike]) -> ArrayLike:
+    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         """
-        Converts list of arrays of physical quantities into commonly used form.
+        Adds columns' metadata to the definition of the converter.
+        If a column does not belong to the converter, it should be ignored.
+        If a column does belong to the converter but introduces ambiguity, `ConverterError` should be raised.
+        """
+        ...
+
+    @abc.abstractmethod
+    def convert(self, data: pandas.DataFrame) -> ArrayLike:
+        """
+        Converts DataFrame of data into common form of this physical quantity.
         """
         ...

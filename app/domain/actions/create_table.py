@@ -2,12 +2,15 @@ from datetime import datetime, timezone
 
 import astropy.io.votable.ucd as ucd
 import regex
+import structlog
 from astropy import units
 from astroquery import nasa_ads as ads
 
 from app import commands, entities, schema
 from app.data import interface
+from app.domain import converters
 from app.lib.storage import enums, mapping
+from app.lib.web import errors
 from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
@@ -27,6 +30,7 @@ def create_table(
             raise RuleValidationError(f"{col} is a reserved column name for internal storage")
 
     columns = domain_descriptions_to_data(r.columns)
+    validate_columns(columns)
 
     with depot.layer0_repo.with_tx() as tx:
         table_resp = depot.layer0_repo.create_table(
@@ -41,6 +45,35 @@ def create_table(
         )
 
     return schema.CreateTableResponse(table_resp.table_id), table_resp.created
+
+
+def validate_columns(columns: list[entities.ColumnDescription]):
+    name_converter = converters.NameConverter()
+    try:
+        name_converter.parse_columns(columns)
+    except converters.ConverterNoColumnError:
+        # TODO: fallback
+        structlog.get_logger().info("Did not find a column that corresponds to the name of the object")
+    except converters.ConverterError as e:
+        raise errors.RuleValidationError(f"Error during validation of object name column: {e}") from e
+
+    ra_converter = converters.CoordinateConverter("pos.eq.ra")
+    try:
+        ra_converter.parse_columns(columns)
+    except converters.ConverterNoColumnError:
+        # TODO: fallback
+        structlog.get_logger().info("Did not find a column that corresponds to the right ascension of the object")
+    except converters.ConverterError as e:
+        raise errors.RuleValidationError(f"Error during validation of right ascension column: {e}") from e
+
+    dec_converter = converters.CoordinateConverter("pos.eq.dec")
+    try:
+        dec_converter.parse_columns(columns)
+    except converters.ConverterNoColumnError:
+        # TODO: fallback
+        structlog.get_logger().info("Did not find a column that corresponds to the declination of the object")
+    except converters.ConverterError as e:
+        raise errors.RuleValidationError(f"Error during validation of declination column: {e}") from e
 
 
 def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
