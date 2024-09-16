@@ -53,6 +53,9 @@ def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schem
     print(ra_converter.convert(data.data))
     print(dec_converter.convert(data.data))
 
+    # TODO: connect cross-identification
+    # TODO: remove col_name and coordinate_part from entities
+
     return schema.TableProcessResponse()
 
 

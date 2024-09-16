@@ -48,32 +48,21 @@ def create_table(
 
 
 def validate_columns(columns: list[entities.ColumnDescription]):
-    name_converter = converters.NameConverter()
-    try:
-        name_converter.parse_columns(columns)
-    except converters.ConverterNoColumnError:
-        # TODO: fallback
-        structlog.get_logger().info("Did not find a column that corresponds to the name of the object")
-    except converters.ConverterError as e:
-        raise errors.RuleValidationError(f"Error during validation of object name column: {e}") from e
+    # TODO: fallback if name or one of coordinates are not specified
 
-    ra_converter = converters.CoordinateConverter("pos.eq.ra")
-    try:
-        ra_converter.parse_columns(columns)
-    except converters.ConverterNoColumnError:
-        # TODO: fallback
-        structlog.get_logger().info("Did not find a column that corresponds to the right ascension of the object")
-    except converters.ConverterError as e:
-        raise errors.RuleValidationError(f"Error during validation of right ascension column: {e}") from e
+    convs: list[converters.QuantityConverter] = [
+        converters.NameConverter(),
+        converters.CoordinateConverter("pos.eq.ra"),
+        converters.CoordinateConverter("pos.eq.dec"),
+    ]
 
-    dec_converter = converters.CoordinateConverter("pos.eq.dec")
-    try:
-        dec_converter.parse_columns(columns)
-    except converters.ConverterNoColumnError:
-        # TODO: fallback
-        structlog.get_logger().info("Did not find a column that corresponds to the declination of the object")
-    except converters.ConverterError as e:
-        raise errors.RuleValidationError(f"Error during validation of declination column: {e}") from e
+    for converter in convs:
+        try:
+            converter.parse_columns(columns)
+        except converters.ConverterNoColumnError:
+            structlog.get_logger().info(f"Did not find a column that corresponds to the '{converter.name()}' converter")
+        except converters.ConverterError as e:
+            raise errors.RuleValidationError(f"Error during validation of '{converter.name()}' converter: {e}") from e
 
 
 def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:

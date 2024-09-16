@@ -21,10 +21,10 @@ runworker:
 	rq worker default
 
 start-db:
-	docker compose up -d
+	docker-compose up -d
 
 stop-db:
-	docker compose down
+	docker-compose down
 
 docs:
 	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json

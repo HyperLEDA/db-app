@@ -15,6 +15,9 @@ class CoordinateConverter(interface.QuantityConverter):
         self.ucd = ucd
         self.column = None
 
+    def name(self) -> str:
+        return f"coordinate ({self.ucd})"
+
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         column = common.get_main_column(columns, self.ucd)
 

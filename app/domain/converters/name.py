@@ -14,6 +14,9 @@ class NameConverter(interface.QuantityConverter):
     def __init__(self) -> None:
         self.column = None
 
+    def name(self) -> str:
+        return "name"
+
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         self.column = common.get_main_column(columns, "meta.id")
 
