@@ -1,9 +1,5 @@
 import re
-from typing import final
-
-import numpy as np
-import pandas
-from numpy.typing import ArrayLike
+from typing import Any, final
 
 from app import entities
 from app.domain.converters import common, errors, interface
@@ -20,15 +16,13 @@ class NameConverter(interface.QuantityConverter):
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         self.column = common.get_main_column(columns, "meta.id")
 
-    def convert(self, data: pandas.DataFrame) -> ArrayLike:
+    def apply(self, object_info: entities.ObjectInfo, data: dict[str, Any]) -> entities.ObjectInfo:
         if self.column is None:
             raise errors.ConverterError("unknown rules for name specification")
 
-        result = []
-        for name in data[self.column.name]:
-            result.append(generalize_name(name))
+        object_info.primary_name = data[self.column.name]
 
-        return np.array(result)
+        return object_info
 
 
 def generalize_name(source: str) -> str:

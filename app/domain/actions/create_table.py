@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 
 import astropy.io.votable.ucd as ucd
 import regex
-import structlog
 from astropy import units
 from astroquery import nasa_ads as ads
 
@@ -52,15 +51,16 @@ def validate_columns(columns: list[entities.ColumnDescription]):
 
     convs: list[converters.QuantityConverter] = [
         converters.NameConverter(),
-        converters.CoordinateConverter("pos.eq.ra"),
-        converters.CoordinateConverter("pos.eq.dec"),
+        converters.ICRSConverter(),
     ]
 
     for converter in convs:
         try:
             converter.parse_columns(columns)
-        except converters.ConverterNoColumnError:
-            structlog.get_logger().info(f"Did not find a column that corresponds to the '{converter.name()}' converter")
+        except converters.ConverterNoColumnError as e:
+            raise errors.RuleValidationError(
+                f"Did not find a columns that correspond to the '{converter.name()}' converter"
+            ) from e
         except converters.ConverterError as e:
             raise errors.RuleValidationError(f"Error during validation of '{converter.name()}' converter: {e}") from e
 

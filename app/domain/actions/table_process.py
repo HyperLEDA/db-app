@@ -1,16 +1,17 @@
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
-from app import commands, schema
+from app import commands, entities, schema
 from app.domain import converters
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
-from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
+from app.domain.cross_id_simultaneous_data_provider import (
+    CrossIdSimultaneousDataProvider,
+    SimpleSimultaneousDataProvider,
+)
 from app.domain.model.params import cross_identification_result as result
-from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
-from app.lib.web import errors
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
@@ -19,49 +20,37 @@ DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
     meta = depot.layer0_repo.fetch_metadata(r.table_id)
 
-    name_converter = converters.NameConverter()
+    convs: list[converters.QuantityConverter] = [converters.NameConverter(), converters.ICRSConverter()]
 
-    try:
-        name_converter.parse_columns(meta.column_descriptions)
-    except converters.ConverterNoColumnError as e:
-        # TODO: fallback
-        raise errors.RuleValidationError("Did not find a column that corresponds to the name of the object") from e
-
-    ra_converter = converters.CoordinateConverter("pos.eq.ra")
-
-    try:
-        ra_converter.parse_columns(meta.column_descriptions)
-    except converters.ConverterNoColumnError as e:
-        # TODO: fallback
-        raise errors.RuleValidationError(
-            "Did not find a column that corresponds to the right ascension of the object"
-        ) from e
-
-    dec_converter = converters.CoordinateConverter("pos.eq.dec")
-
-    try:
-        dec_converter.parse_columns(meta.column_descriptions)
-    except converters.ConverterNoColumnError as e:
-        # TODO: fallback
-        raise errors.RuleValidationError(
-            "Did not find a column that corresponds to the declination of the object"
-        ) from e
+    for conv in convs:
+        conv.parse_columns(meta.column_descriptions)
 
     data = depot.layer0_repo.fetch_raw_data(r.table_id, order_column=INTERNAL_ID_COLUMN_NAME, limit=100)
 
-    print(name_converter.convert(data.data))
-    print(ra_converter.convert(data.data))
-    print(dec_converter.convert(data.data))
+    for obj_data in data.data.to_dict(orient="records"):
+        obj = entities.ObjectInfo()
 
-    # TODO: connect cross-identification
-    # TODO: remove col_name and coordinate_part from entities
+        for conv in convs:
+            conv.apply(obj, obj_data)
+
+        _ = cross_identification(
+            depot.layer2_repo,
+            obj,
+            SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
+            CrossIdentificationUserParam(
+                r.cross_identification.inner_radius_arcsec * u.arcsec,
+                r.cross_identification.outer_radius_arcsec * u.arcsec,
+            ),
+        )
+
+    # TODO: remove col_name and coordinate_part from entities?
 
     return schema.TableProcessResponse()
 
 
 def cross_identification(
     layer2_repo: Layer2Repository,
-    param: CrossIdentificationParam,
+    param: entities.ObjectInfo,
     simultaneous_data_provider: CrossIdSimultaneousDataProvider,
     user_param: CrossIdentificationUserParam,
 ) -> result.CrossIdentifyResult:
@@ -159,7 +148,7 @@ def _identify_by_names(layer2_repo: Layer2Repository, names: list[str]) -> resul
 
 
 def _compile_results(
-    param: CrossIdentificationParam,
+    param: entities.ObjectInfo,
     coord_res: result.CrossIdentifyResult | None,
     names_res: result.CrossIdentifyResult | None,
 ) -> result.CrossIdentifyResult:
