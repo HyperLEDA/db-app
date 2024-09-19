@@ -161,11 +161,31 @@ class CreateTableTest(unittest.TestCase):
         [
             param(
                 "create new table",
-                schema.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
+                schema.CreateTableRequest(
+                    "test",
+                    [
+                        schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                        schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                        schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    ],
+                    "totally real bibcode",
+                    "regular",
+                    "",
+                ),
             ),
             param(
                 "create already existing table",
-                schema.CreateTableRequest("test", [], "totally real bibcode", "regular", ""),
+                schema.CreateTableRequest(
+                    "test",
+                    [
+                        schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                        schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                        schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    ],
+                    "totally real bibcode",
+                    "regular",
+                    "",
+                ),
                 table_already_existed=True,
                 expected_created=False,
             ),
@@ -178,7 +198,7 @@ class CreateTableTest(unittest.TestCase):
                     "regular",
                     "",
                 ),
-                err_substr="is a reserved column name for internal storage",
+                err_substr="is a reserved column name",
             ),
         ],
     )

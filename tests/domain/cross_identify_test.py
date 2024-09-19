@@ -4,10 +4,10 @@ from uuid import uuid4
 import astropy.units as u
 from astropy.coordinates import ICRS, angular_separation
 
+from app import entities
 from app.domain.actions.table_process import DEFAULT_INNER_RADIUS, cross_identification
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model.layer2 import Layer2Model
-from app.domain.model.params import CrossIdentificationParam
 from app.domain.model.params.cross_identification_result import (
     CrossIdentificationCoordCollisionException,
     CrossIdentificationDuplicateException,
@@ -73,7 +73,7 @@ class CrossIdentifyTest(unittest.TestCase):
     def test_identify_coord_new_object(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target = CrossIdentificationParam(None, None, center)
+        target = entities.ObjectInfo(None, None, center)
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
@@ -111,7 +111,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(None, None, center),
+            entities.ObjectInfo(None, None, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -141,7 +141,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(None, None, center),
+            entities.ObjectInfo(None, None, center),
             data_provider,
             CrossIdentificationUserParam(r1, 1.1 * r1),
         )
@@ -172,7 +172,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(None, None, center),
+            entities.ObjectInfo(None, None, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -195,8 +195,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(target_names[:1], target_names[0], None),
-            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
+            entities.ObjectInfo(target_names[:1], target_names[0], None),
+            SimpleSimultaneousDataProvider([entities.ObjectInfo(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
         )
 
@@ -214,8 +214,8 @@ class CrossIdentifyTest(unittest.TestCase):
         all_names, name = _make_names(1)
         res = cross_identification(
             repo,
-            CrossIdentificationParam(all_names, name, None),
-            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
+            entities.ObjectInfo(all_names, name, None),
+            SimpleSimultaneousDataProvider([entities.ObjectInfo(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
         )
 
@@ -232,8 +232,8 @@ class CrossIdentifyTest(unittest.TestCase):
         obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
         res = cross_identification(
             repo,
-            CrossIdentificationParam(obj_names, obj_names[0], None),
-            SimpleSimultaneousDataProvider([CrossIdentificationParam(*_make_names(1), None) for _ in range(20)]),
+            entities.ObjectInfo(obj_names, obj_names[0], None),
+            SimpleSimultaneousDataProvider([entities.ObjectInfo(*_make_names(1), None) for _ in range(20)]),
             CrossIdentificationUserParam(None, None),
         )
 
@@ -252,8 +252,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
         outside_proc = [
-            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
-        ] + [CrossIdentificationParam([target_name], target_name, target)]
+            entities.ObjectInfo(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [entities.ObjectInfo([target_name], target_name, target)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -264,7 +264,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam([target_name], target_name, center),
+            entities.ObjectInfo([target_name], target_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -280,9 +280,7 @@ class CrossIdentifyTest(unittest.TestCase):
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [
-            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
-        ]
+        outside_proc = [entities.ObjectInfo(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -290,7 +288,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(*_make_names(1), center),
+            entities.ObjectInfo(*_make_names(1), center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -326,7 +324,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam([target2_name], target2_name, center),
+            entities.ObjectInfo([target2_name], target2_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -353,8 +351,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
         outside_proc = [
-            CrossIdentificationParam(*_make_names(2), it.coordinates) for it in all_pts if it not in inside_proc
-        ] + [CrossIdentificationParam(*_make_names(2), center)]
+            entities.ObjectInfo(*_make_names(2), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [entities.ObjectInfo(*_make_names(2), center)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -367,7 +365,7 @@ class CrossIdentifyTest(unittest.TestCase):
         obj_names = [all_in_repo[-1].names[0], all_in_repo[-2].names[1]]
         res = cross_identification(
             repo,
-            CrossIdentificationParam(obj_names, obj_names[0], center),
+            entities.ObjectInfo(obj_names, obj_names[0], center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -390,9 +388,7 @@ class CrossIdentifyTest(unittest.TestCase):
         outside = [it for it in all_pts if it not in inside]
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
-        outside_proc = [
-            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
-        ]
+        outside_proc = [entities.ObjectInfo(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -402,7 +398,7 @@ class CrossIdentifyTest(unittest.TestCase):
         obj_names = [all_in_repo[0].names[0], all_in_repo[1].names[0]]
         res = cross_identification(
             repo,
-            CrossIdentificationParam(obj_names, obj_names[0], center),
+            entities.ObjectInfo(obj_names, obj_names[0], center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -427,8 +423,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
         outside_proc = [
-            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
-        ] + [CrossIdentificationParam(*_make_names(2), target)]
+            entities.ObjectInfo(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [entities.ObjectInfo(*_make_names(2), target)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -440,7 +436,7 @@ class CrossIdentifyTest(unittest.TestCase):
         obj_names, obj_name = outside_proc[-1].names, outside_proc[-1].primary_name
         res = cross_identification(
             repo,
-            CrossIdentificationParam(obj_names, obj_name, center),
+            entities.ObjectInfo(obj_names, obj_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -463,8 +459,8 @@ class CrossIdentifyTest(unittest.TestCase):
 
         all_pts_proc, inside_proc = make_points(n_points=20, center=center, r=r)
         outside_proc = [
-            CrossIdentificationParam(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
-        ] + [CrossIdentificationParam([target2_name], target2_name, target2)]
+            entities.ObjectInfo(*_make_names(1), it.coordinates) for it in all_pts if it not in inside_proc
+        ] + [entities.ObjectInfo([target2_name], target2_name, target2)]
 
         data_provider = SimpleSimultaneousDataProvider(outside_proc)
 
@@ -478,7 +474,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam([target2_name], target2_name, center),
+            entities.ObjectInfo([target2_name], target2_name, center),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -488,8 +484,8 @@ class CrossIdentifyTest(unittest.TestCase):
             self.fail("Cross identification must fail with 'CrossIdentificationNameCoordCoordException'")
 
     def test_simultaneous_name_fail(self):
-        target1 = CrossIdentificationParam(*_make_names(2), None)
-        target2 = CrossIdentificationParam(*_make_names(2), None)
+        target1 = entities.ObjectInfo(*_make_names(2), None)
+        target2 = entities.ObjectInfo(*_make_names(2), None)
 
         all_pts, inside = make_points(n_points=100, center=ICRS(ra=20 * u.deg, dec=40 * u.deg), r=10 * u.deg)
 
@@ -499,7 +495,7 @@ class CrossIdentifyTest(unittest.TestCase):
 
         res = cross_identification(
             repo,
-            CrossIdentificationParam(target1.names + target2.names, target2.primary_name, None),
+            entities.ObjectInfo(target1.names + target2.names, target2.primary_name, None),
             data_provider,
             CrossIdentificationUserParam(None, None),
         )
@@ -510,8 +506,8 @@ class CrossIdentifyTest(unittest.TestCase):
     def test_simultaneous_coord_fail(self):
         r = 10 * u.deg
         center = ICRS(ra=20 * u.deg, dec=40 * u.deg)
-        target1 = CrossIdentificationParam(None, None, ICRS(ra=center.ra + DEFAULT_INNER_RADIUS / 2, dec=center.dec))
-        target2 = CrossIdentificationParam(None, None, ICRS(ra=center.ra, dec=center.dec + DEFAULT_INNER_RADIUS / 2))
+        target1 = entities.ObjectInfo(None, None, ICRS(ra=center.ra + DEFAULT_INNER_RADIUS / 2, dec=center.dec))
+        target2 = entities.ObjectInfo(None, None, ICRS(ra=center.ra, dec=center.dec + DEFAULT_INNER_RADIUS / 2))
 
         all_pts, inside = make_points(n_points=100, center=center, r=r)
         outside = [it for it in all_pts if it not in inside]
@@ -524,7 +520,7 @@ class CrossIdentifyTest(unittest.TestCase):
         repo = MockedLayer2Repository([_make_l2(i, it.coordinates, None, None) for i, it in enumerate(outside)])
 
         res = cross_identification(
-            repo, CrossIdentificationParam(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
+            repo, entities.ObjectInfo(None, None, center), data_provider, CrossIdentificationUserParam(None, None)
         )
         self.assertIsInstance(res.fail, CrossIdentificationDuplicateException)
         self.assertIsInstance(res.fail.db_cross_id_result, CrossIdentifyResult)

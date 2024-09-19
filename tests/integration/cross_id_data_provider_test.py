@@ -8,12 +8,12 @@ import astropy.units as u
 import psycopg
 from astropy.coordinates import ICRS
 
+from app import entities
 from app.data.repositories import TmpDataRepositoryImpl
 from app.domain.cross_id_simultaneous_data_provider import (
     PostgreSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,
 )
-from app.domain.model.params import CrossIdentificationParam
 from app.lib import testing
 from tests.domain.util import make_points
 
@@ -54,11 +54,9 @@ class CrossIdDataProviderTest(unittest.TestCase):
         self.assertListEqual(inside, pg_inside)
 
     def test_data_by_name(self):
-        all_pts = [
-            CrossIdentificationParam(lst, lst[0], None) for lst in [[uuid4().hex, uuid4().hex] for _ in range(100)]
-        ]
+        all_pts = [entities.ObjectInfo(lst, lst[0], None) for lst in [[uuid4().hex, uuid4().hex] for _ in range(100)]]
         lst = [uuid4().hex, uuid4().hex, uuid4().hex, uuid4().hex]
-        target = CrossIdentificationParam(lst, lst[0], None)
+        target = entities.ObjectInfo(lst, lst[0], None)
         all_pts = all_pts + [target]
 
         data_provider = SimpleSimultaneousDataProvider(all_pts)
