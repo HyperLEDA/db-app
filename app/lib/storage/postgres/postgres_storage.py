@@ -37,6 +37,7 @@ DEFAULT_ENUMS = [
     (enums.TaskStatus, "common.task_status"),
     (enums.DataType, "common.datatype"),
     (enums.RawDataStatus, "rawdata.status"),
+    (enums.ObjectProcessingStatus, "rawdata.processing_status"),
 ]
 
 

@@ -1,5 +1,5 @@
 import json
-from typing import final
+from typing import Any, final
 
 import psycopg
 import structlog
@@ -9,7 +9,7 @@ from pandas import DataFrame
 from app import entities
 from app.data import interface, template
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
@@ -266,3 +266,20 @@ class Layer0Repository(interface.Layer0Repository):
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
+
+    def upsert_object(
+        self,
+        table_id: int,
+        object_id: int,
+        status: enums.ObjectProcessingStatus,
+        metadata: dict[str, Any],
+    ) -> None:
+        self._storage.exec(
+            """
+            INSERT INTO rawdata.objects 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (table_id, object_id) DO 
+                UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
+            """,
+            params=[table_id, object_id, status, json.dumps(metadata)],
+        )

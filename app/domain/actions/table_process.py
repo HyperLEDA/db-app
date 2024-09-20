@@ -12,6 +12,7 @@ from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.domain.repositories.layer_2_repository import Layer2Repository
+from app.lib.storage import enums
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
@@ -20,7 +21,10 @@ DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
     meta = depot.layer0_repo.fetch_metadata(r.table_id)
 
-    convs: list[converters.QuantityConverter] = [converters.NameConverter(), converters.ICRSConverter()]
+    convs: list[converters.QuantityConverter] = [
+        converters.NameConverter(),
+        converters.ICRSConverter(),
+    ]
 
     for conv in convs:
         conv.parse_columns(meta.column_descriptions)
@@ -31,9 +35,9 @@ def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schem
         obj = entities.ObjectInfo()
 
         for conv in convs:
-            conv.apply(obj, obj_data)
+            obj = conv.apply(obj, obj_data)
 
-        _ = cross_identification(
+        result = cross_identification(
             depot.layer2_repo,
             obj,
             SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
@@ -42,6 +46,15 @@ def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schem
                 r.cross_identification.outer_radius_arcsec * u.arcsec,
             ),
         )
+
+        if result.result is None and result.fail is None:
+            depot.layer0_repo.upsert_object(
+                r.table_id,
+                obj_data[INTERNAL_ID_COLUMN_NAME],
+                enums.ObjectProcessingStatus.NEW,
+                {},
+            )
+        # TODO: other cases
 
     # TODO: remove col_name and coordinate_part from entities?
 

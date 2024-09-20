@@ -1,5 +1,5 @@
 import re
-from typing import Any, final
+from typing import Any, Hashable, final
 
 from app import entities
 from app.domain.converters import common, errors, interface
@@ -16,7 +16,7 @@ class NameConverter(interface.QuantityConverter):
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         self.column = common.get_main_column(columns, "meta.id")
 
-    def apply(self, object_info: entities.ObjectInfo, data: dict[str, Any]) -> entities.ObjectInfo:
+    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
         if self.column is None:
             raise errors.ConverterError("unknown rules for name specification")
 

@@ -1,5 +1,5 @@
 import abc
-from typing import Any
+from typing import Any, Hashable
 
 from app import entities
 
@@ -37,7 +37,7 @@ class QuantityConverter(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def apply(self, object_info: entities.ObjectInfo, data: dict[str, Any]) -> entities.ObjectInfo:
+    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
         """
         Applies the transformation of the data to the particular object
         """

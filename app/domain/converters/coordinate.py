@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, Hashable, final
 
 from astropy import coordinates
 from astropy import units as u
@@ -31,7 +31,7 @@ class ICRSConverter(interface.QuantityConverter):
         self.ra_column = ra_column
         self.dec_column = dec_column
 
-    def apply(self, object_info: entities.ObjectInfo, data: dict[str, Any]) -> entities.ObjectInfo:
+    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
         if self.ra_column is None or self.dec_column is None:
             raise errors.ConverterError("unknown rules for coordinate specification")
 

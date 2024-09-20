@@ -54,6 +54,25 @@ COMMENT ON COLUMN rawdata.tables.table_name IS 'Rawdata table name' ;
 COMMENT ON COLUMN rawdata.tables.datatype IS 'Types of the data (regular,reprocessing,preliminary,compilation)' ;
 COMMENT ON COLUMN rawdata.tables.status IS 'Data processing status' ;
 
+-----------------------------------------------------------
+-------- Processed objects table --------------------------
 
+CREATE TYPE rawdata.processing_status AS ENUM ('unprocessed', 'new', 'existing', 'collided');
+
+CREATE TABLE rawdata.objects (
+  table_id int NOT NULL REFERENCES rawdata.tables(id)
+, object_id text NOT NULL
+, status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
+, metadata jsonb
+, PRIMARY KEY (table_id, object_id)
+);
+
+CREATE INDEX ON rawdata.objects (status);
+
+COMMENT ON TABLE rawdata.objects IS 'Table to store processed objects and their metadata';
+COMMENT ON COLUMN rawdata.objects.table_id IS 'Reference to the original table';
+COMMENT ON COLUMN rawdata.objects.object_id IS 'Identifier for the object within the original table';
+COMMENT ON COLUMN rawdata.objects.status IS 'Status of the processing';
+COMMENT ON COLUMN rawdata.objects.metadata IS 'Metadata related to the processing steps';
 
 COMMIT ;
