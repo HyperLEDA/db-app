@@ -587,6 +587,25 @@
           "columns": {
             "type": "array",
             "description": "List of columns in the table",
+            "example": [
+              {
+                "name": "name",
+                "data_type": "str",
+                "ucd": "meta.id"
+              },
+              {
+                "name": "ra",
+                "data_type": "float",
+                "unit": "hourangle",
+                "ucd": "pos.eq.ra"
+              },
+              {
+                "name": "dec",
+                "data_type": "float",
+                "unit": "deg",
+                "ucd": "pos.eq.dec"
+              }
+            ],
             "items": {
               "$ref": "#/components/schemas/ColumnDescription"
             }
@@ -594,7 +613,7 @@
           "bibcode": {
             "type": "string",
             "description": "ADS bibcode of the article that published the data (or code of the internal communication)",
-            "example": "2024NatAs.tmp..120M"
+            "example": "2024PDU....4601628D"
           },
           "datatype": {
             "type": "string",
