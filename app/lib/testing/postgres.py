@@ -80,6 +80,17 @@ _test_storage: TestPostgresStorage | None = None
 
 
 def get_test_postgres_storage() -> TestPostgresStorage:
+    """
+    Obtains Postgres storage object that may be used for testing.
+
+    It is made efficiently - if the storage was already created (using this function)
+    it will not be created again but reused to save time. This requires the caller to clear the
+    storage themselves when they need it (by calling `clear()` function of the return value
+    of this function).
+
+    Usually caller does not need to stop the containers manually - it will be stopped once the
+    process stops (if it happens gracefully, of course).
+    """
     global _test_storage
     if _test_storage is None:
         _test_storage = TestPostgresStorage("postgres/migrations")

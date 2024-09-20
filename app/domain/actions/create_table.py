@@ -6,7 +6,7 @@ from astropy import units
 from astroquery import nasa_ads as ads
 
 from app import commands, entities, schema
-from app.data import interface
+from app.data import repositories
 from app.domain import converters
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
@@ -31,7 +31,7 @@ def create_table(
     columns = domain_descriptions_to_data(r.columns)
     validate_columns(columns)
 
-    with depot.layer0_repo.with_tx() as tx:
+    with depot.layer0_repo.with_tx():
         table_resp = depot.layer0_repo.create_table(
             entities.Layer0Creation(
                 table_name=r.table_name,
@@ -40,7 +40,6 @@ def create_table(
                 datatype=enums.DataType(r.datatype),
                 comment=r.description,
             ),
-            tx=tx,
         )
 
     return schema.CreateTableResponse(table_resp.table_id), table_resp.created
@@ -65,7 +64,7 @@ def validate_columns(columns: list[entities.ColumnDescription]):
             raise errors.RuleValidationError(f"Error during validation of '{converter.name()}' converter: {e}") from e
 
 
-def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
+def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
     if not regex.match(BIBCODE_REGEX, code):
         try:
             entry_id = repo.get_source_entry(code).id
