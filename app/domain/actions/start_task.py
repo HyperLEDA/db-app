@@ -18,8 +18,8 @@ def start_task(depot: commands.Depot, r: schema.StartTaskRequest) -> schema.Star
 
     params = params_type(**r.payload)
 
-    with depot.common_repo.with_tx() as tx:
-        task_id = depot.common_repo.insert_task(entities.Task(r.task_name, r.payload, 1), tx)
+    with depot.common_repo.with_tx():
+        task_id = depot.common_repo.insert_task(entities.Task(r.task_name, r.payload, 1))
         depot.queue_repo.enqueue(
             tasks.task_runner,
             func=task,

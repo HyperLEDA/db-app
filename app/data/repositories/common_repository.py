@@ -1,27 +1,22 @@
 from typing import Any, final
 
-import psycopg
 import structlog
 from psycopg.types import json
 
 from app import entities
-from app.data import interface, template
+from app.data import template
+from app.data.repositories import transactional
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 
 @final
-class CommonRepository(interface.CommonRepository):
+class CommonRepository(transactional.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
-        self._storage = storage
+        super().__init__(storage)
 
-    def with_tx(self) -> psycopg.Transaction:
-        return self._storage.with_tx()
-
-    def create_bibliography(
-        self, code: str, year: int, authors: list[str], title: str, tx: psycopg.Transaction | None = None
-    ) -> int:
+    def create_bibliography(self, code: str, year: int, authors: list[str], title: str) -> int:
         result = self._storage.query_one(
             """
             INSERT INTO common.bib (code, year, author, title) 
@@ -30,7 +25,6 @@ class CommonRepository(interface.CommonRepository):
             RETURNING id 
             """,
             params=[code, year, authors, title],
-            tx=tx,
         )
 
         if result is None:
@@ -38,21 +32,20 @@ class CommonRepository(interface.CommonRepository):
 
         return int(result.get("id"))
 
-    def get_source_entry(self, source_name: str, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
-        row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name], tx=tx)
+    def get_source_entry(self, source_name: str) -> entities.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name])
 
         return entities.Bibliography(**row)
 
-    def get_source_by_id(self, source_id: int, tx: psycopg.Transaction | None = None) -> entities.Bibliography:
-        row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id], tx=tx)
+    def get_source_by_id(self, source_id: int) -> entities.Bibliography:
+        row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id])
 
         return entities.Bibliography(**row)
 
-    def insert_task(self, task: entities.Task, tx: psycopg.Transaction | None = None) -> int:
+    def insert_task(self, task: entities.Task) -> int:
         row = self._storage.query_one(
             "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
             params=[task.task_name, json.Jsonb(task.payload)],
-            tx=tx,
         )
 
         row_id = row.get("id")
@@ -61,31 +54,19 @@ class CommonRepository(interface.CommonRepository):
 
         return int(row_id)
 
-    def get_task_info(self, task_id: int, tx: psycopg.Transaction | None = None) -> entities.Task:
-        row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id], tx=tx)
+    def get_task_info(self, task_id: int) -> entities.Task:
+        row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id])
 
         return entities.Task(**row)
 
-    def set_task_status(
-        self,
-        task_id: int,
-        task_status: enums.TaskStatus,
-        tx: psycopg.Transaction | None = None,
-    ) -> None:
+    def set_task_status(self, task_id: int, task_status: enums.TaskStatus) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s WHERE id = %s",
             params=[task_status, task_id],
-            tx=tx,
         )
 
-    def fail_task(
-        self,
-        task_id: int,
-        message: dict[str, Any],
-        tx: psycopg.Transaction | None = None,
-    ) -> None:
+    def fail_task(self, task_id: int, message: dict[str, Any]) -> None:
         self._storage.exec(
             "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
             params=[enums.TaskStatus.FAILED, json.Jsonb(message), task_id],
-            tx=tx,
         )
