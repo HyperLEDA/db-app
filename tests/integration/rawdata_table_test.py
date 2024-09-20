@@ -58,8 +58,9 @@ class RawDataTableTest(unittest.TestCase):
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -72,18 +73,16 @@ class RawDataTableTest(unittest.TestCase):
             schema.AddDataRequest(
                 table_id=table_resp.id,
                 data=[
-                    {"test_col_1": 5.5, "test_col_2": "test data 1"},
-                    {"test_col_1": 5.0, "test_col_2": "test data 2"},
+                    {"ra": 5.5, "dec": 88},
+                    {"ra": 5.0, "dec": -50},
                 ],
             ),
         )
 
-        rows = self.pg_storage.get_storage().query(
-            "SELECT test_col_1, test_col_2 FROM rawdata.test_table ORDER BY test_col_1"
-        )
+        rows = self.pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
         data_df = pandas.DataFrame.from_records(rows)
-        self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
-        self.assertListEqual(data_df["test_col_2"].to_list(), ["test data 2", "test data 1"])
+        self.assertListEqual(data_df["ra"].to_list(), [5.0, 5.5])
+        self.assertListEqual(data_df["dec"].to_list(), [-50, 88])
 
     def test_create_table_with_nulls(self):
         self.clients.ads.query_simple = mock.MagicMock(
@@ -102,8 +101,9 @@ class RawDataTableTest(unittest.TestCase):
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -115,16 +115,14 @@ class RawDataTableTest(unittest.TestCase):
             self.depot,
             schema.AddDataRequest(
                 table_resp.id,
-                data=[{"test_col_1": 5.5}, {"test_col_1": 5.0}],
+                data=[{"ra": 5.5}, {"ra": 5.0}],
             ),
         )
 
-        rows = self.pg_storage.get_storage().query(
-            "SELECT test_col_1, test_col_2 FROM rawdata.test_table ORDER BY test_col_1"
-        )
+        rows = self.pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
         data_df = pandas.DataFrame.from_records(rows)
-        self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
-        self.assertListEqual(data_df["test_col_2"].to_list(), [None, None])
+        self.assertListEqual(data_df["ra"].to_list(), [5.0, 5.5])
+        self.assertListEqual(data_df["dec"].to_list(), [None, None])
 
     def test_duplicate_column(self):
         self.clients.ads.query_simple = mock.MagicMock(
@@ -144,8 +142,11 @@ class RawDataTableTest(unittest.TestCase):
                 schema.CreateTableRequest(
                     "test_table",
                     [
-                        schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                        schema.ColumnDescription("test_col_1", "str", description="test col 2"),
+                        schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                        schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                        schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                        schema.ColumnDescription("duplicate", "str"),
+                        schema.ColumnDescription("duplicate", "str"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
@@ -170,8 +171,9 @@ class RawDataTableTest(unittest.TestCase):
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",

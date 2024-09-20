@@ -1,4 +1,39 @@
 import re
+from typing import Any, Hashable, final
+
+from app import entities
+from app.domain.converters import common, errors, interface
+
+
+@final
+class NameConverter(interface.QuantityConverter):
+    def __init__(self) -> None:
+        self.column = None
+
+    def name(self) -> str:
+        return "name"
+
+    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
+        self.column = common.get_main_column(columns, "meta.id")
+
+    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
+        if self.column is None:
+            raise errors.ConverterError("unknown rules for name specification")
+
+        object_info.primary_name = data[self.column.name]
+
+        return object_info
+
+
+def generalize_name(source: str) -> str:
+    """
+    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
+    """
+    for rule, algorithm in _rules:
+        if rule(source):
+            return algorithm(source)
+
+    return source
 
 
 def _is_roman_number(num):
@@ -477,14 +512,3 @@ _rules = [
     (_rule_len_3, _algorithm_len_3),
     (_rule_len_4, _algorithm_len_4),
 ]
-
-
-def generalize_name(source: str) -> str:
-    """
-    Given arbitrary name, transforms it to standard representation (removing abbreviation, trailing zeros, etc)
-    """
-    for rule, algorithm in _rules:
-        if rule(source):
-            return algorithm(source)
-
-    return source

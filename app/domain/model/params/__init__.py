@@ -3,9 +3,7 @@ from dataclasses import dataclass
 
 from astropy.coordinates import ICRS, Angle
 
-from app.domain.model.params.cross_identification_param import CrossIdentificationParam
-
-__all__ = ["CrossIdentificationParam", "TmpDataRepositoryQueryParam"]
+__all__ = ["TmpDataRepositoryQueryParam"]
 
 
 class TmpDataRepositoryQueryParam(ABC):

@@ -127,7 +127,7 @@ def download_vizier_table(
             entities.ColumnDescription(
                 name=field,
                 data_type=t,
-                unit=str(field_meta.unit),
+                unit=field_meta.unit,
                 description=field_meta.description,
             )
         )

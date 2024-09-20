@@ -1,14 +1,15 @@
 import json
-from typing import final
+from typing import Any, final
 
 import psycopg
 import structlog
+from astropy import units as u
 from pandas import DataFrame
 
 from app import entities
 from app.data import interface, template
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
@@ -42,17 +43,22 @@ class Layer0Repository(interface.Layer0Repository):
             fields.append((column_descr.name, column_descr.data_type, constraint))
             col_params = {
                 "description": column_descr.description,
-                "unit": column_descr.unit,
                 "data_type": column_descr.data_type,
             }
+
+            if column_descr.unit is not None:
+                col_params["unit"] = column_descr.unit.to_string()
+
             if column_descr.coordinate_part is not None:
                 col_params["coordinate_part"] = {
                     "descr_id": column_descr.coordinate_part.descr_id,
                     "arg_num": column_descr.coordinate_part.arg_num,
                     "column_name": column_descr.coordinate_part.column_name,
                 }
+
             if column_descr.ucd is not None:
                 col_params["ucd"] = column_descr.ucd
+
             comment_queries.append(
                 template.render_query(
                     template.ADD_COLUMN_COMMENT,
@@ -106,7 +112,7 @@ class Layer0Repository(interface.Layer0Repository):
     ) -> None:
         """
         This method puts everything in parameters for prepared statement. This should not be a big
-        issue but one would be better off using this function in batches since prepared statement make
+        issue but one would be better off using this function in batches since prepared statements make
         this quite cheap (excluding network slow down, though).
         """
 
@@ -216,11 +222,15 @@ class Layer0Repository(interface.Layer0Repository):
                     param["param"]["coordinate_part"]["column_name"],
                 )
 
+            unit = None
+            if param["param"].get("unit") is not None:
+                unit = u.Unit(param["param"]["unit"])
+
             descriptions.append(
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    unit=param["param"]["unit"],
+                    unit=unit,
                     description=param["param"]["description"],
                     ucd=param["param"].get("ucd"),
                     coordinate_part=coordinate_part,
@@ -256,3 +266,20 @@ class Layer0Repository(interface.Layer0Repository):
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
+
+    def upsert_object(
+        self,
+        table_id: int,
+        object_id: int,
+        status: enums.ObjectProcessingStatus,
+        metadata: dict[str, Any],
+    ) -> None:
+        self._storage.exec(
+            """
+            INSERT INTO rawdata.objects 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (table_id, object_id) DO 
+                UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
+            """,
+            params=[table_id, object_id, status, json.dumps(metadata)],
+        )
