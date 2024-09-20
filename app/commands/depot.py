@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.data import interface, repositories
+from app.data import repositories
 from app.lib import auth, clients
 
 
@@ -10,6 +10,6 @@ class Depot:
     layer0_repo: repositories.Layer0Repository
     layer2_repo: repositories.Layer2Repository
     tmp_data_repo: repositories.TmpDataRepositoryImpl
-    queue_repo: interface.QueueRepository  # TODO: remove interfaces, they are not needed for DI
+    queue_repo: repositories.QueueRepository
     authenticator: auth.Authenticator
     clients: clients.Clients
