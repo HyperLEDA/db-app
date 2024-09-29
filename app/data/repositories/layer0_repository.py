@@ -272,3 +272,15 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             """,
             params=[table_id, object_id, status, json.dumps(metadata)],
         )
+
+    def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+        rows = self._storage.query(
+            """
+            SELECT status, COUNT(*) FROM rawdata.objects 
+            WHERE table_id = %s 
+            GROUP BY status
+            """,
+            params=[table_id],
+        )
+
+        return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
