@@ -319,7 +319,7 @@
     "/api/v1/admin/table/process": {
       "post": {
         "summary": "Start processing of the table",
-        "description": "Starts different processing steps on the table: for example, cross-identification.\n",
+        "description": "Starts different processing steps on the table: for example, homogenization and cross-identification.\n",
         "security": [
           {
             "TokenAuth": []
@@ -348,6 +348,49 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/TableProcessResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/table/status/stats": {
+      "get": {
+        "summary": "Get statistics on table processing",
+        "description": "Accesses the current status of the processing of a given table.\nReturns the distribution of objects by processing status.\n\nIf there are no objects with the given status, it will not be present in the response.\n",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "admin",
+          "table"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "table_id",
+            "description": "Identifier of the table",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of objects in each status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TableStatusStatsResponseSchema"
                     }
                   }
                 }
@@ -663,6 +706,18 @@
           "data": {
             "type": "array",
             "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n        ",
+            "example": [
+              {
+                "name": "M 33",
+                "ra": 1.5641,
+                "dec": 30.6602
+              },
+              {
+                "name": "M 31",
+                "ra": 0.7123,
+                "dec": 41.269
+              }
+            ],
             "items": {
               "type": "object"
             }
@@ -741,6 +796,29 @@
       "TableProcessResponseSchema": {
         "type": "object",
         "properties": {}
+      },
+      "TableStatusStatsRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "Identifier of the table"
+          }
+        },
+        "required": [
+          "table_id"
+        ]
+      },
+      "TableStatusStatsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "processing": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
       }
     }
   }
