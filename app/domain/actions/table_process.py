@@ -1,7 +1,10 @@
+from typing import Callable
+
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
 from app import commands, entities, schema
+from app.data import repositories
 from app.domain import converters
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.cross_id_simultaneous_data_provider import (
@@ -11,14 +14,31 @@ from app.domain.cross_id_simultaneous_data_provider import (
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
-from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.lib.storage import enums
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 
+cross_identification_func_type = Callable[
+    [
+        repositories.Layer2Repository,
+        entities.ObjectInfo,
+        CrossIdSimultaneousDataProvider,
+        CrossIdentificationUserParam,
+    ],
+    result.CrossIdentifyResult,
+]
+
 
 def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
+    return table_process_with_cross_identification(depot, cross_identification, r)
+
+
+def table_process_with_cross_identification(
+    depot: commands.Depot,
+    cross_identification_func: cross_identification_func_type,
+    r: schema.TableProcessRequest,
+) -> schema.TableProcessResponse:
     meta = depot.layer0_repo.fetch_metadata(r.table_id)
 
     convs: list[converters.QuantityConverter] = [
@@ -37,7 +57,7 @@ def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schem
         for conv in convs:
             obj = conv.apply(obj, obj_data)
 
-        result = cross_identification(
+        result = cross_identification_func(
             depot.layer2_repo,
             obj,
             SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
@@ -76,7 +96,7 @@ def get_cross_identification_status(res: result.CrossIdentifyResult) -> tuple[en
 
 
 def cross_identification(
-    layer2_repo: Layer2Repository,
+    layer2_repo: repositories.Layer2Repository,
     param: entities.ObjectInfo,
     simultaneous_data_provider: CrossIdSimultaneousDataProvider,
     user_param: CrossIdentificationUserParam,
@@ -120,7 +140,7 @@ def cross_identification(
 
 
 def _identify_by_coordinates(
-    layer2_repo: Layer2Repository,
+    layer2_repo: repositories.Layer2Repository,
     coordinates: ICRS,
     inner_r: Angle,
     outer_r: Angle,
@@ -153,7 +173,7 @@ def _identify_by_coordinates(
     raise ValueError(f"Unexpected R1 and R2 query results: len(r1) = {len(r1_hit)}, len(r2) = {len(r2_hit)}")
 
 
-def _identify_by_names(layer2_repo: Layer2Repository, names: list[str]) -> result.CrossIdentifyResult:
+def _identify_by_names(layer2_repo: repositories.Layer2Repository, names: list[str]) -> result.CrossIdentifyResult:
     """
     Cross identification by names
     :param names: Names to identify

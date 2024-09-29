@@ -1,9 +1,16 @@
-from __future__ import annotations
+import abc
+from dataclasses import dataclass
 
 from astropy.coordinates import ICRS, Angle
 
 from app import entities
 from app.domain.model.layer2 import Layer2Model
+
+
+class CrossIdentificationException(abc.ABC):
+    """
+    Base cross identification exception
+    """
 
 
 class CrossIdentifyResult:
@@ -16,16 +23,12 @@ class CrossIdentifyResult:
         self.fail: CrossIdentificationException | None = fail
 
 
-class CrossIdentificationException(BaseException):
-    """
-    Base cross identification exception
-    """
-
-
+@dataclass
 class CrossIdentificationEmptyException(CrossIdentificationException):
     """Both coordinates and name provided are empty"""
 
 
+@dataclass
 class CrossIdentificationNamesNotFoundException(CrossIdentificationException):
     """Case, when only name known, but it has no matches in DB"""
 
@@ -36,6 +39,7 @@ class CrossIdentificationNamesNotFoundException(CrossIdentificationException):
         self.names = names
 
 
+@dataclass
 class CrossIdentificationNamesDuplicateException(CrossIdentificationException):
     """Case, when provided names found for multiple objects in DB"""
 
@@ -46,6 +50,7 @@ class CrossIdentificationNamesDuplicateException(CrossIdentificationException):
         self.names = names
 
 
+@dataclass
 class CrossIdentificationCoordCollisionException(CrossIdentificationException):
     """
     Describes collisions from cross identification use case
@@ -64,6 +69,7 @@ class CrossIdentificationCoordCollisionException(CrossIdentificationException):
         self.collisions: list[Layer2Model] = collisions
 
 
+@dataclass
 class CrossIdentificationNameCoordCollisionException(CrossIdentificationException):
     """
     Describes collision, when cross identified name and coordinates mismatch
@@ -80,6 +86,7 @@ class CrossIdentificationNameCoordCollisionException(CrossIdentificationExceptio
         self.coord_hit = coord_hit
 
 
+@dataclass
 class CrossIdentificationNameCoordFailException(CrossIdentificationException):
     """
     Describes collision, when both cross identification by name and by coordinates need user interaction
@@ -101,6 +108,7 @@ class CrossIdentificationNameCoordFailException(CrossIdentificationException):
         self.coord_collision = coord_collision
 
 
+@dataclass
 class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
     """
     Describes collision, name cross identification is successful, but coordinate cross identification needs user
@@ -123,6 +131,7 @@ class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
         self.coord_collision = coord_collision
 
 
+@dataclass
 class CrossIdentificationNameCoordNameFailException(CrossIdentificationException):
     """
     Describes collision, coordinate cross identification is successful, but name cross identification needs user
@@ -145,6 +154,7 @@ class CrossIdentificationNameCoordNameFailException(CrossIdentificationException
         self.coord_hit = coord_hit
 
 
+@dataclass
 class CrossIdentificationDuplicateException(CrossIdentificationException):
     """
     When collision found between simultaneously processed objects
