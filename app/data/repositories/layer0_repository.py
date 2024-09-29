@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import template
-from app.data.repositories import transactional
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
@@ -16,7 +15,7 @@ RAWDATA_SCHEMA = "rawdata"
 
 
 @final
-class Layer0Repository(transactional.TransactionalPGRepository):
+class Layer0Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         super().__init__(storage)
