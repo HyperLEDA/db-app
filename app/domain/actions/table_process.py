@@ -47,18 +47,32 @@ def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schem
             ),
         )
 
-        if result.result is None and result.fail is None:
-            depot.layer0_repo.upsert_object(
-                r.table_id,
-                obj_data[INTERNAL_ID_COLUMN_NAME],
-                enums.ObjectProcessingStatus.NEW,
-                {},
-            )
-        # TODO: other cases
+        status, metadata = get_cross_identification_status(result)
+        depot.layer0_repo.upsert_object(
+            r.table_id,
+            obj_data[INTERNAL_ID_COLUMN_NAME],
+            status,
+            metadata,
+        )
 
     # TODO: remove col_name and coordinate_part from entities?
 
     return schema.TableProcessResponse()
+
+
+def get_cross_identification_status(res: result.CrossIdentifyResult) -> tuple[enums.ObjectProcessingStatus, dict]:
+    """
+    :param res: Cross identification result
+
+    :return: Object processing status and its metadata
+    """
+    if res.fail is None:
+        if res.result is None:
+            return enums.ObjectProcessingStatus.NEW, {}
+
+        return enums.ObjectProcessingStatus.EXISTING, {"pgc": res.result.pgc}
+
+    return enums.ObjectProcessingStatus.COLLIDED, {"error": res.fail}
 
 
 def cross_identification(
