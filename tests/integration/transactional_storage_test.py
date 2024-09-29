@@ -1,7 +1,7 @@
 import unittest
 
-from app.data.repositories import transactional
 from app.lib import testing
+from app.lib.storage.postgres import transactional
 
 
 class TransactionalRepositoryTest(unittest.TestCase):

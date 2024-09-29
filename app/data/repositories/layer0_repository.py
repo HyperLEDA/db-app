@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import template
-from app.data.repositories import transactional
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
@@ -16,7 +15,7 @@ RAWDATA_SCHEMA = "rawdata"
 
 
 @final
-class Layer0Repository(transactional.TransactionalPGRepository):
+class Layer0Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         super().__init__(storage)
@@ -273,3 +272,15 @@ class Layer0Repository(transactional.TransactionalPGRepository):
             """,
             params=[table_id, object_id, status, json.dumps(metadata)],
         )
+
+    def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+        rows = self._storage.query(
+            """
+            SELECT status, COUNT(*) FROM rawdata.objects 
+            WHERE table_id = %s 
+            GROUP BY status
+            """,
+            params=[table_id],
+        )
+
+        return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}

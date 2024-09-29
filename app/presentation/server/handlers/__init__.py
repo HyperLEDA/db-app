@@ -8,6 +8,7 @@ from app.presentation.server.handlers import (
     ping,
     start_task,
     table_process,
+    table_status_stats,
 )
 
 routes = [
@@ -20,4 +21,5 @@ routes = [
     add_data.description,
     login.description,
     table_process.description,
+    table_status_stats.description,
 ]

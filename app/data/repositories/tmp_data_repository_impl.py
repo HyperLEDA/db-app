@@ -7,7 +7,6 @@ import numpy as np
 from pandas import DataFrame, Series
 
 from app.data import template
-from app.data.repositories import transactional
 from app.domain.model.params import TmpCoordinateTableQueryParam, TmpDataRepositoryQueryParam, TmpNameTableQueryParam
 from app.domain.repositories.tmp_data_repository import TmpDataRepository
 from app.lib.storage import mapping, postgres
@@ -21,7 +20,7 @@ def _extended_type_map(series: Series):
     return mapping.get_type_from_dtype(series.dtype)
 
 
-class TmpDataRepositoryImpl(TmpDataRepository, transactional.TransactionalPGRepository):
+class TmpDataRepositoryImpl(TmpDataRepository, postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage):
         self._storage = storage
 

@@ -18,6 +18,10 @@ class AddDataRequestSchema(Schema):
             Keys in this dictionary must be a subset of the columns in the table. 
             If not specified, column will be set to NULL.
         """,
+        example=[
+            {"name": "M 33", "ra": 1.5641, "dec": 30.6602},
+            {"name": "M 31", "ra": 0.7123, "dec": 41.2690},
+        ],
     )
 
     @post_load
