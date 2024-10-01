@@ -46,6 +46,7 @@ class CrossIdentification:
 class TableProcessRequest:
     table_id: int
     cross_identification: CrossIdentification
+    batch_size: int = 100
 
 
 @dataclass
