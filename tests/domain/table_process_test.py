@@ -9,12 +9,12 @@ from astropy.coordinates import ICRS
 
 from app import entities, schema
 from app.commands.depot import Depot
-from app.domain import converters
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
 from app.lib.storage import enums
+from app.lib.web import errors
 
 
 def get_noop_cross_identification(
@@ -51,7 +51,7 @@ class TableProcessTest(unittest.TestCase):
 
         ci_func = get_noop_cross_identification([])
 
-        with self.assertRaises(converters.ConverterError):
+        with self.assertRaises(errors.LogicalError):
             table_process_with_cross_identification(
                 self.depot,
                 ci_func,
