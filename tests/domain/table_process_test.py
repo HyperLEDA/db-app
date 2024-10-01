@@ -9,7 +9,6 @@ from astropy.coordinates import ICRS
 
 from app import entities, schema
 from app.commands.depot import Depot
-from app.domain import converters
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
