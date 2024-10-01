@@ -38,14 +38,16 @@ class TableProcessTest(unittest.TestCase):
         )
 
     def test_invalid_table(self):
-        self.layer0_repo.fetch_metadata.return_value = entities.Layer0Creation(
-            table_name="table_name",
-            column_descriptions=[
-                entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-            ],
-            bibliography_id=1234,
-            datatype=enums.DataType.REGULAR,
-        )
+        self.layer0_repo.fetch_metadata.side_effect = [
+            entities.Layer0Creation(
+                table_name="table_name",
+                column_descriptions=[
+                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                ],
+                bibliography_id=1234,
+                datatype=enums.DataType.REGULAR,
+            )
+        ]
 
         ci_func = get_noop_cross_identification([])
 
@@ -82,16 +84,18 @@ class TableProcessTest(unittest.TestCase):
             ),
         ]
 
-        self.layer0_repo.fetch_metadata.return_value = entities.Layer0Creation(
-            table_name="table_name",
-            column_descriptions=[
-                entities.ColumnDescription("objname", "str", ucd="meta.id"),
-                entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hourangle),
-                entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
-            ],
-            bibliography_id=1234,
-            datatype=enums.DataType.REGULAR,
-        )
+        self.layer0_repo.fetch_metadata.side_effect = [
+            entities.Layer0Creation(
+                table_name="table_name",
+                column_descriptions=[
+                    entities.ColumnDescription("objname", "str", ucd="meta.id"),
+                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hourangle),
+                    entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
+                ],
+                bibliography_id=1234,
+                datatype=enums.DataType.REGULAR,
+            )
+        ]
 
         data = pandas.DataFrame()
         ci_results = []
