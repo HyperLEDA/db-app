@@ -1,6 +1,7 @@
 import abc
 
 INTERNAL_ERROR_CODE = "internal_error"
+LOGICAL_ERROR_CODE = "logical_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
 DATABASE_ERROR = "database_error"
@@ -31,6 +32,10 @@ class APIError(abc.ABC, Exception):
 
 
 class InternalError(APIError):
+    """
+    Internal error that shows some temporary problem. Allows retries.
+    """
+
     def __init__(self, message: str | Exception):
         self.msg = message
 
@@ -38,7 +43,25 @@ class InternalError(APIError):
         return (INTERNAL_ERROR_CODE, 500, str(self.msg))
 
 
+class LogicalError(APIError):
+    """
+    Internal error that shows that something on the backend was logically wrong.
+    For example, integrity of internal database or some invariant was broken.
+    Usually indicates some bug in the code.
+    """
+
+    def __init__(self, message: str | Exception):
+        self.msg = message
+
+    def data(self) -> tuple[str, int, str]:
+        return (LOGICAL_ERROR_CODE, 500, str(self.msg))
+
+
 class RuleValidationError(APIError):
+    """
+    Some validation requirements of the request were not satisfied.
+    """
+
     def __init__(self, message: str):
         self.msg = message
 
@@ -47,6 +70,10 @@ class RuleValidationError(APIError):
 
 
 class NotFoundError(APIError):
+    """
+    Entity was not found.
+    """
+
     def __init__(self, message: str):
         self.msg = message
 
@@ -55,6 +82,10 @@ class NotFoundError(APIError):
 
 
 class DatabaseError(APIError):
+    """
+    Internal error that originated in the database.
+    """
+
     def __init__(self, message: str):
         self.msg = message
 
@@ -63,6 +94,10 @@ class DatabaseError(APIError):
 
 
 class UnauthorizedError(APIError):
+    """
+    Client tried to obtain resource that requires authorization.
+    """
+
     def __init__(self, message: str):
         self.msg = message
 
@@ -71,6 +106,10 @@ class UnauthorizedError(APIError):
 
 
 class ForbiddenError(APIError):
+    """
+    Client was authorized but did not have sufficient permissions to obtain resource.
+    """
+
     def __init__(self, message: str):
         self.msg = message
 

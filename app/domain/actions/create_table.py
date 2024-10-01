@@ -46,22 +46,15 @@ def create_table(
 
 
 def validate_columns(columns: list[entities.ColumnDescription]):
-    # TODO: fallback if name or one of coordinates are not specified
-
-    convs: list[converters.QuantityConverter] = [
+    converter = converters.CompositeConverter(
         converters.NameConverter(),
         converters.ICRSConverter(),
-    ]
+    )
 
-    for converter in convs:
-        try:
-            converter.parse_columns(columns)
-        except converters.ConverterNoColumnError as e:
-            raise errors.RuleValidationError(
-                f"Did not find a columns that correspond to the '{converter.name()}' converter"
-            ) from e
-        except converters.ConverterError as e:
-            raise errors.RuleValidationError(f"Error during validation of '{converter.name()}' converter: {e}") from e
+    try:
+        converter.parse_columns(columns)
+    except converters.ConverterError as e:
+        raise errors.RuleValidationError(f"Unable to parse the columns: {str(e)}") from e
 
 
 def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:

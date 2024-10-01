@@ -15,6 +15,7 @@ from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.lib.storage import enums
+from app.lib.web import errors
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
@@ -41,13 +42,15 @@ def table_process_with_cross_identification(
 ) -> schema.TableProcessResponse:
     meta = depot.layer0_repo.fetch_metadata(r.table_id)
 
-    convs: list[converters.QuantityConverter] = [
+    converter = converters.CompositeConverter(
         converters.NameConverter(),
         converters.ICRSConverter(),
-    ]
+    )
 
-    for conv in convs:
-        conv.parse_columns(meta.column_descriptions)
+    try:
+        converter.parse_columns(meta.column_descriptions)
+    except converters.ConverterError as e:
+        raise errors.LogicalError(f"Unable to process table: {str(e)}") from e
 
     offset = 0
 
@@ -61,10 +64,7 @@ def table_process_with_cross_identification(
             break
 
         for obj_data in data.data.to_dict(orient="records"):
-            obj = entities.ObjectInfo()
-
-            for conv in convs:
-                obj = conv.apply(obj, obj_data)
+            obj = converter.apply(entities.ObjectInfo(), obj_data)
 
             result = cross_identification_func(
                 depot.layer2_repo,
