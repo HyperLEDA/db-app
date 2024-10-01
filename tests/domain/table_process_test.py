@@ -106,7 +106,10 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata))
 
-        self.layer0_repo.fetch_raw_data.return_value = entities.Layer0RawData(table_id=1234, data=data)
+        self.layer0_repo.fetch_raw_data.side_effect = [
+            entities.Layer0RawData(table_id=1234, data=data),
+            entities.Layer0RawData(table_id=1234, data=pandas.DataFrame()),
+        ]
 
         ci_func = get_noop_cross_identification(ci_results)
 

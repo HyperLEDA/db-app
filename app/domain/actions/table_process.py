@@ -49,31 +49,40 @@ def table_process_with_cross_identification(
     for conv in convs:
         conv.parse_columns(meta.column_descriptions)
 
-    data = depot.layer0_repo.fetch_raw_data(r.table_id, order_column=INTERNAL_ID_COLUMN_NAME, limit=100)
+    offset = 0
 
-    for obj_data in data.data.to_dict(orient="records"):
-        obj = entities.ObjectInfo()
-
-        for conv in convs:
-            obj = conv.apply(obj, obj_data)
-
-        result = cross_identification_func(
-            depot.layer2_repo,
-            obj,
-            SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
-            CrossIdentificationUserParam(
-                r.cross_identification.inner_radius_arcsec * u.arcsec,
-                r.cross_identification.outer_radius_arcsec * u.arcsec,
-            ),
+    while True:
+        data = depot.layer0_repo.fetch_raw_data(
+            r.table_id, order_column=INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
         )
+        offset += min(r.batch_size, len(data.data))
 
-        status, metadata = get_cross_identification_status(result)
-        depot.layer0_repo.upsert_object(
-            r.table_id,
-            obj_data[INTERNAL_ID_COLUMN_NAME],
-            status,
-            metadata,
-        )
+        if len(data.data) == 0:
+            break
+
+        for obj_data in data.data.to_dict(orient="records"):
+            obj = entities.ObjectInfo()
+
+            for conv in convs:
+                obj = conv.apply(obj, obj_data)
+
+            result = cross_identification_func(
+                depot.layer2_repo,
+                obj,
+                SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
+                CrossIdentificationUserParam(
+                    r.cross_identification.inner_radius_arcsec * u.arcsec,
+                    r.cross_identification.outer_radius_arcsec * u.arcsec,
+                ),
+            )
+
+            status, metadata = get_cross_identification_status(result)
+            depot.layer0_repo.upsert_object(
+                r.table_id,
+                obj_data[INTERNAL_ID_COLUMN_NAME],
+                status,
+                metadata,
+            )
 
     # TODO: remove col_name and coordinate_part from entities?
 
