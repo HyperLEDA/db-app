@@ -32,6 +32,7 @@ class CrossIdSimultaneousDataProvider(ABC):
     def data_inside(self, center: ICRS, r: Angle) -> list[entities.ObjectInfo]:
         """
         Get all points around given point
+
         :param center: Target point
         :param r: Radius around center, represented in angle
         :return: Points in given circle
@@ -41,6 +42,7 @@ class CrossIdSimultaneousDataProvider(ABC):
     def by_name(self, names: list[str]) -> list[entities.ObjectInfo]:
         """
         Select items by names
+
         :param names: All known names in raw table
         :return: Items with matching name
         """

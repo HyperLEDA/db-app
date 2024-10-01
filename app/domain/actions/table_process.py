@@ -156,6 +156,7 @@ def _identify_by_coordinates(
 ) -> result.CrossIdentifyResult:
     """
     Cross identification by coordinates
+
     :param coordinates: Sky koordinates of identified object
     :param inner_r: Inner radius
     :param outer_r: Outer radius
@@ -185,6 +186,7 @@ def _identify_by_coordinates(
 def _identify_by_names(layer2_repo: repositories.Layer2Repository, names: list[str]) -> result.CrossIdentifyResult:
     """
     Cross identification by names
+
     :param names: Names to identify
     :return: UseCase result
     """
@@ -210,6 +212,7 @@ def _compile_results(
 ) -> result.CrossIdentifyResult:
     """
     Compile results of name and coordinates cross identification
+
     :param param: Current identification param
     :param coord_res: Result of identification by coordinates
     :param names_res: Result of identification by names
