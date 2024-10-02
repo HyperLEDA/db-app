@@ -6,6 +6,7 @@ from app.presentation.server.handlers import (
     get_task_info,
     login,
     ping,
+    set_table_status,
     start_task,
     table_process,
     table_status_stats,
@@ -22,4 +23,5 @@ routes = [
     login.description,
     table_process.description,
     table_status_stats.description,
+    set_table_status.description,
 ]
