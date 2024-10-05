@@ -11,6 +11,7 @@ from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
+from app.lib import testing
 from app.lib.storage import enums
 from app.lib.web import errors
 
@@ -26,7 +27,8 @@ class TableProcessTest(unittest.TestCase):
         self.depot = commands.get_mock_depot()
 
     def test_invalid_table(self):
-        self.depot.layer0_repo.fetch_metadata.side_effect = [
+        testing.returns(
+            self.depot.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -34,8 +36,8 @@ class TableProcessTest(unittest.TestCase):
                 ],
                 bibliography_id=1234,
                 datatype=enums.DataType.REGULAR,
-            )
-        ]
+            ),
+        )
 
         ci_func = get_noop_cross_identification([])
 
@@ -74,7 +76,8 @@ class TableProcessTest(unittest.TestCase):
             ),
         ]
 
-        self.depot.layer0_repo.fetch_metadata.side_effect = [
+        testing.returns(
+            self.depot.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -84,8 +87,8 @@ class TableProcessTest(unittest.TestCase):
                 ],
                 bibliography_id=1234,
                 datatype=enums.DataType.REGULAR,
-            )
-        ]
+            ),
+        )
 
         data = pandas.DataFrame()
         ci_results = []
@@ -100,10 +103,10 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata, pgc))
 
-        self.depot.layer0_repo.fetch_raw_data.side_effect = [
-            entities.Layer0RawData(table_id=1234, data=data),
-            entities.Layer0RawData(table_id=1234, data=pandas.DataFrame()),
-        ]
+        testing.returns(self.depot.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
+        testing.returns(
+            self.depot.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
+        )
 
         ci_func = get_noop_cross_identification(ci_results)
 

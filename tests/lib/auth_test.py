@@ -24,7 +24,7 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         self.assertEqual(("123456789", True), self.authenticator.login("username", "password"))
 
     def test_login_user_does_not_exist(self):
-        self.mock_storage.query_one.side_effect = RuntimeError
+        testing.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual(("", False), self.authenticator.login("username", "password"))
 
     def test_login_wrong_password(self):
@@ -32,7 +32,7 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         self.assertEqual(("", False), self.authenticator.login("username", "wrong_password"))
 
     def test_authenticate_invalid_token(self):
-        self.mock_storage.query_one.side_effect = RuntimeError
+        testing.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual((None, False), self.authenticator.authenticate("non_existent_token"))
 
     def test_authenticate_correct_token(self):

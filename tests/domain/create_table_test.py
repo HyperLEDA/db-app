@@ -46,13 +46,13 @@ class GetSourceIDTest(unittest.TestCase):
             self.assertEqual(result, 42)
 
     def test_ads_not_found(self):
-        self.depot.clients.ads.query_simple.side_effect = RuntimeError("Not found")
+        testing.raises(self.depot.clients.ads.query_simple, RuntimeError("Not found"))
 
         with self.assertRaises(errors.RuleValidationError):
             _ = get_source_id(self.depot.common_repo, self.depot.clients.ads, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
-        self.depot.common_repo.get_source_entry.side_effect = RuntimeError("Not found")
+        testing.raises(self.depot.common_repo.get_source_entry, RuntimeError("Not found"))
         ads_client = mock.MagicMock()
 
         with self.assertRaises(errors.RuleValidationError):
