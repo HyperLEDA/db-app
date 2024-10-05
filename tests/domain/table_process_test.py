@@ -1,14 +1,12 @@
 import datetime
 import unittest
 import uuid
-from unittest import mock
 
 import astropy.units as u
 import pandas
 from astropy.coordinates import ICRS
 
-from app import entities, schema
-from app.commands.depot import Depot
+from app import commands, entities, schema
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
@@ -25,20 +23,10 @@ def get_noop_cross_identification(
 
 class TableProcessTest(unittest.TestCase):
     def setUp(self):
-        self.layer0_repo = mock.MagicMock()
-        self.layer2_repo = mock.MagicMock()
-        self.depot = Depot(
-            mock.MagicMock(),
-            self.layer0_repo,
-            self.layer2_repo,
-            mock.MagicMock(),
-            mock.MagicMock(),
-            mock.MagicMock(),
-            mock.MagicMock(),
-        )
+        self.depot = commands.get_mock_depot()
 
     def test_invalid_table(self):
-        self.layer0_repo.fetch_metadata.side_effect = [
+        self.depot.layer0_repo.fetch_metadata.side_effect = [
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -86,7 +74,7 @@ class TableProcessTest(unittest.TestCase):
             ),
         ]
 
-        self.layer0_repo.fetch_metadata.side_effect = [
+        self.depot.layer0_repo.fetch_metadata.side_effect = [
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -112,7 +100,7 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata, pgc))
 
-        self.layer0_repo.fetch_raw_data.side_effect = [
+        self.depot.layer0_repo.fetch_raw_data.side_effect = [
             entities.Layer0RawData(table_id=1234, data=data),
             entities.Layer0RawData(table_id=1234, data=pandas.DataFrame()),
         ]
@@ -128,7 +116,7 @@ class TableProcessTest(unittest.TestCase):
             ),
         )
 
-        calls = self.layer0_repo.upsert_object.call_args_list
+        calls = self.depot.layer0_repo.upsert_object.call_args_list
         self.assertEqual(len(calls), len(expected))
 
         for call, (status, metadata, pgc) in zip(calls, expected):

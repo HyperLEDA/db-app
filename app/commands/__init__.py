@@ -1,3 +1,3 @@
-from app.commands.depot import Depot
+from app.commands.depot import Depot, get_mock_depot
 
-__all__ = ["Depot"]
+__all__ = ["Depot", "get_mock_depot"]

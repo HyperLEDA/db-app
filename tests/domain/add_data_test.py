@@ -1,31 +1,12 @@
 import unittest
-from unittest import mock
 
 from app import commands, schema
 from app.domain import actions
-from app.lib import auth
 
 
 class AddDataTest(unittest.TestCase):
     def setUp(self):
-        self.common_repo_mock = mock.MagicMock()
-        self.layer0_repo_mock = mock.MagicMock()
-        self.queue_repo_mock = mock.MagicMock()
-        self.clients_mock = mock.MagicMock()
-        self.ads_mock = mock.MagicMock()
-        self.clients_mock.ads_client = self.ads_mock
-
-        depot = commands.Depot(
-            self.common_repo_mock,
-            self.layer0_repo_mock,
-            mock.MagicMock(),
-            mock.MagicMock(),
-            self.queue_repo_mock,
-            auth.NoopAuthenticator(),
-            self.clients_mock,
-        )
-
-        self.depot = depot
+        self.depot = commands.get_mock_depot()
 
     def test_add_data(self):
         request = schema.AddDataRequest(
@@ -44,7 +25,7 @@ class AddDataTest(unittest.TestCase):
 
         _ = actions.add_data(self.depot, request)
 
-        request = self.layer0_repo_mock.insert_raw_data.call_args
+        request = self.depot.layer0_repo.insert_raw_data.call_args
 
         self.assertListEqual(list(request.args[0].data["test"]), ["row", "row2"])
         self.assertListEqual(list(request.args[0].data["number"]), [41, 43])
@@ -70,7 +51,7 @@ class AddDataTest(unittest.TestCase):
 
         _ = actions.add_data(self.depot, request)
 
-        request = self.layer0_repo_mock.insert_raw_data.call_args
+        request = self.depot.layer0_repo.insert_raw_data.call_args
 
         self.assertListEqual(list(request.args[0].data["test"]), ["row"])
         self.assertListEqual(list(request.args[0].data["number"]), [41])

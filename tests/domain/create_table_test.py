@@ -13,6 +13,9 @@ from app.lib.web import errors
 
 
 class GetSourceIDTest(unittest.TestCase):
+    def setUp(self):
+        self.depot = commands.get_mock_depot()
+
     @parameterized.expand(
         [
             param("1982euse.book.....L", True),
@@ -23,11 +26,9 @@ class GetSourceIDTest(unittest.TestCase):
         ]
     )
     def test_get_source_id(self, code: str, ads_query_needed: bool):
-        common_repo = mock.MagicMock()
-        common_repo.create_bibliography.return_value = 41
-        common_repo.get_source_entry.return_value.id = 42
-        ads_client = mock.MagicMock()
-        ads_client.query_simple.return_value = [
+        self.depot.common_repo.create_bibliography.return_value = 41
+        self.depot.common_repo.get_source_entry.return_value.id = 42
+        self.depot.clients.ads.query_simple.return_value = [
             {
                 "title": ["Some Title"],
                 "author": ["Author1", "Author2"],
@@ -35,27 +36,24 @@ class GetSourceIDTest(unittest.TestCase):
             }
         ]
 
-        result = get_source_id(common_repo, ads_client, code)
+        result = get_source_id(self.depot.common_repo, self.depot.clients.ads, code)
         if ads_query_needed:
             self.assertEqual(result, 41)
         else:
             self.assertEqual(result, 42)
 
     def test_ads_not_found(self):
-        common_repo = mock.MagicMock()
-        ads_client = mock.MagicMock()
-        ads_client.query_simple.side_effect = RuntimeError("Not found")
+        self.depot.clients.ads.query_simple.side_effect = RuntimeError("Not found")
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = get_source_id(common_repo, ads_client, "2000A&A...534A..31G")
+            _ = get_source_id(self.depot.common_repo, self.depot.clients.ads, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
-        common_repo = mock.MagicMock()
-        common_repo.get_source_entry.side_effect = RuntimeError("Not found")
+        self.depot.common_repo.get_source_entry.side_effect = RuntimeError("Not found")
         ads_client = mock.MagicMock()
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = get_source_id(common_repo, ads_client, "some_internal_code")
+            _ = get_source_id(self.depot.common_repo, ads_client, "some_internal_code")
 
 
 class MappingTest(unittest.TestCase):
@@ -138,24 +136,7 @@ class MappingTest(unittest.TestCase):
 
 class CreateTableTest(unittest.TestCase):
     def setUp(self):
-        self.common_repo_mock = mock.MagicMock()
-        self.layer0_repo_mock = mock.MagicMock()
-        self.queue_repo_mock = mock.MagicMock()
-        self.clients_mock = mock.MagicMock()
-        self.ads_mock = mock.MagicMock()
-        self.clients_mock.ads_client = self.ads_mock
-
-        depot = commands.Depot(
-            self.common_repo_mock,
-            self.layer0_repo_mock,
-            mock.MagicMock(),
-            mock.MagicMock(),
-            self.queue_repo_mock,
-            auth.NoopAuthenticator(),
-            self.clients_mock,
-        )
-
-        self.depot = depot
+        self.depot = commands.get_mock_depot()
 
     @parameterized.expand(
         [
@@ -210,8 +191,10 @@ class CreateTableTest(unittest.TestCase):
         expected_created: bool = True,
         err_substr: str | None = None,
     ):
-        self.common_repo_mock.get_source_entry.return_value.id = 41
-        self.layer0_repo_mock.create_table.return_value = entities.Layer0CreationResponse(51, not table_already_existed)
+        self.depot.common_repo.get_source_entry.return_value.id = 41
+        self.depot.layer0_repo.create_table.return_value = entities.Layer0CreationResponse(
+            51, not table_already_existed
+        )
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:
