@@ -504,6 +504,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#post-apiv1admintablestatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/admin/table/status
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -694,6 +703,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overrides
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pingrequestschema" class="md-nav__link">
     <span class="md-ellipsis">
       PingRequestSchema
@@ -706,6 +724,24 @@
   <a href="#pingresponseschema" class="md-nav__link">
     <span class="md-ellipsis">
       PingResponseSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settablestatusrequestschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetTableStatusRequestSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settablestatusresponseschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetTableStatusResponseSchema
     </span>
   </a>
   
@@ -1096,6 +1132,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#post-apiv1admintablestatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/admin/table/status
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1286,6 +1331,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overrides
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pingrequestschema" class="md-nav__link">
     <span class="md-ellipsis">
       PingRequestSchema
@@ -1298,6 +1352,24 @@
   <a href="#pingresponseschema" class="md-nav__link">
     <span class="md-ellipsis">
       PingResponseSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settablestatusrequestschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetTableStatusRequestSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settablestatusresponseschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetTableStatusResponseSchema
     </span>
   </a>
   
@@ -2190,6 +2262,105 @@ response.</p>
 </div>
 </div>
 </div>
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1admintablestatus"><span class="http-post">POST</span> /api/v1/admin/table/status<a class="headerlink" href="#post-apiv1admintablestatus" title="Permanent link">#</a></h3>
+<p>Set status of the table</p>
+<details class="note">
+<summary>Description</summary>
+<p>Set status of the table and its objects.</p>
+</details>
+<p><strong>Input parameters</strong></p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>TokenAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+<p class="request-body-title"><strong>Request body</strong></p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="15:1"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">    </span><span class="nt">&quot;table_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">    </span><span class="nt">&quot;overrides&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;f08272b3-b316-4035-878c-0e31e092fdd4&quot;</span><span class="p">,</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">            </span><span class="nt">&quot;pgc&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the request body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="p">{</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="w">        </span><span class="nt">&quot;table_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Identifier of the table&quot;</span>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="w">        </span><span class="nt">&quot;overrides&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-29-10"><a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-11"><a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a><span class="w">                </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/Overrides&quot;</span>
+</span><span id="__span-29-12"><a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-29-13"><a id="__codelineno-29-13" name="__codelineno-29-13" href="#__codelineno-29-13"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-29-14"><a id="__codelineno-29-14" name="__codelineno-29-14" href="#__codelineno-29-14"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-29-15"><a id="__codelineno-29-15" name="__codelineno-29-15" href="#__codelineno-29-15"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-29-16"><a id="__codelineno-29-16" name="__codelineno-29-16" href="#__codelineno-29-16"></a><span class="w">        </span><span class="s2">&quot;table_id&quot;</span>
+</span><span id="__span-29-17"><a id="__codelineno-29-17" name="__codelineno-29-17" href="#__codelineno-29-17"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-29-18"><a id="__codelineno-29-18" name="__codelineno-29-18" href="#__codelineno-29-18"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="16:1"><input checked="checked" id="__tabbed_16_1" name="__tabbed_16" type="radio" /><div class="tabbed-labels"><label for="__tabbed_16_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="p">{</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the response body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/SetTableStatusResponseSchema&quot;</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
 <h2 id="source"><span class="api-tag">source</span><a class="headerlink" href="#source" title="Permanent link">#</a></h2>
 <hr class="operation-separator" />
 
@@ -2227,31 +2398,31 @@ response.</p>
     <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
 </p>
 
-<div class="tabbed-set tabbed-alternate" data-tabs="15:1"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">application/json</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="17:1"><input checked="checked" id="__tabbed_17_1" name="__tabbed_17" type="radio" /><div class="tabbed-labels"><label for="__tabbed_17_1">application/json</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><div class="language-json highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="p">{</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">        </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">        </span><span class="nt">&quot;authors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">            </span><span class="s2">&quot;string&quot;</span>
-</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="w">        </span><span class="p">],</span>
-</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="w">        </span><span class="nt">&quot;year&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="p">}</span>
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">        </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">        </span><span class="nt">&quot;authors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">            </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">        </span><span class="p">],</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="w">        </span><span class="nt">&quot;year&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="p">}</span>
 </span></code></pre></div>
 <span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
 <details class="hint">
 <summary>Schema of the response body</summary>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="p">{</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/GetSourceResponseSchema&quot;</span>
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="p">{</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/GetSourceResponseSchema&quot;</span>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="p">}</span>
 </span></code></pre></div>
 </details>
 </div>
@@ -2268,34 +2439,34 @@ response.</p>
 </details>
 <p class="request-body-title"><strong>Request body</strong></p>
 
-<div class="tabbed-set tabbed-alternate" data-tabs="16:1"><input checked="checked" id="__tabbed_16_1" name="__tabbed_16" type="radio" /><div class="tabbed-labels"><label for="__tabbed_16_1">application/json</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="18:1"><input checked="checked" id="__tabbed_18_1" name="__tabbed_18" type="radio" /><div class="tabbed-labels"><label for="__tabbed_18_1">application/json</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><div class="language-json highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="p">{</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="p">}</span>
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="p">{</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="p">}</span>
 </span></code></pre></div>
 <span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
 <details class="hint">
 <summary>Schema of the request body</summary>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Username&quot;</span>
-</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="w">        </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-31-9"><a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-</span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Password&quot;</span>
-</span><span id="__span-31-11"><a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-31-12"><a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a><span class="w">    </span><span class="p">},</span>
-</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-31-14"><a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="w">        </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
-</span><span id="__span-31-15"><a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a><span class="w">        </span><span class="s2">&quot;username&quot;</span>
-</span><span id="__span-31-16"><a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a><span class="w">    </span><span class="p">]</span>
-</span><span id="__span-31-17"><a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="p">{</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Username&quot;</span>
+</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="w">        </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-35-9"><a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-35-10"><a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Password&quot;</span>
+</span><span id="__span-35-11"><a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-35-12"><a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-35-13"><a id="__codelineno-35-13" name="__codelineno-35-13" href="#__codelineno-35-13"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-35-14"><a id="__codelineno-35-14" name="__codelineno-35-14" href="#__codelineno-35-14"></a><span class="w">        </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+</span><span id="__span-35-15"><a id="__codelineno-35-15" name="__codelineno-35-15" href="#__codelineno-35-15"></a><span class="w">        </span><span class="s2">&quot;username&quot;</span>
+</span><span id="__span-35-16"><a id="__codelineno-35-16" name="__codelineno-35-16" href="#__codelineno-35-16"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-35-17"><a id="__codelineno-35-17" name="__codelineno-35-17" href="#__codelineno-35-17"></a><span class="p">}</span>
 </span></code></pre></div>
 </details>
 </div>
@@ -2305,26 +2476,26 @@ response.</p>
     <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
 </p>
 
-<div class="tabbed-set tabbed-alternate" data-tabs="17:1"><input checked="checked" id="__tabbed_17_1" name="__tabbed_17" type="radio" /><div class="tabbed-labels"><label for="__tabbed_17_1">application/json</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="19:1"><input checked="checked" id="__tabbed_19_1" name="__tabbed_19" type="radio" /><div class="tabbed-labels"><label for="__tabbed_19_1">application/json</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">        </span><span class="nt">&quot;token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="p">}</span>
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="p">{</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">        </span><span class="nt">&quot;token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="p">}</span>
 </span></code></pre></div>
 <span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
 <details class="hint">
 <summary>Schema of the response body</summary>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="p">{</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/LoginResponseSchema&quot;</span>
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="p">{</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/LoginResponseSchema&quot;</span>
+</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a><span class="p">}</span>
 </span></code></pre></div>
 </details>
 </div>
@@ -2629,6 +2800,26 @@ response.</p>
     </tbody>
 </table>
 
+<h3 id="overrides">Overrides<a class="headerlink" href="#overrides" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>id</code></td>
+            <td><span class="string-type">string</span>(<span class="uuid-format format">uuid</span>)</td>
+        </tr>
+        <tr>
+            <td><code>pgc</code></td>
+            <td><span class="integer-type">integer</span></td>
+        </tr>
+    </tbody>
+</table>
+
 <h3 id="pingrequestschema">PingRequestSchema<a class="headerlink" href="#pingrequestschema" title="Permanent link">#</a></h3>
 <h3 id="pingresponseschema">PingResponseSchema<a class="headerlink" href="#pingresponseschema" title="Permanent link">#</a></h3>
 <table>
@@ -2646,6 +2837,27 @@ response.</p>
     </tbody>
 </table>
 
+<h3 id="settablestatusrequestschema">SetTableStatusRequestSchema<a class="headerlink" href="#settablestatusrequestschema" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>overrides</code></td>
+            <td>Array&lt;<a href="#overrides" class="ref-link">Overrides</a>&gt;</td>
+        </tr>
+        <tr>
+            <td><code>table_id</code></td>
+            <td><span class="integer-type">integer</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="settablestatusresponseschema">SetTableStatusResponseSchema<a class="headerlink" href="#settablestatusresponseschema" title="Permanent link">#</a></h3>
 <h3 id="starttaskrequestschema">StartTaskRequestSchema<a class="headerlink" href="#starttaskrequestschema" title="Permanent link">#</a></h3>
 <table>
     <thead>

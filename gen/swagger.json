@@ -399,6 +399,47 @@
           }
         }
       }
+    },
+    "/api/v1/admin/table/status": {
+      "post": {
+        "summary": "Set status of the table",
+        "description": "Set status of the table and its objects.\n",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "admin",
+          "table"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTableStatusRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status successfully set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SetTableStatusResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "info": {
@@ -819,6 +860,45 @@
             }
           }
         }
+      },
+      "Overrides": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Internal ID of the object in the original table"
+          },
+          "pgc": {
+            "type": "integer",
+            "description": "Validated external ID of the object"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "SetTableStatusRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "Identifier of the table"
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Overrides"
+            }
+          }
+        },
+        "required": [
+          "table_id"
+        ]
+      },
+      "SetTableStatusResponseSchema": {
+        "type": "object",
+        "properties": {}
       }
     }
   }
