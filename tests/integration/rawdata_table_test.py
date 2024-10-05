@@ -44,14 +44,17 @@ class RawDataTableTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_create_table_happy_case(self):
-        self.clients.ads.query_simple.return_value = [
-            {
-                "bibcode": "2024arXiv240411942F",
-                "author": ["test"],
-                "pubdate": "2020-03-00",
-                "title": ["test"],
-            }
-        ]
+        testing.returns(
+            self.clients.ads.query_simple,
+            [
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ],
+        )
 
         table_resp, _ = actions.create_table(
             self.depot,
@@ -85,15 +88,16 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["dec"].to_list(), [-50, 88])
 
     def test_create_table_with_nulls(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         table_resp, _ = actions.create_table(
@@ -125,15 +129,16 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["dec"].to_list(), [None, None])
 
     def test_duplicate_column(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         with self.assertRaises(psycopg.errors.DuplicateColumn):
@@ -155,15 +160,16 @@ class RawDataTableTest(unittest.TestCase):
             )
 
     def test_add_data_to_unknown_column(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         table_resp, _ = actions.create_table(

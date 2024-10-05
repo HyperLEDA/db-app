@@ -7,7 +7,7 @@ from parameterized import param, parameterized
 from app import commands, entities, schema
 from app.domain import actions
 from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME, domain_descriptions_to_data, get_source_id
-from app.lib import auth
+from app.lib import testing
 from app.lib.storage import mapping
 from app.lib.web import errors
 
@@ -26,15 +26,18 @@ class GetSourceIDTest(unittest.TestCase):
         ]
     )
     def test_get_source_id(self, code: str, ads_query_needed: bool):
-        self.depot.common_repo.create_bibliography.return_value = 41
-        self.depot.common_repo.get_source_entry.return_value.id = 42
-        self.depot.clients.ads.query_simple.return_value = [
-            {
-                "title": ["Some Title"],
-                "author": ["Author1", "Author2"],
-                "pubdate": "2011-01-00",
-            }
-        ]
+        testing.returns(self.depot.common_repo.create_bibliography, 41)
+        testing.returns(self.depot.common_repo.get_source_entry, mock.MagicMock(id=42))
+        testing.returns(
+            self.depot.clients.ads.query_simple,
+            [
+                {
+                    "title": ["Some Title"],
+                    "author": ["Author1", "Author2"],
+                    "pubdate": "2011-01-00",
+                }
+            ],
+        )
 
         result = get_source_id(self.depot.common_repo, self.depot.clients.ads, code)
         if ads_query_needed:
@@ -191,9 +194,9 @@ class CreateTableTest(unittest.TestCase):
         expected_created: bool = True,
         err_substr: str | None = None,
     ):
-        self.depot.common_repo.get_source_entry.return_value.id = 41
-        self.depot.layer0_repo.create_table.return_value = entities.Layer0CreationResponse(
-            51, not table_already_existed
+        testing.returns(self.depot.common_repo.create_bibliography, 41)
+        testing.returns(
+            self.depot.layer0_repo.create_table, entities.Layer0CreationResponse(51, not table_already_existed)
         )
 
         if err_substr is not None:
