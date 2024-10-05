@@ -69,3 +69,23 @@ class CommonRepository(postgres.TransactionalPGRepository):
             "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
             params=[enums.TaskStatus.FAILED, json.Jsonb(message), task_id],
         )
+
+    def upsert_pgc(self, pgc_list: list[int]) -> None:
+        self._storage.exec(
+            """
+            INSERT INTO common.pgc (pgc) VALUES %s
+            ON CONFLICT (pgc) DO NOTHING
+            """,
+            params=pgc_list,
+        )
+
+    def generate_pgc(self, number: int) -> list[int]:
+        offsets = list(range(number))
+
+        query = "INSERT INTO common.pgc VALUES ("
+        for offset in offsets:
+            query += f"(MAX(pgc) + {offset + 1}),"
+        query += ") RETURNING pgc"
+
+        rows = self._storage.query(query)
+        return [int(row.get("pgc")) for row in rows]

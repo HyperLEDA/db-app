@@ -62,6 +62,7 @@ CREATE TYPE rawdata.processing_status AS ENUM ('unprocessed', 'new', 'existing',
 CREATE TABLE rawdata.objects (
   table_id int NOT NULL REFERENCES rawdata.tables(id)
 , object_id text NOT NULL
+, pgc int NULL
 , status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
 , metadata jsonb
 , PRIMARY KEY (table_id, object_id)

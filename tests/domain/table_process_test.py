@@ -63,7 +63,7 @@ class TableProcessTest(unittest.TestCase):
 
     def test_objects(self):
         objects = [
-            ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectProcessingStatus.NEW, {}),
+            ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectProcessingStatus.NEW, {}, None),
             (
                 "obj2",
                 20.0,
@@ -72,7 +72,8 @@ class TableProcessTest(unittest.TestCase):
                     Layer2Model(1234, ICRS(), [], "obj1", 1, 2, datetime.datetime.now(tz=datetime.timezone.utc)), None
                 ),
                 enums.ObjectProcessingStatus.EXISTING,
-                {"pgc": 1234},
+                {},
+                1234,
             ),
             (
                 "obj3",
@@ -81,6 +82,7 @@ class TableProcessTest(unittest.TestCase):
                 result.CrossIdentifyResult(None, result.CrossIdentificationNamesNotFoundException(["obj2"])),
                 enums.ObjectProcessingStatus.COLLIDED,
                 {"error": result.CrossIdentificationNamesNotFoundException(["obj2"])},  # TODO: convert to dataclasses?
+                None,
             ),
         ]
 
@@ -101,14 +103,14 @@ class TableProcessTest(unittest.TestCase):
         ci_results = []
         expected = []
 
-        for name, ra, dec, res, status, metadata in objects:
+        for name, ra, dec, res, status, metadata, pgc in objects:
             curr_obj = pandas.DataFrame(
                 {INTERNAL_ID_COLUMN_NAME: [str(uuid.uuid4())], "objname": [name], "ra": [ra], "dec": [dec]}
             )
             data = pandas.concat([data, curr_obj])
 
             ci_results.append(res)
-            expected.append((status, metadata))
+            expected.append((status, metadata, pgc))
 
         self.layer0_repo.fetch_raw_data.side_effect = [
             entities.Layer0RawData(table_id=1234, data=data),
@@ -129,6 +131,8 @@ class TableProcessTest(unittest.TestCase):
         calls = self.layer0_repo.upsert_object.call_args_list
         self.assertEqual(len(calls), len(expected))
 
-        for call, (status, metadata) in zip(calls, expected):
-            self.assertEqual(call.args[2], status)
-            self.assertEqual(call.args[3], metadata)
+        for call, (status, metadata, pgc) in zip(calls, expected):
+            self.assertEqual(call.args[1].status, status)
+            self.assertEqual(call.args[1].metadata, metadata)
+            if pgc is not None:
+                self.assertEqual(call.args[1].pgc, pgc)

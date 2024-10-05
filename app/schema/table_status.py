@@ -23,6 +23,7 @@ class SetTableStatusOverrides:
 class SetTableStatusRequest:
     table_id: int
     overrides: list[SetTableStatusOverrides]
+    batch_size: int = 100
 
 
 @dataclass
