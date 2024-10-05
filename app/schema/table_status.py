@@ -16,7 +16,7 @@ class TableStatusStatsResponse:
 @dataclass
 class SetTableStatusOverrides:
     id: str
-    pgc: int
+    pgc: int | None = None
 
 
 @dataclass

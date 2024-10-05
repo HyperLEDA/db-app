@@ -5,6 +5,8 @@ from unittest import mock
 def returns(func: Any, return_value: Any):
     """
     Mocks return value of `func`. Can safely be called several times to mock sequential calls.
+
+    If called only once, all consecutive calls will return `StopIteration`.
     """
     if not isinstance(func, mock.Mock):
         raise ValueError(f"callable is not a mock: {func}")
