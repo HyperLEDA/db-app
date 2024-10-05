@@ -76,32 +76,26 @@ def table_process_with_cross_identification(
                 ),
             )
 
-            status, metadata = get_cross_identification_status(result)
-            depot.layer0_repo.upsert_object(
-                r.table_id,
-                obj_data[INTERNAL_ID_COLUMN_NAME],
-                status,
-                metadata,
-            )
+            processing_info = get_processing_info(obj_data[INTERNAL_ID_COLUMN_NAME], result)
+            depot.layer0_repo.upsert_object(r.table_id, processing_info)
 
     # TODO: remove col_name and coordinate_part from entities?
 
     return schema.TableProcessResponse()
 
 
-def get_cross_identification_status(res: result.CrossIdentifyResult) -> tuple[enums.ObjectProcessingStatus, dict]:
+def get_processing_info(object_id: str, res: result.CrossIdentifyResult) -> entities.ObjectProcessingInfo:
     """
-    :param res: Cross identification result
-
-    :return: Object processing status and its metadata
+    :param object_id: Internal ID of the object
+    :param res: Object that stores data about the cross identification processing
     """
     if res.fail is None:
         if res.result is None:
-            return enums.ObjectProcessingStatus.NEW, {}
+            return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.NEW, {})
 
-        return enums.ObjectProcessingStatus.EXISTING, {"pgc": res.result.pgc}
+        return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.EXISTING, {}, res.result.pgc)
 
-    return enums.ObjectProcessingStatus.COLLIDED, {"error": res.fail}
+    return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.COLLIDED, {"error": res.fail})
 
 
 def cross_identification(

@@ -28,7 +28,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("D333", 120.0, 10))
         test_table.add_row(("D541", 90, -50))
 
-        vizier_mock.return_value.get_catalogs = mock.MagicMock(return_value=[test_table])
+        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -81,7 +81,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", "type1"))
         test_table.add_row(("M541", "type2"))
 
-        vizier_mock.return_value.get_catalogs = mock.MagicMock(return_value=[test_table])
+        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -100,7 +100,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
-        vizier_mock.return_value.get_catalogs = mock.MagicMock(return_value=[test_table])
+        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -118,8 +118,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
-        mock_vizier_class = vizier_mock.return_value
-        mock_vizier_class.get_catalogs = mock.MagicMock(return_value=[test_table])
+        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -133,6 +132,6 @@ class DownloadVizierTableTest(unittest.TestCase):
             structlog.get_logger(),
         )
 
-        mock_vizier_class.get_catalogs.assert_called_once()
+        vizier_mock.return_value.get_catalogs.assert_called_once()
         rows = self.storage.get_storage().query("SELECT * FROM rawdata.data_vizier_test_table")
         self.assertEqual(len(rows), 2)

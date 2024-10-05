@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from typing import Any
 
 from astropy.coordinates import ICRS
+
+from app.lib.storage import enums
 
 
 @dataclass
@@ -14,3 +17,11 @@ class ObjectInfo:
     names: list[str] | None = None
     primary_name: str | None = None
     coordinates: ICRS | None = None
+
+
+@dataclass
+class ObjectProcessingInfo:
+    object_id: str
+    status: enums.ObjectProcessingStatus
+    metadata: dict[str, Any]
+    pgc: int | None = None

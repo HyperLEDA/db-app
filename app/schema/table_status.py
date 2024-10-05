@@ -11,3 +11,21 @@ class TableStatusStatsRequest:
 @dataclass
 class TableStatusStatsResponse:
     processing: dict[enums.ObjectProcessingStatus, int]
+
+
+@dataclass
+class SetTableStatusOverrides:
+    id: str
+    pgc: int | None = None
+
+
+@dataclass
+class SetTableStatusRequest:
+    table_id: int
+    overrides: list[SetTableStatusOverrides]
+    batch_size: int = 100
+
+
+@dataclass
+class SetTableStatusResponse:
+    pass

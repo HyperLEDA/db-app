@@ -1,5 +1,5 @@
 import json
-from typing import Any, final
+from typing import final
 
 import structlog
 from astropy import units as u
@@ -256,21 +256,15 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
 
-    def upsert_object(
-        self,
-        table_id: int,
-        object_id: int,
-        status: enums.ObjectProcessingStatus,
-        metadata: dict[str, Any],
-    ) -> None:
+    def upsert_object(self, table_id: int, obj: entities.ObjectProcessingInfo) -> None:
         self._storage.exec(
             """
-            INSERT INTO rawdata.objects 
-            VALUES (%s, %s, %s, %s) 
+            INSERT INTO rawdata.objects (table_id, object_id, pgc, status, metadata)
+            VALUES (%s, %s, %s, %s, %s) 
             ON CONFLICT (table_id, object_id) DO 
                 UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
             """,
-            params=[table_id, object_id, status, json.dumps(metadata)],
+            params=[table_id, obj.object_id, obj.pgc, obj.status, json.dumps(obj.metadata)],
         )
 
     def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
@@ -284,3 +278,23 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         )
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
+
+    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
+        rows = self._storage.query(
+            """
+            SELECT object_id, pgc, status, metadata FROM rawdata.objects 
+            WHERE table_id = %s 
+            LIMIT %s OFFSET %s
+            """,
+            params=[table_id, batch_size, offset],
+        )
+
+        return [
+            entities.ObjectProcessingInfo(
+                row["object_id"],
+                enums.ObjectProcessingStatus(row["status"]),
+                json.loads(row["metadata"]),
+                row["pgc"],
+            )
+            for row in rows
+        ]

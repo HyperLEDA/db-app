@@ -5,6 +5,7 @@ import structlog
 from parameterized import param, parameterized
 
 from app.data.repositories import Layer0Repository
+from app.lib import testing
 
 
 class Layer0RepositoryTest(unittest.TestCase):
@@ -30,8 +31,8 @@ class Layer0RepositoryTest(unittest.TestCase):
         ]
     )
     def test_fetch_raw_data(self, name: str, kwargs: dict, expected_query: str):
-        self.storage_mock.query_one.return_value = {"table_name": "ironman"}
-        self.storage_mock.query.return_value = {"haha": [1, 2]}
+        testing.returns(self.storage_mock.query_one, {"table_name": "ironman"})
+        testing.returns(self.storage_mock.query, {"haha": [1, 2]})
 
         _ = self.repo.fetch_raw_data(10, **kwargs)
         args, _ = self.storage_mock.query.call_args

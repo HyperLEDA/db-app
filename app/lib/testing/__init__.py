@@ -1,4 +1,5 @@
 from app.lib.testing.common import find_free_port
+from app.lib.testing.mocks import raises, returns
 from app.lib.testing.postgres import TestPostgresStorage, get_test_postgres_storage
 from app.lib.testing.redis import TestRedisStorage, get_test_redis_storage
 
@@ -9,4 +10,6 @@ __all__ = [
     "TestPostgresStorage",
     "get_test_postgres_storage",
     "find_free_port",
+    "returns",
+    "raises",
 ]
