@@ -71,10 +71,12 @@ class CommonRepository(postgres.TransactionalPGRepository):
         )
 
     def upsert_pgc(self, pgc_list: list[int]) -> None:
+        values = ",".join(["(%s)"] * len(pgc_list))
+
         self._storage.exec(
-            """
-            INSERT INTO common.pgc (pgc) VALUES %s
-            ON CONFLICT (pgc) DO NOTHING
+            f"""
+            INSERT INTO common.pgc (id) VALUES {values}
+            ON CONFLICT (id) DO NOTHING
             """,
             params=pgc_list,
         )
