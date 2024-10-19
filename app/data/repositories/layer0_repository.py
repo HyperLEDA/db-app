@@ -11,6 +11,7 @@ from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
+INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
 class Layer0Repository(postgres.TransactionalPGRepository):

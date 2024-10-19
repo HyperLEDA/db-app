@@ -29,7 +29,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         ]
 
         bib_id = self.depot.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        self.depot.layer0_repo.create_table(
+        table_resp = self.depot.layer0_repo.create_table(
             entities.Layer0Creation(
                 "test_table",
                 [
@@ -43,7 +43,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             )
         )
         self.depot.layer0_repo.upsert_object(
-            1,
+            table_resp.table_id,
             entities.ObjectProcessingInfo("111", enums.ObjectProcessingStatus.EXISTING, {}, 1),
         )
         self.depot.common_repo.upsert_pgc([1])

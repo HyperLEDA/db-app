@@ -13,9 +13,8 @@ from app.lib.web import errors
 from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
-INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
-FORBIDDEN_COLUMN_NAMES = {INTERNAL_ID_COLUMN_NAME}
+FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 
 
 def create_table(
@@ -81,7 +80,7 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
 def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[entities.ColumnDescription]:
     result = [
         entities.ColumnDescription(
-            name=INTERNAL_ID_COLUMN_NAME,
+            name=repositories.INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
             is_primary_key=True,
         )

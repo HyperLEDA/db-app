@@ -7,7 +7,7 @@ import pandas
 from astropy.coordinates import ICRS
 
 from app import commands, entities, schema
-from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
+from app.data import repositories
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
@@ -96,7 +96,7 @@ class TableProcessTest(unittest.TestCase):
 
         for name, ra, dec, res, status, metadata, pgc in objects:
             curr_obj = pandas.DataFrame(
-                {INTERNAL_ID_COLUMN_NAME: [str(uuid.uuid4())], "objname": [name], "ra": [ra], "dec": [dec]}
+                {repositories.INTERNAL_ID_COLUMN_NAME: [str(uuid.uuid4())], "objname": [name], "ra": [ra], "dec": [dec]}
             )
             data = pandas.concat([data, curr_obj])
 
