@@ -1,5 +1,4 @@
 import json
-from typing import final
 
 import structlog
 from astropy import units as u
@@ -14,7 +13,6 @@ from app.lib.web.errors import DatabaseError
 RAWDATA_SCHEMA = "rawdata"
 
 
-@final
 class Layer0Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
