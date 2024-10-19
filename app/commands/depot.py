@@ -9,6 +9,7 @@ from app.lib import auth, clients
 class Depot:
     common_repo: repositories.CommonRepository
     layer0_repo: repositories.Layer0Repository
+    layer1_repo: repositories.Layer1Repository
     layer2_repo: repositories.Layer2Repository
     tmp_data_repo: repositories.TmpDataRepositoryImpl
     queue_repo: repositories.QueueRepository
@@ -24,6 +25,7 @@ def get_mock_depot() -> Depot:
     return Depot(
         common_repo=mock.MagicMock(),
         layer0_repo=mock.MagicMock(),
+        layer1_repo=mock.MagicMock(),
         layer2_repo=mock.MagicMock(),
         tmp_data_repo=mock.MagicMock(),
         queue_repo=mock.MagicMock(),
