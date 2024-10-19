@@ -1,5 +1,5 @@
 import unittest
-from unittest import mock
+from concurrent import futures
 
 import rq
 import structlog
@@ -7,28 +7,26 @@ import structlog
 from app import commands, schema
 from app.data import repositories
 from app.domain import actions
-from app.lib import auth, testing
-from app.lib import clients as libclients
+from app.lib import testing
 
 
 class QueueTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.pg_storage = testing.get_test_postgres_storage()
-        cls.redis_queue = testing.get_test_redis_storage()
+        with futures.ThreadPoolExecutor() as group:
+            pg_thread = group.submit(testing.get_test_postgres_storage)
+            redis_thread = group.submit(testing.get_test_redis_storage)
+
+        cls.pg_storage = pg_thread.result()
+        cls.redis_queue = redis_thread.result()
 
         logger = structlog.get_logger()
-        cls.clients = libclients.Clients("")
-        cls.clients.ads = mock.MagicMock()
 
-        cls.depot = commands.Depot(
-            repositories.CommonRepository(cls.pg_storage.get_storage(), logger),
-            repositories.Layer0Repository(cls.pg_storage.get_storage(), logger),
-            mock.MagicMock(),
-            mock.MagicMock(),
-            repositories.QueueRepository(cls.redis_queue.get_storage(), cls.pg_storage.config, logger),
-            auth.NoopAuthenticator(),
-            cls.clients,
+        cls.depot = commands.get_mock_depot()
+        cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), logger)
+        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), logger)
+        cls.depot.queue_repo = repositories.QueueRepository(
+            cls.redis_queue.get_storage(), cls.pg_storage.config, logger
         )
 
     def tearDown(self):

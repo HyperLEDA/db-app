@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 
 import pandas
 import psycopg
@@ -10,8 +9,7 @@ from app import commands, schema
 from app.data import repositories
 from app.domain import actions
 from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
-from app.lib import auth, testing
-from app.lib import clients as libclients
+from app.lib import testing
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 
@@ -21,31 +19,16 @@ class RawDataTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
-        common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-
-        cls.clients = libclients.Clients("")
-        cls.clients.ads = mock.MagicMock()
-
-        cls.depot = commands.Depot(
-            common_repo,
-            layer0_repo,
-            mock.MagicMock(),
-            mock.MagicMock(),
-            mock.MagicMock(),
-            auth.NoopAuthenticator(),
-            cls.clients,
-        )
-
-        cls._layer0_repo: repositories.Layer0Repository = layer0_repo
-        cls._common_repo: repositories.CommonRepository = common_repo
+        cls.depot = commands.get_mock_depot()
+        cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def test_create_table_happy_case(self):
         testing.returns(
-            self.clients.ads.query_simple,
+            self.depot.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -89,7 +72,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_create_table_with_nulls(self):
         testing.returns(
-            self.clients.ads.query_simple,
+            self.depot.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -130,7 +113,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_duplicate_column(self):
         testing.returns(
-            self.clients.ads.query_simple,
+            self.depot.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -161,7 +144,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_add_data_to_unknown_column(self):
         testing.returns(
-            self.clients.ads.query_simple,
+            self.depot.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -198,8 +181,8 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_resp = self._layer0_repo.create_table(
+        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        table_resp = self.depot.layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
@@ -207,16 +190,16 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self._layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
-        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id)
+        self.depot.layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
+        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id)
 
         self.assertTrue(from_db.data.equals(data))
 
-        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
+        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
-        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected_creation = Layer0Creation(
             table_name,
@@ -224,8 +207,8 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_resp = self._layer0_repo.create_table(expected_creation)
+        table_resp = self.depot.layer0_repo.create_table(expected_creation)
 
-        from_db = self._layer0_repo.fetch_metadata(table_resp.table_id)
+        from_db = self.depot.layer0_repo.fetch_metadata(table_resp.table_id)
 
         self.assertEqual(expected_creation, from_db)
