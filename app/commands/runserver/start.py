@@ -30,6 +30,7 @@ def start(config_path: str):
     depot = commands.Depot(
         common_repo=repositories.CommonRepository(pg_storage, logger),
         layer0_repo=repositories.Layer0Repository(pg_storage, logger),
+        layer1_repo=repositories.Layer1Repository(pg_storage, logger),
         layer2_repo=repositories.Layer2Repository(pg_storage, logger),
         tmp_data_repo=repositories.TmpDataRepositoryImpl(pg_storage),
         queue_repo=repositories.QueueRepository(redis_storage, cfg.storage, logger),

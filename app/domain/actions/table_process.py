@@ -6,7 +6,6 @@ from astropy.coordinates import ICRS, Angle
 from app import commands, entities, schema
 from app.data import repositories
 from app.domain import converters
-from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,
@@ -56,7 +55,7 @@ def table_process_with_cross_identification(
 
     while True:
         data = depot.layer0_repo.fetch_raw_data(
-            r.table_id, order_column=INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
+            r.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
         )
         offset += min(r.batch_size, len(data.data))
 
@@ -76,7 +75,7 @@ def table_process_with_cross_identification(
                 ),
             )
 
-            processing_info = get_processing_info(obj_data[INTERNAL_ID_COLUMN_NAME], result, obj)
+            processing_info = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], result, obj)
             depot.layer0_repo.upsert_object(r.table_id, processing_info)
 
     # TODO: remove col_name and coordinate_part from entities?
