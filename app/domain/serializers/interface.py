@@ -6,7 +6,7 @@ from app.data import repositories
 
 class Layer1Serializer(abc.ABC):
     """
-    Base class for storing objects to Layer 1.
+    Base class for storing objects in Layer 1.
 
     Incapsulates the knowledge of the tables on layer 1 and stores the data inside tables
     that are relevant to that specific catalogue.
