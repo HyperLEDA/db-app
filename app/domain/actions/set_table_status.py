@@ -13,7 +13,10 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
     for obj in r.overrides or []:
         overrides[obj.id] = obj
 
-    serializer = serializers.ICRSSerializer()
+    serializer = serializers.CompositeSerializer(
+        serializers.ICRSSerializer(),
+        serializers.DesignationSerializer(),
+    )
 
     offset = 0
 

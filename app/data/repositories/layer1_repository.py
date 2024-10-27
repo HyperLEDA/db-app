@@ -7,6 +7,7 @@ from app.lib.storage import postgres
 
 tables: dict[model.Layer1Catalog, str] = {
     model.Layer1Catalog.ICRS: "icrs.data",
+    model.Layer1Catalog.DESIGNATION: "designation.data",
 }
 
 
