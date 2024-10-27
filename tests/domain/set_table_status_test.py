@@ -17,13 +17,27 @@ class AssignPGCTest(unittest.TestCase):
         testing.returns(self.depot.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1001),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1005),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1010),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1001
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1005
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1010
+            ),
         ]
 
         actual = assign_pgc(self.depot.common_repo, original)
@@ -35,9 +49,15 @@ class AssignPGCTest(unittest.TestCase):
         testing.returns(self.depot.common_repo.generate_pgc, [1002, 1003, 1004])
 
         original = [
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
         ]
 
         actual = assign_pgc(self.depot.common_repo, original)
@@ -50,9 +70,15 @@ class AssignPGCTest(unittest.TestCase):
         testing.returns(self.depot.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1001),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1005),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 1010),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1001
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1005
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1010
+            ),
         ]
 
         actual = assign_pgc(self.depot.common_repo, original)
@@ -66,9 +92,15 @@ class AssignPGCTest(unittest.TestCase):
         testing.returns(self.depot.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 12345),
-            entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, entities.ObjectInfo()
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 12345
+            ),
+            entities.ObjectProcessingInfo(
+                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+            ),
         ]
 
         actual = assign_pgc(self.depot.common_repo, original)
@@ -85,10 +117,17 @@ class SetTableStatusTest(unittest.TestCase):
         testing.returns(
             self.depot.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-                entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 123456),
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {"error": "collision"}
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                ),
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                ),
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.COLLIDED,
+                    {"error": "collision"},
+                    entities.ObjectInfo(),
                 ),
             ],
         )
@@ -107,9 +146,15 @@ class SetTableStatusTest(unittest.TestCase):
         testing.returns(
             self.depot.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-                entities.ObjectProcessingInfo(obj2_id, enums.ObjectProcessingStatus.EXISTING, {}, 123456),
-                entities.ObjectProcessingInfo(obj3_id, enums.ObjectProcessingStatus.COLLIDED, {"error": "collision"}),
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                ),
+                entities.ObjectProcessingInfo(
+                    obj2_id, enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                ),
+                entities.ObjectProcessingInfo(
+                    obj3_id, enums.ObjectProcessingStatus.COLLIDED, {"error": "collision"}, entities.ObjectInfo()
+                ),
             ],
         )
 
@@ -135,16 +180,27 @@ class SetTableStatusTest(unittest.TestCase):
         testing.returns(
             self.depot.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}),
-                entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, 123456),
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {"error": "collision"}
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                ),
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                ),
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.COLLIDED,
+                    {"error": "collision"},
+                    entities.ObjectInfo(),
                 ),
             ],
         )
         testing.returns(
             self.depot.layer0_repo.get_objects,
-            [entities.ObjectProcessingInfo(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {})],
+            [
+                entities.ObjectProcessingInfo(
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                )
+            ],
         )
 
         testing.returns(self.depot.common_repo.upsert_pgc, None)

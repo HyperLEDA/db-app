@@ -34,9 +34,11 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
 
 def override_to_processing_info(override: schema.SetTableStatusOverrides) -> entities.ObjectProcessingInfo:
     if override.pgc is not None:
-        return entities.ObjectProcessingInfo(override.id, enums.ObjectProcessingStatus.EXISTING, {}, override.pgc)
+        return entities.ObjectProcessingInfo(
+            override.id, enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), override.pgc
+        )
 
-    return entities.ObjectProcessingInfo(override.id, enums.ObjectProcessingStatus.NEW, {})
+    return entities.ObjectProcessingInfo(override.id, enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo())
 
 
 def assign_pgc(

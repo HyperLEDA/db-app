@@ -64,6 +64,7 @@ CREATE TABLE rawdata.objects (
 , object_id text NOT NULL
 , pgc int NULL
 , status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
+, data jsonb
 , metadata jsonb
 , PRIMARY KEY (table_id, object_id)
 );
@@ -74,6 +75,7 @@ COMMENT ON TABLE rawdata.objects IS 'Table to store processed objects and their 
 COMMENT ON COLUMN rawdata.objects.table_id IS 'Reference to the original table';
 COMMENT ON COLUMN rawdata.objects.object_id IS 'Identifier for the object within the original table';
 COMMENT ON COLUMN rawdata.objects.status IS 'Status of the processing';
+COMMENT ON COLUMN rawdata.objects.data IS 'Homogeneous data about the object';
 COMMENT ON COLUMN rawdata.objects.metadata IS 'Metadata related to the processing steps';
 
 COMMIT ;
