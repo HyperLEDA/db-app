@@ -479,7 +479,8 @@
           "year": {
             "type": "integer",
             "minimum": 1500,
-            "description": "Year of the publication"
+            "description": "Year of the publication",
+            "example": 2006
           }
         },
         "required": [

@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://hyperleda.github.io/db-app/upload/index.ru/">
+        <link rel="canonical" href="https://hyperleda.github.io/db-app/handlers/v1_admin_table_status/">
       
       
-        <link rel="prev" href="../..">
-      
-      
-        <link rel="next" href="../create_table.ru/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -22,7 +18,7 @@
     
     
       
-        <title>Загрузка данных - HyperLeda documentation</title>
+        <title>V1 admin table status - HyperLeda documentation</title>
       
     
     
@@ -75,11 +71,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#vizier" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -112,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Загрузка данных
+              V1 admin table status
             
           </span>
         </div>
@@ -282,24 +273,22 @@
       
   
   
-    
   
   
-  
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../../upload/index.ru/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -310,13 +299,13 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_2" id="__nav_2_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Загрузка данных
@@ -330,7 +319,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../create_table.ru/" class="md-nav__link">
+      <a href="../../upload/create_table.ru/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -351,7 +340,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../upload_data.ru/" class="md-nav__link">
+      <a href="../../upload/upload_data.ru/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -644,7 +633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../handlers/v1_api_admin_table_status.md" class="md-nav__link">
+      <a href="../v1_api_admin_table_status.md" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -683,32 +672,6 @@
   
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#vizier" class="md-nav__link">
-    <span class="md-ellipsis">
-      Загрузка таблицы из Vizier
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Загрузка таблицы ручным образом
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -725,25 +688,27 @@
   
 
 
-  <h1>Загрузка данных</h1>
+  <h1>V1 admin table status</h1>
 
-<p>В этой секции рассказывается, как происходит процесс загрузки новых данных в HyperLeda. Поддерживается два источника:</p>
-<ol>
-<li>Загрузка таблицы из <a href="https://vizier.cds.unistra.fr/viz-bin/VizieR">Vizier</a></li>
-<li>Загрузка таблицы ручным образом</li>
-</ol>
-<p>В отсутствие веб-интерфейса все шаги будут выполняться при помощи <a href="../../openapi/">API</a>. Для написания скриптов для загрузки можно пользоваться <a href="https://github.com/HyperLEDA/client">python-клиентом</a>, который использует это API.</p>
-<h3 id="vizier">Загрузка таблицы из Vizier<a class="headerlink" href="#vizier" title="Permanent link">#</a></h3>
-<p>TODO</p>
-<h3 id="_1">Загрузка таблицы ручным образом<a class="headerlink" href="#_1" title="Permanent link">#</a></h3>
-<p>Этим путём могут быть загружены таблицы из локальных файлов, других баз данных или любых других источников, к которым у пользователя есть прямой доступ. Шаги по загрузке следующие:</p>
-<ol>
-<li><a href="../create_table.ru/">Создание схемы таблицы</a></li>
-<li><a href="../upload_data.ru/">Загрузка в неё данных</a></li>
-<li>Старт обработки (в том числе - кросс-идентификации) (TODO)</li>
-<li>Проверка статуса обработки (TODO)</li>
-<li>Разрешение коллизий и утверждение результатов обработки.</li>
-</ol>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sequenceDiagram
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    actor User
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    User-&gt;&gt;hyperleda: table_id, overrides
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    loop For all objects
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        hyperleda-&gt;&gt;Layer 0: get batch of objects from cache
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        Layer 0--&gt;&gt;hyperleda: 
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        hyperleda-&gt;&gt;DB: create PGC
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        DB--&gt;&gt;hyperleda: list[pgc]
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        loop For all catalogues
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            hyperleda-&gt;&gt;Layer 1: write batch of objects 
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            Layer 1--&gt;&gt;hyperleda: 
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        end
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    end
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    hyperleda--&gt;&gt;User: success
+</span></code></pre></div>
 
 
 
