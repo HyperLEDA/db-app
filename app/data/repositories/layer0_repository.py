@@ -301,7 +301,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
                 json.loads(row["metadata"]),
-                entities.ObjectInfo(**json.loads(row["data"])),
+                json.loads(row["data"], cls=entities.ObjectInfoDecoder),
                 row["pgc"],
             )
             for row in rows
