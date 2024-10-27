@@ -259,12 +259,19 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def upsert_object(self, table_id: int, obj: entities.ObjectProcessingInfo) -> None:
         self._storage.exec(
             """
-            INSERT INTO rawdata.objects (table_id, object_id, pgc, status, metadata)
-            VALUES (%s, %s, %s, %s, %s) 
+            INSERT INTO rawdata.objects (table_id, object_id, pgc, status, data, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s) 
             ON CONFLICT (table_id, object_id) DO 
                 UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
             """,
-            params=[table_id, obj.object_id, obj.pgc, obj.status, json.dumps(obj.metadata)],
+            params=[
+                table_id,
+                obj.object_id,
+                obj.pgc,
+                obj.status,
+                json.dumps(obj.data, cls=entities.ObjectInfoEncoder),
+                json.dumps(obj.metadata),
+            ],
         )
 
     def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
@@ -282,7 +289,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
         rows = self._storage.query(
             """
-            SELECT object_id, pgc, status, metadata FROM rawdata.objects 
+            SELECT object_id, pgc, status, data, metadata FROM rawdata.objects 
             WHERE table_id = %s 
             LIMIT %s OFFSET %s
             """,
@@ -294,6 +301,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
                 json.loads(row["metadata"]),
+                entities.ObjectInfo(**json.loads(row["data"])),
                 row["pgc"],
             )
             for row in rows
