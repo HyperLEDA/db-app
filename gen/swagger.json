@@ -549,7 +549,8 @@
             "description": "Payload to the task",
             "example": {
               "sleep_time_seconds": 2
-            }
+            },
+            "additionalProperties": {}
           }
         },
         "required": [
@@ -594,7 +595,8 @@
           },
           "payload": {
             "type": "object",
-            "description": "Payload to the task"
+            "description": "Payload to the task",
+            "additionalProperties": {}
           },
           "start_time": {
             "type": "string",
@@ -608,7 +610,8 @@
           },
           "message": {
             "type": "object",
-            "description": "Message associated with the task status"
+            "description": "Message associated with the task status",
+            "additionalProperties": {}
           }
         }
       },
@@ -760,7 +763,8 @@
               }
             ],
             "items": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {}
             }
           }
         },
