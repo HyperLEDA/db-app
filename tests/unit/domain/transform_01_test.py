@@ -26,7 +26,7 @@ from app.domain.model.params.transformation_0_1_stages import (
 )
 from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.domain.usecases import TransformationO1UseCase
-from tests.domain.util import noop_cross_identify_function
+from tests.unit.domain.util import noop_cross_identify_function
 
 
 def get_purposefully_failing_cross_identification_function(fail_condition: Callable[[entities.ObjectInfo], bool]):

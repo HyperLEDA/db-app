@@ -15,7 +15,7 @@ from app.domain.cross_id_simultaneous_data_provider import (
     SimpleSimultaneousDataProvider,
 )
 from app.lib import testing
-from tests.domain.util import make_points
+from tests.unit.domain.util import make_points
 
 
 class CrossIdDataProviderTest(unittest.TestCase):
