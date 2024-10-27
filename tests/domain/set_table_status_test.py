@@ -225,7 +225,10 @@ class SetTableStatusTest(unittest.TestCase):
             self.depot.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg))
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.NEW,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 )
             ],
         )
