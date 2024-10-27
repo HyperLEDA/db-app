@@ -5,8 +5,9 @@ from unittest import mock
 from parameterized import param, parameterized
 
 from app import commands, entities, schema
+from app.data import repositories
 from app.domain import actions
-from app.domain.actions.create_table import INTERNAL_ID_COLUMN_NAME, domain_descriptions_to_data, get_source_id
+from app.domain.actions.create_table import domain_descriptions_to_data, get_source_id
 from app.lib import testing
 from app.lib.storage import mapping
 from app.lib.web import errors
@@ -68,7 +69,7 @@ class MappingTest(unittest.TestCase):
         err_substr: str | None = None
 
     internal_id_column = entities.ColumnDescription(
-        name=INTERNAL_ID_COLUMN_NAME,
+        name=repositories.INTERNAL_ID_COLUMN_NAME,
         data_type=mapping.TYPE_TEXT,
         is_primary_key=True,
     )

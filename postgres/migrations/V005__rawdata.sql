@@ -70,6 +70,7 @@ CREATE TABLE rawdata.objects (
 );
 
 CREATE INDEX ON rawdata.objects (status);
+CREATE UNIQUE INDEX ON rawdata.objects (object_id);
 
 COMMENT ON TABLE rawdata.objects IS 'Table to store processed objects and their metadata';
 COMMENT ON COLUMN rawdata.objects.table_id IS 'Reference to the original table';

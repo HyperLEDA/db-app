@@ -71,21 +71,22 @@ class CommonRepository(postgres.TransactionalPGRepository):
         )
 
     def upsert_pgc(self, pgc_list: list[int]) -> None:
+        values = ",".join(["(%s)"] * len(pgc_list))
+
         self._storage.exec(
-            """
-            INSERT INTO common.pgc (pgc) VALUES %s
-            ON CONFLICT (pgc) DO NOTHING
+            f"""
+            INSERT INTO common.pgc (id) VALUES {values}
+            ON CONFLICT (id) DO NOTHING
             """,
             params=pgc_list,
         )
 
     def generate_pgc(self, number: int) -> list[int]:
-        offsets = list(range(number))
-
-        query = "INSERT INTO common.pgc VALUES ("
-        for offset in offsets:
-            query += f"(MAX(pgc) + {offset + 1}),"
-        query += ") RETURNING pgc"
+        query = f"""
+        INSERT INTO common.pgc VALUES
+        {",".join(["(DEFAULT)"] * number)}
+        RETURNING id
+        """
 
         rows = self._storage.query(query)
-        return [int(row.get("pgc")) for row in rows]
+        return [int(row.get("id")) for row in rows]

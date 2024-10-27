@@ -35,6 +35,8 @@ nav:
       - Диаграмма системы: dev/system_diagram.ru.md
   - Описание каталогов в БД:
       - Каталог фотометрии: dev/db_photometry.ru.md
+  - Описание методов API:
+      - POST /v1/api/admin/table/status: handlers/v1_api_admin_table_status.md
 
 plugins:
   - search

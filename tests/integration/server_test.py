@@ -3,6 +3,7 @@ import subprocess
 import sys
 import time
 import unittest
+from concurrent import futures
 
 import requests
 import structlog
@@ -19,9 +20,14 @@ class ServerTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_test_postgres_storage()
-        cls.redis_queue = testing.get_test_redis_storage()
-        cls.server_port = testing.find_free_port()
+        with futures.ThreadPoolExecutor() as group:
+            pg_thread = group.submit(testing.get_test_postgres_storage)
+            redis_thread = group.submit(testing.get_test_redis_storage)
+            port_thread = group.submit(testing.find_free_port)
+
+        cls.pg_storage = pg_thread.result()
+        cls.redis_queue = redis_thread.result()
+        cls.server_port = port_thread.result()
 
         os.environ["SERVER_PORT"] = str(cls.server_port)
         os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
@@ -30,7 +36,6 @@ class ServerTest(unittest.TestCase):
 
         logger.info("starting server", port=cls.server_port)
 
-        # pylint: disable=consider-using-with
         cls.process = subprocess.Popen(
             [
                 sys.executable,

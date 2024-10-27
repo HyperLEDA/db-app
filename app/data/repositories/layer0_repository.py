@@ -1,5 +1,4 @@
 import json
-from typing import final
 
 import structlog
 from astropy import units as u
@@ -12,9 +11,9 @@ from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
+INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
-@final
 class Layer0Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
@@ -286,22 +285,22 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
 
-    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
+    def get_objects(self, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
         rows = self._storage.query(
             """
-            SELECT object_id, pgc, status, data, metadata FROM rawdata.objects 
-            WHERE table_id = %s 
+            SELECT object_id, pgc, status, data, metadata
+            FROM rawdata.objects
             LIMIT %s OFFSET %s
             """,
-            params=[table_id, batch_size, offset],
+            params=[batch_size, offset],
         )
 
         return [
             entities.ObjectProcessingInfo(
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
-                json.loads(row["metadata"]),
-                json.loads(row["data"], cls=entities.ObjectInfoDecoder),
+                row["metadata"],
+                entities.ObjectInfo.load(row["data"]),
                 row["pgc"],
             )
             for row in rows
