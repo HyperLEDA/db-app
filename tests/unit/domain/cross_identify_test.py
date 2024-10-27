@@ -22,7 +22,7 @@ from app.domain.model.params.cross_identification_result import (
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
 from app.domain.repositories.layer_2_repository import Layer2Repository
-from tests.domain.util import make_points
+from tests.unit.domain.util import make_points
 
 
 class MockedLayer2Repository(Layer2Repository):

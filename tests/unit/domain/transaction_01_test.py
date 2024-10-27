@@ -19,7 +19,7 @@ from app.domain.user_interaction.interaction_result import (
     InteractionResult,
     ResolveCoordinateParseFailRes,
 )
-from tests.domain.util import noop_cross_identify_function
+from tests.unit.domain.util import noop_cross_identify_function
 
 
 class MockedCoordinateParseFailResolver(ResolveCoordinateParseFail):
