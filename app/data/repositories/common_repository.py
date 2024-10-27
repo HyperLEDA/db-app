@@ -82,12 +82,11 @@ class CommonRepository(postgres.TransactionalPGRepository):
         )
 
     def generate_pgc(self, number: int) -> list[int]:
-        offsets = list(range(number))
-
-        query = "INSERT INTO common.pgc VALUES ("
-        for offset in offsets:
-            query += f"(MAX(pgc) + {offset + 1}),"
-        query += ") RETURNING pgc"
+        query = f"""
+        INSERT INTO common.pgc VALUES
+        {",".join(["(DEFAULT)"] * number)}
+        RETURNING id
+        """
 
         rows = self._storage.query(query)
-        return [int(row.get("pgc")) for row in rows]
+        return [int(row.get("id")) for row in rows]

@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from astropy import units as u
 from astropy.coordinates import ICRS
 
 from app.lib.storage import enums
@@ -18,6 +19,25 @@ class ObjectInfo:
     names: list[str] | None = None
     primary_name: str | None = None
     coordinates: ICRS | None = None
+
+    @staticmethod
+    def load(data: dict[str, Any] | None = None) -> "ObjectInfo":
+        data = data or {}
+        obj = ObjectInfo()
+
+        if "names" in data:
+            obj.names = data["names"]
+
+        if "primary_name" in data:
+            obj.primary_name = data["primary_name"]
+
+        if "coordinates" in data:
+            coordinates = data["coordinates"]
+
+            if coordinates is not None:
+                obj.coordinates = ICRS(ra=coordinates["ra"] * u.deg, dec=coordinates["dec"] * u.deg)
+
+        return obj
 
 
 class ObjectInfoEncoder(json.JSONEncoder):
@@ -40,22 +60,6 @@ class ObjectInfoEncoder(json.JSONEncoder):
             }
 
         return data
-
-
-class ObjectInfoDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, object_hook=self.object_hook, **kwargs)
-
-    def object_hook(self, data):
-        if "coordinates" in data:
-            coordinates = data["coordinates"]
-            ra = coordinates.get("ra")
-            dec = coordinates.get("dec")
-
-            if ra is not None and dec is not None:
-                data["coordinates"] = ICRS(ra=ra, dec=dec)
-
-        return ObjectInfo(**data)
 
 
 @dataclass

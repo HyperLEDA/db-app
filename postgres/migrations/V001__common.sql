@@ -16,7 +16,7 @@ COMMENT ON SCHEMA common IS 'Common Leda tables' ;
 --------- The object list ---------------------------------
 -- Все остальные параметры (координаты, имена, природа и т.д. определяются на основе данных уровня 1)
 CREATE TABLE common.pgc (
-  id	int PRIMARY KEY
+  id	serial PRIMARY KEY
 );
 
 COMMENT ON TABLE common.pgc IS 'The list of Principal Galaxy Catalog (PGC) numbers used as the primary identifier for objects in the database.' ;

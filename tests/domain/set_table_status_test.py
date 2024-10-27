@@ -2,6 +2,9 @@ import unittest
 import uuid
 from unittest import mock
 
+from astropy import units as u
+from astropy.coordinates import ICRS
+
 from app import commands, entities, schema
 from app.domain.actions.set_table_status import assign_pgc, set_table_status
 from app.lib import testing
@@ -118,16 +121,23 @@ class SetTableStatusTest(unittest.TestCase):
             self.depot.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.NEW,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.EXISTING,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    123456,
                 ),
                 entities.ObjectProcessingInfo(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
-                    entities.ObjectInfo(),
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
             ],
         )
@@ -147,13 +157,23 @@ class SetTableStatusTest(unittest.TestCase):
             self.depot.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.NEW,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
                 entities.ObjectProcessingInfo(
-                    obj2_id, enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                    obj2_id,
+                    enums.ObjectProcessingStatus.EXISTING,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    123456,
                 ),
                 entities.ObjectProcessingInfo(
-                    obj3_id, enums.ObjectProcessingStatus.COLLIDED, {"error": "collision"}, entities.ObjectInfo()
+                    obj3_id,
+                    enums.ObjectProcessingStatus.COLLIDED,
+                    {"error": "collision"},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
             ],
         )
@@ -181,16 +201,23 @@ class SetTableStatusTest(unittest.TestCase):
             self.depot.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.NEW,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 123456
+                    str(uuid.uuid4()),
+                    enums.ObjectProcessingStatus.EXISTING,
+                    {},
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    123456,
                 ),
                 entities.ObjectProcessingInfo(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
-                    entities.ObjectInfo(),
+                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
                 ),
             ],
         )
@@ -198,7 +225,7 @@ class SetTableStatusTest(unittest.TestCase):
             self.depot.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
-                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
+                    str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg))
                 )
             ],
         )

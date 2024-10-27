@@ -1,5 +1,6 @@
 from app import commands, entities, schema
 from app.data import repositories
+from app.domain import serializers
 from app.lib.storage import enums
 
 
@@ -9,22 +10,24 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
     # - Update moved object statuses to processed
     overrides = {}
 
-    for obj in r.overrides:
-        overrides[obj.id] = override_to_processing_info(obj)
+    for obj in r.overrides or []:
+        overrides[obj.id] = obj
+
+    serializer = serializers.ICRSSerializer()
 
     offset = 0
 
     while True:
-        objects = depot.layer0_repo.get_objects(r.table_id, r.batch_size, offset)
+        objects = depot.layer0_repo.get_objects(r.batch_size, offset)
 
         for i, obj in enumerate(objects):
             if obj.object_id in overrides:
-                objects[i] = overrides[obj.object_id]
+                objects[i] = apply_override(objects[i], overrides[obj.object_id])
 
         with depot.common_repo.with_tx():
             objects_to_move = assign_pgc(depot.common_repo, objects)
 
-            print(objects_to_move)
+            serializer.serialize(depot.layer1_repo, objects_to_move)
 
         if len(objects) < r.batch_size:
             break
@@ -32,13 +35,18 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
     return schema.SetTableStatusResponse()
 
 
-def override_to_processing_info(override: schema.SetTableStatusOverrides) -> entities.ObjectProcessingInfo:
+def apply_override(
+    obj: entities.ObjectProcessingInfo,
+    override: schema.SetTableStatusOverrides,
+) -> entities.ObjectProcessingInfo:
     if override.pgc is not None:
-        return entities.ObjectProcessingInfo(
-            override.id, enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), override.pgc
-        )
+        obj.status = enums.ObjectProcessingStatus.EXISTING
+        obj.pgc = override.pgc
+    else:
+        obj.status = enums.ObjectProcessingStatus.NEW
+        obj.pgc = None
 
-    return entities.ObjectProcessingInfo(override.id, enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo())
+    return obj
 
 
 def assign_pgc(
