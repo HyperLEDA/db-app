@@ -23,7 +23,7 @@ jobs:
 
       - name: Start server
         run: |
-          make runserver
+          make runserver &
 
       - name: Run tests
         run: |
