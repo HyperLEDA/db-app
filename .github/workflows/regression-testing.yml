@@ -19,7 +19,7 @@ jobs:
 
       - name: Start environment
         run: |
-          docker-compose up -d
+          docker compose up -d
 
       - name: Start server
         run: |
