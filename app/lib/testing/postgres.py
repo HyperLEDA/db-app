@@ -7,14 +7,14 @@ import structlog
 from testcontainers import postgres as pgcontainer
 
 from app.lib.storage import postgres
-from app.lib.testing import common
+from app.lib.testing import web
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
-        self.port = common.find_free_port()
+        self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
             "postgres:16",

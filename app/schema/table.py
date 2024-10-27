@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -38,14 +38,14 @@ class AddDataResponse:
 
 @dataclass
 class CrossIdentification:
-    inner_radius_arcsec: float
-    outer_radius_arcsec: float
+    inner_radius_arcsec: float = 1.5
+    outer_radius_arcsec: float = 3
 
 
 @dataclass
 class TableProcessRequest:
     table_id: int
-    cross_identification: CrossIdentification
+    cross_identification: CrossIdentification = field(default_factory=CrossIdentification)
     batch_size: int = 100
 
 

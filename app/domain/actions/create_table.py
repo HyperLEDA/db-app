@@ -23,25 +23,30 @@ def create_table(
 ) -> tuple[schema.CreateTableResponse, bool]:
     source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
 
+    r.table_name = sanitize_name(r.table_name)
+
     for col in r.columns:
         if col.name in FORBIDDEN_COLUMN_NAMES:
-            raise RuleValidationError(f"{col} is a reserved column name for internal storage")
+            raise RuleValidationError(f"{col} is a reserved column name")
 
     columns = domain_descriptions_to_data(r.columns)
     validate_columns(columns)
 
-    with depot.layer0_repo.with_tx():
-        table_resp = depot.layer0_repo.create_table(
-            entities.Layer0Creation(
-                table_name=r.table_name,
-                column_descriptions=columns,
-                bibliography_id=source_id,
-                datatype=enums.DataType(r.datatype),
-                comment=r.description,
-            ),
-        )
+    table_resp = depot.layer0_repo.create_table(
+        entities.Layer0Creation(
+            table_name=r.table_name,
+            column_descriptions=columns,
+            bibliography_id=source_id,
+            datatype=enums.DataType(r.datatype),
+            comment=r.description,
+        ),
+    )
 
     return schema.CreateTableResponse(table_resp.table_id), table_resp.created
+
+
+def sanitize_name(name: str) -> str:
+    return name.replace(" ", "_").replace("-", "_")
 
 
 def validate_columns(columns: list[entities.ColumnDescription]):
