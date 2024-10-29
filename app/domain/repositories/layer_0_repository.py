@@ -10,21 +10,21 @@ class Layer0Repository(ABC):
     """
 
     @abstractmethod
-    async def create_update_instances(self, instances: list[Layer0Model]):
+    def create_update_instances(self, instances: list[Layer0Model]):
         """
         Save or update given instances in local DB
         :param instances: Instances to update
         """
 
     @abstractmethod
-    async def create_instances(self, instances: list[Layer0Model]):
+    def create_instances(self, instances: list[Layer0Model]):
         """
         Used to create instances, fails on conflict
         :param instances:
         """
 
     @abstractmethod
-    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+    def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
         """
         Fetches Layer0Model from DB
         :param param: Used to specify needed Layer0 instances

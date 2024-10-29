@@ -5,7 +5,6 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import repositories
-from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -17,22 +16,21 @@ from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 
 
-class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
+class Layer0RepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        layer0_repo = repositories.Layer0Repository(common_repo, cls.pg_storage.get_storage(), structlog.get_logger())
 
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
         cls._common_repo: repositories.CommonRepository = common_repo
-        cls._layer0_repo_impl: Layer0RepositoryImpl = Layer0RepositoryImpl(layer0_repo, common_repo)
 
     def tearDown(self):
         self.pg_storage.clear()
 
-    async def test_retrieve(self):
+    def test_retrieve(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         creation = entities.Layer0Creation(
@@ -44,10 +42,10 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
         resp = self._layer0_repo.create_table(creation)
         self._layer0_repo.insert_raw_data(entities.Layer0RawData(resp.table_id, data))
 
-        from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        from_db = self._layer0_repo.fetch_data(Layer0QueryParam())
         self.assertTrue(data.equals(from_db[0].data))
 
-    async def test_store_retrieve(self):
+    def test_store_retrieve(self):
         expected = Layer0Model(
             id="test_table_store_retrieve",
             processed=False,
@@ -71,8 +69,8 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
                 }
             ),
         )
-        await self._layer0_repo_impl.create_instances([expected])
-        from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        self._layer0_repo.create_instances([expected])
+        from_db = self._layer0_repo.fetch_data(Layer0QueryParam())
 
         got = next(it for it in from_db if it.id == "test_table_store_retrieve")
 

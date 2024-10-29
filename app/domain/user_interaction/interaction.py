@@ -21,13 +21,13 @@ class AbstractInteraction(ABC):
     """
 
     @abstractmethod
-    async def eval(self, arg: AbstractArgument) -> InteractionResult:
+    def eval(self, arg: AbstractArgument) -> InteractionResult:
         pass
 
 
 class ResolveCrossIdentificationCollisionInteraction(AbstractInteraction):
     @abstractmethod
-    async def eval(
+    def eval(
         self, arg: ResolveCrossIdentificationCollisionInteractionArg
     ) -> ResolveCrossIdentificationCollisionInteractionRes:
         pass
@@ -35,11 +35,11 @@ class ResolveCrossIdentificationCollisionInteraction(AbstractInteraction):
 
 class ResolveCoordinateParseFail(AbstractInteraction):
     @abstractmethod
-    async def eval(self, arg: ResolveCoordinateParseFailArg) -> ResolveCoordinateParseFailRes:
+    def eval(self, arg: ResolveCoordinateParseFailArg) -> ResolveCoordinateParseFailRes:
         pass
 
 
 class Confirm01Transaction(AbstractInteraction):
     @abstractmethod
-    async def eval(self, arg: Confirm01TransactionArg) -> Confirm01TransactionRes:
+    def eval(self, arg: Confirm01TransactionArg) -> Confirm01TransactionRes:
         pass

@@ -16,7 +16,9 @@ class Layer1RepositoryTest(unittest.TestCase):
 
         cls.depot = commands.get_mock_depot()
         cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.depot.layer0_repo = repositories.Layer0Repository(
+            cls.depot.common_repo, cls.pg_storage.get_storage(), structlog.get_logger()
+        )
         cls.depot.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):

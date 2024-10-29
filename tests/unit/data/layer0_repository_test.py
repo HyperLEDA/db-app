@@ -4,14 +4,15 @@ from unittest import mock
 import structlog
 from parameterized import param, parameterized
 
-from app.data.repositories import Layer0Repository
+from app.data.repositories import CommonRepository, Layer0Repository
 from app.lib import testing
 
 
 class Layer0RepositoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.storage_mock = mock.MagicMock()
-        self.repo = Layer0Repository(self.storage_mock, structlog.get_logger())
+        common = CommonRepository(self.storage_mock, structlog.get_logger())
+        self.repo = Layer0Repository(common, self.storage_mock, structlog.get_logger())
 
     @parameterized.expand(
         [

@@ -24,7 +24,9 @@ class QueueTest(unittest.TestCase):
 
         cls.depot = commands.get_mock_depot()
         cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), logger)
-        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), logger)
+        cls.depot.layer0_repo = repositories.Layer0Repository(
+            cls.depot.common_repo, cls.pg_storage.get_storage(), logger
+        )
         cls.depot.queue_repo = repositories.QueueRepository(
             cls.redis_queue.get_storage(), cls.pg_storage.config, logger
         )
