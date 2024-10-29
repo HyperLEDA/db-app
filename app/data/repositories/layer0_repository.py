@@ -6,6 +6,12 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import template
+from app.data.mappers import domain_to_data
+from app.data.mappers.data_to_domain import layer_0_mapper
+from app.data.repositories import CommonRepository
+from app.domain import repositories
+from app.domain.model import Layer0Model
+from app.domain.model.params.layer_0_query_param import Layer0QueryParam
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
@@ -14,8 +20,11 @@ RAWDATA_SCHEMA = "rawdata"
 INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
-class Layer0Repository(postgres.TransactionalPGRepository):
-    def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
+class Layer0Repository(postgres.TransactionalPGRepository, repositories.Layer0Repository):
+    def __init__(
+        self, common_repository: CommonRepository, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger
+    ) -> None:
+        self._common_repository: CommonRepository = common_repository
         self._logger = logger
         super().__init__(storage)
 
@@ -305,3 +314,35 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             )
             for row in rows
         ]
+
+    def create_update_instances(self, instances: list[Layer0Model]):
+        pass
+
+    def create_instances(self, instances: list[Layer0Model]):
+        with self.with_tx():
+            for instance in instances:
+                bibliography = domain_to_data.layer_0_bibliography_mapper(instance)
+                bibliography_id = self._common_repository.create_bibliography(
+                    bibliography.code,
+                    bibliography.year,
+                    bibliography.author,
+                    bibliography.title,
+                )
+                creation = domain_to_data.layer_0_creation_mapper(instance, bibliography_id)
+                table_resp = self.create_table(creation)
+                raw = domain_to_data.layer_0_raw_mapper(instance, table_resp.table_id)
+                self.insert_raw_data(raw)
+
+    def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+        with self.with_tx():
+            # TODO use some selection params to filter unneeded tables
+            ids = self.get_all_table_ids()
+
+            to_domain = []
+            for table_id in ids:
+                meta = self.fetch_metadata(table_id)
+                raw = self.fetch_raw_data(table_id)
+                bib = self._common_repository.get_source_by_id(meta.bibliography_id)
+                to_domain.append(layer_0_mapper(meta, raw, bib))
+
+        return to_domain

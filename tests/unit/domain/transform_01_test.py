@@ -3,8 +3,8 @@ from typing import Callable
 
 from pandas import DataFrame
 
-from app.domain.actions.logic_units import TransformationO1Depot, transformation_0_1
 from app import entities
+from app.domain.actions.logic_units import TransformationO1Depot, transformation_0_1
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,

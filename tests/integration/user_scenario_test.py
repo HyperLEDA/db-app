@@ -5,7 +5,6 @@ from astropy import units as u
 from pandas import DataFrame
 
 from app.data import repositories
-from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain.actions import logic_units
 from app.domain.cross_id_simultaneous_data_provider import PostgreSimultaneousDataProvider
 from app.domain.model import Layer0Model
@@ -24,10 +23,9 @@ class SaveAndTransform01(unittest.TestCase):
         cls.pg_storage = testing.get_test_postgres_storage()
 
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        layer0_repo = repositories.Layer0Repository(common_repo, cls.pg_storage.get_storage(), structlog.get_logger())
         tmp_repo = repositories.TmpDataRepositoryImpl(cls.pg_storage.get_storage())
 
-        layer0_repo_impl = Layer0RepositoryImpl(layer0_repo, common_repo)
         cls._transformation_depot = logic_units.TransformationO1Depot(
             None,
             noop_cross_identify_function,
@@ -35,7 +33,6 @@ class SaveAndTransform01(unittest.TestCase):
         )
         cls._transaction_depot = logic_units.Transaction01Depot(cls._transformation_depot)
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
-        cls._layer0_repo_impl: Layer0RepositoryImpl = layer0_repo_impl
 
     def tearDown(self):
         self.pg_storage.clear()
@@ -66,10 +63,10 @@ class SaveAndTransform01(unittest.TestCase):
         )
 
         # store data
-        self._layer0_repo_impl.create_instances([data_from_user])
+        self._layer0_repo.create_instances([data_from_user])
 
         # get data from database TODO move to usecase
-        from_db = self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        from_db = self._layer0_repo.fetch_data(Layer0QueryParam())
         got = next(it for it in from_db if it.id == "test_table_save_and_transform")
 
         raw, transformed, fails = logic_units.transaction_0_1(self._transaction_depot, got)

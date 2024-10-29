@@ -5,7 +5,6 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import repositories
-from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -23,11 +22,10 @@ class Layer0RepositoryTest(unittest.TestCase):
         cls.pg_storage = testing.get_test_postgres_storage()
 
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        layer0_repo = repositories.Layer0Repository(common_repo, cls.pg_storage.get_storage(), structlog.get_logger())
 
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
         cls._common_repo: repositories.CommonRepository = common_repo
-        cls._layer0_repo_impl: Layer0RepositoryImpl = Layer0RepositoryImpl(layer0_repo, common_repo)
 
     def tearDown(self):
         self.pg_storage.clear()
@@ -44,7 +42,7 @@ class Layer0RepositoryTest(unittest.TestCase):
         resp = self._layer0_repo.create_table(creation)
         self._layer0_repo.insert_raw_data(entities.Layer0RawData(resp.table_id, data))
 
-        from_db = self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        from_db = self._layer0_repo.fetch_data(Layer0QueryParam())
         self.assertTrue(data.equals(from_db[0].data))
 
     def test_store_retrieve(self):
@@ -71,8 +69,8 @@ class Layer0RepositoryTest(unittest.TestCase):
                 }
             ),
         )
-        self._layer0_repo_impl.create_instances([expected])
-        from_db = self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        self._layer0_repo.create_instances([expected])
+        from_db = self._layer0_repo.fetch_data(Layer0QueryParam())
 
         got = next(it for it in from_db if it.id == "test_table_store_retrieve")
 

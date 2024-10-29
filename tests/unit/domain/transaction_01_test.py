@@ -41,9 +41,7 @@ class MockedCachingLayer1Repo(Layer1Repository):
     def get_by_name(self, name: str) -> Optional[Layer1Model]:
         return None
 
-    def get_inside_square(
-        self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
-    ) -> list[Layer1Model]:
+    def get_inside_square(self, min_ra: float, max_ra: float, min_dec: float, max_dec: float) -> list[Layer1Model]:
         return []
 
     def save_update_instances(self, instances: list[Layer1Model]) -> bool:

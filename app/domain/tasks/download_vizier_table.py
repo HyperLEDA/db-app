@@ -60,7 +60,7 @@ def download_vizier_table(
 ):
     common = repositories.CommonRepository(storage, logger)
 
-    layer0 = repositories.Layer0Repository(storage, logger)
+    layer0 = repositories.Layer0Repository(common, storage, logger)
     table_name = construct_table_name(params.table_id)
 
     table_id, ok = layer0.get_table_id(table_name)
