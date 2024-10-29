@@ -18,7 +18,7 @@ from app.lib import testing
 from tests.unit.domain.util import noop_cross_identify_function
 
 
-class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
+class SaveAndTransform01(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
@@ -40,7 +40,7 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    async def test_save_and_transform(self):
+    def test_save_and_transform(self):
         data_from_user = Layer0Model(
             id="test_table_save_and_transform",
             processed=False,
@@ -66,10 +66,10 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
         )
 
         # store data
-        await self._layer0_repo_impl.create_instances([data_from_user])
+        self._layer0_repo_impl.create_instances([data_from_user])
 
         # get data from database TODO move to usecase
-        from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
+        from_db = self._layer0_repo_impl.fetch_data(Layer0QueryParam())
         got = next(it for it in from_db if it.id == "test_table_save_and_transform")
 
         raw, transformed, fails = logic_units.transaction_0_1(self._transaction_depot, got)

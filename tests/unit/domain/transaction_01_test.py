@@ -17,17 +17,17 @@ from tests.unit.domain.util import noop_cross_identify_function
 
 
 class MockedCachingLayer0Repo(Layer0Repository):
-    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+    def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
         return []
 
     def __init__(self):
         self.last_saved_instances = None
 
-    async def create_update_instances(self, instances: list[Layer0Model]) -> bool:
+    def create_update_instances(self, instances: list[Layer0Model]) -> bool:
         self.last_saved_instances = instances
         return True
 
-    async def create_instances(self, instances: list[Layer0Model]):
+    def create_instances(self, instances: list[Layer0Model]):
         """
         Used to create instances, fails on conflict
         :param instances:
@@ -38,15 +38,15 @@ class MockedCachingLayer1Repo(Layer1Repository):
     def __init__(self):
         self.last_saved_instances = None
 
-    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
+    def get_by_name(self, name: str) -> Optional[Layer1Model]:
         return None
 
-    async def get_inside_square(
+    def get_inside_square(
         self, min_ra: float, max_ra: float, min_dec: float, max_dec: float
     ) -> list[Layer1Model]:
         return []
 
-    async def save_update_instances(self, instances: list[Layer1Model]) -> bool:
+    def save_update_instances(self, instances: list[Layer1Model]) -> bool:
         self.last_saved_instances = instances
         return True
 

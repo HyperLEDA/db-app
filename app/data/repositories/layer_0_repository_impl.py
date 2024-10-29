@@ -12,10 +12,10 @@ class Layer0RepositoryImpl(Layer0Repository):
         self._data_repository: DataRepository = data_repository
         self._common_repository: CommonRepository = common_repository
 
-    async def create_update_instances(self, instances: list[Layer0Model]):
+    def create_update_instances(self, instances: list[Layer0Model]):
         pass
 
-    async def create_instances(self, instances: list[Layer0Model]):
+    def create_instances(self, instances: list[Layer0Model]):
         with self._data_repository.with_tx():
             for instance in instances:
                 bibliography = domain_to_data.layer_0_bibliography_mapper(instance)
@@ -30,7 +30,7 @@ class Layer0RepositoryImpl(Layer0Repository):
                 raw = domain_to_data.layer_0_raw_mapper(instance, table_resp.table_id)
                 self._data_repository.insert_raw_data(raw)
 
-    async def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
+    def fetch_data(self, param: Layer0QueryParam) -> list[Layer0Model]:
         with self._data_repository.with_tx():
             # TODO use some selection params to filter unneeded tables
             ids = self._data_repository.get_all_table_ids()
