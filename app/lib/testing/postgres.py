@@ -7,14 +7,14 @@ import structlog
 from testcontainers import postgres as pgcontainer
 
 from app.lib.storage import postgres
-from app.lib.testing import common
+from app.lib.testing import web
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
-        self.port = common.find_free_port()
+        self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
             "postgres:16",
@@ -58,7 +58,7 @@ class TestPostgresStorage:
         tables = self.storage.query("""
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'rawdata' AND table_name != 'tables'
+            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'objects')
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
@@ -80,6 +80,17 @@ _test_storage: TestPostgresStorage | None = None
 
 
 def get_test_postgres_storage() -> TestPostgresStorage:
+    """
+    Obtains Postgres storage object that may be used for testing.
+
+    It is made efficiently - if the storage was already created (using this function)
+    it will not be created again but reused to save time. This requires the caller to clear the
+    storage themselves when they need it (by calling `clear()` function of the return value
+    of this function).
+
+    Usually caller does not need to stop the containers manually - it will be stopped once the
+    process stops (if it happens gracefully, of course).
+    """
     global _test_storage
     if _test_storage is None:
         _test_storage = TestPostgresStorage("postgres/migrations")

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
 
+from app import entities
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
 from app.domain.model.layer1.layer_1_value import Layer1Value
-from app.domain.model.params.cross_identification_param import CrossIdentificationParam
 from app.domain.model.params.cross_identification_result import CrossIdentifyResult
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.transformation_0_1_stages import (
@@ -28,10 +28,10 @@ class TransformationO1Depot:
 
     layer2_repo: Layer2Repository
     cross_identification_function: Callable[
-        [Layer2Repository, CrossIdentificationParam, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
+        [Layer2Repository, entities.ObjectInfo, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
         CrossIdentifyResult,
     ]
-    simultaneous_data_provider: Callable[[list[CrossIdentificationParam]], CrossIdSimultaneousDataProvider]
+    simultaneous_data_provider: Callable[[list[entities.ObjectInfo]], CrossIdSimultaneousDataProvider]
 
 
 def transformation_0_1(
@@ -82,10 +82,10 @@ def transformation_0_1(
         elif isinstance(name, BaseException):
             identification_params.append(name)
         elif name is None:
-            identification_params.append(CrossIdentificationParam(None, None, coordinate))
+            identification_params.append(entities.ObjectInfo(None, None, coordinate))
         else:
             primary_name, all_names = name
-            identification_params.append(CrossIdentificationParam(all_names, primary_name, coordinate))
+            identification_params.append(entities.ObjectInfo(all_names, primary_name, coordinate))
     # Simultaneous data provider needs only valid CrossIdentificationParams
     simultaneous_data_provider = depot.simultaneous_data_provider(
         [it for it in identification_params if not isinstance(it, BaseException)]

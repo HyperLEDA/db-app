@@ -8,7 +8,6 @@ from psycopg.types import enum, numeric
 
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
-from app.lib.storage.postgres import transaction as storageutils
 from app.lib.web.errors import DatabaseError, InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -37,6 +36,7 @@ DEFAULT_ENUMS = [
     (enums.TaskStatus, "common.task_status"),
     (enums.DataType, "common.datatype"),
     (enums.RawDataStatus, "rawdata.status"),
+    (enums.ObjectProcessingStatus, "rawdata.processing_status"),
 ]
 
 
@@ -77,11 +77,11 @@ class PgStorage:
             mapping={m: m.value for m in enum_type},
         )
 
-    def with_tx(self) -> psycopg.Transaction:
+    def get_connection(self) -> psycopg.Connection:
         if self._connection is None:
-            raise RuntimeError("did not connect to database")
+            raise InternalError("unable to create database connection")
 
-        return self._connection.transaction()
+        return self._connection
 
     def disconnect(self) -> None:
         if self._connection is not None:
@@ -89,7 +89,7 @@ class PgStorage:
 
             self._connection.close()
 
-    def exec(self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None) -> None:
+    def exec(self, query: str, *, params: list[Any] | None = None) -> None:
         if params is None:
             params = []
         if self._connection is None:
@@ -98,11 +98,9 @@ class PgStorage:
         log.debug("SQL query", query=query.replace("\n", " "), args=params)
 
         cursor = self._connection.cursor()
+        cursor.execute(query, params)
 
-        with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
-
-    def execute_many(self, query: str, params: Sequence[Sequence[Any]], tx: psycopg.Transaction | None = None):
+    def execute_many(self, query: str, params: Sequence[Sequence[Any]]):
         if self._connection is None:
             raise RuntimeError("Unable to execute query: connection to Postgres was not established")
 
@@ -110,15 +108,12 @@ class PgStorage:
 
         cursor = self._connection.cursor()
 
-        with storageutils.get_or_create_transaction(self._connection, tx):
-            try:
-                cursor.executemany(query, params)
-            except psycopg.Error as e:
-                raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
+        try:
+            cursor.executemany(query, params)
+        except psycopg.Error as e:
+            raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
 
-    def query(
-        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
-    ) -> list[rows.DictRow]:
+    def query(self, query: str, *, params: list[Any] | None = None) -> list[rows.DictRow]:
         if params is None:
             params = []
         if self._connection is None:
@@ -127,16 +122,12 @@ class PgStorage:
         log.debug("SQL query", query=query.replace("\n", " "), args=params)
 
         cursor = self._connection.cursor()
+        cursor.execute(query, params)
 
-        with storageutils.get_or_create_transaction(self._connection, tx):
-            cursor.execute(query, params)
+        return cursor.fetchall()
 
-            return cursor.fetchall()
-
-    def query_one(
-        self, query: str, *, params: list[Any] | None = None, tx: psycopg.Transaction | None = None
-    ) -> rows.DictRow:
-        result = self.query(query, params=params, tx=tx)
+    def query_one(self, query: str, *, params: list[Any] | None = None) -> rows.DictRow:
+        result = self.query(query, params=params)
 
         if len(result) != 1:
             raise RuntimeError("was unable to fetch one value")

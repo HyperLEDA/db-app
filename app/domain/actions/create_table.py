@@ -6,14 +6,15 @@ from astropy import units
 from astroquery import nasa_ads as ads
 
 from app import commands, entities, schema
-from app.data import interface
+from app.data import repositories
+from app.domain import converters
 from app.lib.storage import enums, mapping
+from app.lib.web import errors
 from app.lib.web.errors import RuleValidationError
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
-INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
-FORBIDDEN_COLUMN_NAMES = {INTERNAL_ID_COLUMN_NAME}
+FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 
 
 def create_table(
@@ -22,28 +23,45 @@ def create_table(
 ) -> tuple[schema.CreateTableResponse, bool]:
     source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
 
+    r.table_name = sanitize_name(r.table_name)
+
     for col in r.columns:
         if col.name in FORBIDDEN_COLUMN_NAMES:
-            raise RuleValidationError(f"{col} is a reserved column name for internal storage")
+            raise RuleValidationError(f"{col} is a reserved column name")
 
     columns = domain_descriptions_to_data(r.columns)
+    validate_columns(columns)
 
-    with depot.layer0_repo.with_tx() as tx:
-        table_resp = depot.layer0_repo.create_table(
-            entities.Layer0Creation(
-                table_name=r.table_name,
-                column_descriptions=columns,
-                bibliography_id=source_id,
-                datatype=enums.DataType(r.datatype),
-                comment=r.description,
-            ),
-            tx=tx,
-        )
+    table_resp = depot.layer0_repo.create_table(
+        entities.Layer0Creation(
+            table_name=r.table_name,
+            column_descriptions=columns,
+            bibliography_id=source_id,
+            datatype=enums.DataType(r.datatype),
+            comment=r.description,
+        ),
+    )
 
     return schema.CreateTableResponse(table_resp.table_id), table_resp.created
 
 
-def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
+def sanitize_name(name: str) -> str:
+    return name.replace(" ", "_").replace("-", "_")
+
+
+def validate_columns(columns: list[entities.ColumnDescription]):
+    converter = converters.CompositeConverter(
+        converters.NameConverter(),
+        converters.ICRSConverter(),
+    )
+
+    try:
+        converter.parse_columns(columns)
+    except converters.ConverterError as e:
+        raise errors.RuleValidationError(f"Unable to parse the columns: {str(e)}") from e
+
+
+def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
     if not regex.match(BIBCODE_REGEX, code):
         try:
             entry_id = repo.get_source_entry(code).id
@@ -67,7 +85,7 @@ def get_source_id(repo: interface.CommonRepository, ads_client: ads.ADSClass, co
 def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[entities.ColumnDescription]:
     result = [
         entities.ColumnDescription(
-            name=INTERNAL_ID_COLUMN_NAME,
+            name=repositories.INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
             is_primary_key=True,
         )
@@ -75,14 +93,14 @@ def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list
 
     for col in columns:
         data_type = col.data_type.strip()
-        unit = col.unit
+        unit = None
 
         if data_type not in mapping.type_map:
             raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
             try:
-                unit = units.Unit(col.unit).to_string()
+                unit = units.Unit(col.unit)
             except ValueError:
                 raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
 

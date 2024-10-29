@@ -26,12 +26,19 @@ class ColumnDescriptionSchema(Schema):
 class CreateTableRequestSchema(Schema):
     table_name = fields.Str(required=True, description="Name of the table")
     columns = fields.List(
-        fields.Nested(ColumnDescriptionSchema), required=True, description="List of columns in the table"
+        fields.Nested(ColumnDescriptionSchema),
+        required=True,
+        description="List of columns in the table",
+        example=[  # minimal set of working columns
+            {"name": "name", "data_type": "str", "ucd": "meta.id"},
+            {"name": "ra", "data_type": "float", "unit": "hourangle", "ucd": "pos.eq.ra"},
+            {"name": "dec", "data_type": "float", "unit": "deg", "ucd": "pos.eq.dec"},
+        ],
     )
     bibcode = fields.Str(
         required=True,
         description="ADS bibcode of the article that published the data (or code of the internal communication)",
-        example="2024NatAs.tmp..120M",
+        example="2024PDU....4601628D",
     )
     datatype = fields.Str(
         allow_none=True,

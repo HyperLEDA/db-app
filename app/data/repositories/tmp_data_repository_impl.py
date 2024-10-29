@@ -20,7 +20,7 @@ def _extended_type_map(series: Series):
     return mapping.get_type_from_dtype(series.dtype)
 
 
-class TmpDataRepositoryImpl(TmpDataRepository):
+class TmpDataRepositoryImpl(TmpDataRepository, postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage):
         self._storage = storage
 
@@ -30,7 +30,7 @@ class TmpDataRepositoryImpl(TmpDataRepository):
         isinstance(data["name"][0], Sequence)
         fields = [(col_name, _extended_type_map(data[col_name])) for col_name in data.columns.values]
 
-        with self._storage.with_tx() as tx:
+        with self.with_tx():
             self._storage.exec(
                 template.render_query(
                     template.CREATE_TMP_TABLE,
@@ -48,14 +48,12 @@ class TmpDataRepositoryImpl(TmpDataRepository):
                     fields=fields,
                 ),
                 params=data.to_numpy().tolist(),
-                tx=tx,
             )
             if index_on is not None:
                 self._storage.exec(
                     template.render_query(
                         template.BUILD_INDEX, index_name=f"index_{name}", table_name=name, columns=index_on
                     ),
-                    tx=tx,
                 )
 
         return name

@@ -2,12 +2,11 @@ from typing import Any, Callable
 
 import structlog
 
-from app.data import interface
 from app.lib.storage import redis
 from app.lib.storage.postgres.config import PgStorageConfig
 
 
-class QueueRepository(interface.QueueRepository):
+class QueueRepository:
     def __init__(
         self,
         queue: redis.RedisQueue,

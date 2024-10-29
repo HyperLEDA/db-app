@@ -127,12 +127,12 @@ def download_vizier_table(
             entities.ColumnDescription(
                 name=field,
                 data_type=t,
-                unit=str(field_meta.unit),
+                unit=field_meta.unit,
                 description=field_meta.description,
             )
         )
 
-    with layer0.with_tx() as tx:
+    with layer0.with_tx():
         try:
             description = catalog.meta["description"]
         except KeyError:
@@ -144,7 +144,6 @@ def download_vizier_table(
             year=2024,
             authors=["Pović, Mirjana"],
             title="The Lockman-SpReSO project. Galactic flows in a sample of far-infrared galaxies",
-            tx=tx,
         )
 
         table_resp = layer0.create_table(
@@ -156,7 +155,6 @@ def download_vizier_table(
                 enums.DataType.REGULAR,
                 comment=description,
             ),
-            tx=tx,
         )
 
-        layer0.insert_raw_data(entities.Layer0RawData(table_resp.table_id, catalog.to_pandas()), tx)
+        layer0.insert_raw_data(entities.Layer0RawData(table_resp.table_id, catalog.to_pandas()))

@@ -1,36 +1,29 @@
 import json
-from typing import final
 
-import psycopg
 import structlog
+from astropy import units as u
 from pandas import DataFrame
 
 from app import entities
-from app.data import interface, template
+from app.data import template
 from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 RAWDATA_SCHEMA = "rawdata"
+INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
-@final
-class Layer0Repository(interface.Layer0Repository):
+class Layer0Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
-        self._storage = storage
+        super().__init__(storage)
 
-    def with_tx(self) -> psycopg.Transaction:
-        return self._storage.with_tx()
-
-    def create_table(
-        self, data: entities.Layer0Creation, tx: psycopg.Transaction | None = None
-    ) -> entities.Layer0CreationResponse:
+    def create_table(self, data: entities.Layer0Creation) -> entities.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
         """
-        # TODO: use tx or new transaction here
         fields = []
         comment_queries = []
 
@@ -42,17 +35,22 @@ class Layer0Repository(interface.Layer0Repository):
             fields.append((column_descr.name, column_descr.data_type, constraint))
             col_params = {
                 "description": column_descr.description,
-                "unit": column_descr.unit,
                 "data_type": column_descr.data_type,
             }
+
+            if column_descr.unit is not None:
+                col_params["unit"] = column_descr.unit.to_string()
+
             if column_descr.coordinate_part is not None:
                 col_params["coordinate_part"] = {
                     "descr_id": column_descr.coordinate_part.descr_id,
                     "arg_num": column_descr.coordinate_part.arg_num,
                     "column_name": column_descr.coordinate_part.column_name,
                 }
+
             if column_descr.ucd is not None:
                 col_params["ucd"] = column_descr.ucd
+
             comment_queries.append(
                 template.render_query(
                     template.ADD_COLUMN_COMMENT,
@@ -67,46 +65,44 @@ class Layer0Repository(interface.Layer0Repository):
         if ok:
             return entities.Layer0CreationResponse(table_id, False)
 
-        row = self._storage.query_one(
-            template.INSERT_TABLE_REGISTRY_ITEM,
-            params=[data.bibliography_id, data.table_name, data.datatype],
-            tx=tx,
-        )
-        table_id = int(row.get("id"))
-
-        self._storage.exec(
-            template.render_query(
-                template.CREATE_TABLE,
-                schema=RAWDATA_SCHEMA,
-                name=data.table_name,
-                fields=fields,
+        with self.with_tx():
+            row = self._storage.query_one(
+                template.INSERT_TABLE_REGISTRY_ITEM,
+                params=[data.bibliography_id, data.table_name, data.datatype],
             )
-        )
+            table_id = int(row.get("id"))
 
-        if data.comment is not None:
             self._storage.exec(
                 template.render_query(
-                    template.ADD_TABLE_COMMENT,
+                    template.CREATE_TABLE,
                     schema=RAWDATA_SCHEMA,
-                    table_name=data.table_name,
-                    params=json.dumps({"description": data.comment, "name_col": data.name_col}),
-                ),
-                tx=tx,
+                    name=data.table_name,
+                    fields=fields,
+                )
             )
 
-        for query in comment_queries:
-            self._storage.exec(query, tx=tx)
+            if data.comment is not None:
+                self._storage.exec(
+                    template.render_query(
+                        template.ADD_TABLE_COMMENT,
+                        schema=RAWDATA_SCHEMA,
+                        table_name=data.table_name,
+                        params=json.dumps({"description": data.comment, "name_col": data.name_col}),
+                    ),
+                )
+
+            for query in comment_queries:
+                self._storage.exec(query)
 
         return entities.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(
         self,
         data: entities.Layer0RawData,
-        tx: psycopg.Transaction | None = None,
     ) -> None:
         """
         This method puts everything in parameters for prepared statement. This should not be a big
-        issue but one would be better off using this function in batches since prepared statement make
+        issue but one would be better off using this function in batches since prepared statements make
         this quite cheap (excluding network slow down, though).
         """
 
@@ -114,7 +110,7 @@ class Layer0Repository(interface.Layer0Repository):
             self._logger.warn("trying to insert 0 rows into the table", table_id=data.table_id)
             return
 
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[data.table_id], tx=tx)
+        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[data.table_id])
         table_name = row.get("table_name")
 
         if table_name is None:
@@ -142,7 +138,6 @@ class Layer0Repository(interface.Layer0Repository):
                 objects=objects,
             ),
             params=params,
-            tx=tx,
         )
 
     def fetch_raw_data(
@@ -153,7 +148,6 @@ class Layer0Repository(interface.Layer0Repository):
         order_direction: str = "asc",
         offset: int = 0,
         limit: int | None = None,
-        tx: psycopg.Transaction | None = None,
     ) -> entities.Layer0RawData:
         """
         :param table_id: ID of the raw table
@@ -162,10 +156,9 @@ class Layer0Repository(interface.Layer0Repository):
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
         :param offset: allows to retrieve rows starting from the `offset` row
         :param limit: allows to retrieve no more than `limit` rows
-        :param tx: Transaction
         :return: Layer0RawData
         """
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id], tx=tx)
+        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
 
         if table_name is None:
@@ -189,8 +182,8 @@ class Layer0Repository(interface.Layer0Repository):
         rows = self._storage.query(query, params=params)
         return entities.Layer0RawData(table_id, DataFrame(rows))
 
-    def fetch_metadata(self, table_id: int, tx: psycopg.Transaction | None = None) -> Layer0Creation:
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id], tx=tx)
+    def fetch_metadata(self, table_id: int) -> Layer0Creation:
+        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
 
         if table_name is None:
@@ -202,7 +195,8 @@ class Layer0Repository(interface.Layer0Repository):
         descriptions = []
         for column_name in column_names:
             param = self._storage.query_one(
-                template.FETCH_COLUMN_METADATA, params=[RAWDATA_SCHEMA, table_name, column_name], tx=tx
+                template.FETCH_COLUMN_METADATA,
+                params=[RAWDATA_SCHEMA, table_name, column_name],
             )
 
             if param is None:
@@ -216,19 +210,23 @@ class Layer0Repository(interface.Layer0Repository):
                     param["param"]["coordinate_part"]["column_name"],
                 )
 
+            unit = None
+            if param["param"].get("unit") is not None:
+                unit = u.Unit(param["param"]["unit"])
+
             descriptions.append(
                 ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
-                    unit=param["param"]["unit"],
+                    unit=unit,
                     description=param["param"]["description"],
                     ucd=param["param"].get("ucd"),
                     coordinate_part=coordinate_part,
                 )
             )
 
-        param = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name], tx=tx)
-        registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name], tx=tx)
+        param = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
+        registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         if param is None:
             raise DatabaseError(f"unable to metadata for table {table_name}")
@@ -256,3 +254,54 @@ class Layer0Repository(interface.Layer0Repository):
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
+
+    def upsert_object(self, table_id: int, obj: entities.ObjectProcessingInfo) -> None:
+        self._storage.exec(
+            """
+            INSERT INTO rawdata.objects (table_id, object_id, pgc, status, data, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s) 
+            ON CONFLICT (table_id, object_id) DO 
+                UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
+            """,
+            params=[
+                table_id,
+                obj.object_id,
+                obj.pgc,
+                obj.status,
+                json.dumps(obj.data, cls=entities.ObjectInfoEncoder),
+                json.dumps(obj.metadata),
+            ],
+        )
+
+    def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+        rows = self._storage.query(
+            """
+            SELECT status, COUNT(*) FROM rawdata.objects 
+            WHERE table_id = %s 
+            GROUP BY status
+            """,
+            params=[table_id],
+        )
+
+        return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
+
+    def get_objects(self, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
+        rows = self._storage.query(
+            """
+            SELECT object_id, pgc, status, data, metadata
+            FROM rawdata.objects
+            LIMIT %s OFFSET %s
+            """,
+            params=[batch_size, offset],
+        )
+
+        return [
+            entities.ObjectProcessingInfo(
+                row["object_id"],
+                enums.ObjectProcessingStatus(row["status"]),
+                row["metadata"],
+                entities.ObjectInfo.load(row["data"]),
+                row["pgc"],
+            )
+            for row in rows
+        ]

@@ -1,9 +1,16 @@
-from __future__ import annotations
+import abc
+from dataclasses import dataclass
 
 from astropy.coordinates import ICRS, Angle
 
+from app import entities
 from app.domain.model.layer2 import Layer2Model
-from app.domain.model.params.cross_identification_param import CrossIdentificationParam
+
+
+class CrossIdentificationException(abc.ABC):
+    """
+    Base cross identification exception
+    """
 
 
 class CrossIdentifyResult:
@@ -16,16 +23,12 @@ class CrossIdentifyResult:
         self.fail: CrossIdentificationException | None = fail
 
 
-class CrossIdentificationException(BaseException):
-    """
-    Base cross identification exception
-    """
-
-
+@dataclass
 class CrossIdentificationEmptyException(CrossIdentificationException):
     """Both coordinates and name provided are empty"""
 
 
+@dataclass
 class CrossIdentificationNamesNotFoundException(CrossIdentificationException):
     """Case, when only name known, but it has no matches in DB"""
 
@@ -36,6 +39,7 @@ class CrossIdentificationNamesNotFoundException(CrossIdentificationException):
         self.names = names
 
 
+@dataclass
 class CrossIdentificationNamesDuplicateException(CrossIdentificationException):
     """Case, when provided names found for multiple objects in DB"""
 
@@ -46,6 +50,7 @@ class CrossIdentificationNamesDuplicateException(CrossIdentificationException):
         self.names = names
 
 
+@dataclass
 class CrossIdentificationCoordCollisionException(CrossIdentificationException):
     """
     Describes collisions from cross identification use case
@@ -64,14 +69,13 @@ class CrossIdentificationCoordCollisionException(CrossIdentificationException):
         self.collisions: list[Layer2Model] = collisions
 
 
+@dataclass
 class CrossIdentificationNameCoordCollisionException(CrossIdentificationException):
     """
     Describes collision, when cross identified name and coordinates mismatch
     """
 
-    def __init__(
-        self, target_param: CrossIdentificationParam, name_hit: Layer2Model | None, coord_hit: Layer2Model | None
-    ):
+    def __init__(self, target_param: entities.ObjectInfo, name_hit: Layer2Model | None, coord_hit: Layer2Model | None):
         """
         :param target_param: The configuration, that caused collision
         :param name_hit: Cross identification by name result
@@ -82,6 +86,7 @@ class CrossIdentificationNameCoordCollisionException(CrossIdentificationExceptio
         self.coord_hit = coord_hit
 
 
+@dataclass
 class CrossIdentificationNameCoordFailException(CrossIdentificationException):
     """
     Describes collision, when both cross identification by name and by coordinates need user interaction
@@ -89,7 +94,7 @@ class CrossIdentificationNameCoordFailException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: CrossIdentificationParam,
+        target_param: entities.ObjectInfo,
         name_collision: CrossIdentificationException,
         coord_collision: CrossIdentificationException,
     ):
@@ -103,6 +108,7 @@ class CrossIdentificationNameCoordFailException(CrossIdentificationException):
         self.coord_collision = coord_collision
 
 
+@dataclass
 class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
     """
     Describes collision, name cross identification is successful, but coordinate cross identification needs user
@@ -111,7 +117,7 @@ class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: CrossIdentificationParam,
+        target_param: entities.ObjectInfo,
         name_hit: Layer2Model | None,
         coord_collision: CrossIdentificationException,
     ):
@@ -125,6 +131,7 @@ class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
         self.coord_collision = coord_collision
 
 
+@dataclass
 class CrossIdentificationNameCoordNameFailException(CrossIdentificationException):
     """
     Describes collision, coordinate cross identification is successful, but name cross identification needs user
@@ -133,7 +140,7 @@ class CrossIdentificationNameCoordNameFailException(CrossIdentificationException
 
     def __init__(
         self,
-        target_param: CrossIdentificationParam,
+        target_param: entities.ObjectInfo,
         name_collision: CrossIdentificationException,
         coord_hit: Layer2Model | None,
     ):
@@ -147,6 +154,7 @@ class CrossIdentificationNameCoordNameFailException(CrossIdentificationException
         self.coord_hit = coord_hit
 
 
+@dataclass
 class CrossIdentificationDuplicateException(CrossIdentificationException):
     """
     When collision found between simultaneously processed objects
@@ -154,8 +162,8 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: CrossIdentificationParam,
-        collisions: list[CrossIdentificationParam],
+        target_param: entities.ObjectInfo,
+        collisions: list[entities.ObjectInfo],
         db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException,
     ):
         """
@@ -163,6 +171,6 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
         :param collisions: Collisions with simultaneously processed objects
         :param db_cross_id_result: The result of cross identification with DB objects
         """
-        self.target_param: CrossIdentificationParam = target_param
-        self.collisions: list[CrossIdentificationParam] = collisions
+        self.target_param: entities.ObjectInfo = target_param
+        self.collisions: list[entities.ObjectInfo] = collisions
         self.db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException = db_cross_id_result

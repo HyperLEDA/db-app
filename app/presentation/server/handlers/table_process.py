@@ -46,7 +46,7 @@ async def table_process_handler(depot: commands.Depot, r: web.Request) -> respon
     """---
     summary: Start processing of the table
     description: |
-        Starts different processing steps on the table: for example, cross-identification.
+        Starts different processing steps on the table: for example, homogenization and cross-identification.
     security:
         - TokenAuth: []
     tags: [admin, table]

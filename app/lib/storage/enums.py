@@ -24,3 +24,10 @@ class RawDataStatus(enum.Enum):
     AUTO_X_ID_FINISHED = "auto x-id finished"
     MANUAL_X_ID = "manual x-id"
     PROCESSED = "processed"
+
+
+class ObjectProcessingStatus(str, enum.Enum):
+    UNPROCESSED = "unprocessed"
+    NEW = "new"
+    COLLIDED = "collided"
+    EXISTING = "existing"

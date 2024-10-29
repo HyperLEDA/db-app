@@ -4,6 +4,7 @@ import click
 
 import app.commands.generate_spec as generate_spec_cmd
 import app.commands.runserver as runserver_cmd
+from tests.regression import upload_simple_table
 
 
 @click.group()
@@ -27,6 +28,11 @@ def runserver(config: str):
 @click.option("-o", "--output", type=str, required=True, help="Where to put resulting JSON")
 def generate_spec(output: str):
     generate_spec_cmd.generate_spec(output)
+
+
+@cli.command(short_help="Run regression tests")
+def regression_tests():
+    upload_simple_table.run()
 
 
 if __name__ == "__main__":

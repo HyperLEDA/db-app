@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import enum
 import json
 import warnings
 from functools import wraps
@@ -86,6 +87,9 @@ def start(
 def datetime_handler(obj: Any):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
+
+    if isinstance(obj, enum.Enum):
+        return obj.value
 
     raise TypeError("Unknown type")
 

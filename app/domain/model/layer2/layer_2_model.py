@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import Optional
 
@@ -24,4 +25,4 @@ class Layer2Model:
     common_name: Optional[str]
     err_ra: Angle
     err_dec: Angle
-    modified: int
+    modified: datetime.datetime

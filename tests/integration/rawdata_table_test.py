@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 
 import pandas
 import psycopg
@@ -10,8 +9,7 @@ from app import commands, schema
 from app.data import repositories
 from app.domain import actions
 from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
-from app.lib import auth, testing
-from app.lib import clients as libclients
+from app.lib import testing
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 
@@ -21,45 +19,34 @@ class RawDataTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
-        common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-
-        cls.clients = libclients.Clients("")
-        cls.clients.ads = mock.MagicMock()
-
-        cls.depot = commands.Depot(
-            common_repo,
-            layer0_repo,
-            mock.MagicMock(),
-            mock.MagicMock(),
-            mock.MagicMock(),
-            auth.NoopAuthenticator(),
-            cls.clients,
-        )
-
-        cls._layer0_repo: repositories.Layer0Repository = layer0_repo
-        cls._common_repo: repositories.CommonRepository = common_repo
+        cls.depot = commands.get_mock_depot()
+        cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def test_create_table_happy_case(self):
-        self.clients.ads.query_simple.return_value = [
-            {
-                "bibcode": "2024arXiv240411942F",
-                "author": ["test"],
-                "pubdate": "2020-03-00",
-                "title": ["test"],
-            }
-        ]
+        testing.returns(
+            self.depot.clients.ads.query_simple,
+            [
+                {
+                    "bibcode": "2024arXiv240411942F",
+                    "author": ["test"],
+                    "pubdate": "2020-03-00",
+                    "title": ["test"],
+                }
+            ],
+        )
 
         table_resp, _ = actions.create_table(
             self.depot,
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -72,29 +59,28 @@ class RawDataTableTest(unittest.TestCase):
             schema.AddDataRequest(
                 table_id=table_resp.id,
                 data=[
-                    {"test_col_1": 5.5, "test_col_2": "test data 1"},
-                    {"test_col_1": 5.0, "test_col_2": "test data 2"},
+                    {"ra": 5.5, "dec": 88},
+                    {"ra": 5.0, "dec": -50},
                 ],
             ),
         )
 
-        rows = self.pg_storage.get_storage().query(
-            "SELECT test_col_1, test_col_2 FROM rawdata.test_table ORDER BY test_col_1"
-        )
+        rows = self.pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
         data_df = pandas.DataFrame.from_records(rows)
-        self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
-        self.assertListEqual(data_df["test_col_2"].to_list(), ["test data 2", "test data 1"])
+        self.assertListEqual(data_df["ra"].to_list(), [5.0, 5.5])
+        self.assertListEqual(data_df["dec"].to_list(), [-50, 88])
 
     def test_create_table_with_nulls(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.depot.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         table_resp, _ = actions.create_table(
@@ -102,8 +88,9 @@ class RawDataTableTest(unittest.TestCase):
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -115,27 +102,26 @@ class RawDataTableTest(unittest.TestCase):
             self.depot,
             schema.AddDataRequest(
                 table_resp.id,
-                data=[{"test_col_1": 5.5}, {"test_col_1": 5.0}],
+                data=[{"ra": 5.5}, {"ra": 5.0}],
             ),
         )
 
-        rows = self.pg_storage.get_storage().query(
-            "SELECT test_col_1, test_col_2 FROM rawdata.test_table ORDER BY test_col_1"
-        )
+        rows = self.pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
         data_df = pandas.DataFrame.from_records(rows)
-        self.assertListEqual(data_df["test_col_1"].to_list(), [5.0, 5.5])
-        self.assertListEqual(data_df["test_col_2"].to_list(), [None, None])
+        self.assertListEqual(data_df["ra"].to_list(), [5.0, 5.5])
+        self.assertListEqual(data_df["dec"].to_list(), [None, None])
 
     def test_duplicate_column(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.depot.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         with self.assertRaises(psycopg.errors.DuplicateColumn):
@@ -144,8 +130,11 @@ class RawDataTableTest(unittest.TestCase):
                 schema.CreateTableRequest(
                     "test_table",
                     [
-                        schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                        schema.ColumnDescription("test_col_1", "str", description="test col 2"),
+                        schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                        schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                        schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                        schema.ColumnDescription("duplicate", "str"),
+                        schema.ColumnDescription("duplicate", "str"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
@@ -154,15 +143,16 @@ class RawDataTableTest(unittest.TestCase):
             )
 
     def test_add_data_to_unknown_column(self):
-        self.clients.ads.query_simple = mock.MagicMock(
-            return_value=[
+        testing.returns(
+            self.depot.clients.ads.query_simple,
+            [
                 {
                     "bibcode": "2024arXiv240411942F",
                     "author": ["test"],
                     "pubdate": "2020-03-00",
                     "title": ["test"],
                 }
-            ]
+            ],
         )
 
         table_resp, _ = actions.create_table(
@@ -170,8 +160,9 @@ class RawDataTableTest(unittest.TestCase):
             schema.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("test_col_1", "float", unit="kpc", description="test col 1"),
-                    schema.ColumnDescription("test_col_2", "str", description="test col 2"),
+                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
+                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -190,8 +181,8 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_resp = self._layer0_repo.create_table(
+        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        table_resp = self.depot.layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
@@ -199,16 +190,16 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self._layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
-        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id)
+        self.depot.layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
+        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id)
 
         self.assertTrue(from_db.data.equals(data))
 
-        from_db = self._layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
+        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
-        bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected_creation = Layer0Creation(
             table_name,
@@ -216,8 +207,8 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_resp = self._layer0_repo.create_table(expected_creation)
+        table_resp = self.depot.layer0_repo.create_table(expected_creation)
 
-        from_db = self._layer0_repo.fetch_metadata(table_resp.table_id)
+        from_db = self.depot.layer0_repo.fetch_metadata(table_resp.table_id)
 
         self.assertEqual(expected_creation, from_db)
