@@ -3,6 +3,7 @@ from typing import Callable
 
 from pandas import DataFrame
 
+from app.domain.actions.logic_units import TransformationO1Depot, transformation_0_1
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,
@@ -25,7 +26,6 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseValues,
 )
 from app.domain.repositories.layer_2_repository import Layer2Repository
-from app.domain.usecases import TransformationO1UseCase
 from tests.domain.util import noop_cross_identify_function
 
 
@@ -45,14 +45,14 @@ def get_purposefully_failing_cross_identification_function(fail_condition: Calla
     return func
 
 
-class Transform01Test(unittest.IsolatedAsyncioTestCase):
+class Transform01Test(unittest.TestCase):
     def setUp(self):
         super().setUp()
-        self.transformation_use_case = TransformationO1UseCase(
+        self.transformation_O1_depot = TransformationO1Depot(
             None, noop_cross_identify_function, lambda it: SimpleSimultaneousDataProvider(it)
         )
 
-    async def test_transform_general(self):
+    def test_transform_general(self):
         data = Layer0Model(
             id="1",
             processed=False,
@@ -79,7 +79,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
 
         stages = []
 
-        models, fails = await self.transformation_use_case.invoke(data, None, stages.append)
+        models, fails = transformation_0_1(self.transformation_O1_depot, data, None, stages.append)
 
         self.assertEqual(
             [
@@ -94,7 +94,7 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(3, len(models))
         self.assertEqual(0, len(fails))
 
-    async def test_transform_fails(self):
+    def test_transform_fails(self):
         data = Layer0Model(
             id="1",
             processed=False,
@@ -135,12 +135,12 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        _, fails = await self.transformation_use_case.invoke(data)
+        _, fails = transformation_0_1(self.transformation_O1_depot, data)
         self.assertEqual(len(fails), 2)
         self.assertEqual(5, fails[1].original_row)
         self.assertIsInstance(fails[0].cause, ValueError)
 
-    async def test_cross_identification_fails(self):
+    def test_cross_identification_fails(self):
         data = Layer0Model(
             id="1",
             processed=False,
@@ -182,17 +182,17 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        transformation_use_case = TransformationO1UseCase(
+        depot = TransformationO1Depot(
             None,
             get_purposefully_failing_cross_identification_function(lambda el: el.primary_name in {"fail", "fail2"}),
             lambda it: SimpleSimultaneousDataProvider(it),
         )
-        res, fails = await transformation_use_case.invoke(data)
+        res, fails = transformation_0_1(depot, data)
         self.assertEqual(len(fails), 2)
         self.assertIsInstance(fails[0].cause, CrossIdentificationException)
         self.assertIsInstance(fails[1].cause, CrossIdentificationException)
 
-    async def test_name_wrong_column_fail(self):
+    def test_name_wrong_column_fail(self):
         data = Layer0Model(
             id="1",
             processed=False,
@@ -235,6 +235,6 @@ class Transform01Test(unittest.IsolatedAsyncioTestCase):
         )
 
         with self.assertRaises(KeyError) as scope:
-            await self.transformation_use_case.invoke(data)
+            transformation_0_1(self.transformation_O1_depot, data)
 
         self.assertEqual(("wrong_col",), scope.exception.args)
