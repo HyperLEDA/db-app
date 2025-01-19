@@ -12,7 +12,7 @@ class Layer1Serializer(abc.ABC):
     that are relevant to that specific catalogue.
     """
 
-    def serialize(self, repo: repositories.Layer1Repository, objects: list[entities.ObjectInfo]):
+    def serialize(self, repo: repositories.Layer1Repository, objects: list[entities.ObjectProcessingInfo]) -> None:
         """
         Saves a batch of objects inside the tables on layer 1.
 

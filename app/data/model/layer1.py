@@ -11,3 +11,4 @@ class Layer1CatalogObject:
 
 class Layer1Catalog(enum.Enum):
     ICRS = "icrs"
+    DESIGNATION = "designation"

@@ -21,114 +21,103 @@ COMMENT ON SCHEMA designation IS 'Designation catalog' ;
 --    Andromeda XVIII <=> And XVIII <=> And 18
 -- В Леда используется метод разработанный в NED парсинга имени и перекодирования его в стандартную форму.
 CREATE TABLE designation.data (
-  pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
+  pgc	integer	NOT NULL	REFERENCES common.pgc ( id ) ON DELETE restrict ON UPDATE cascade
+, object_id text NOT NULL REFERENCES rawdata.objects (object_id) ON DELETE restrict ON UPDATE cascade
 , design	text	NOT NULL	UNIQUE
-, bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
 ) ;
 CREATE UNIQUE INDEX ON designation.data (upper(replace(design,' ',''))) ;
-CREATE INDEX ON designation.data (bib) ;
 
 COMMENT ON TABLE designation.data IS 'List of unique object names' ;
 COMMENT ON COLUMN designation.data.pgc IS '{"description" : "PGC number of the object" , "ucd" : "meta.id"}' ;
+COMMENT ON COLUMN designation.data.object_id	IS 'ID of the object in original table' ;
 COMMENT ON COLUMN designation.data.design IS '{"description" : "Unique designation the object. It must follow the IAU recommendations: https://cdsweb.u-strasbg.fr/Dic/iau-spec.html" , "ucd" : "meta.id"}' ;
-COMMENT ON COLUMN designation.data.bib IS '{"description" : "Bibliography reference" , "ucd" : "meta.bib"}' ;
 COMMENT ON COLUMN designation.data.modification_time IS '{"description" : "Timestamp when the record was added to the database" , "ucd" : "time.creation"}' ;
 
 
-CREATE TABLE designation.ambiguity (
-  PRIMARY KEY (pgc,design)
-, FOREIGN KEY (pgc)	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
-, FOREIGN KEY (bib)	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
-) INHERITS (designation.data) ;
-CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
-CREATE INDEX ON designation.ambiguity (bib) ;
-
 -- CREATE TABLE designation.ambiguity (
---   pgc	integer	NOT NULL	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
--- , design	text	NOT NULL
--- , bib	integer	NOT NULL	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
--- , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
--- , PRIMARY KEY (pgc,design)
--- ) ;
+--   PRIMARY KEY (pgc,design)
+-- , FOREIGN KEY (pgc)	REFERENCES common.pgc(id) ON DELETE restrict ON UPDATE cascade
+-- , FOREIGN KEY (bib)	REFERENCES common.bib(id) ON DELETE restrict ON UPDATE cascade
+-- ) INHERITS (designation.data) ;
 -- CREATE INDEX ON designation.ambiguity (upper(replace(design,' ',''))) ;
 -- CREATE INDEX ON designation.ambiguity (bib) ;
 
-COMMENT ON TABLE designation.ambiguity IS 'List of ambiguous designations' ;
-COMMENT ON COLUMN designation.ambiguity.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN designation.ambiguity.design IS 'Ambiguous designation' ;
-COMMENT ON COLUMN designation.ambiguity.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.ambiguity.modification_time IS 'Timestamp when the record was added to the database' ;
+
+-- COMMENT ON TABLE designation.ambiguity IS 'List of ambiguous designations' ;
+-- COMMENT ON COLUMN designation.ambiguity.pgc IS 'PGC number of the object' ;
+-- COMMENT ON COLUMN designation.ambiguity.design IS 'Ambiguous designation' ;
+-- COMMENT ON COLUMN designation.ambiguity.modification_time IS 'Timestamp when the record was added to the database' ;
 
 
-CREATE VIEW designation.list AS
-SELECT 
-  *
-, tableoid::regclass::text~'(designation\.)?data$'	AS isunique
-FROM designation.data
-;
+-- CREATE VIEW designation.list AS
+-- SELECT 
+--   *
+-- , tableoid::regclass::text~'(designation\.)?data$'	AS isunique
+-- FROM designation.data
+-- ;
 
-COMMENT ON VIEW designation.list IS 'List of designations' ;
-COMMENT ON COLUMN designation.list.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN designation.list.design IS 'Designation' ;
-COMMENT ON COLUMN designation.list.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.list.modification_time IS 'Timestamp when the record was added to the database' ;
-COMMENT ON COLUMN designation.list.isunique IS 'True if designation is unique and False if it is ambiguous' ;
-
-
-
--- Костыль для выбора основного имени
-CREATE VIEW designation.main AS
-SELECT DISTINCT ON (pgc)
-  d.*
-FROM 
-  ONLY designation.data AS d
-  LEFT JOIN common.bib AS b ON (d.bib = b.id)
-ORDER BY 
-  pgc
-, CASE WHEN d.design~'^M ' THEN 1   -- Messier
-       WHEN d.design~'^NGC' THEN 2
-       WHEN d.design~'^IC'  THEN 3
-       WHEN d.design~'^DDO' THEN 4
-       WHEN d.design~'^UGC' THEN 5
-       WHEN d.design~'^PGC' and d.pgc<1000000 THEN 6
-       WHEN b.code IS NOT NULL THEN b.year-1800
-       ELSE b.year
-  END
-;
-
-COMMENT ON VIEW designation.main IS 'List of the principal object names' ;
-COMMENT ON COLUMN designation.main.pgc IS 'PGC number of the object' ;
-COMMENT ON COLUMN designation.main.design IS 'Principal designation' ;
-COMMENT ON COLUMN designation.main.bib IS 'Bibliography reference' ;
-COMMENT ON COLUMN designation.main.modification_time IS 'Timestamp when the record was added to the database' ;
+-- COMMENT ON VIEW designation.list IS 'List of designations' ;
+-- COMMENT ON COLUMN designation.list.pgc IS 'PGC number of the object' ;
+-- COMMENT ON COLUMN designation.list.design IS 'Designation' ;
+-- COMMENT ON COLUMN designation.list.bib IS 'Bibliography reference' ;
+-- COMMENT ON COLUMN designation.list.modification_time IS 'Timestamp when the record was added to the database' ;
+-- COMMENT ON COLUMN designation.list.isunique IS 'True if designation is unique and False if it is ambiguous' ;
 
 
 
--- -----------------------------------------------------------
--- -- Designations must follow the IAU recommendations
--- -- https://cdsweb.u-strasbg.fr/Dic/iau-spec.html
--- -- The designation must be in a form:  Acronym_Sequence_(Specifier)
--- -- were "_" denotes a blank " "
--- 
--- -- Acronym is an unique code that specifies the catalog or collection of sources.
--- CREATE TABLE designation.acronym (
---   id	text	PRIMARY KEY
--- , description	text	NOT NULL
--- ) ;
--- 
--- CREATE TABLE designation.synonym (
---   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
--- , analog	text	NOT NULL	UNIQUE
--- , PRIMARY KEY (acronym,analog)
--- ) ;
--- 
--- CREATE TABLE designation.acronymref (
---   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
--- , bib	integer	NOT NULL	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
--- , PRIMARY KEY (acronym,bib)
--- ) ;
+-- -- Костыль для выбора основного имени
+-- CREATE VIEW designation.main AS
+-- SELECT DISTINCT ON (pgc)
+--   d.*
+-- FROM 
+--   ONLY designation.data AS d
+--   LEFT JOIN common.bib AS b ON (d.bib = b.id)
+-- ORDER BY 
+--   pgc
+-- , CASE WHEN d.design~'^M ' THEN 1   -- Messier
+--        WHEN d.design~'^NGC' THEN 2
+--        WHEN d.design~'^IC'  THEN 3
+--        WHEN d.design~'^DDO' THEN 4
+--        WHEN d.design~'^UGC' THEN 5
+--        WHEN d.design~'^PGC' and d.pgc<1000000 THEN 6
+--        WHEN b.code IS NOT NULL THEN b.year-1800
+--        ELSE b.year
+--   END
+-- ;
+
+-- COMMENT ON VIEW designation.main IS 'List of the principal object names' ;
+-- COMMENT ON COLUMN designation.main.pgc IS 'PGC number of the object' ;
+-- COMMENT ON COLUMN designation.main.design IS 'Principal designation' ;
+-- COMMENT ON COLUMN designation.main.bib IS 'Bibliography reference' ;
+-- COMMENT ON COLUMN designation.main.modification_time IS 'Timestamp when the record was added to the database' ;
+
+
+
+-- -- -----------------------------------------------------------
+-- -- -- Designations must follow the IAU recommendations
+-- -- -- https://cdsweb.u-strasbg.fr/Dic/iau-spec.html
+-- -- -- The designation must be in a form:  Acronym_Sequence_(Specifier)
+-- -- -- were "_" denotes a blank " "
+-- -- 
+-- -- -- Acronym is an unique code that specifies the catalog or collection of sources.
+-- -- CREATE TABLE designation.acronym (
+-- --   id	text	PRIMARY KEY
+-- -- , description	text	NOT NULL
+-- -- ) ;
+-- -- 
+-- -- CREATE TABLE designation.synonym (
+-- --   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
+-- -- , analog	text	NOT NULL	UNIQUE
+-- -- , PRIMARY KEY (acronym,analog)
+-- -- ) ;
+-- -- 
+-- -- CREATE TABLE designation.acronymref (
+-- --   acronym	text	NOT NULL	REFERENCES designation.acronym (id) ON DELETE restrict ON UPDATE cascade
+-- -- , bib	integer	NOT NULL	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
+-- -- , PRIMARY KEY (acronym,bib)
+-- -- ) ;
 
 
 -----------------------------------------------------------
