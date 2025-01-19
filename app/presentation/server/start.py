@@ -24,7 +24,6 @@ from app.presentation.server import config, handlers
 
 def start(
     cfg: config.ServerConfig,
-    authenticator: auth.Authenticator,
     depot: commands.Depot,
     logger: structlog.stdlib.BoundLogger,
 ):
@@ -34,7 +33,7 @@ def start(
     middlewares = [middleware.exception_middleware]
 
     if cfg.auth_enabled:
-        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", authenticator))
+        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", depot.authenticator))
 
     app = web.Application(middlewares=middlewares)
 

@@ -1,47 +1,42 @@
 import structlog
 
-from app import commands
+from app import commands as appcommands
 from app.commands.runserver import config
 from app.data import repositories
-from app.lib import auth, clients
+from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
 from app.presentation import server
 
 
-def start(config_path: str):
-    cfg = config.parse_config(config_path)
+class RunServerCommand(commands.Command):
+    def __init__(self, config_path: str):
+        self.config_path = config_path
 
-    structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.dev.ConsoleRenderer(),
-        ],
-    )
+    def prepare(self):
+        self.cfg = config.parse_config(self.config_path)
 
-    logger: structlog.stdlib.BoundLogger = structlog.get_logger()
+        self.logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
-    pg_storage = postgres.PgStorage(cfg.storage, logger)
-    pg_storage.connect()
+        self.pg_storage = postgres.PgStorage(self.cfg.storage, self.logger)
+        self.pg_storage.connect()
 
-    redis_storage = redis.RedisQueue(cfg.queue, logger)
-    redis_storage.connect()
+        self.redis_storage = redis.RedisQueue(self.cfg.queue, self.logger)
+        self.redis_storage.connect()
 
-    authenticator = auth.PostgresAuthenticator(pg_storage)
-    depot = commands.Depot(
-        common_repo=repositories.CommonRepository(pg_storage, logger),
-        layer0_repo=repositories.Layer0Repository(pg_storage, logger),
-        layer1_repo=repositories.Layer1Repository(pg_storage, logger),
-        layer2_repo=repositories.Layer2Repository(pg_storage, logger),
-        tmp_data_repo=repositories.TmpDataRepositoryImpl(pg_storage),
-        queue_repo=repositories.QueueRepository(redis_storage, cfg.storage, logger),
-        authenticator=authenticator,
-        clients=clients.Clients(cfg.clients.ads_token),
-    )
+        self.depot = appcommands.Depot(
+            common_repo=repositories.CommonRepository(self.pg_storage, self.logger),
+            layer0_repo=repositories.Layer0Repository(self.pg_storage, self.logger),
+            layer1_repo=repositories.Layer1Repository(self.pg_storage, self.logger),
+            layer2_repo=repositories.Layer2Repository(self.pg_storage, self.logger),
+            tmp_data_repo=repositories.TmpDataRepositoryImpl(self.pg_storage),
+            queue_repo=repositories.QueueRepository(self.redis_storage, self.cfg.storage, self.logger),
+            authenticator=auth.PostgresAuthenticator(self.pg_storage),
+            clients=clients.Clients(self.cfg.clients.ads_token),
+        )
 
-    try:
-        server.start(cfg.server, authenticator, depot, logger)
-    except Exception as e:
-        logger.exception(e)
-    finally:
-        redis_storage.disconnect()
-        pg_storage.disconnect()
+    def run(self):
+        server.start(self.cfg.server, self.depot, self.logger)
+
+    def cleanup(self):
+        self.redis_storage.disconnect()
+        self.pg_storage.disconnect()

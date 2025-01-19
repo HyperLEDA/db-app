@@ -4,6 +4,7 @@ import click
 
 import app.commands.generate_spec as generate_spec_cmd
 import app.commands.runserver as runserver_cmd
+from app.lib import commands
 from tests.regression import upload_simple_table
 
 
@@ -21,7 +22,9 @@ def cli():
     help="Path to configuration file",
 )
 def runserver(config: str):
-    runserver_cmd.start(config)
+    commands.run(
+        runserver_cmd.RunServerCommand(config),
+    )
 
 
 @cli.command(short_help="Generate OpenAPI spec and write it to file")
