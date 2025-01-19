@@ -4,29 +4,31 @@ import apispec
 import apispec.exceptions
 import structlog
 import swagger_ui
+from aiohttp import typedefs as httptypes
 from aiohttp import web
 from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
-from app.lib import auth, server
-from app.lib.server import middleware
+from app.lib import server
 from app.presentation.server import config
+
+log = structlog.get_logger()
 
 
 def init_app(
-    cfg: config.ServerConfig,
-    authenticator: auth.Authenticator,
     routes: list[server.Route],
+    *,
+    middlewares: list[httptypes.Middleware] | None = None,
 ) -> web.Application:
-    log = structlog.get_logger()
+    default_middlewares = [
+        server.exception_middleware,
+    ]
+
+    middlewares = middlewares or []
+    middlewares.extend(default_middlewares)
 
     # silence warning from apispec since it is a desired behaviour in this case.
     warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
-
-    middlewares = [middleware.exception_middleware]
-
-    if cfg.auth_enabled:
-        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", authenticator))
 
     app = web.Application(middlewares=middlewares)
 
@@ -80,8 +82,6 @@ def init_app(
 
 
 def run_app(app: web.Application, cfg: config.ServerConfig):
-    log = structlog.get_logger()
-
     log.info(
         "starting server",
         url=f"{cfg.host}:{cfg.port}",
