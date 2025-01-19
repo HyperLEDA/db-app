@@ -35,4 +35,3 @@ def _cleanup(logger: structlog.stdlib.BoundLogger, command: interface.Command):
         command.cleanup()
     except Exception as e:
         logger.error("Error during cleanup", exc_info=e)
-        raise e
