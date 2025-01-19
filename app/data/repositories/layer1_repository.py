@@ -37,8 +37,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         placeholders = ",".join(["%s"] * len(column_names))
         query = f"""
-        INSERT INTO {table} ({', '.join(column_names)}) 
-        VALUES {', '.join(['(' + placeholders + ')'] * len(objects))}
+        INSERT INTO {table} ({", ".join(column_names)}) 
+        VALUES {", ".join(["(" + placeholders + ")"] * len(objects))}
         """
 
         self._storage.exec(query, params=list(itertools.chain.from_iterable(values)))

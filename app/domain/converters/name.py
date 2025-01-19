@@ -1,5 +1,6 @@
 import re
-from typing import Any, Hashable, final
+from collections.abc import Hashable
+from typing import Any, final
 
 from app import entities
 from app.domain.converters import common, errors, interface

@@ -1,4 +1,5 @@
-from typing import Any, Hashable, final
+from collections.abc import Hashable
+from typing import Any, final
 
 from app.domain.converters import errors, interface
 from app.entities.layer0 import ColumnDescription

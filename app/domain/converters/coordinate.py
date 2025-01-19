@@ -1,4 +1,5 @@
-from typing import Any, Hashable, final
+from collections.abc import Hashable
+from typing import Any, final
 
 from astropy import coordinates
 from astropy import units as u

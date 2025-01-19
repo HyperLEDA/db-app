@@ -65,8 +65,7 @@ coverage:
 
 ## Fix code
 
-# alias
-fix: format-ruff lint-ruff
+fix:
 	$(PYTHON) -m ruff format --config=pyproject.toml
 	$(PYTHON) -m ruff check --config=pyproject.toml --fix
 

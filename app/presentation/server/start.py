@@ -3,8 +3,9 @@ import datetime
 import enum
 import json
 import warnings
+from collections.abc import Awaitable
 from functools import wraps
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 import apispec
 import apispec.exceptions
