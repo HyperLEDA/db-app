@@ -30,7 +30,9 @@ def runserver(config: str):
 @cli.command(short_help="Generate OpenAPI spec and write it to file")
 @click.option("-o", "--output", type=str, required=True, help="Where to put resulting JSON")
 def generate_spec(output: str):
-    generate_spec_cmd.generate_spec(output)
+    commands.run(
+        generate_spec_cmd.GenerateSpecCommand(output),
+    )
 
 
 @cli.command(short_help="Run regression tests")
