@@ -9,7 +9,6 @@ SWAGGER_UI_URL = "/api/docs"
 class ServerConfig:
     port: int
     host: str
-    auth_enabled: bool = False
 
 
 class ServerConfigSchema(Schema):

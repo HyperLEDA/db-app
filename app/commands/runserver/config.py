@@ -28,12 +28,14 @@ class Config:
     storage: postgres.PgStorageConfig
     queue: redis.QueueConfig
     clients: ClientsConfig = field(default_factory=ClientsConfig)
+    auth_enabled: bool = False
 
 
 class ConfigSchema(Schema):
     server = fields.Nested(ServerConfigSchema(), required=True)
     storage = fields.Nested(postgres.PgStorageConfigSchema(), required=True)
     queue = fields.Nested(redis.QueueConfigSchema(), required=True)
+    auth_enabled = fields.Bool(required=False)
 
     @post_load
     def make(self, data, **kwargs):

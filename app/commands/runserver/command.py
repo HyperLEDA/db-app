@@ -42,7 +42,7 @@ class RunServerCommand(commands.Command):
             routes.append(handler(depot))
 
         middlewares = []
-        if self.cfg.server.auth_enabled:
+        if self.cfg.auth_enabled:
             middlewares.append(middleware.get_auth_middleware("/api/v1/admin", depot.authenticator))
 
         self.app = server.init_app(routes, middlewares=middlewares)
