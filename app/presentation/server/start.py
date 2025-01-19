@@ -8,10 +8,9 @@ from aiohttp import web
 from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
-from app import commands
 from app.lib import auth, server
 from app.lib.server import middleware
-from app.presentation.server import config, handlers
+from app.presentation.server import config
 
 
 def init_app(
@@ -19,6 +18,8 @@ def init_app(
     authenticator: auth.Authenticator,
     routes: list[server.Route],
 ) -> web.Application:
+    log = structlog.get_logger()
+
     # silence warning from apispec since it is a desired behaviour in this case.
     warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
 
@@ -38,6 +39,11 @@ def init_app(
     spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
 
     for route_description in routes:
+        log.debug(
+            "init handler",
+            method=route_description.method(),
+            path=route_description.path(),
+        )
         route = app.router.add_route(
             route_description.method(),
             route_description.path(),
@@ -73,19 +79,10 @@ def init_app(
     return app
 
 
-def start(
-    cfg: config.ServerConfig,
-    depot: commands.Depot,
-    logger: structlog.stdlib.BoundLogger,
-):
-    routes = []
+def run_app(app: web.Application, cfg: config.ServerConfig):
+    log = structlog.get_logger()
 
-    for handler in handlers.routes:
-        routes.append(handler(depot))
-
-    app = init_app(cfg, depot.authenticator, routes)
-
-    logger.info(
+    log.info(
         "starting server",
         url=f"{cfg.host}:{cfg.port}",
         swagger_ui=f"{cfg.host}:{cfg.port}{config.SWAGGER_UI_URL}",

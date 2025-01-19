@@ -6,6 +6,7 @@ from app.data import repositories
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
 from app.presentation import server
+from app.presentation.server import handlers
 
 
 class RunServerCommand(commands.Command):
@@ -35,7 +36,14 @@ class RunServerCommand(commands.Command):
         )
 
     def run(self):
-        server.start(self.cfg.server, self.depot, self.logger)
+        routes = []
+
+        for handler in handlers.routes:
+            routes.append(handler(self.depot))
+
+        app = server.init_app(self.cfg.server, self.depot.authenticator, routes)
+
+        server.run_app(app, self.cfg.server)
 
     def cleanup(self):
         self.redis_storage.disconnect()

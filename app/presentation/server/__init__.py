@@ -1,8 +1,9 @@
 from app.presentation.server.config import ServerConfig, ServerConfigSchema
-from app.presentation.server.start import start
+from app.presentation.server.start import init_app, run_app
 
 __all__ = [
-    "start",
+    "init_app",
+    "run_app",
     "ServerConfig",
     "ServerConfigSchema",
 ]
