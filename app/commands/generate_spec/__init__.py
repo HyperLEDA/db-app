@@ -1,3 +1,3 @@
-from app.commands.generate_spec.generate_spec import generate_spec
+from app.commands.generate_spec.command import GenerateSpecCommand
 
-__all__ = ["generate_spec"]
+__all__ = ["GenerateSpecCommand"]

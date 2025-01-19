@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from collections.abc import Sequence
 
 from astropy.units import Quantity, Unit
 from pandas import DataFrame, Series

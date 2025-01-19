@@ -40,42 +40,23 @@ build-docs:
 
 ## Testing
 
-test: check test-unit
-
-test-all: check test-unit test-integration
-
-test-extra: mypy
-
-check: check-format check-lint
-
-check-format: dryrun-ruff-format
-
-check-lint: dryrun-ruff-lint
-
-dryrun-ruff-format:
+check:
 	$(PYTHON) -m ruff format --config=pyproject.toml --check
-
-dryrun-ruff-lint:
 	$(PYTHON) -m ruff check --config=pyproject.toml
 
-test-unit: # we use pytest to run unittest test cases
-# first test that environment is installed correctly.
+# we use pytest to run unittest test cases
+test: check
 	$(PYTHON) -m pytest --config-file=pyproject.toml tests/env_test.py
-# now run all the remaining tests
 	$(PYTHON) -m pytest --config-file=pyproject.toml tests/unit
 
-test-integration:
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests/integration
+test-all: check
+	$(PYTHON) -m pytest --config-file=pyproject.toml tests
 
 test-regression:
 	$(PYTHON) main.py regression-tests
 
-mypy: mypy-app mypy-tests
-
-mypy-app:
+mypy:
 	$(PYTHON) -m mypy app --config-file pyproject.toml
-
-mypy-tests:
 	$(PYTHON) -m mypy tests --config-file pyproject.toml
 
 coverage:
@@ -84,20 +65,11 @@ coverage:
 
 ## Fix code
 
-# alias
-fix: fix-lint
-
-fix-unsafe: lint-ruff-unsafe
-
-fix-lint: format-ruff lint-ruff
-
-format-ruff:
+fix:
 	$(PYTHON) -m ruff format --config=pyproject.toml
-
-lint-ruff:
 	$(PYTHON) -m ruff check --config=pyproject.toml --fix
 
-lint-ruff-unsafe:
+fix-unsafe:
 	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
 
 ## Deploy

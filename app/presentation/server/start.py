@@ -3,8 +3,9 @@ import datetime
 import enum
 import json
 import warnings
+from collections.abc import Awaitable
 from functools import wraps
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 import apispec
 import apispec.exceptions
@@ -15,7 +16,6 @@ from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
 from app import commands
-from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
 from app.lib.web import responses
@@ -24,7 +24,6 @@ from app.presentation.server import config, handlers
 
 def start(
     cfg: config.ServerConfig,
-    authenticator: auth.Authenticator,
     depot: commands.Depot,
     logger: structlog.stdlib.BoundLogger,
 ):
@@ -34,7 +33,7 @@ def start(
     middlewares = [middleware.exception_middleware]
 
     if cfg.auth_enabled:
-        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", authenticator))
+        middlewares.append(middleware.get_auth_middleware("/api/v1/admin", depot.authenticator))
 
     app = web.Application(middlewares=middlewares)
 

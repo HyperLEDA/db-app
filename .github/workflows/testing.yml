@@ -8,21 +8,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      - name: Check that code is formatted correctly
+
+      - name: Check that code is formatted correctly and does not contain smells or potential bugs
         run: |
-          make check-format
-      - name: Check the code for smells and potential bugs
+          make check
+
+      - name: Run tests
         run: |
-          make check-lint
-      - name: Run unit tests
-        run: |
-          make test-unit
-      - name: Run integration tests
-        run: |
-          make test-integration
+          make test-all

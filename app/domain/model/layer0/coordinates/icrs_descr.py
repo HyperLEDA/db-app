@@ -1,4 +1,5 @@
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord

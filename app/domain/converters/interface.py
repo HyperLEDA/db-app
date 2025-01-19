@@ -1,5 +1,6 @@
 import abc
-from typing import Any, Hashable
+from collections.abc import Hashable
+from typing import Any
 
 from app import entities
 

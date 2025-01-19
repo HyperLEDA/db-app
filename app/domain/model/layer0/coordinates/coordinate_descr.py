@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Union
 
 from astropy.coordinates import ICRS, SkyCoord
 from pandas import DataFrame
