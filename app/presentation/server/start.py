@@ -15,7 +15,6 @@ from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
 from app import commands
-from app.lib import auth
 from app.lib import server as libserver
 from app.lib.server import middleware
 from app.lib.web import responses
