@@ -39,14 +39,10 @@ class GenerateSpecCommand(commands.Command):
                 route_description.handler,
             )
 
-            if route_description.request_schema.__name__ not in spec.components.schemas:
-                spec.components.schema(
-                    route_description.request_schema.__name__, schema=route_description.request_schema
-                )
-            if route_description.response_schema.__name__ not in spec.components.schemas:
-                spec.components.schema(
-                    route_description.response_schema.__name__, schema=route_description.response_schema
-                )
+            if route_description.request_type.__name__ not in spec.components.schemas:
+                spec.components.schema(route_description.request_type.__name__, schema=route_description.request_type)
+            if route_description.response_type.__name__ not in spec.components.schemas:
+                spec.components.schema(route_description.response_type.__name__, schema=route_description.response_type)
 
             spec.path(route=route)
 

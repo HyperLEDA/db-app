@@ -67,7 +67,7 @@ async def add_data_handler(depot: commands.Depot, r: web.Request) -> responses.A
     return responses.APIOkResponse(actions.add_data(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/table/data",
     add_data_handler,

@@ -104,7 +104,7 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> respons
     return responses.APIOkResponse(result, status=201)
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/table",
     create_table_handler,

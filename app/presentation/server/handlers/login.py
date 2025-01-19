@@ -51,10 +51,10 @@ async def login_handler(depot: commands.Depot, r: web.Request) -> responses.APIO
     return responses.APIOkResponse(actions.login(depot, request))
 
 
-description = common.HandlerDescription(
-    method=common.HTTPMethod.POST,
-    endpoint="/api/v1/login",
-    handler=login_handler,
-    request_schema=LoginRequestSchema,
-    response_schema=LoginResponseSchema,
+description = common.handler_description(
+    common.HTTPMethod.POST,
+    "/api/v1/login",
+    login_handler,
+    LoginRequestSchema,
+    LoginResponseSchema,
 )

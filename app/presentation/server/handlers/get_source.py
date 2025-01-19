@@ -52,7 +52,7 @@ async def get_source_handler(depot: commands.Depot, r: web.Request) -> responses
     return responses.APIOkResponse(actions.get_source(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.GET,
     "/api/v1/source",
     get_source_handler,

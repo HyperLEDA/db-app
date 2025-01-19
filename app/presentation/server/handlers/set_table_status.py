@@ -61,7 +61,7 @@ async def set_table_status_handler(depot: commands.Depot, r: web.Request) -> res
     return responses.APIOkResponse(actions.set_table_status(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/table/status",
     set_table_status_handler,
