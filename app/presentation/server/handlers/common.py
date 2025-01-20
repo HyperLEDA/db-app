@@ -4,7 +4,7 @@ import enum
 import json
 from collections.abc import Awaitable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any, Callable, final
 
 from aiohttp import typedefs as httptypes
 from aiohttp import web
@@ -56,29 +56,35 @@ def handler_description(
     handler: Callable[[commands.Depot, web.Request], Awaitable[responses.APIOkResponse]],
     request_type: type,
     response_type: type,
+    summary: str,
+    description: str,
 ) -> Callable[[commands.Depot], server.Route]:
     def wrapper(depot: commands.Depot) -> server.Route:
-        return HandlerDescription(depot, method, endpoint, handler, request_type, response_type)
+        return HandlerDescription(
+            depot,
+            method,
+            endpoint,
+            handler,
+            request_type,
+            response_type,
+            summary,
+            description,
+        )
 
     return wrapper
 
 
+@dataclasses.dataclass
+@final
 class HandlerDescription(server.Route):
-    def __init__(
-        self,
-        depot: commands.Depot,
-        method: HTTPMethod,
-        endpoint: str,
-        handler: Callable[[commands.Depot, web.Request], responses.APIOkResponse],
-        request_type: type,
-        response_type: type,
-    ) -> None:
-        self.depot = depot
-        self.http_method = method
-        self.endpoint = endpoint
-        self.action = handler
-        self.request_type = request_type
-        self.response_type = response_type
+    depot: commands.Depot
+    http_method: HTTPMethod
+    endpoint: str
+    action: Callable[[commands.Depot, web.Request], responses.APIOkResponse]
+    request_type: type
+    response_type: type
+    summary: str
+    description: str
 
     def request_schema(self) -> type[Schema]:
         return self.request_type
@@ -94,3 +100,9 @@ class HandlerDescription(server.Route):
 
     def handler(self) -> httptypes.Handler:
         return json_wrapper(self.depot, self.action)
+
+    def spec(self) -> dict:
+        return {
+            "summary": self.summary,
+            "description": self.description,
+        }

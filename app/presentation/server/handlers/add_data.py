@@ -35,12 +35,6 @@ class AddDataResponseSchema(Schema):
 
 async def add_data_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Add new raw data to the table
-    description: |
-        Inserts new data to the table.
-
-        Deduplicates the rows based on their contents.
-        If the two rows were identical this method will only insert the last one.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -73,4 +67,10 @@ description = common.handler_description(
     add_data_handler,
     AddDataRequestSchema,
     AddDataResponseSchema,
+    summary="Add new raw data to the table",
+    description="""
+        Inserts new data to the table.
+
+        Deduplicates the rows based on their contents.
+        If the two rows were identical this method will only insert the last one.""",
 )

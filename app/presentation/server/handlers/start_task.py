@@ -27,8 +27,6 @@ class StartTaskResponseSchema(Schema):
 
 async def start_task_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Start processing task
-    description: Starts background task.
     security:
         - TokenAuth: []
     tags: [admin, tasks]
@@ -61,4 +59,6 @@ description = common.handler_description(
     start_task_handler,
     StartTaskRequestSchema,
     StartTaskResponseSchema,
+    summary="Start processing task",
+    description="Starts background task.",
 )

@@ -36,3 +36,9 @@ class Route(abc.ABC):
         """
         Returns handler of the route.
         """
+
+    @abc.abstractmethod
+    def spec(self) -> dict:
+        """
+        Returns OpenAPI spec params of the route
+        """

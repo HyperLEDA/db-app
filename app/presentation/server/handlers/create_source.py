@@ -27,8 +27,6 @@ class CreateSourceResponseSchema(Schema):
 
 async def create_source_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: New source entry
-    description: Creates new source entry in the database for internal communication and unpublished articles.
     security:
         - TokenAuth: []
     tags: [admin, source]
@@ -61,4 +59,6 @@ description = common.handler_description(
     create_source_handler,
     CreateSourceRequestSchema,
     CreateSourceResponseSchema,
+    summary="New source entry",
+    description="Creates new source entry in the database for internal communication and unpublished articles.",
 )

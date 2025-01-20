@@ -28,7 +28,6 @@ class PingResponseSchema(Schema):
 
 async def ping_handler(_: commands.Depot, __: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Test that service is up and running
     tags: [admin]
     responses:
         200:
@@ -48,4 +47,6 @@ description = common.handler_description(
     ping_handler,
     PingRequestSchema,
     PingResponseSchema,
+    summary="Test that service is up and running",
+    description="",
 )

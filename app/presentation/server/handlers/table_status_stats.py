@@ -23,12 +23,6 @@ class TableStatusStatsResponseSchema(Schema):
 
 async def table_status_stats(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Get statistics on table processing
-    description: |
-        Accesses the current status of the processing of a given table.
-        Returns the distribution of objects by processing status.
-
-        If there are no objects with the given status, it will not be present in the response.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -59,4 +53,10 @@ description = common.handler_description(
     table_status_stats,
     TableStatusStatsRequestSchema,
     TableStatusStatsResponseSchema,
+    summary="Get statistics on table processing",
+    description="""
+        Accesses the current status of the processing of a given table.
+        Returns the distribution of objects by processing status.
+
+        If there are no objects with the given status, it will not be present in the response.""",
 )
