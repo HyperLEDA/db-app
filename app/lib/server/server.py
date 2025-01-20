@@ -15,6 +15,41 @@ from app.lib.server import config, routes
 log = structlog.get_logger()
 
 
+def get_router(routes: list[server.Route]) -> tuple[apispec.APISpec, web.UrlDispatcher]:
+    spec = apispec.APISpec(
+        title="HyperLeda API specification",
+        version="1.0.0",
+        openapi_version="3.0.2",
+        plugins=[apimarshmallow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
+    )
+    spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
+
+    router = web.UrlDispatcher()
+
+    for descr in routes:
+        http_routes = web.route(descr.method(), descr.path(), descr.handler()).register(router)
+
+        if len(http_routes) != 1:
+            raise RuntimeError(
+                f"route {descr.method()} {descr.path()} has {len(http_routes)} subroutes for some reason"
+            )
+
+        route = http_routes[0]
+
+        request_schema = descr.request_schema()
+        response_schema = descr.response_schema()
+
+        if request_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(request_schema.__name__, schema=request_schema)
+
+        if response_schema.__name__ not in spec.components.schemas:
+            spec.components.schema(response_schema.__name__, schema=response_schema)
+
+        spec.path(route=route)
+
+    return spec, router
+
+
 class WebServer:
     def __init__(
         self,
@@ -29,41 +64,8 @@ class WebServer:
         middlewares = middlewares or []
         middlewares.extend(default_middlewares)
 
-        # silence warning from apispec since it is a desired behaviour in this case.
-        warnings.filterwarnings("ignore", message="(.*?)has already been added to the spec(.*?)", module="apispec")
-
-        app = web.Application(middlewares=middlewares)
-
-        spec = apispec.APISpec(
-            title="HyperLeda API specification",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[apimarshmallow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
-        )
-        spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
-
-        for route_description in routes:
-            log.debug(
-                "init handler",
-                method=route_description.method(),
-                path=route_description.path(),
-            )
-            route = app.router.add_route(
-                route_description.method(),
-                route_description.path(),
-                route_description.handler(),
-            )
-
-            request_schema = route_description.request_schema()
-            response_schema = route_description.response_schema()
-
-            if request_schema.__name__ not in spec.components.schemas:
-                spec.components.schema(request_schema.__name__, schema=request_schema)
-
-            if response_schema.__name__ not in spec.components.schemas:
-                spec.components.schema(response_schema.__name__, schema=response_schema)
-
-            spec.path(route=route)
+        spec, router = get_router(routes)
+        app = web.Application(middlewares=middlewares, router=router)
 
         swagger_ui.api_doc(
             app,
