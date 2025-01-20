@@ -806,6 +806,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#security-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security schemes
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1497,6 +1506,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#security-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security schemes
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1585,7 +1603,7 @@ unpublished articles.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -1693,7 +1711,7 @@ unpublished articles.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -1794,7 +1812,7 @@ unpublished articles.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
         <tr>
             <td class="parameter-name"><code>task_id</code></td>
@@ -1872,7 +1890,7 @@ of the previously created table without any alterations.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -2066,7 +2084,7 @@ If the two rows were identical this method will only insert the last one.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -2187,7 +2205,7 @@ and cross-identification.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -2286,7 +2304,7 @@ response.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
         <tr>
             <td class="parameter-name"><code>table_id</code></td>
@@ -2355,7 +2373,7 @@ response.</p>
             <td>string</td>
             <td>N/A</td>
             <td>No</td>
-            <td></td>
+            <td>JWT Bearer token</td>
         </tr>
     </tbody>
 </table>
@@ -2368,7 +2386,7 @@ response.</p>
 </span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">    </span><span class="nt">&quot;table_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">    </span><span class="nt">&quot;overrides&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 </span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;edf4facf-45a2-4fc2-bac7-91b1804efccd&quot;</span><span class="p">,</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;df65fe52-7707-47bc-864f-aea45de5d5de&quot;</span><span class="p">,</span>
 </span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">            </span><span class="nt">&quot;pgc&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
 </span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="w">        </span><span class="p">}</span>
 </span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="w">    </span><span class="p">]</span>
@@ -3010,6 +3028,28 @@ response.</p>
             <td><code>processing</code></td>
             <td></td>
         </tr>
+    </tbody>
+</table>
+
+<h2 id="security-schemes">Security schemes<a class="headerlink" href="#security-schemes" title="Permanent link">#</a></h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Scheme</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        <tr>
+            <td>TokenAuth</td>
+            <td>http</td>
+            <td>bearer</td>
+            <td></td>
+        </tr>
+
     </tbody>
 </table>
 
