@@ -7,13 +7,12 @@ from aiohttp import web
 from apispec.ext import marshmallow as apimarshmallow
 from apispec_webframeworks import aiohttp as apiaiohttp
 
-from app.lib import server
-from app.lib.server import config, routes
+from app.lib.web.server import config, logger, middleware, routes
 
-log = structlog.get_logger()
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
-def get_router(routes: list[server.Route]) -> tuple[apispec.APISpec, web.UrlDispatcher]:
+def get_router(routes: list[routes.Route]) -> tuple[apispec.APISpec, web.UrlDispatcher]:
     spec = apispec.APISpec(
         title="HyperLeda API specification",
         version="1.0.0",
@@ -56,13 +55,16 @@ class WebServer:
         middlewares: list[httptypes.Middleware] | None = None,
     ) -> None:
         default_middlewares = [
-            server.exception_middleware,
+            middleware.exception_middleware,
         ]
 
         middlewares = middlewares or []
         middlewares.extend(default_middlewares)
 
         spec, router = get_router(routes)
+
+        log.debug("initialized routes", n=len(routes))
+
         app = web.Application(middlewares=middlewares, router=router)
 
         swagger_ui.api_doc(
@@ -89,4 +91,4 @@ class WebServer:
             swagger_ui=f"{cfg.host}:{cfg.port}{config.SWAGGER_UI_URL}",
         )
 
-        web.run_app(self.app, host=cfg.host, port=cfg.port, access_log_class=server.AccessLogger)
+        web.run_app(self.app, host=cfg.host, port=cfg.port, access_log_class=logger.AccessLogger)

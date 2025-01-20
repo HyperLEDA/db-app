@@ -2,7 +2,8 @@ import json
 import pathlib
 
 from app.commands import get_mock_depot
-from app.lib import commands, server
+from app.lib import commands
+from app.lib.web import server
 from app.presentation.server import handlers
 
 

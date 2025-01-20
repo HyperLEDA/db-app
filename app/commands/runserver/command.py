@@ -4,8 +4,8 @@ from app import commands as appcommands
 from app.commands.runserver import config
 from app.data import repositories
 from app.lib import auth, clients, commands
-from app.lib.server import middleware, server
 from app.lib.storage import postgres, redis
+from app.lib.web import server
 from app.presentation.server import handlers
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -42,7 +42,7 @@ class RunServerCommand(commands.Command):
 
         middlewares = []
         if self.cfg.auth_enabled:
-            middlewares.append(middleware.get_auth_middleware("/api/v1/admin", depot.authenticator))
+            middlewares.append(server.get_auth_middleware("/api/v1/admin", depot.authenticator))
 
         self.app = server.WebServer(routes, middlewares=middlewares)
 

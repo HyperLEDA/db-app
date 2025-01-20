@@ -5,8 +5,8 @@ from pathlib import Path
 import yaml
 from marshmallow import Schema, fields, post_load
 
-from app.lib import server
 from app.lib.storage import postgres, redis
+from app.lib.web import server
 
 
 @dataclass

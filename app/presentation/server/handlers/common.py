@@ -11,8 +11,7 @@ from aiohttp import web
 from marshmallow.schema import Schema
 
 from app import commands
-from app.lib import server
-from app.lib.web import responses
+from app.lib.web import responses, server
 
 
 class HTTPMethod(enum.Enum):
