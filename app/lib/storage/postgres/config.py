@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from marshmallow import Schema, fields, post_load
 
+from app.lib import config
+
 
 @dataclass
 class PgStorageConfig:
@@ -18,10 +20,10 @@ class PgStorageConfig:
 
 class PgStorageConfigSchema(Schema):
     endpoint = fields.Str(required=True)
-    port = fields.Int(required=True)
+    port = config.EnvField("STORAGE_PORT", fields.Int(required=True))
     dbname = fields.Str(required=True)
     user = fields.Str(required=True)
-    password = fields.Str(required=True)
+    password = config.EnvField("STORAGE_PASSWORD", fields.Str(required=True))
 
     @post_load
     def make(self, data, **kwargs):
