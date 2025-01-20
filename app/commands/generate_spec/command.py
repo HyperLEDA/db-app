@@ -1,5 +1,6 @@
 import json
 import pathlib
+from typing import final
 
 from app.commands import get_mock_depot
 from app.lib import commands
@@ -7,6 +8,7 @@ from app.lib.web import server
 from app.presentation.server import handlers
 
 
+@final
 class GenerateSpecCommand(commands.Command):
     def __init__(self, filename: str):
         self.filename = filename
