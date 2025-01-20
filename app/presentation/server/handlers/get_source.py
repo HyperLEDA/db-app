@@ -28,8 +28,6 @@ class GetSourceResponseSchema(Schema):
 
 async def get_source_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Get information about source
-    description: Retrieves information about the source using its id
     tags: [source]
     parameters:
       - in: query
@@ -58,4 +56,6 @@ description = common.handler_description(
     get_source_handler,
     GetSourceRequestSchema,
     GetSourceResponseSchema,
+    summary="Get information about source",
+    description="Retrieves information about the source using its id",
 )

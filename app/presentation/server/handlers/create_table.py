@@ -59,12 +59,6 @@ class CreateTableResponseSchema(Schema):
 
 async def create_table_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Get or create schema for the table.
-    description: |
-        Creates new schema for the table which can later be used to upload data.
-
-        **Important**: If the table with the specified name already exists, does nothing and returns ID
-        of the previously created table without any alterations.
     tags: [admin, table]
     security:
         - TokenAuth: []
@@ -110,4 +104,10 @@ description = common.handler_description(
     create_table_handler,
     CreateTableRequestSchema,
     CreateTableResponseSchema,
+    summary="Get or create schema for the table.",
+    description="""
+        Creates new schema for the table which can later be used to upload data.
+
+        **Important**: If the table with the specified name already exists, does nothing and returns ID
+        of the previously created table without any alterations.""",
 )

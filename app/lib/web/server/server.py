@@ -18,6 +18,7 @@ def get_router(routes: list[routes.Route]) -> tuple[apispec.APISpec, web.UrlDisp
         version="1.0.0",
         openapi_version="3.0.2",
         plugins=[apimarshmallow.MarshmallowPlugin(), apiaiohttp.AiohttpPlugin()],
+        externalDocs={"description": "User documentation", "url": "https://hyperleda.github.io/db-app/"},
     )
     spec.components.security_scheme("TokenAuth", {"type": "http", "scheme": "bearer"})
 
@@ -42,7 +43,7 @@ def get_router(routes: list[routes.Route]) -> tuple[apispec.APISpec, web.UrlDisp
         if response_schema.__name__ not in spec.components.schemas:
             spec.components.schema(response_schema.__name__, schema=response_schema)
 
-        spec.path(route=route)
+        spec.path(route=route, **descr.spec())
 
     return spec, router
 

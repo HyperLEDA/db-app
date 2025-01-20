@@ -25,8 +25,6 @@ class LoginResponseSchema(Schema):
 
 async def login_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Login user with username and password
-    description: Gives user credentials for authentication in handlers
     tags: [authentication]
     requestBody:
         content:
@@ -57,4 +55,6 @@ description = common.handler_description(
     login_handler,
     LoginRequestSchema,
     LoginResponseSchema,
+    summary="Login user with username and password",
+    description="Gives user credentials for authentication in handlers",
 )

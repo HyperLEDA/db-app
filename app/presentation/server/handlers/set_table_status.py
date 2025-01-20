@@ -32,9 +32,6 @@ class SetTableStatusResponseSchema(Schema):
 
 async def set_table_status_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Set status of the table
-    description: |
-        Set status of the table and its objects.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -67,4 +64,6 @@ description = common.handler_description(
     set_table_status_handler,
     SetTableStatusRequestSchema,
     SetTableStatusResponseSchema,
+    summary="Set status of the table",
+    description="Set status of the table and its objects.",
 )

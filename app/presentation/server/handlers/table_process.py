@@ -44,9 +44,6 @@ class TableProcessResponseSchema(Schema):
 
 async def table_process_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Start processing of the table
-    description: |
-        Starts different processing steps on the table: for example, homogenization and cross-identification.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -79,4 +76,6 @@ description = common.handler_description(
     table_process_handler,
     TableProcessRequestSchema,
     TableProcessResponseSchema,
+    summary="Start processing of the table",
+    description="Starts different processing steps on the table: for example, homogenization and cross-identification.",
 )

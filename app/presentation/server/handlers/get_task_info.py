@@ -28,8 +28,6 @@ class GetTaskInfoResponseSchema(Schema):
 
 async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: Get information about the task
-    description: Retrieves information about the task using its id.
     security:
         - TokenAuth: []
     tags: [tasks, admin]
@@ -60,4 +58,6 @@ description = common.handler_description(
     get_task_info_handler,
     GetTaskInfoRequestSchema,
     GetTaskInfoResponseSchema,
+    summary="Get information about the task",
+    description="Retrieves information about the task using its id.",
 )
