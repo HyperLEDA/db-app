@@ -3,7 +3,7 @@ from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands, schema
 from app.domain import actions
-from app.lib.web import responses
+from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
@@ -56,7 +56,7 @@ async def start_task_handler(depot: commands.Depot, r: web.Request) -> responses
 
 
 description = common.handler_description(
-    common.HTTPMethod.POST,
+    server.HTTPMethod.POST,
     "/api/v1/admin/task",
     start_task_handler,
     StartTaskRequestSchema,

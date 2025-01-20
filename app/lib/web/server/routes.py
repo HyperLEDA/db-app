@@ -1,9 +1,25 @@
 import abc
+import enum
+from dataclasses import dataclass
 
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
 import marshmallow
+
+
+class HTTPMethod(enum.Enum):
+    GET = "GET"
+    POST = "POST"
+    # add more if needed
+
+
+@dataclass
+class RouteInfo:
+    method: HTTPMethod
+    endpoint: str
+    request_schema: type[marshmallow.Schema]
+    response_schema: type[marshmallow.Schema]
 
 
 class Route(abc.ABC):

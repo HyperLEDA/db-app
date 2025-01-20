@@ -4,7 +4,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, validate
 from app import commands, schema
 from app.domain import actions
 from app.lib.storage import enums, mapping
-from app.lib.web import responses
+from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
@@ -105,7 +105,7 @@ async def create_table_handler(depot: commands.Depot, r: web.Request) -> respons
 
 
 description = common.handler_description(
-    common.HTTPMethod.POST,
+    server.HTTPMethod.POST,
     "/api/v1/admin/table",
     create_table_handler,
     CreateTableRequestSchema,
