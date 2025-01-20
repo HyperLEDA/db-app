@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from marshmallow import Schema, fields, post_load
 
+from app.lib import config
+
 
 @dataclass
 class ServerConfig:
@@ -11,7 +13,7 @@ class ServerConfig:
 
 
 class ServerConfigSchema(Schema):
-    port = fields.Int(required=True)
+    port = config.EnvField("SERVER_PORT", fields.Int(required=True))
     host = fields.Str(required=True)
     swagger_ui_path = fields.Str(required=False)
 
