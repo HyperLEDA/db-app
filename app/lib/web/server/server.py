@@ -51,6 +51,7 @@ class WebServer:
     def __init__(
         self,
         routes: list[routes.Route],
+        cfg: config.ServerConfig,
         *,
         middlewares: list[httptypes.Middleware] | None = None,
     ) -> None:
@@ -70,7 +71,7 @@ class WebServer:
         swagger_ui.api_doc(
             app,
             config=spec.to_dict(),
-            url_prefix=config.SWAGGER_UI_URL,
+            url_prefix=cfg.swagger_ui_path,
             title="HyperLeda API",
             parameters={
                 "tryItOutEnabled": "true",
@@ -83,12 +84,18 @@ class WebServer:
         )
 
         self.app = app
+        self.config = cfg
 
-    def run(self, cfg: config.ServerConfig):
+    def run(self):
         log.info(
             "starting server",
-            url=f"{cfg.host}:{cfg.port}",
-            swagger_ui=f"{cfg.host}:{cfg.port}{config.SWAGGER_UI_URL}",
+            url=f"{self.config.host}:{self.config.port}",
+            swagger_ui=f"{self.config.host}:{self.config.port}{self.config.swagger_ui_path}",
         )
 
-        web.run_app(self.app, host=cfg.host, port=cfg.port, access_log_class=logger.AccessLogger)
+        web.run_app(
+            self.app,
+            host=self.config.host,
+            port=self.config.port,
+            access_log_class=logger.AccessLogger,
+        )

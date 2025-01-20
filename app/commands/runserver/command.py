@@ -44,10 +44,10 @@ class RunServerCommand(commands.Command):
         if self.cfg.auth_enabled:
             middlewares.append(server.get_auth_middleware("/api/v1/admin", depot.authenticator))
 
-        self.app = server.WebServer(routes, middlewares=middlewares)
+        self.app = server.WebServer(routes, self.cfg.server, middlewares=middlewares)
 
     def run(self):
-        self.app.run(self.cfg.server)
+        self.app.run()
 
     def cleanup(self):
         self.redis_storage.disconnect()
