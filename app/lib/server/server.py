@@ -1,5 +1,3 @@
-import warnings
-
 import apispec
 import apispec.exceptions
 import structlog
