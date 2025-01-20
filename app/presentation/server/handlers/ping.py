@@ -4,7 +4,7 @@ from aiohttp import web
 from marshmallow import Schema, fields
 
 from app import commands
-from app.lib.web import responses
+from app.lib.web import responses, server
 from app.presentation.server.handlers import common
 
 
@@ -43,7 +43,7 @@ async def ping_handler(_: commands.Depot, __: web.Request) -> responses.APIOkRes
 
 
 description = common.handler_description(
-    common.HTTPMethod.GET,
+    server.HTTPMethod.GET,
     "/ping",
     ping_handler,
     PingRequestSchema,

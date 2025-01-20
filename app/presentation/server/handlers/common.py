@@ -14,12 +14,6 @@ from app import commands
 from app.lib.web import responses, server
 
 
-class HTTPMethod(enum.Enum):
-    GET = "GET"
-    POST = "POST"
-    # add more if needed
-
-
 def datetime_handler(obj: Any):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
@@ -51,46 +45,35 @@ def json_wrapper(
 
 
 def handler_description(
-    method: HTTPMethod,
+    method: server.HTTPMethod,
     endpoint: str,
     handler: Callable[[commands.Depot, web.Request], Awaitable[responses.APIOkResponse]],
     request_type: type,
     response_type: type,
 ) -> Callable[[commands.Depot], server.Route]:
     def wrapper(depot: commands.Depot) -> server.Route:
-        return HandlerDescription(depot, method, endpoint, handler, request_type, response_type)
+        return HandlerDescription(depot, handler, server.RouteInfo(method, endpoint, request_type, response_type))
 
     return wrapper
 
 
+@dataclasses.dataclass
 class HandlerDescription(server.Route):
-    def __init__(
-        self,
-        depot: commands.Depot,
-        method: HTTPMethod,
-        endpoint: str,
-        handler: Callable[[commands.Depot, web.Request], responses.APIOkResponse],
-        request_type: type,
-        response_type: type,
-    ) -> None:
-        self.depot = depot
-        self.http_method = method
-        self.endpoint = endpoint
-        self.action = handler
-        self.request_type = request_type
-        self.response_type = response_type
+    depot: commands.Depot
+    action: Callable[[commands.Depot, web.Request], responses.APIOkResponse]
+    route_info: server.RouteInfo
 
     def request_schema(self) -> type[Schema]:
-        return self.request_type
+        return self.route_info.request_schema
 
     def response_schema(self) -> type[Schema]:
-        return self.response_type
+        return self.route_info.response_schema
 
     def method(self) -> str:
-        return self.http_method.value
+        return self.route_info.method.value
 
     def path(self) -> str:
-        return self.endpoint
+        return self.route_info.endpoint
 
     def handler(self) -> httptypes.Handler:
         return json_wrapper(self.depot, self.action)

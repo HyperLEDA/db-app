@@ -3,7 +3,7 @@ from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import commands, schema
 from app.domain import actions
-from app.lib.web import responses
+from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
 from app.presentation.server.handlers import common
 
@@ -55,7 +55,7 @@ async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> respon
 
 
 description = common.handler_description(
-    common.HTTPMethod.GET,
+    server.HTTPMethod.GET,
     "/api/v1/admin/task",
     get_task_info_handler,
     GetTaskInfoRequestSchema,
