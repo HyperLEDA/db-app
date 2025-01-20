@@ -6,7 +6,7 @@ import yaml
 from marshmallow import Schema, fields, post_load
 
 from app.lib.storage import postgres, redis
-from app.presentation.server import ServerConfig, ServerConfigSchema
+from app.lib.web import server
 
 
 @dataclass
@@ -24,16 +24,18 @@ class ClientsConfigSchema(Schema):
 
 @dataclass
 class Config:
-    server: ServerConfig
+    server: server.ServerConfig
     storage: postgres.PgStorageConfig
     queue: redis.QueueConfig
     clients: ClientsConfig = field(default_factory=ClientsConfig)
+    auth_enabled: bool = False
 
 
 class ConfigSchema(Schema):
-    server = fields.Nested(ServerConfigSchema(), required=True)
+    server = fields.Nested(server.ServerConfigSchema(), required=True)
     storage = fields.Nested(postgres.PgStorageConfigSchema(), required=True)
     queue = fields.Nested(redis.QueueConfigSchema(), required=True)
+    auth_enabled = fields.Bool(required=False)
 
     @post_load
     def make(self, data, **kwargs):

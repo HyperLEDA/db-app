@@ -55,7 +55,7 @@ async def create_source_handler(depot: commands.Depot, r: web.Request) -> respon
     return responses.APIOkResponse(actions.create_source(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/source",
     create_source_handler,

@@ -54,7 +54,7 @@ async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> respon
     return responses.APIOkResponse(actions.get_task_info(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.GET,
     "/api/v1/admin/task",
     get_task_info_handler,

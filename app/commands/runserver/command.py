@@ -5,7 +5,10 @@ from app.commands.runserver import config
 from app.data import repositories
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
-from app.presentation import server
+from app.lib.web import server
+from app.presentation.server import handlers
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class RunServerCommand(commands.Command):
@@ -15,27 +18,36 @@ class RunServerCommand(commands.Command):
     def prepare(self):
         self.cfg = config.parse_config(self.config_path)
 
-        self.logger: structlog.stdlib.BoundLogger = structlog.get_logger()
-
-        self.pg_storage = postgres.PgStorage(self.cfg.storage, self.logger)
+        self.pg_storage = postgres.PgStorage(self.cfg.storage, log)
         self.pg_storage.connect()
 
-        self.redis_storage = redis.RedisQueue(self.cfg.queue, self.logger)
+        self.redis_storage = redis.RedisQueue(self.cfg.queue, log)
         self.redis_storage.connect()
 
-        self.depot = appcommands.Depot(
-            common_repo=repositories.CommonRepository(self.pg_storage, self.logger),
-            layer0_repo=repositories.Layer0Repository(self.pg_storage, self.logger),
-            layer1_repo=repositories.Layer1Repository(self.pg_storage, self.logger),
-            layer2_repo=repositories.Layer2Repository(self.pg_storage, self.logger),
+        depot = appcommands.Depot(
+            common_repo=repositories.CommonRepository(self.pg_storage, log),
+            layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
+            layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
+            layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
             tmp_data_repo=repositories.TmpDataRepositoryImpl(self.pg_storage),
-            queue_repo=repositories.QueueRepository(self.redis_storage, self.cfg.storage, self.logger),
+            queue_repo=repositories.QueueRepository(self.redis_storage, self.cfg.storage, log),
             authenticator=auth.PostgresAuthenticator(self.pg_storage),
             clients=clients.Clients(self.cfg.clients.ads_token),
         )
 
+        routes = []
+
+        for handler in handlers.routes:
+            routes.append(handler(depot))
+
+        middlewares = []
+        if self.cfg.auth_enabled:
+            middlewares.append(server.get_auth_middleware("/api/v1/admin", depot.authenticator))
+
+        self.app = server.WebServer(routes, self.cfg.server, middlewares=middlewares)
+
     def run(self):
-        server.start(self.cfg.server, self.depot, self.logger)
+        self.app.run()
 
     def cleanup(self):
         self.redis_storage.disconnect()

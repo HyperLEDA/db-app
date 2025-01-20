@@ -42,7 +42,7 @@ async def ping_handler(_: commands.Depot, __: web.Request) -> responses.APIOkRes
     return responses.APIOkResponse(PingResponse())
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.GET,
     "/ping",
     ping_handler,

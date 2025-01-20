@@ -53,7 +53,7 @@ async def table_status_stats(depot: commands.Depot, r: web.Request) -> responses
     return responses.APIOkResponse(actions.table_status_stats(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.GET,
     "/api/v1/table/status/stats",
     table_status_stats,

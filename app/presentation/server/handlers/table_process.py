@@ -73,7 +73,7 @@ async def table_process_handler(depot: commands.Depot, r: web.Request) -> respon
     return responses.APIOkResponse(actions.table_process(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/table/process",
     table_process_handler,

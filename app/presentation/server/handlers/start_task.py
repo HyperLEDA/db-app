@@ -55,7 +55,7 @@ async def start_task_handler(depot: commands.Depot, r: web.Request) -> responses
     return responses.APIOkResponse(actions.start_task(depot, request))
 
 
-description = common.HandlerDescription(
+description = common.handler_description(
     common.HTTPMethod.POST,
     "/api/v1/admin/task",
     start_task_handler,
