@@ -17,6 +17,9 @@ install:
 runserver:
 	$(PYTHON) main.py runserver -c configs/dev/config.yaml
 
+rundataapi:
+	$(PYTHON) main.py dataapi -c configs/dev/dataapi.yaml
+
 runworker:
 	rq worker default
 
