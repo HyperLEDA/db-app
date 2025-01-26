@@ -3,7 +3,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app import schema
 from app.commands.adminapi import depot
-from app.domain import actions
+from app.domain import adminapi
 from app.lib.storage import enums, mapping
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
@@ -97,7 +97,7 @@ async def create_table_handler(dpt: depot.Depot, r: web.Request) -> responses.AP
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    result, created = actions.create_table(dpt, request)
+    result, created = adminapi.create_table(dpt, request)
 
     if created:
         return responses.APIOkResponse(result)

@@ -1,6 +1,6 @@
 import unittest
 
-from app.domain.actions.create_source import construct_code
+from app.domain.adminapi.create_source import construct_code
 
 
 class ConstructCodeTest(unittest.TestCase):

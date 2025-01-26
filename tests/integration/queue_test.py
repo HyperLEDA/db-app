@@ -7,7 +7,7 @@ import structlog
 from app import schema
 from app.commands.adminapi import depot
 from app.data import repositories
-from app.domain import actions
+from app.domain import adminapi
 from app.lib import testing
 
 
@@ -35,8 +35,8 @@ class QueueTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_task_run_no_worker(self):
-        response = actions.start_task(self.depot, schema.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
-        info = actions.get_task_info(self.depot, schema.GetTaskInfoRequest(response.id))
+        response = adminapi.start_task(self.depot, schema.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
+        info = adminapi.get_task_info(self.depot, schema.GetTaskInfoRequest(response.id))
 
         self.assertEqual(info.id, response.id)
         self.assertEqual(info.status, "new")
@@ -46,15 +46,15 @@ class QueueTest(unittest.TestCase):
 
     def test_task_run_nonexistent_task(self):
         with self.assertRaises(Exception):
-            actions.start_task(self.depot, schema.StartTaskRequest("absolutely_real_task", {}))
+            adminapi.start_task(self.depot, schema.StartTaskRequest("absolutely_real_task", {}))
 
     def test_task_run_success(self):
-        response = actions.start_task(self.depot, schema.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
+        response = adminapi.start_task(self.depot, schema.StartTaskRequest("echo", {"sleep_time_seconds": 0.2}))
 
         worker = rq.Worker("test_queue", connection=self.redis_queue.get_storage().get_connection())
         worker.work(burst=True)
 
-        info = actions.get_task_info(self.depot, schema.GetTaskInfoRequest(response.id))
+        info = adminapi.get_task_info(self.depot, schema.GetTaskInfoRequest(response.id))
         self.assertEqual(info.id, response.id)
         self.assertEqual(info.status, "done")
         self.assertEqual(info.task_name, "echo")

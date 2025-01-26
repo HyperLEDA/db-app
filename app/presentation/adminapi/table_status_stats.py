@@ -3,7 +3,7 @@ from marshmallow import Schema, ValidationError, fields, post_load
 
 from app import schema
 from app.commands.adminapi import depot
-from app.domain import actions
+from app.domain import adminapi
 from app.lib.storage import enums
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
@@ -51,7 +51,7 @@ async def table_status_stats(dpt: depot.Depot, r: web.Request) -> responses.APIO
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.table_status_stats(dpt, request))
+    return responses.APIOkResponse(adminapi.table_status_stats(dpt, request))
 
 
 description = common.handler_description(

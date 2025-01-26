@@ -9,7 +9,7 @@ from astropy.coordinates import ICRS
 from app import entities, schema
 from app.commands.adminapi import depot
 from app.data import repositories
-from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
+from app.domain.adminapi.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
 from app.lib import testing

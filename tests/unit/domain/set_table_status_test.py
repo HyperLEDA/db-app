@@ -7,7 +7,7 @@ from astropy.coordinates import ICRS
 
 from app import entities, schema
 from app.commands.adminapi import depot
-from app.domain.actions.set_table_status import assign_pgc, set_table_status
+from app.domain.adminapi.set_table_status import assign_pgc, set_table_status
 from app.lib import testing
 from app.lib.storage import enums
 

@@ -2,7 +2,7 @@ import unittest
 
 from app import schema
 from app.commands.adminapi import depot
-from app.domain import actions
+from app.domain import adminapi
 
 
 class AddDataTest(unittest.TestCase):
@@ -24,7 +24,7 @@ class AddDataTest(unittest.TestCase):
             ],
         )
 
-        _ = actions.add_data(self.depot, request)
+        _ = adminapi.add_data(self.depot, request)
 
         request = self.depot.layer0_repo.insert_raw_data.call_args
 
@@ -50,7 +50,7 @@ class AddDataTest(unittest.TestCase):
             ],
         )
 
-        _ = actions.add_data(self.depot, request)
+        _ = adminapi.add_data(self.depot, request)
 
         request = self.depot.layer0_repo.insert_raw_data.call_args
 

@@ -8,7 +8,7 @@ from pandas import DataFrame
 from app import schema
 from app.commands.adminapi import depot
 from app.data import repositories
-from app.domain import actions
+from app.domain import adminapi
 from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
 from app.lib import testing
 from app.lib.storage import enums
@@ -40,7 +40,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = actions.create_table(
+        table_resp, _ = adminapi.create_table(
             self.depot,
             schema.CreateTableRequest(
                 "test_table",
@@ -55,7 +55,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        actions.add_data(
+        adminapi.add_data(
             self.depot,
             schema.AddDataRequest(
                 table_id=table_resp.id,
@@ -84,7 +84,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = actions.create_table(
+        table_resp, _ = adminapi.create_table(
             self.depot,
             schema.CreateTableRequest(
                 "test_table",
@@ -99,7 +99,7 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        actions.add_data(
+        adminapi.add_data(
             self.depot,
             schema.AddDataRequest(
                 table_resp.id,
@@ -126,7 +126,7 @@ class RawDataTableTest(unittest.TestCase):
         )
 
         with self.assertRaises(psycopg.errors.DuplicateColumn):
-            _ = actions.create_table(
+            _ = adminapi.create_table(
                 self.depot,
                 schema.CreateTableRequest(
                     "test_table",
@@ -156,7 +156,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = actions.create_table(
+        table_resp, _ = adminapi.create_table(
             self.depot,
             schema.CreateTableRequest(
                 "test_table",
@@ -172,7 +172,7 @@ class RawDataTableTest(unittest.TestCase):
         )
 
         with self.assertRaises(psycopg.errors.UndefinedColumn):
-            actions.add_data(
+            adminapi.add_data(
                 self.depot,
                 schema.AddDataRequest(
                     table_resp.id,
