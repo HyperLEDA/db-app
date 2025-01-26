@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import bcrypt
@@ -39,7 +39,7 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         testing.returns(
             self.mock_storage.query_one,
             {
-                "expiry_time": datetime.now(timezone.utc) + timedelta(days=1),
+                "expiry_time": datetime.now(UTC) + timedelta(days=1),
                 "active": True,
                 "user_id": 1,
                 "role": auth.user.Role.ADMIN,

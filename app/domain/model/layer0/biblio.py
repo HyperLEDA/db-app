@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -13,8 +12,8 @@ class Biblio:
         year: Publish year
     """
 
-    id: Optional[int]
-    ref_str: Optional[str]
+    id: int | None
+    ref_str: str | None
     authors: list[str]
     year: int
     title: str

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from astropy.coordinates import SkyCoord
 
@@ -23,10 +22,10 @@ class Layer1Model:
         dataset: Describes where data came from, measurements specifics
     """
 
-    pgc: Optional[int]
+    pgc: int | None
     source_id: int
     processed: bool
-    coordinates: Optional[SkyCoord]
-    name: Optional[str]
+    coordinates: SkyCoord | None
+    name: str | None
     measurements: list[Layer1Value]
-    dataset: Optional[Dataset]
+    dataset: Dataset | None

@@ -78,6 +78,7 @@ select = [
 ]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 addopts = "-W ignore::DeprecationWarning"
 testpaths = ["tests"]
 
@@ -96,3 +97,8 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "astroquery.*"
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+]

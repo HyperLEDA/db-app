@@ -1,7 +1,7 @@
 import timeit
 import tracemalloc
 import unittest
-from typing import Callable
+from collections.abc import Callable
 from uuid import uuid4
 
 import astropy.units as u

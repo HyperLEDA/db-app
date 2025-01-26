@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import replace
-from typing import Callable, Optional
 
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
@@ -24,7 +24,7 @@ class Transaction01UseCase:
         self._transformation_use_case: TransformationO1UseCase = transformation_use_case
 
     async def invoke(
-        self, data: Layer0Model, on_progress: Optional[Callable[[TransactionO1Sage], None]] = None
+        self, data: Layer0Model, on_progress: Callable[[TransactionO1Sage], None] | None = None
     ) -> tuple[Layer0Model, list[Layer1Model], list[Transformation01Fail]]:
         """
         :param data: Layer 0 data to be transformed
@@ -41,7 +41,7 @@ class Transaction01UseCase:
             return await self._perform_transaction(data, on_progress)
 
     async def _perform_transaction(
-        self, data: Layer0Model, on_progress: Optional[Callable[[TransactionO1Sage], None]]
+        self, data: Layer0Model, on_progress: Callable[[TransactionO1Sage], None] | None
     ) -> tuple[Layer0Model, list[Layer1Model], list[Transformation01Fail]]:
         if on_progress is not None:
             models, fails = await self._transformation_use_case.invoke(

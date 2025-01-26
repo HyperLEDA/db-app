@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from app import entities
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
@@ -52,7 +52,7 @@ class TransformationO1UseCase:
         self,
         data: Layer0Model,
         user_param: CrossIdentificationUserParam | None = None,
-        on_progress: Optional[Callable[[Transformation01Stage], None]] = None,
+        on_progress: Callable[[Transformation01Stage], None] | None = None,
     ) -> tuple[list[Layer1Model], list[Transformation01Fail]]:
         """
         :param data: Layer 0 data to be transformed
@@ -88,7 +88,7 @@ class TransformationO1UseCase:
 
         # cross identification
         identification_params = []
-        for coordinate, name in zip(coordinates, names):
+        for coordinate, name in zip(coordinates, names, strict=False):
             if isinstance(coordinate, BaseException):
                 identification_params.append(coordinate)
             elif isinstance(name, BaseException):

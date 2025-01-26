@@ -21,7 +21,7 @@ class ICRSConverter(interface.QuantityConverter):
         ra_column = common.get_main_column(columns, "pos.eq.ra")
         dec_column = common.get_main_column(columns, "pos.eq.dec")
 
-        for name, column in zip(["RA", "dec"], [ra_column, dec_column]):
+        for name, column in zip(["RA", "dec"], [ra_column, dec_column], strict=False):
             if column.unit is None:
                 raise errors.ConverterError(f"Column '{column.name}' (for {name}) has no units")
             try:

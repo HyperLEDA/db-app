@@ -13,10 +13,10 @@ install:
 	uv init
 
 runserver:
-	$(PYTHON) main.py runserver -c configs/dev/config.yaml
+	uv run main.py runserver -c configs/dev/config.yaml
 
 rundataapi:
-	$(PYTHON) main.py dataapi -c configs/dev/dataapi.yaml
+	uv run main.py dataapi -c configs/dev/dataapi.yaml
 
 runworker:
 	rq worker default
@@ -54,36 +54,36 @@ build-docs:
 ## Testing
 
 check:
-	$(PYTHON) -m ruff format --config=pyproject.toml --check
-	$(PYTHON) -m ruff check --config=pyproject.toml
+	uvx ruff format --config=pyproject.toml --check
+	uvx ruff check --config=pyproject.toml
 
-# we use pytest to run unittest test cases
+# pytest is used to run unittest test cases
 test: check
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests/env_test.py
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests/unit
+	uv run pytest --config-file=pyproject.toml tests/env_test.py
+	uv run pytest --config-file=pyproject.toml tests/unit
 
 test-all: check
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests
+	uv run pytest --config-file=pyproject.toml tests
 
 test-regression:
-	$(PYTHON) main.py regression-tests
+	uv run main.py regression-tests
 
 mypy:
-	$(PYTHON) -m mypy app --config-file pyproject.toml
-	$(PYTHON) -m mypy tests --config-file pyproject.toml
+	uvx mypy app --config-file pyproject.toml
+	uvx mypy tests --config-file pyproject.toml
 
 coverage:
-	$(PYTHON) -m coverage run -m unittest discover -s tests -p "*_test.py" -v
-	$(PYTHON) -m coverage html
+	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
+	uvx coverage html
 
 ## Fix code
 
 fix:
-	$(PYTHON) -m ruff format --config=pyproject.toml
-	$(PYTHON) -m ruff check --config=pyproject.toml --fix
+	uvx ruff format --config=pyproject.toml
+	uvx ruff check --config=pyproject.toml --fix
 
 fix-unsafe:
-	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
+	uvx ruff check --config=pyproject.toml --unsafe-fixes --fix
 
 ## Deploy
 

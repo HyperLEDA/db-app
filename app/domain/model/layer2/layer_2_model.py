@@ -1,6 +1,5 @@
 import datetime
 from dataclasses import dataclass
-from typing import Optional
 
 from astropy.coordinates import ICRS, Angle
 
@@ -22,7 +21,7 @@ class Layer2Model:
     pgc: int
     coordinates: ICRS
     names: list[str]
-    common_name: Optional[str]
+    common_name: str | None
     err_ra: Angle
     err_dec: Angle
     modified: datetime.datetime
