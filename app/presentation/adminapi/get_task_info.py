@@ -1,11 +1,12 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class GetTaskInfoRequestSchema(Schema):
@@ -26,7 +27,7 @@ class GetTaskInfoResponseSchema(Schema):
     message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")
 
 
-async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def get_task_info_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get information about the task
     description: Retrieves information about the task using its id.
@@ -51,7 +52,7 @@ async def get_task_info_handler(depot: commands.Depot, r: web.Request) -> respon
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.get_task_info(depot, request))
+    return responses.APIOkResponse(actions.get_task_info(dpt, request))
 
 
 description = common.handler_description(

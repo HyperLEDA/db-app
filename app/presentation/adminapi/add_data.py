@@ -1,11 +1,12 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class AddDataRequestSchema(Schema):
@@ -33,14 +34,14 @@ class AddDataResponseSchema(Schema):
     pass
 
 
-async def add_data_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def add_data_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Add new raw data to the table
     description: |
         Inserts new data to the table.
 
-        Deduplicates the rows based on their contents.
-        If the two rows were identical this method will only insert the last one.
+        Deduplicates rows based on their contents.
+        If two rows were identical this method will only insert the last one.
     security:
         - TokenAuth: []
     tags: [admin, table]
@@ -64,7 +65,7 @@ async def add_data_handler(depot: commands.Depot, r: web.Request) -> responses.A
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.add_data(depot, request))
+    return responses.APIOkResponse(actions.add_data(dpt, request))
 
 
 description = common.handler_description(

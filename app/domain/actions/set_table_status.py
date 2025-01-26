@@ -1,9 +1,10 @@
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import model, repositories
 from app.lib.storage import enums
 
 
-def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> schema.SetTableStatusResponse:
+def set_table_status(dpt: depot.Depot, r: schema.SetTableStatusRequest) -> schema.SetTableStatusResponse:
     # TODO:
     # - Update moved object statuses to processed
     overrides = {}
@@ -14,20 +15,20 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
     offset = 0
 
     while True:
-        objects = depot.layer0_repo.get_objects(r.batch_size, offset)
+        objects = dpt.layer0_repo.get_objects(r.batch_size, offset)
 
         for i, obj in enumerate(objects):
             if obj.object_id in overrides:
                 objects[i] = apply_override(objects[i], overrides[obj.object_id])
 
-        with depot.common_repo.with_tx():
-            objects_to_move = assign_pgc(depot.common_repo, objects)
+        with dpt.common_repo.with_tx():
+            objects_to_move = assign_pgc(dpt.common_repo, objects)
 
             catalog_objects = []
             for obj in objects_to_move:
                 catalog_objects.extend(model.get_catalog_object(obj))
 
-            depot.layer1_repo.save_data(catalog_objects)
+            dpt.layer1_repo.save_data(catalog_objects)
 
         if len(objects) < r.batch_size:
             break

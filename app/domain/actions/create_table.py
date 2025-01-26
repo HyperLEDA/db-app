@@ -5,7 +5,8 @@ import regex
 from astropy import units
 from astroquery import nasa_ads as ads
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain import converters
 from app.lib.storage import enums, mapping
@@ -18,10 +19,10 @@ FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 
 
 def create_table(
-    depot: commands.Depot,
+    dpt: depot.Depot,
     r: schema.CreateTableRequest,
 ) -> tuple[schema.CreateTableResponse, bool]:
-    source_id = get_source_id(depot.common_repo, depot.clients.ads, r.bibcode)
+    source_id = get_source_id(dpt.common_repo, dpt.clients.ads, r.bibcode)
 
     r.table_name = sanitize_name(r.table_name)
 
@@ -32,7 +33,7 @@ def create_table(
     columns = domain_descriptions_to_data(r.columns)
     validate_columns(columns)
 
-    table_resp = depot.layer0_repo.create_table(
+    table_resp = dpt.layer0_repo.create_table(
         entities.Layer0Creation(
             table_name=r.table_name,
             column_descriptions=columns,

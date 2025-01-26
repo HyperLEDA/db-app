@@ -1,5 +1,6 @@
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 
 
-def table_status_stats(depot: commands.Depot, r: schema.TableStatusStatsRequest) -> schema.TableStatusStatsResponse:
-    return schema.TableStatusStatsResponse(processing=depot.layer0_repo.get_object_statuses(r.table_id))
+def table_status_stats(dpt: depot.Depot, r: schema.TableStatusStatsRequest) -> schema.TableStatusStatsResponse:
+    return schema.TableStatusStatsResponse(processing=dpt.layer0_repo.get_object_statuses(r.table_id))

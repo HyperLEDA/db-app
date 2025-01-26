@@ -4,7 +4,8 @@ from concurrent import futures
 import rq
 import structlog
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain import actions
 from app.lib import testing
@@ -22,7 +23,7 @@ class QueueTest(unittest.TestCase):
 
         logger = structlog.get_logger()
 
-        cls.depot = commands.get_mock_depot()
+        cls.depot = depot.get_mock_depot()
         cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), logger)
         cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), logger)
         cls.depot.queue_repo = repositories.QueueRepository(

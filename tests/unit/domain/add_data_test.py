@@ -1,12 +1,13 @@
 import unittest
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 
 
 class AddDataTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     def test_add_data(self):
         request = schema.AddDataRequest(

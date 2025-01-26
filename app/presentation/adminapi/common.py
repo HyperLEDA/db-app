@@ -10,7 +10,7 @@ from aiohttp import typedefs as httptypes
 from aiohttp import web
 from marshmallow.schema import Schema
 
-from app import commands
+from app.commands.adminapi import depot
 from app.lib.web import responses, server
 
 
@@ -29,11 +29,11 @@ def custom_dumps(obj):
 
 
 def json_wrapper(
-    depot: commands.Depot, func: Callable[[commands.Depot, web.Request], responses.APIOkResponse]
+    d: depot.Depot, func: Callable[[depot.Depot, web.Request], responses.APIOkResponse]
 ) -> Callable[[web.Request], Awaitable[web.Response]]:
     @wraps(func)
     async def inner(request: web.Request) -> web.Response:
-        response = await func(depot, request)
+        response = await func(d, request)
 
         return web.json_response(
             {"data": dataclasses.asdict(response.data)},
@@ -47,11 +47,11 @@ def json_wrapper(
 def handler_description(
     method: server.HTTPMethod,
     endpoint: str,
-    handler: Callable[[commands.Depot, web.Request], Awaitable[responses.APIOkResponse]],
+    handler: Callable[[depot.Depot, web.Request], Awaitable[responses.APIOkResponse]],
     request_type: type,
     response_type: type,
-) -> Callable[[commands.Depot], server.Route]:
-    def wrapper(depot: commands.Depot) -> server.Route:
+) -> Callable[[depot.Depot], server.Route]:
+    def wrapper(depot: depot.Depot) -> server.Route:
         return HandlerDescription(depot, handler, server.RouteInfo(method, endpoint, request_type, response_type))
 
     return wrapper
@@ -59,8 +59,8 @@ def handler_description(
 
 @dataclasses.dataclass
 class HandlerDescription(server.Route):
-    depot: commands.Depot
-    action: Callable[[commands.Depot, web.Request], responses.APIOkResponse]
+    d: depot.Depot
+    action: Callable[[depot.Depot, web.Request], responses.APIOkResponse]
     route_info: server.RouteInfo
 
     def request_schema(self) -> type[Schema]:
@@ -76,4 +76,4 @@ class HandlerDescription(server.Route):
         return self.route_info.endpoint
 
     def handler(self) -> httptypes.Handler:
-        return json_wrapper(self.depot, self.action)
+        return json_wrapper(self.d, self.action)

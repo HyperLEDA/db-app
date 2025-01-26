@@ -4,17 +4,18 @@ import uuid
 
 import pandas
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import repositories
 
 
-def add_data(depot: commands.Depot, r: schema.AddDataRequest) -> schema.AddDataResponse:
+def add_data(dpt: depot.Depot, r: schema.AddDataRequest) -> schema.AddDataResponse:
     data_df = pandas.DataFrame.from_records(r.data)
     data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_compute_hash, axis=1)
     data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
 
-    with depot.layer0_repo.with_tx():
-        depot.layer0_repo.insert_raw_data(
+    with dpt.layer0_repo.with_tx():
+        dpt.layer0_repo.insert_raw_data(
             entities.Layer0RawData(
                 table_id=r.table_id,
                 data=data_df,

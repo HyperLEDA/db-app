@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from aiohttp import web
 from marshmallow import Schema, fields
 
-from app import commands
+from app.commands.adminapi import depot
 from app.lib.web import responses, server
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 @dataclass
@@ -26,7 +26,7 @@ class PingResponseSchema(Schema):
     ping = fields.Str(example="pong")
 
 
-async def ping_handler(_: commands.Depot, __: web.Request) -> responses.APIOkResponse:
+async def ping_handler(_: depot.Depot, __: web.Request) -> responses.APIOkResponse:
     """---
     summary: Test that service is up and running
     tags: [admin]

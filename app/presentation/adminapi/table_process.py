@@ -1,11 +1,12 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class CrossIdentificationSchema(Schema):
@@ -42,7 +43,7 @@ class TableProcessResponseSchema(Schema):
     pass
 
 
-async def table_process_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def table_process_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Start processing of the table
     description: |
@@ -70,7 +71,7 @@ async def table_process_handler(depot: commands.Depot, r: web.Request) -> respon
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.table_process(depot, request))
+    return responses.APIOkResponse(actions.table_process(dpt, request))
 
 
 description = common.handler_description(

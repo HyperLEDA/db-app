@@ -2,13 +2,13 @@ from typing import final
 
 import structlog
 
-from app import commands as appcommands
 from app.commands.adminapi import config
+from app.commands.adminapi.depot import depot
 from app.data import repositories
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
 from app.lib.web import server
-from app.presentation.server import handlers
+from app.presentation import adminapi
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -27,7 +27,7 @@ class AdminAPICommand(commands.Command):
         self.redis_storage = redis.RedisQueue(self.config.queue, log)
         self.redis_storage.connect()
 
-        depot = appcommands.Depot(
+        d = depot.Depot(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
             layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
@@ -40,12 +40,12 @@ class AdminAPICommand(commands.Command):
 
         routes = []
 
-        for handler in handlers.routes:
-            routes.append(handler(depot))
+        for handler in adminapi.routes:
+            routes.append(handler(d))
 
         middlewares = []
         if self.config.auth_enabled:
-            middlewares.append(server.get_auth_middleware("/api/v1/admin", depot.authenticator))
+            middlewares.append(server.get_auth_middleware("/api/v1/admin", d.authenticator))
 
         self.app = server.WebServer(routes, self.config.server, middlewares=middlewares)
 

@@ -1,4 +1,5 @@
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 
 ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
@@ -13,8 +14,8 @@ def construct_code(authors: list[str], year: int, title: str) -> str:
     return "".join([c for c in code if c in ALLOWED_CHARS])
 
 
-def create_source(depot: commands.Depot, r: schema.CreateSourceRequest) -> schema.CreateSourceResponse:
+def create_source(dpt: depot.Depot, r: schema.CreateSourceRequest) -> schema.CreateSourceResponse:
     code = construct_code(r.authors, r.year, r.title)
-    _ = depot.common_repo.create_bibliography(code, r.year, r.authors, r.title)
+    _ = dpt.common_repo.create_bibliography(code, r.year, r.authors, r.title)
 
     return schema.CreateSourceResponse(code=code)

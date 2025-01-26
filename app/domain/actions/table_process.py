@@ -3,7 +3,8 @@ from collections.abc import Callable
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain import converters
 from app.domain.cross_id_simultaneous_data_provider import (
@@ -30,16 +31,16 @@ cross_identification_func_type = Callable[
 ]
 
 
-def table_process(depot: commands.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
+def table_process(dpt: depot.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
     return table_process_with_cross_identification(depot, cross_identification, r)
 
 
 def table_process_with_cross_identification(
-    depot: commands.Depot,
+    dpt: depot.Depot,
     cross_identification_func: cross_identification_func_type,
     r: schema.TableProcessRequest,
 ) -> schema.TableProcessResponse:
-    meta = depot.layer0_repo.fetch_metadata(r.table_id)
+    meta = dpt.layer0_repo.fetch_metadata(r.table_id)
 
     converter = converters.CompositeConverter(
         converters.NameConverter(),
@@ -54,7 +55,7 @@ def table_process_with_cross_identification(
     offset = 0
 
     while True:
-        data = depot.layer0_repo.fetch_raw_data(
+        data = dpt.layer0_repo.fetch_raw_data(
             r.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
         )
         offset += min(r.batch_size, len(data.data))
@@ -66,7 +67,7 @@ def table_process_with_cross_identification(
             obj = converter.apply(entities.ObjectInfo(), obj_data)
 
             result = cross_identification_func(
-                depot.layer2_repo,
+                dpt.layer2_repo,
                 obj,
                 SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
                 CrossIdentificationUserParam(
@@ -76,7 +77,7 @@ def table_process_with_cross_identification(
             )
 
             processing_info = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], result, obj)
-            depot.layer0_repo.upsert_object(r.table_id, processing_info)
+            dpt.layer0_repo.upsert_object(r.table_id, processing_info)
 
     # TODO: remove col_name and coordinate_part from entities?
 

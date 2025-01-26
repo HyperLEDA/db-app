@@ -1,7 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
@@ -26,7 +27,7 @@ class GetSourceResponseSchema(Schema):
     year = fields.Int(description="Year of the publication")
 
 
-async def get_source_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def get_source_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get information about source
     description: Retrieves information about the source using its id
@@ -49,7 +50,7 @@ async def get_source_handler(depot: commands.Depot, r: web.Request) -> responses
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.get_source(depot, request))
+    return responses.APIOkResponse(actions.get_source(dpt, request))
 
 
 description = common.handler_description(

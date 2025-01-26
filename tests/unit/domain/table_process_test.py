@@ -6,7 +6,8 @@ import astropy.units as u
 import pandas
 from astropy.coordinates import ICRS
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain.actions.table_process import cross_identification_func_type, table_process_with_cross_identification
 from app.domain.model.layer2.layer_2_model import Layer2Model
@@ -24,7 +25,7 @@ def get_noop_cross_identification(
 
 class TableProcessTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     def test_invalid_table(self):
         testing.returns(

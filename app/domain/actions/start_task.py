@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from typing import Any
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.domain import tasks
 from app.lib.web.errors import NotFoundError
 
@@ -11,7 +12,7 @@ TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
 }
 
 
-def start_task(depot: commands.Depot, r: schema.StartTaskRequest) -> schema.StartTaskResponse:
+def start_task(dpt: depot.Depot, r: schema.StartTaskRequest) -> schema.StartTaskResponse:
     if r.task_name not in TASK_REGISTRY:
         raise NotFoundError(f"unable to find task '{r.task_name}'")
 
@@ -19,9 +20,9 @@ def start_task(depot: commands.Depot, r: schema.StartTaskRequest) -> schema.Star
 
     params = params_type(**r.payload)
 
-    with depot.common_repo.with_tx():
-        task_id = depot.common_repo.insert_task(entities.Task(r.task_name, r.payload, 1))
-        depot.queue_repo.enqueue(
+    with dpt.common_repo.with_tx():
+        task_id = dpt.common_repo.insert_task(entities.Task(r.task_name, r.payload, 1))
+        dpt.queue_repo.enqueue(
             tasks.task_runner,
             func=task,
             task_id=task_id,

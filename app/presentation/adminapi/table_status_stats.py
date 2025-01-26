@@ -1,12 +1,13 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.storage import enums
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class TableStatusStatsRequestSchema(Schema):
@@ -21,7 +22,7 @@ class TableStatusStatsResponseSchema(Schema):
     processing = fields.Dict(keys=fields.Enum(enums.ObjectProcessingStatus), values=fields.Integer())
 
 
-async def table_status_stats(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def table_status_stats(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get statistics on table processing
     description: |
@@ -50,7 +51,7 @@ async def table_status_stats(depot: commands.Depot, r: web.Request) -> responses
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.table_status_stats(depot, request))
+    return responses.APIOkResponse(actions.table_status_stats(dpt, request))
 
 
 description = common.handler_description(

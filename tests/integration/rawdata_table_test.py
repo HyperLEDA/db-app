@@ -5,7 +5,8 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain import actions
 from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
@@ -19,7 +20,7 @@ class RawDataTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
-        cls.depot = commands.get_mock_depot()
+        cls.depot = depot.get_mock_depot()
         cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 

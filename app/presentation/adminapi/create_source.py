@@ -1,11 +1,12 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
-from app import commands, schema
+from app import schema
+from app.commands.adminapi import depot
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class CreateSourceRequestSchema(Schema):
@@ -25,7 +26,7 @@ class CreateSourceResponseSchema(Schema):
     )
 
 
-async def create_source_handler(depot: commands.Depot, r: web.Request) -> responses.APIOkResponse:
+async def create_source_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: New source entry
     description: Creates new source entry in the database for internal communication and unpublished articles.
@@ -52,7 +53,7 @@ async def create_source_handler(depot: commands.Depot, r: web.Request) -> respon
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.create_source(depot, request))
+    return responses.APIOkResponse(actions.create_source(dpt, request))
 
 
 description = common.handler_description(
