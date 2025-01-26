@@ -1,3 +1,5 @@
+/* pgmigrate-encoding: utf-8 */
+
 BEGIN ;
 ------------------------------------------------------------------
 --------      Aperture photometry catalog (level 1)      ---------
