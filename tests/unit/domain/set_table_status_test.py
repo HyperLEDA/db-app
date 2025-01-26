@@ -5,15 +5,16 @@ from unittest import mock
 from astropy import units as u
 from astropy.coordinates import ICRS
 
-from app import commands, entities, schema
-from app.domain.actions.set_table_status import assign_pgc, set_table_status
+from app import entities, schema
+from app.commands.adminapi import depot
+from app.domain.adminapi.set_table_status import assign_pgc, set_table_status
 from app.lib import testing
 from app.lib.storage import enums
 
 
 class AssignPGCTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     def test_new_and_existing(self):
         testing.returns(self.depot.common_repo.generate_pgc, [1002, 1003, 1004, 123])
@@ -114,7 +115,7 @@ class AssignPGCTest(unittest.TestCase):
 
 class SetTableStatusTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     def test_one_batch_no_overrides(self):
         testing.returns(

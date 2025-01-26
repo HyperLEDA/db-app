@@ -4,10 +4,11 @@ from unittest import mock
 
 from parameterized import param, parameterized
 
-from app import commands, entities, schema
+from app import entities, schema
+from app.commands.adminapi import depot
 from app.data import repositories
-from app.domain import actions
-from app.domain.actions.create_table import domain_descriptions_to_data, get_source_id
+from app.domain import adminapi
+from app.domain.adminapi.create_table import domain_descriptions_to_data, get_source_id
 from app.lib import testing
 from app.lib.storage import mapping
 from app.lib.web import errors
@@ -15,7 +16,7 @@ from app.lib.web import errors
 
 class GetSourceIDTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     @parameterized.expand(
         [
@@ -140,7 +141,7 @@ class MappingTest(unittest.TestCase):
 
 class CreateTableTest(unittest.TestCase):
     def setUp(self):
-        self.depot = commands.get_mock_depot()
+        self.depot = depot.get_mock_depot()
 
     @parameterized.expand(
         [
@@ -202,14 +203,14 @@ class CreateTableTest(unittest.TestCase):
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:
-                _, _ = actions.create_table(
+                _, _ = adminapi.create_table(
                     self.depot,
                     request,
                 )
 
             self.assertIn(err_substr, err.exception.message())
         else:
-            resp, created = actions.create_table(
+            resp, created = adminapi.create_table(
                 self.depot,
                 request,
             )

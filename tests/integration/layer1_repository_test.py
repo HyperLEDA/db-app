@@ -3,7 +3,8 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app import commands, entities
+from app import entities
+from app.commands.adminapi import depot
 from app.data import model, repositories
 from app.lib import testing
 from app.lib.storage import enums
@@ -14,7 +15,7 @@ class Layer1RepositoryTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
-        cls.depot = commands.get_mock_depot()
+        cls.depot = depot.get_mock_depot()
         cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.depot.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())

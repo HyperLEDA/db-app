@@ -2,10 +2,10 @@ import json
 import pathlib
 from typing import final
 
-from app.commands import get_mock_depot
+from app.commands.adminapi import depot
 from app.lib import commands
 from app.lib.web import server
-from app.presentation.server import handlers
+from app.presentation import adminapi
 
 
 @final
@@ -19,8 +19,8 @@ class GenerateSpecCommand(commands.Command):
     def run(self):
         routes = []
 
-        for handler in handlers.routes:
-            routes.append(handler(get_mock_depot()))
+        for handler in adminapi.routes:
+            routes.append(handler(depot.get_mock_depot()))
 
         spec, _ = server.get_router(routes)
 

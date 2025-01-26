@@ -12,8 +12,8 @@ recreate-venv:
 install:
 	uv init
 
-runserver:
-	uv run main.py runserver -c configs/dev/config.yaml
+adminapi:
+	uv run main.py adminapi -c configs/dev/adminapi.yaml
 
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml

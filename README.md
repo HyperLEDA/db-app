@@ -11,7 +11,7 @@ make install
 To start application:
 
 ```bash
-make runserver
+make adminapi
 ```
 
 Tests are located in `tests/`, to run them and all linters:
@@ -23,7 +23,7 @@ make test-all
 Before commit run:
 
 ```bash
-make fix-lint
+make fix
 ```
 
 ### How to contribute new code

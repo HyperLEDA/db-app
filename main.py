@@ -2,11 +2,11 @@ import os
 
 import click
 
+import app.commands.adminapi as adminapi_cmd
+import app.commands.dataapi as dataapi_cmd
 import app.commands.generate_spec as generate_spec_cmd
 import app.commands.importer as importer_cmd
-import app.commands.regression_tests as regression_tests_command
-import app.commands.runserver as runserver_cmd
-from app.commands.dataapi import command as dataapi_cmd
+import app.commands.regression_tests as regression_tests_cmd
 from app.lib import commands
 
 
@@ -23,8 +23,8 @@ def cli():
     default=lambda: os.environ.get("CONFIG", ""),
     help="Path to configuration file",
 )
-def runserver(config: str):
-    commands.run(runserver_cmd.RunServerCommand(config))
+def adminapi(config: str):
+    commands.run(adminapi_cmd.AdminAPICommand(config))
 
 
 @cli.command(short_help="Start Data API server")
@@ -36,7 +36,7 @@ def runserver(config: str):
     help="Path to configuration file",
 )
 def dataapi(config: str):
-    commands.run(dataapi_cmd.RunDataAPIServer(config))
+    commands.run(dataapi_cmd.DataAPIServer(config))
 
 
 @cli.command(short_help="Import data from layer 1 to layer 2")
@@ -65,7 +65,7 @@ def generate_spec(output: str):
 
 @cli.command(short_help="Run regression tests")
 def regression_tests():
-    commands.run(regression_tests_command.RegressionTestsCommand())
+    commands.run(regression_tests_cmd.RegressionTestsCommand())
 
 
 if __name__ == "__main__":

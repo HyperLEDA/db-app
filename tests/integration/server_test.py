@@ -40,9 +40,9 @@ class ServerTest(unittest.TestCase):
             [
                 sys.executable,
                 "main.py",
-                "runserver",
+                "adminapi",
                 "-c",
-                "configs/dev/config.yaml",
+                "configs/dev/adminapi.yaml",
             ],
             stdout=sys.stderr,
             stderr=sys.stderr,
