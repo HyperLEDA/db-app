@@ -5,7 +5,7 @@ from app import commands, schema
 from app.domain import actions
 from app.lib.web import responses, server
 from app.lib.web.errors import RuleValidationError
-from app.presentation.server.handlers import common
+from app.presentation.adminapi import common
 
 
 class GetSourceRequestSchema(Schema):
