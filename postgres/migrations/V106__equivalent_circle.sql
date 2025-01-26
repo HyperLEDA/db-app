@@ -1,3 +1,5 @@
+/* pgmigrate-encoding: utf-8 */
+
 BEGIN ;
 ------------------------------------------------------------------
 --------      Equivalent Circle catalog (level 1)      -----------
@@ -90,8 +92,6 @@ FROM
   equivCircle.circle	AS circ
   LEFT JOIN photometry.dataset	AS ds	ON (circ.dataset=ds.id)
   LEFT JOIN rawdata.tables	AS src	ON (ds.src=src.id)
-;
-
 ;
 
 COMMENT ON VIEW equivCircle.data	IS 'Equivalent Circle catalog' ;

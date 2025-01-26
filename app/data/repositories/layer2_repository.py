@@ -1,3 +1,5 @@
+import datetime
+
 import structlog
 
 from app.domain.model.layer2.layer_2_model import Layer2Model
@@ -9,6 +11,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         self._storage = storage
+
+    def get_last_update_time(self) -> datetime.datetime:
+        return self._storage.query_one("SELECT dt FROM layer2.last_update").get("dt")
 
     def query_data(self, param: Layer2QueryParam) -> list[Layer2Model]:
         return []

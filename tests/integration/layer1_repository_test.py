@@ -24,8 +24,8 @@ class Layer1RepositoryTest(unittest.TestCase):
 
     def test_icrs(self):
         objects = [
-            model.Layer1CatalogObject(pgc=1, object_id="111", data={"ra": 12.1, "dec": 1, "e_ra": 0.1, "e_dec": 0.3}),
-            model.Layer1CatalogObject(pgc=1, object_id="111", data={"ra": 11.1, "dec": 2, "e_ra": 0.2, "e_dec": 0.4}),
+            model.ICRSCatalogObject(pgc=1, object_id="111", ra=12.1, dec=1, e_ra=0.1, e_dec=0.3),
+            model.ICRSCatalogObject(pgc=1, object_id="111", ra=11.1, dec=2, e_ra=0.2, e_dec=0.4),
         ]
 
         bib_id = self.depot.common_repo.create_bibliography("123456", 2000, ["test"], "test")
@@ -48,7 +48,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
         self.depot.common_repo.upsert_pgc([1])
 
-        self.depot.layer1_repo.save_data(model.Layer1Catalog.ICRS, objects)
+        self.depot.layer1_repo.save_data(objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data")
         self.assertEqual(result, [{"ra": 12.1}, {"ra": 11.1}])

@@ -30,3 +30,10 @@ services:
     depends_on:
       hyperledadb:
         condition: service_healthy
+
+  wait-for-migrate:
+    image: busybox
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
