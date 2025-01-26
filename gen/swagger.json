@@ -243,7 +243,7 @@
     "/api/v1/admin/table/data": {
       "post": {
         "summary": "Add new raw data to the table",
-        "description": "Inserts new data to the table.\n\nDeduplicates the rows based on their contents.\nIf the two rows were identical this method will only insert the last one.\n",
+        "description": "Inserts new data to the table.\n\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.\n",
         "security": [
           {
             "TokenAuth": []
