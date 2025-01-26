@@ -1,0 +1,22 @@
+name: Build docker image
+
+on:
+  - push
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build Docker image
+        run: |
+          GIT_VERSION=$(git rev-parse --short HEAD)
+          docker build . -t ghcr.io/hyperleda/hyperleda:$GIT_VERSION
