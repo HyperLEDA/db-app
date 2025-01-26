@@ -15,6 +15,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def get_last_update_time(self) -> datetime.datetime:
         return self._storage.query_one("SELECT dt FROM layer2.last_update").get("dt")
 
+    def update_last_update_time(self, dt: datetime.datetime):
+        self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
+
     def query_data(self, param: Layer2QueryParam) -> list[Layer2Model]:
         return []
 

@@ -15,8 +15,11 @@ install:
 runserver:
 	uv run main.py runserver -c configs/dev/config.yaml
 
-rundataapi:
+dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml
+
+importer:
+	uv run main.py importer -c configs/dev/importer.yaml
 
 runworker:
 	rq worker default

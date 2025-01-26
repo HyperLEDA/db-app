@@ -3,6 +3,7 @@ import os
 import click
 
 import app.commands.generate_spec as generate_spec_cmd
+import app.commands.importer as importer_cmd
 import app.commands.regression_tests as regression_tests_command
 import app.commands.runserver as runserver_cmd
 from app.commands.dataapi import command as dataapi_cmd
@@ -36,6 +37,18 @@ def runserver(config: str):
 )
 def dataapi(config: str):
     commands.run(dataapi_cmd.RunDataAPIServer(config))
+
+
+@cli.command(short_help="Import data from layer 1 to layer 2")
+@click.option(
+    "-c",
+    "--config",
+    type=str,
+    default=lambda: os.environ.get("CONFIG", ""),
+    help="Path to configuration file",
+)
+def importer(config: str):
+    commands.run(importer_cmd.ImporterCommand(config))
 
 
 @cli.command(short_help="Generate OpenAPI spec and write it to file")
