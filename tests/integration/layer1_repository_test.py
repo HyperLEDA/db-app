@@ -48,7 +48,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
         self.depot.common_repo.upsert_pgc([1])
 
-        self.depot.layer1_repo.save_data(model.Layer1Catalog.ICRS, objects)
+        self.depot.layer1_repo.save_data(model.RawCatalog.ICRS, objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data")
         self.assertEqual(result, [{"ra": 12.1}, {"ra": 11.1}])

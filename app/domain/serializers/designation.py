@@ -10,7 +10,7 @@ class DesignationSerializer(interface.Layer1Serializer):
         for obj in objects:
             layer1_objects.append(object_info_to_layer1_data(obj))
 
-        repo.save_data(model.Layer1Catalog.DESIGNATION, layer1_objects)
+        repo.save_data(model.RawCatalog.DESIGNATION, layer1_objects)
 
 
 def object_info_to_layer1_data(obj: entities.ObjectProcessingInfo) -> model.Layer1CatalogObject:

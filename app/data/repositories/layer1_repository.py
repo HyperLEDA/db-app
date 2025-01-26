@@ -5,9 +5,9 @@ import structlog
 from app.data import model
 from app.lib.storage import postgres
 
-tables: dict[model.Layer1Catalog, str] = {
-    model.Layer1Catalog.ICRS: "icrs.data",
-    model.Layer1Catalog.DESIGNATION: "designation.data",
+tables: dict[model.RawCatalog, str] = {
+    model.RawCatalog.ICRS: "icrs.data",
+    model.RawCatalog.DESIGNATION: "designation.data",
 }
 
 
@@ -16,8 +16,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, catalog: model.Layer1Catalog, objects: list[model.Layer1CatalogObject]) -> None:
-        table = tables[model.Layer1Catalog(catalog)]
+    def save_data(self, catalog: model.RawCatalog, objects: list[model.Layer1CatalogObject]) -> None:
+        table = tables[model.RawCatalog(catalog)]
         self._logger.info("Saving data to layer 1", table=table)
 
         unique_columns = set()
