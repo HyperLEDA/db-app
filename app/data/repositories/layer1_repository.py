@@ -31,7 +31,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             self._logger.info("Saving data to layer 1", table=table, pgc=obj.pgc())
 
-            data = obj.data()
+            data = obj.layer1_data()
             columns = list(data.keys())
             values = [data[column] for column in columns]
 

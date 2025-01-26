@@ -48,7 +48,11 @@ class CatalogObject(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
+        pass
+
+    @abc.abstractmethod
+    def layer2_data(self) -> dict[str, Any]:
         pass
 
 
@@ -104,10 +108,16 @@ class DesignationCatalogObject(CatalogObject):
     def catalog(self) -> RawCatalog:
         return RawCatalog.DESIGNATION
 
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
         return {
             "pgc": self.pgc(),
             "object_id": self.object_id(),
+            "design": self.designation,
+        }
+
+    def layer2_data(self) -> dict[str, Any]:
+        return {
+            "pgc": self.pgc(),
             "design": self.designation,
         }
 
@@ -149,10 +159,19 @@ class ICRSCatalogObject(CatalogObject):
     def catalog(self) -> RawCatalog:
         return RawCatalog.ICRS
 
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
         return {
             "pgc": self.pgc(),
             "object_id": self.object_id(),
+            "ra": self.ra,
+            "e_ra": self.e_ra,
+            "dec": self.dec,
+            "e_dec": self.e_dec,
+        }
+
+    def layer2_data(self) -> dict[str, Any]:
+        return {
+            "pgc": self.pgc(),
             "ra": self.ra,
             "e_ra": self.e_ra,
             "dec": self.dec,

@@ -9,6 +9,11 @@ CREATE TABLE layer2.last_update (
 INSERT INTO layer2.last_update (dt) 
 VALUES (to_timestamp(0));
 
+CREATE TABLE layer2.designation(
+    pgc integer PRIMARY KEY
+,   design text NOT NULL
+);
+
 CREATE TABLE layer2.icrs (
     pgc integer PRIMARY KEY
 ,   ra double precision NOT NULL

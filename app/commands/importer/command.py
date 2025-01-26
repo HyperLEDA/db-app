@@ -1,3 +1,4 @@
+import datetime
 from collections.abc import Callable
 from typing import final
 
@@ -46,7 +47,10 @@ class ImporterCommand(commands.Command):
 
                 aggregated_objects_by_catalog[catalog][pgc] = model.get_catalog_object_type(catalog).aggregate(objects)
 
-        print(aggregated_objects_by_catalog)
+        for catalog, objects in aggregated_objects_by_catalog.items():
+            self.layer2_repository.save_data(catalog, objects)
+
+        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
 
     def cleanup(self):
         self.pg_storage.disconnect()
