@@ -32,7 +32,7 @@ cross_identification_func_type = Callable[
 
 
 def table_process(dpt: depot.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
-    return table_process_with_cross_identification(depot, cross_identification, r)
+    return table_process_with_cross_identification(dpt, cross_identification, r)
 
 
 def table_process_with_cross_identification(
