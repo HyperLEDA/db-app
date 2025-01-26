@@ -1,5 +1,3 @@
-import itertools
-
 import structlog
 
 from app.data import model
@@ -16,29 +14,28 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, catalog: model.RawCatalog, objects: list[model.Layer1CatalogObject]) -> None:
-        table = tables[model.RawCatalog(catalog)]
-        self._logger.info("Saving data to layer 1", table=table)
+    def save_data(self, objects: list[model.CatalogObject]) -> None:
+        """
+        For each object, saves it to corresponding catalog in the storage.
+        Object has no knowledge of the table name of the catalog it belongs to.
 
-        unique_columns = set()
-
-        for obj in objects:
-            unique_columns.update(obj.data.keys())
-
-        column_names = ["pgc", "object_id"] + list(unique_columns)
-        values = []
-
-        for obj in objects:
-            row_values = [obj.pgc, obj.object_id]
-
-            for column in unique_columns:
-                row_values.append(obj.data.get(column, None))
-            values.append(tuple(row_values))
-
-        placeholders = ",".join(["%s"] * len(column_names))
-        query = f"""
-        INSERT INTO {table} ({", ".join(column_names)}) 
-        VALUES {", ".join(["(" + placeholders + ")"] * len(objects))}
+        `objects` is a list since it is more efficient to save multiple objects in one insert into catalog.
+        For now, objects are saved one by one but the `list` allows for future optimizations.
         """
 
-        self._storage.exec(query, params=list(itertools.chain.from_iterable(values)))
+        for obj in objects:
+            catalog = obj.catalog()
+            table = tables[catalog]
+
+            self._logger.info("Saving data to layer 1", table=table, pgc=obj.pgc())
+
+            data = obj.data()
+            columns = list(data.keys())
+            values = [data[column] for column in columns]
+
+            query = f"""
+            INSERT INTO {table} ({", ".join(columns)}) 
+            VALUES ({",".join(["%s"] * len(columns))})
+            """
+
+            self._storage.exec(query, params=values)

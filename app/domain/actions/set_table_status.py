@@ -1,22 +1,15 @@
 from app import commands, entities, schema
-from app.data import repositories
-from app.domain import serializers
+from app.data import model, repositories
 from app.lib.storage import enums
 
 
 def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> schema.SetTableStatusResponse:
     # TODO:
-    # - Move to the layer1
     # - Update moved object statuses to processed
     overrides = {}
 
     for obj in r.overrides or []:
         overrides[obj.id] = obj
-
-    serializer = serializers.CompositeSerializer(
-        serializers.ICRSSerializer(),
-        serializers.DesignationSerializer(),
-    )
 
     offset = 0
 
@@ -30,12 +23,30 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
         with depot.common_repo.with_tx():
             objects_to_move = assign_pgc(depot.common_repo, objects)
 
-            serializer.serialize(depot.layer1_repo, objects_to_move)
+            catalog_objects = []
+            for obj in objects_to_move:
+                catalog_objects.extend(to_catalog_object(obj))
+
+            depot.layer1_repo.save_data(catalog_objects)
 
         if len(objects) < r.batch_size:
             break
 
     return schema.SetTableStatusResponse()
+
+
+def to_catalog_object(obj: entities.ObjectProcessingInfo) -> list[model.CatalogObject]:
+    return [
+        model.DesignationCatalogObject(obj.pgc, obj.object_id, designation=obj.data.primary_name),
+        model.ICRSCatalogObject(
+            obj.pgc,
+            obj.object_id,
+            ra=obj.data.coordinates.ra.deg,
+            dec=obj.data.coordinates.dec.deg,
+            e_ra=0.01,
+            e_dec=0.02,
+        ),
+    ]
 
 
 def apply_override(
