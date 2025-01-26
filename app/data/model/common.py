@@ -1,6 +1,6 @@
 import abc
 import enum
-from typing import Any, final
+from typing import Any, Self, final
 
 from app import entities
 
@@ -30,6 +30,11 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
+    @classmethod
+    @abc.abstractmethod
+    def aggregate(cls, objects: list[Self]) -> Self:
+        pass
+
     @abc.abstractmethod
     def pgc(self) -> int:
         pass
@@ -43,7 +48,11 @@ class CatalogObject(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
+        pass
+
+    @abc.abstractmethod
+    def layer2_data(self) -> dict[str, Any]:
         pass
 
 
@@ -67,10 +76,28 @@ def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject
 
 @final
 class DesignationCatalogObject(CatalogObject):
-    def __init__(self, pgc: int, object_id: str, design: str) -> None:
+    def __init__(self, pgc: int, object_id: str, design: str, **kwargs) -> None:
         self._pgc = pgc
         self._object_id = object_id
         self.designation = design
+
+    @classmethod
+    def aggregate(cls, objects: list[Self]) -> Self:
+        """
+        Aggregate designation is selected as the most common designation among all objects.
+        """
+        name_counts = {}
+
+        for obj in objects:
+            name_counts[obj.designation] = name_counts.get(obj.designation, 0) + 1
+
+        max_name = ""
+
+        for name, count in name_counts.items():
+            if count > name_counts.get(max_name, 0):
+                max_name = name
+
+        return cls(objects[0].pgc(), objects[0].object_id(), max_name)
 
     def pgc(self) -> int:
         return self._pgc
@@ -81,23 +108,47 @@ class DesignationCatalogObject(CatalogObject):
     def catalog(self) -> RawCatalog:
         return RawCatalog.DESIGNATION
 
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
         return {
             "pgc": self.pgc(),
             "object_id": self.object_id(),
             "design": self.designation,
         }
 
+    def layer2_data(self) -> dict[str, Any]:
+        return {
+            "pgc": self.pgc(),
+            "design": self.designation,
+        }
+
 
 @final
 class ICRSCatalogObject(CatalogObject):
-    def __init__(self, pgc: int, object_id: str, ra: float, e_ra: float, dec: float, e_dec: float) -> None:
+    def __init__(self, pgc: int, object_id: str, ra: float, e_ra: float, dec: float, e_dec: float, **kwargs) -> None:
         self._pgc = pgc
         self._object_id = object_id
         self.ra = ra
         self.e_ra = e_ra
         self.dec = dec
         self.e_dec = e_dec
+
+    @classmethod
+    def aggregate(cls, objects: list[Self]) -> Self:
+        """
+        Aggregate coordinates are computed as the mean of all coordinates.
+        Errors are computed as the mean of all errors.
+        """
+        ras = [obj.ra for obj in objects]
+        e_ras = [obj.e_ra for obj in objects]
+        decs = [obj.dec for obj in objects]
+        e_decs = [obj.e_dec for obj in objects]
+
+        ra = sum(ras) / len(ras)
+        e_ra = sum(e_ras) / len(e_ras)
+        dec = sum(decs) / len(decs)
+        e_dec = sum(e_decs) / len(e_decs)
+
+        return cls(objects[0].pgc(), objects[0].object_id(), ra, e_ra, dec, e_dec)
 
     def pgc(self) -> int:
         return self._pgc
@@ -108,10 +159,19 @@ class ICRSCatalogObject(CatalogObject):
     def catalog(self) -> RawCatalog:
         return RawCatalog.ICRS
 
-    def data(self) -> dict[str, Any]:
+    def layer1_data(self) -> dict[str, Any]:
         return {
             "pgc": self.pgc(),
             "object_id": self.object_id(),
+            "ra": self.ra,
+            "e_ra": self.e_ra,
+            "dec": self.dec,
+            "e_dec": self.e_dec,
+        }
+
+    def layer2_data(self) -> dict[str, Any]:
+        return {
+            "pgc": self.pgc(),
             "ra": self.ra,
             "e_ra": self.e_ra,
             "dec": self.dec,

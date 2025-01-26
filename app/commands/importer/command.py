@@ -1,9 +1,11 @@
+import datetime
+from collections.abc import Callable
 from typing import final
 
 import structlog
 
 from app.commands.importer import config
-from app.data import repositories
+from app.data import model, repositories
 from app.lib import commands
 from app.lib.storage import postgres
 
@@ -30,10 +32,39 @@ class ImporterCommand(commands.Command):
         # 2. for each pgc aggregate all objects: aggregate(pgc, dict[pgc, UnaggregatedInfo]) -> ObjectInfo
         # 3. write objects to the storage: write(objects: dict[pgc, ObjectInfo]) -> None
 
-        # last_update_dt = self.layer2_repository.get_last_update_time()
-        # new_objects = self.layer1_repository.get_new_objects(last_update_dt)
+        last_update_dt = self.layer2_repository.get_last_update_time()
+        new_objects = self.layer1_repository.get_new_objects(last_update_dt)
 
-        raise NotImplementedError
+        objects_by_catalog = group_by(new_objects, key_func=lambda obj: obj.catalog())
+        aggregated_objects_by_catalog: dict[model.RawCatalog, dict[int, model.CatalogObject]] = {}
+
+        for catalog, objects in objects_by_catalog.items():
+            objects_by_pgc = group_by(objects, key_func=lambda obj: obj.pgc())
+
+            for pgc, objects in objects_by_pgc.items():
+                if catalog not in aggregated_objects_by_catalog:
+                    aggregated_objects_by_catalog[catalog] = {}
+
+                aggregated_objects_by_catalog[catalog][pgc] = model.get_catalog_object_type(catalog).aggregate(objects)
+
+        for catalog, objects in aggregated_objects_by_catalog.items():
+            self.layer2_repository.save_data(catalog, objects)
+
+        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
 
     def cleanup(self):
         self.pg_storage.disconnect()
+
+
+def group_by[T, V](objects: list[T], key_func: Callable[[T], V]) -> dict[V, list[T]]:
+    result = {}
+
+    for obj in objects:
+        key = key_func(obj)
+
+        if key not in result:
+            result[key] = []
+
+        result[key].append(obj)
+
+    return result
