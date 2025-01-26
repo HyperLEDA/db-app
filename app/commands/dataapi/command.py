@@ -11,7 +11,7 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @final
-class RunDataAPIServer(commands.Command):
+class DataAPIServer(commands.Command):
     def __init__(self, config_path: str) -> None:
         self.config_path = config_path
 

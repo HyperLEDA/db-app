@@ -3,7 +3,7 @@ from typing import final
 import structlog
 
 from app import commands as appcommands
-from app.commands.runserver import config
+from app.commands.adminapi import config
 from app.data import repositories
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
@@ -14,7 +14,7 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @final
-class RunServerCommand(commands.Command):
+class AdminAPICommand(commands.Command):
     def __init__(self, config_path: str):
         self.config_path = config_path
 

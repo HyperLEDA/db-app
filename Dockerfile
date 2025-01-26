@@ -4,4 +4,4 @@ WORKDIR /usr/src/app
 COPY pyproject.toml ./
 RUN uv sync --verbose
 COPY . .
-CMD ["uv", "run", "main.py", "runserver"]
+CMD ["uv", "run", "main.py", "adminapi"]
