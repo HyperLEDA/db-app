@@ -2,7 +2,7 @@
 
 CREATE SCHEMA IF NOT EXISTS layer2;
 
-CREATE TABLE later2.last_update (
+CREATE TABLE layer2.last_update (
     dt timestamp NOT NULL DEFAULT to_timestamp(0)
 );
 
