@@ -1,9 +1,7 @@
-FROM python:3.10.0-slim
-RUN apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
+FROM python:3.13-slim-bookworm
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /usr/src/app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml ./
+RUN uv sync --verbose
 COPY . .
-CMD ["python", "main.py", "runserver"]
+CMD ["uv", "run", "main.py", "runserver"]

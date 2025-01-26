@@ -30,25 +30,25 @@ stop-db:
 docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
-		--with mkdocs-material>=9.5.50 \
-		--with mkdocs-section-index>=0.3.9 \
-		--with neoteroi-mkdocs>=1.1.0 \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs serve -a localhost:8080
 
 deploy-docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
-		--with mkdocs-material>=9.5.50 \
-		--with mkdocs-section-index>=0.3.9 \
-		--with neoteroi-mkdocs>=1.1.0 \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs gh-deploy
 
 build-docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
-		--with mkdocs-material>=9.5.50 \
-		--with mkdocs-section-index>=0.3.9 \
-		--with neoteroi-mkdocs>=1.1.0 \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs build
 
 ## Testing
