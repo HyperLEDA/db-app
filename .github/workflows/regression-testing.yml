@@ -9,13 +9,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+      - name: Install the project
+        run: uv sync --all-extras --dev
 
       - name: Start environment
         run: |
