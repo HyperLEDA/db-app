@@ -28,16 +28,28 @@ stop-db:
 	docker-compose down
 
 docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs serve -a localhost:8080
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	uvx \
+		--with mkdocs-material>=9.5.50 \
+		--with mkdocs-section-index>=0.3.9 \
+		--with neoteroi-mkdocs>=1.1.0 \
+		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs gh-deploy
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	uvx \
+		--with mkdocs-material>=9.5.50 \
+		--with mkdocs-section-index>=0.3.9 \
+		--with neoteroi-mkdocs>=1.1.0 \
+		mkdocs gh-deploy
 
 build-docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json
-	mkdocs build
+	uvx \
+		--with mkdocs-material>=9.5.50 \
+		--with mkdocs-section-index>=0.3.9 \
+		--with neoteroi-mkdocs>=1.1.0 \
+		mkdocs build
 
 ## Testing
 
