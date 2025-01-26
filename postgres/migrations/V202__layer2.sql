@@ -2,6 +2,10 @@
 
 CREATE SCHEMA IF NOT EXISTS layer2;
 
+CREATE TABLE later2.last_update (
+    dt timestamp NOT NULL DEFAULT to_timestamp(0)
+);
+
 CREATE TABLE layer2.icrs (
     pgc integer PRIMARY KEY
 ,   ra double precision NOT NULL

@@ -1,3 +1,5 @@
+import datetime
+
 import structlog
 
 from app.data import model
@@ -39,3 +41,29 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             """
 
             self._storage.exec(query, params=values)
+
+    def get_new_objects(self, dt: datetime.datetime) -> list[model.CatalogObject]:
+        """
+        Returns all objects that were modified since `dt`.
+
+        TODO: make the selection in batches instead of everything at once.
+        """
+
+        objects: list[model.CatalogObject] = []
+
+        for catalog, table in tables.items():
+            query = f"""
+            SELECT * 
+            FROM {table}
+            WHERE pgc IN (
+                SELECT DISTINCT pgc
+                FROM {table}
+                WHERE modification_time > %s
+            )
+            """
+
+            rows = self._storage.query(query, params=[dt])
+            for row in rows:
+                objects.append(model.get_catalog_object_type(catalog)(**row))
+
+        return objects

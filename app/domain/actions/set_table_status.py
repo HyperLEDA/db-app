@@ -25,7 +25,7 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
 
             catalog_objects = []
             for obj in objects_to_move:
-                catalog_objects.extend(to_catalog_object(obj))
+                catalog_objects.extend(model.get_catalog_object(obj))
 
             depot.layer1_repo.save_data(catalog_objects)
 
@@ -33,20 +33,6 @@ def set_table_status(depot: commands.Depot, r: schema.SetTableStatusRequest) -> 
             break
 
     return schema.SetTableStatusResponse()
-
-
-def to_catalog_object(obj: entities.ObjectProcessingInfo) -> list[model.CatalogObject]:
-    return [
-        model.DesignationCatalogObject(obj.pgc, obj.object_id, designation=obj.data.primary_name),
-        model.ICRSCatalogObject(
-            obj.pgc,
-            obj.object_id,
-            ra=obj.data.coordinates.ra.deg,
-            dec=obj.data.coordinates.dec.deg,
-            e_ra=0.01,
-            e_dec=0.02,
-        ),
-    ]
 
 
 def apply_override(

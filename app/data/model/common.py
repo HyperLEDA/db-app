@@ -2,6 +2,8 @@ import abc
 import enum
 from typing import Any, final
 
+from app import entities
+
 pgc = int
 
 
@@ -45,12 +47,30 @@ class CatalogObject(abc.ABC):
         pass
 
 
+def get_catalog_object_type(catalog: RawCatalog) -> type[CatalogObject]:
+    if catalog == RawCatalog.DESIGNATION:
+        return DesignationCatalogObject
+    if catalog == RawCatalog.ICRS:
+        return ICRSCatalogObject
+
+    raise ValueError(f"Unknown catalog: {catalog}")
+
+
+def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject]:
+    return [
+        DesignationCatalogObject(obj.pgc, obj.object_id, obj.data.primary_name),
+        ICRSCatalogObject(
+            obj.pgc, obj.object_id, obj.data.coordinates.ra.deg, obj.data.coordinates.dec.deg, 0.01, 0.02
+        ),
+    ]
+
+
 @final
 class DesignationCatalogObject(CatalogObject):
-    def __init__(self, pgc: int, object_id: str, designation: str) -> None:
+    def __init__(self, pgc: int, object_id: str, design: str) -> None:
         self._pgc = pgc
         self._object_id = object_id
-        self.designation = designation
+        self.designation = design
 
     def pgc(self) -> int:
         return self._pgc
