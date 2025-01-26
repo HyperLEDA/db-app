@@ -13,7 +13,7 @@ install:
 	uv init
 
 adminapi:
-	uv run main.py adminapi -c configs/dev/config.yaml
+	uv run main.py adminapi -c configs/dev/adminapi.yaml
 
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml
