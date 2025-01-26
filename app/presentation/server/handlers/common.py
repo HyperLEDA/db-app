@@ -2,9 +2,9 @@ import dataclasses
 import datetime
 import enum
 import json
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from aiohttp import typedefs as httptypes
 from aiohttp import web

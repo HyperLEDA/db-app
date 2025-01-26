@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import astropy.io.votable.ucd as ucd
 import regex
@@ -77,7 +77,7 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
 
     title = publication["title"][0]
     authors = list(publication["author"])
-    year = datetime.strptime(publication["pubdate"], "%Y-%m-00").astimezone(timezone.utc).year
+    year = datetime.strptime(publication["pubdate"], "%Y-%m-00").astimezone(UTC).year
 
     return repo.create_bibliography(code, year, authors, title)
 

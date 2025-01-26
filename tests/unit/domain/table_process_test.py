@@ -59,7 +59,7 @@ class TableProcessTest(unittest.TestCase):
                 20.0,
                 20.0,
                 result.CrossIdentifyResult(
-                    Layer2Model(1234, ICRS(), [], "obj1", 1, 2, datetime.datetime.now(tz=datetime.timezone.utc)), None
+                    Layer2Model(1234, ICRS(), [], "obj1", 1, 2, datetime.datetime.now(tz=datetime.UTC)), None
                 ),
                 enums.ObjectProcessingStatus.EXISTING,
                 {},
@@ -122,7 +122,7 @@ class TableProcessTest(unittest.TestCase):
         calls = self.depot.layer0_repo.upsert_object.call_args_list
         self.assertEqual(len(calls), len(expected))
 
-        for call, (status, metadata, pgc) in zip(calls, expected):
+        for call, (status, metadata, pgc) in zip(calls, expected, strict=False):
             self.assertEqual(call.args[1].status, status)
             self.assertEqual(call.args[1].metadata, metadata)
             if pgc is not None:

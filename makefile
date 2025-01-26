@@ -7,18 +7,16 @@ all: test
 ## General targets
 
 recreate-venv:
-	rm -rf .venv
-	python3.10 -m venv .venv
-	. .venv/bin/activate && make install
+	uv venv
 
 install:
-	$(PYTHON) -m pip install -r requirements.txt
+	uv init
 
 runserver:
-	$(PYTHON) main.py runserver -c configs/dev/config.yaml
+	uv run main.py runserver -c configs/dev/config.yaml
 
 rundataapi:
-	$(PYTHON) main.py dataapi -c configs/dev/dataapi.yaml
+	uv run main.py dataapi -c configs/dev/dataapi.yaml
 
 runworker:
 	rq worker default
@@ -30,50 +28,62 @@ stop-db:
 	docker-compose down
 
 docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs serve -a localhost:8080
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	uvx \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
+		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs gh-deploy
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	uvx \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
+		mkdocs gh-deploy
 
 build-docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs build
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	uvx \
+		--with 'mkdocs-material>=9.5.50' \
+		--with 'mkdocs-section-index>=0.3.9' \
+		--with 'neoteroi-mkdocs>=1.1.0' \
+		mkdocs build
 
 ## Testing
 
 check:
-	$(PYTHON) -m ruff format --config=pyproject.toml --check
-	$(PYTHON) -m ruff check --config=pyproject.toml
+	uvx ruff format --config=pyproject.toml --check
+	uvx ruff check --config=pyproject.toml
 
-# we use pytest to run unittest test cases
+# pytest is used to run unittest test cases
 test: check
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests/env_test.py
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests/unit
+	uv run pytest --config-file=pyproject.toml tests/env_test.py
+	uv run pytest --config-file=pyproject.toml tests/unit
 
 test-all: check
-	$(PYTHON) -m pytest --config-file=pyproject.toml tests
+	uv run pytest --config-file=pyproject.toml tests
 
 test-regression:
-	$(PYTHON) main.py regression-tests
+	uv run main.py regression-tests
 
 mypy:
-	$(PYTHON) -m mypy app --config-file pyproject.toml
-	$(PYTHON) -m mypy tests --config-file pyproject.toml
+	uvx mypy app --config-file pyproject.toml
+	uvx mypy tests --config-file pyproject.toml
 
 coverage:
-	$(PYTHON) -m coverage run -m unittest discover -s tests -p "*_test.py" -v
-	$(PYTHON) -m coverage html
+	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
+	uvx coverage html
 
 ## Fix code
 
 fix:
-	$(PYTHON) -m ruff format --config=pyproject.toml
-	$(PYTHON) -m ruff check --config=pyproject.toml --fix
+	uvx ruff format --config=pyproject.toml
+	uvx ruff check --config=pyproject.toml --fix
 
 fix-unsafe:
-	$(PYTHON) -m ruff check --config=pyproject.toml --unsafe-fixes --fix
+	uvx ruff check --config=pyproject.toml --unsafe-fixes --fix
 
 ## Deploy
 

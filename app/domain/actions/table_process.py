@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle

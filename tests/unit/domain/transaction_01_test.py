@@ -1,5 +1,4 @@
 import unittest
-from typing import Optional
 
 from pandas import DataFrame
 
@@ -56,7 +55,7 @@ class MockedCachingLayer1Repo(Layer1Repository):
     def __init__(self):
         self.last_saved_instances = None
 
-    async def get_by_name(self, name: str) -> Optional[Layer1Model]:
+    async def get_by_name(self, name: str) -> Layer1Model | None:
         return None
 
     async def get_inside_square(

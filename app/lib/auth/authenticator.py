@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 
@@ -52,7 +52,7 @@ class PostgresAuthenticator(interface.Authenticator):
             params=[
                 token,
                 user_info["id"],
-                datetime.now(timezone.utc) + timedelta(seconds=self.token_lifetime),
+                datetime.now(UTC) + timedelta(seconds=self.token_lifetime),
             ],
         )
         return token, True
@@ -66,7 +66,7 @@ class PostgresAuthenticator(interface.Authenticator):
                 JOIN common.users AS u ON t.user_id = u.id
                 WHERE t.token = %s AND t.expiry_time > %s AND t.active
                 """,
-                params=[token, datetime.now(timezone.utc)],
+                params=[token, datetime.now(UTC)],
             )
         except RuntimeError:
             return None, False

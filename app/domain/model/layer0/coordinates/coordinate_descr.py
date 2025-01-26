@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import Any, Union
+from typing import Any
 
 from astropy.coordinates import ICRS, SkyCoord
 from pandas import DataFrame
@@ -19,7 +19,7 @@ class CoordinateDescr(ABC):
         """
         self._col_names: list[str] = list(col_names)
 
-    def parse_coordinates(self, data: DataFrame) -> Sequence[Union[ICRS, ValueError]]:
+    def parse_coordinates(self, data: DataFrame) -> Sequence[ICRS | ValueError]:
         try:
             col = data[self._col_names]
         except KeyError as e:
@@ -27,7 +27,7 @@ class CoordinateDescr(ABC):
 
         return col.apply(self.__parse_row, axis=1)
 
-    def __parse_row(self, data: Iterable[Any]) -> Union[ICRS, ValueError]:
+    def __parse_row(self, data: Iterable[Any]) -> ICRS | ValueError:
         """
         :param data: Collection of values from table row, order is as specified in column_names in constructor
         :return: Parsed coordinates or ValueError if parsing ended up in error

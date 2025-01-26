@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates.coordinate_descr import CoordinateDescr
@@ -23,8 +22,8 @@ class Layer0Meta:
     """
 
     value_descriptions: list[ValueDescr]
-    coordinate_descr: Optional[CoordinateDescr]
-    names_descr: Optional[NameDescr]
-    dataset: Optional[Dataset]
-    comment: Optional[str]
-    biblio: Optional[Biblio]
+    coordinate_descr: CoordinateDescr | None
+    names_descr: NameDescr | None
+    dataset: Dataset | None
+    comment: str | None
+    biblio: Biblio | None

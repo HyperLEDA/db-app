@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -9,5 +8,5 @@ class ColumnNotFoundException(RuntimeError):
     """
 
     column_names: list[str]
-    cause: Optional[BaseException] = None
-    message: Optional[str] = None
+    cause: BaseException | None = None
+    message: str | None = None
