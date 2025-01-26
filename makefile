@@ -36,8 +36,8 @@ deploy-docs:
 	$(PYTHON) -m mkdocs gh-deploy
 
 build-docs:
-	$(PYTHON) main.py generate-spec -o docs/gen/swagger.json
-	$(PYTHON) -m mkdocs build
+	uv run main.py generate-spec -o docs/gen/swagger.json
+	mkdocs build
 
 ## Testing
 
