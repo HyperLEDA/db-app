@@ -1,3 +1,5 @@
+import http
+
 from app.lib.web import server
 from app.presentation.dataapi import interface, query_simple
 
@@ -10,7 +12,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.GET,
+                    http.HTTPMethod.GET,
                     "/api/v1/query/simple",
                     query_simple.QuerySimpleRequestSchema,
                     query_simple.QuerySimpleResponseSchema,

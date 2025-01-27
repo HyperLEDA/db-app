@@ -1,3 +1,5 @@
+import http
+
 from app.lib.web import server
 from app.presentation.adminapi import (
     add_data,
@@ -24,7 +26,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/table/data",
                     add_data.AddDataRequestSchema,
                     add_data.AddDataResponseSchema,
@@ -34,7 +36,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/source",
                     create_source.CreateSourceRequestSchema,
                     create_source.CreateSourceResponseSchema,
@@ -44,7 +46,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/table",
                     create_table.CreateTableRequestSchema,
                     create_table.CreateTableResponseSchema,
@@ -54,7 +56,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.GET,
+                    http.HTTPMethod.GET,
                     "/api/v1/source",
                     get_source.GetSourceRequestSchema,
                     get_source.GetSourceResponseSchema,
@@ -64,7 +66,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.GET,
+                    http.HTTPMethod.GET,
                     "/api/v1/admin/task",
                     get_task_info.GetTaskInfoRequestSchema,
                     get_task_info.GetTaskInfoResponseSchema,
@@ -74,7 +76,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/login",
                     login.LoginRequestSchema,
                     login.LoginResponseSchema,
@@ -84,7 +86,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/table/status",
                     set_table_status.SetTableStatusRequestSchema,
                     set_table_status.SetTableStatusResponseSchema,
@@ -94,7 +96,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/task",
                     start_task.StartTaskRequestSchema,
                     start_task.StartTaskResponseSchema,
@@ -104,7 +106,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.POST,
+                    http.HTTPMethod.POST,
                     "/api/v1/admin/table/process",
                     table_process.TableProcessRequestSchema,
                     table_process.TableProcessResponseSchema,
@@ -114,7 +116,7 @@ class Server(server.WebServer):
             server.ActionRoute(
                 actions,
                 server.RouteInfo(
-                    server.HTTPMethod.GET,
+                    http.HTTPMethod.GET,
                     "/api/v1/table/status/stats",
                     table_status_stats.TableStatusStatsRequestSchema,
                     table_status_stats.TableStatusStatsResponseSchema,

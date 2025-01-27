@@ -2,6 +2,7 @@ import abc
 import dataclasses
 import datetime
 import enum
+import http
 import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -48,15 +49,9 @@ class Route(abc.ABC):
         """
 
 
-class HTTPMethod(enum.Enum):
-    GET = "GET"
-    POST = "POST"
-    # add more if needed
-
-
 @dataclass
 class RouteInfo:
-    method: HTTPMethod
+    method: http.HTTPMethod
     endpoint: str
     request_schema: type[marshmallow.Schema]
     response_schema: type[marshmallow.Schema]
