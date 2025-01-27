@@ -1,14 +1,4 @@
-import dataclasses
-import datetime
-import enum
-import json
-from collections.abc import Awaitable, Callable
-from functools import wraps
-from typing import Any
-
-from aiohttp import web
-
-from app.lib.web import responses, server
+from app.lib.web import server
 from app.presentation.adminapi import (
     add_data,
     create_source,
@@ -24,63 +14,6 @@ from app.presentation.adminapi import (
 )
 
 
-def datetime_handler(obj: Any):
-    if isinstance(obj, datetime.datetime):
-        return obj.isoformat()
-
-    if isinstance(obj, enum.Enum):
-        return obj.value
-
-    raise TypeError("Unknown type")
-
-
-def custom_dumps(obj):
-    return json.dumps(obj, default=datetime_handler)
-
-
-def json_wrapper(
-    d: interface.Actions, func: Callable[[interface.Actions, web.Request], Awaitable[responses.APIOkResponse]]
-) -> Callable[[web.Request], Awaitable[web.Response]]:
-    @wraps(func)
-    async def inner(request: web.Request) -> web.Response:
-        response = await func(d, request)
-
-        return web.json_response(
-            {"data": dataclasses.asdict(response.data)},
-            dumps=custom_dumps,
-            status=response.status,
-        )
-
-    return inner
-
-
-class Route(server.Route):
-    def __init__(
-        self,
-        actions: interface.Actions,
-        info: server.RouteInfo,
-        func: Callable[[interface.Actions, web.Request], Awaitable[responses.APIOkResponse]],
-    ) -> None:
-        self.actions = actions
-        self.info = info
-        self.func = func
-
-    def request_schema(self):
-        return self.info.request_schema
-
-    def response_schema(self):
-        return self.info.response_schema
-
-    def method(self):
-        return self.info.method.value
-
-    def path(self):
-        return self.info.endpoint
-
-    def handler(self):
-        return json_wrapper(self.actions, self.func)
-
-
 class Server(server.WebServer):
     def __init__(self, actions: interface.Actions, config: server.ServerConfig, *args, **kwargs):
         super().__init__(self.routes(actions), config, *args, **kwargs)
@@ -88,7 +21,7 @@ class Server(server.WebServer):
     @classmethod
     def routes(cls, actions: interface.Actions) -> list[server.Route]:
         return [
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -98,7 +31,7 @@ class Server(server.WebServer):
                 ),
                 add_data.add_data_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -108,7 +41,7 @@ class Server(server.WebServer):
                 ),
                 create_source.create_source_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -118,7 +51,7 @@ class Server(server.WebServer):
                 ),
                 create_table.create_table_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.GET,
@@ -128,7 +61,7 @@ class Server(server.WebServer):
                 ),
                 get_source.get_source_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.GET,
@@ -138,7 +71,7 @@ class Server(server.WebServer):
                 ),
                 get_task_info.get_task_info_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -148,7 +81,7 @@ class Server(server.WebServer):
                 ),
                 login.login_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -158,7 +91,7 @@ class Server(server.WebServer):
                 ),
                 set_table_status.set_table_status_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -168,7 +101,7 @@ class Server(server.WebServer):
                 ),
                 start_task.start_task_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.POST,
@@ -178,7 +111,7 @@ class Server(server.WebServer):
                 ),
                 table_process.table_process_handler,
             ),
-            Route(
+            server.ActionRoute(
                 actions,
                 server.RouteInfo(
                     server.HTTPMethod.GET,

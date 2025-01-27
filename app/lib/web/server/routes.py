@@ -1,25 +1,19 @@
 import abc
+import dataclasses
+import datetime
 import enum
+import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from functools import wraps
+from typing import Any
 
 import aiohttp
 import aiohttp.typedefs
-import aiohttp.web
 import marshmallow
+from aiohttp import web
 
-
-class HTTPMethod(enum.Enum):
-    GET = "GET"
-    POST = "POST"
-    # add more if needed
-
-
-@dataclass
-class RouteInfo:
-    method: HTTPMethod
-    endpoint: str
-    request_schema: type[marshmallow.Schema]
-    response_schema: type[marshmallow.Schema]
+from app.lib.web import responses
 
 
 class Route(abc.ABC):
@@ -52,3 +46,68 @@ class Route(abc.ABC):
         """
         Returns handler of the route.
         """
+
+
+class HTTPMethod(enum.Enum):
+    GET = "GET"
+    POST = "POST"
+    # add more if needed
+
+
+@dataclass
+class RouteInfo:
+    method: HTTPMethod
+    endpoint: str
+    request_schema: type[marshmallow.Schema]
+    response_schema: type[marshmallow.Schema]
+
+
+def datetime_handler(obj: Any):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+
+    if isinstance(obj, enum.Enum):
+        return obj.value
+
+    raise TypeError("Unknown type")
+
+
+def custom_dumps(obj):
+    return json.dumps(obj, default=datetime_handler)
+
+
+class ActionRoute[Actions](Route):
+    def __init__(
+        self,
+        actions: Actions,
+        info: RouteInfo,
+        func: Callable[[Actions, web.Request], Awaitable[responses.APIOkResponse]],
+    ) -> None:
+        self.actions = actions
+        self.info = info
+        self.func = func
+
+    def request_schema(self) -> type[marshmallow.Schema]:
+        return self.info.request_schema
+
+    def response_schema(self) -> type[marshmallow.Schema]:
+        return self.info.response_schema
+
+    def method(self) -> str:
+        return self.info.method.value
+
+    def path(self) -> str:
+        return self.info.endpoint
+
+    def handler(self) -> aiohttp.typedefs.Handler:
+        @wraps(self.func)
+        async def inner(request: web.Request) -> web.Response:
+            response = await self.func(self.actions, request)
+
+            return web.json_response(
+                {"data": dataclasses.asdict(response.data)},
+                dumps=custom_dumps,
+                status=response.status,
+            )
+
+        return inner
