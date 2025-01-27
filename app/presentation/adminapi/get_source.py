@@ -1,23 +1,19 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class GetSourceRequestSchema(Schema):
+class GetSourceRequestSchema(schema.RequestSchema):
     id = fields.Int(
         required=True,
         description="HyperLeda source id",
     )
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.GetSourceRequest:
-        return schema.GetSourceRequest(**data)
+    class Meta:
+        model = interface.GetSourceRequest
 
 
 class GetSourceResponseSchema(Schema):
@@ -27,7 +23,7 @@ class GetSourceResponseSchema(Schema):
     year = fields.Int(description="Year of the publication")
 
 
-async def get_source_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def get_source_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get information about source
     description: Retrieves information about the source using its id
@@ -50,13 +46,4 @@ async def get_source_handler(dpt: depot.Depot, r: web.Request) -> responses.APIO
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.get_source(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.GET,
-    "/api/v1/source",
-    get_source_handler,
-    GetSourceRequestSchema,
-    GetSourceResponseSchema,
-)
+    return responses.APIOkResponse(actions.get_source(request))

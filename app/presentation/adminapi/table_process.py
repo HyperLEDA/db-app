@@ -1,15 +1,12 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class CrossIdentificationSchema(Schema):
+class CrossIdentificationSchema(schema.RequestSchema):
     inner_radius_arcsec = fields.Float(
         allow_nan=True,
         load_default=1.5,
@@ -21,12 +18,11 @@ class CrossIdentificationSchema(Schema):
         description="Outer radius for the cross-identification collision detection",
     )
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.CrossIdentification:
-        return schema.CrossIdentification(**data)
+    class Meta:
+        model = interface.CrossIdentification
 
 
-class TableProcessRequestSchema(Schema):
+class TableProcessRequestSchema(schema.RequestSchema):
     table_id = fields.Integer(required=True, description="Identifier of the table")
     cross_identification = fields.Nested(
         CrossIdentificationSchema,
@@ -34,16 +30,15 @@ class TableProcessRequestSchema(Schema):
         description="Cross-identification parameters for the processing",
     )
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.TableProcessRequest:
-        return schema.TableProcessRequest(**data)
+    class Meta:
+        model = interface.TableProcessRequest
 
 
 class TableProcessResponseSchema(Schema):
     pass
 
 
-async def table_process_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def table_process_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Start processing of the table
     description: |
@@ -71,13 +66,4 @@ async def table_process_handler(dpt: depot.Depot, r: web.Request) -> responses.A
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.table_process(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/admin/table/process",
-    table_process_handler,
-    TableProcessRequestSchema,
-    TableProcessResponseSchema,
-)
+    return responses.APIOkResponse(actions.table_process(request))

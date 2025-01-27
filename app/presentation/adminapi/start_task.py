@@ -1,15 +1,12 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class StartTaskRequestSchema(Schema):
+class StartTaskRequestSchema(schema.RequestSchema):
     task_name = fields.Str(required=True, description="Name of the task to start", example="echo")
     payload = fields.Dict(
         keys=fields.Str(),
@@ -17,16 +14,15 @@ class StartTaskRequestSchema(Schema):
         example={"sleep_time_seconds": 2},
     )
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.StartTaskRequest:
-        return schema.StartTaskRequest(**data)
+    class Meta:
+        model = interface.StartTaskRequest
 
 
 class StartTaskResponseSchema(Schema):
     id = fields.Int(description="ID of the task")
 
 
-async def start_task_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def start_task_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Start processing task
     description: Starts background task.
@@ -53,13 +49,4 @@ async def start_task_handler(dpt: depot.Depot, r: web.Request) -> responses.APIO
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.start_task(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/admin/task",
-    start_task_handler,
-    StartTaskRequestSchema,
-    StartTaskResponseSchema,
-)
+    return responses.APIOkResponse(actions.start_task(request))

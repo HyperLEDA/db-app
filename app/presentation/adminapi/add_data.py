@@ -1,15 +1,12 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class AddDataRequestSchema(Schema):
+class AddDataRequestSchema(schema.RequestSchema):
     table_id = fields.Int(required=True, description="ID of the table to add data to")
     data = fields.List(
         fields.Dict(fields.Str),
@@ -25,16 +22,15 @@ class AddDataRequestSchema(Schema):
         ],
     )
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.AddDataRequest:
-        return schema.AddDataRequest(**data)
+    class Meta:
+        model = interface.AddDataRequest
 
 
 class AddDataResponseSchema(Schema):
     pass
 
 
-async def add_data_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def add_data_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Add new raw data to the table
     description: |
@@ -65,13 +61,4 @@ async def add_data_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkR
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.add_data(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/admin/table/data",
-    add_data_handler,
-    AddDataRequestSchema,
-    AddDataResponseSchema,
-)
+    return responses.APIOkResponse(actions.add_data(request))
