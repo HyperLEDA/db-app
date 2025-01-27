@@ -14,7 +14,7 @@ class OverridesSchema(schema.RequestSchema):
         model = interface.SetTableStatusOverrides
 
 
-class SetTableStatusRequestSchema(Schema):
+class SetTableStatusRequestSchema(schema.RequestSchema):
     table_id = fields.Integer(required=True, description="Identifier of the table")
     overrides = fields.List(fields.Nested(OverridesSchema))
 
