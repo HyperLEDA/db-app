@@ -1,3 +1,5 @@
+from unittest import mock
+
 from astroquery import nasa_ads as ads
 from astroquery import vizier
 
@@ -12,3 +14,11 @@ class Clients:
 
         self.vizier = vizier.VizierClass()
         self.vizier.TIMEOUT = 30
+
+
+def get_mock_clients() -> Clients:
+    c = Clients(ads_token="test")
+    c.ads = mock.MagicMock()
+    c.vizier = mock.MagicMock()
+
+    return c
