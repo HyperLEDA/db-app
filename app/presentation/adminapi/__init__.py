@@ -7,6 +7,7 @@ from app.presentation.adminapi.interface import (
     CreateSourceResponse,
     CreateTableRequest,
     CreateTableResponse,
+    CrossIdentification,
     GetSourceRequest,
     GetSourceResponse,
     GetTaskInfoRequest,
@@ -28,6 +29,7 @@ from app.presentation.adminapi.server import Server
 __all__ = [
     "Actions",
     "Server",
+    "CrossIdentification",
     "AddDataRequest",
     "AddDataResponse",
     "ColumnDescription",
