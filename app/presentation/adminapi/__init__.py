@@ -5,7 +5,6 @@ from app.presentation.adminapi import (
     get_source,
     get_task_info,
     login,
-    ping,
     set_table_status,
     start_task,
     table_process,
@@ -13,7 +12,6 @@ from app.presentation.adminapi import (
 )
 
 routes = [
-    ping.description,
     create_source.description,
     get_source.description,
     start_task.description,
