@@ -1,5 +1,46 @@
 {
   "paths": {
+    "/api/v1/admin/table/data": {
+      "post": {
+        "summary": "Add new raw data to the table",
+        "description": "Inserts new data to the table.\n\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.\n",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "admin",
+          "table"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDataRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Source was successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AddDataResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/source": {
       "post": {
         "summary": "New source entry",
@@ -32,125 +73,6 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/CreateSourceResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/source": {
-      "get": {
-        "summary": "Get information about source",
-        "description": "Retrieves information about the source using its id",
-        "tags": [
-          "source"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "id",
-            "description": "HyperLeda source id",
-            "schema": {
-              "type": "integer"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Source was successfully obtained",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetSourceResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/task": {
-      "post": {
-        "summary": "Start processing task",
-        "description": "Starts background task.",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "admin",
-          "tasks"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartTaskRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Task successfully started",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateSourceResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "summary": "Get information about the task",
-        "description": "Retrieves information about the task using its id.",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "tasks",
-          "admin"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "task_id",
-            "description": "ID of the task",
-            "schema": {
-              "type": "integer"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Task was successfully obtained",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetTaskInfoResponseSchema"
                     }
                   }
                 }
@@ -216,10 +138,88 @@
         }
       }
     },
-    "/api/v1/admin/table/data": {
+    "/api/v1/source": {
+      "get": {
+        "summary": "Get information about source",
+        "description": "Retrieves information about the source using its id",
+        "tags": [
+          "source"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "description": "HyperLeda source id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source was successfully obtained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GetSourceResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/task": {
+      "get": {
+        "summary": "Get information about the task",
+        "description": "Retrieves information about the task using its id.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "tasks",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "task_id",
+            "description": "ID of the task",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task was successfully obtained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GetTaskInfoResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
-        "summary": "Add new raw data to the table",
-        "description": "Inserts new data to the table.\n\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.\n",
+        "summary": "Start processing task",
+        "description": "Starts background task.",
         "security": [
           {
             "TokenAuth": []
@@ -227,27 +227,27 @@
         ],
         "tags": [
           "admin",
-          "table"
+          "tasks"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddDataRequestSchema"
+                "$ref": "#/components/schemas/StartTaskRequestSchema"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Source was successfully created",
+            "description": "Task successfully started",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/AddDataResponseSchema"
+                      "$ref": "#/components/schemas/CreateSourceResponseSchema"
                     }
                   }
                 }
@@ -283,6 +283,47 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/LoginResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/table/status": {
+      "post": {
+        "summary": "Set status of the table",
+        "description": "Set status of the table and its objects.\n",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "admin",
+          "table"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTableStatusRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status successfully set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SetTableStatusResponseSchema"
                     }
                   }
                 }
@@ -375,47 +416,6 @@
           }
         }
       }
-    },
-    "/api/v1/admin/table/status": {
-      "post": {
-        "summary": "Set status of the table",
-        "description": "Set status of the table and its objects.\n",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "admin",
-          "table"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetTableStatusRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Status successfully set",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/SetTableStatusResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "info": {
@@ -425,6 +425,43 @@
   "openapi": "3.0.2",
   "components": {
     "schemas": {
+      "AddDataRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "ID of the table to add data to"
+          },
+          "data": {
+            "type": "array",
+            "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n        ",
+            "example": [
+              {
+                "name": "M 33",
+                "ra": 1.5641,
+                "dec": 30.6602
+              },
+              {
+                "name": "M 31",
+                "ra": 0.7123,
+                "dec": 41.269
+              }
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "data",
+          "table_id"
+        ]
+      },
+      "AddDataResponseSchema": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateSourceRequestSchema": {
         "type": "object",
         "properties": {
@@ -463,121 +500,6 @@
         "required": [
           "code"
         ]
-      },
-      "GetSourceRequestSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "HyperLeda source id"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "GetSourceResponseSchema": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Bibcode or internal code of the publication"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title of publication"
-          },
-          "authors": {
-            "type": "array",
-            "description": "List of authors",
-            "items": {
-              "type": "string"
-            }
-          },
-          "year": {
-            "type": "integer",
-            "description": "Year of the publication"
-          }
-        }
-      },
-      "StartTaskRequestSchema": {
-        "type": "object",
-        "properties": {
-          "task_name": {
-            "type": "string",
-            "description": "Name of the task to start",
-            "example": "echo"
-          },
-          "payload": {
-            "type": "object",
-            "description": "Payload to the task",
-            "example": {
-              "sleep_time_seconds": 2
-            },
-            "additionalProperties": {}
-          }
-        },
-        "required": [
-          "task_name"
-        ]
-      },
-      "StartTaskResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "ID of the task"
-          }
-        }
-      },
-      "GetTaskInfoRequestSchema": {
-        "type": "object",
-        "properties": {
-          "task_id": {
-            "type": "integer",
-            "description": "ID of the task"
-          }
-        },
-        "required": [
-          "task_id"
-        ]
-      },
-      "GetTaskInfoResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "ID of the task"
-          },
-          "task_name": {
-            "type": "string",
-            "description": "Name of the task from task registry"
-          },
-          "status": {
-            "type": "string",
-            "description": "Task status"
-          },
-          "payload": {
-            "type": "object",
-            "description": "Payload to the task",
-            "additionalProperties": {}
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Time when task started"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Time when task ended"
-          },
-          "message": {
-            "type": "object",
-            "description": "Message associated with the task status",
-            "additionalProperties": {}
-          }
-        }
       },
       "ColumnDescription": {
         "type": "object",
@@ -704,42 +626,90 @@
           "id"
         ]
       },
-      "AddDataRequestSchema": {
+      "GetSourceRequestSchema": {
         "type": "object",
         "properties": {
-          "table_id": {
+          "id": {
             "type": "integer",
-            "description": "ID of the table to add data to"
-          },
-          "data": {
-            "type": "array",
-            "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n        ",
-            "example": [
-              {
-                "name": "M 33",
-                "ra": 1.5641,
-                "dec": 30.6602
-              },
-              {
-                "name": "M 31",
-                "ra": 0.7123,
-                "dec": 41.269
-              }
-            ],
-            "items": {
-              "type": "object",
-              "additionalProperties": {}
-            }
+            "description": "HyperLeda source id"
           }
         },
         "required": [
-          "data",
-          "table_id"
+          "id"
         ]
       },
-      "AddDataResponseSchema": {
+      "GetSourceResponseSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Bibcode or internal code of the publication"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of publication"
+          },
+          "authors": {
+            "type": "array",
+            "description": "List of authors",
+            "items": {
+              "type": "string"
+            }
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year of the publication"
+          }
+        }
+      },
+      "GetTaskInfoRequestSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "integer",
+            "description": "ID of the task"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      },
+      "GetTaskInfoResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID of the task"
+          },
+          "task_name": {
+            "type": "string",
+            "description": "Name of the task from task registry"
+          },
+          "status": {
+            "type": "string",
+            "description": "Task status"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Payload to the task",
+            "additionalProperties": {}
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time when task started"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time when task ended"
+          },
+          "message": {
+            "type": "object",
+            "description": "Message associated with the task status",
+            "additionalProperties": {}
+          }
+        }
       },
       "LoginRequestSchema": {
         "type": "object",
@@ -764,6 +734,75 @@
           "token": {
             "type": "string",
             "description": "Token used to authenticate user in handlers that require a specific role to access"
+          }
+        }
+      },
+      "Overrides": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Internal ID of the object in the original table"
+          },
+          "pgc": {
+            "type": "integer",
+            "description": "Validated external ID of the object"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "SetTableStatusRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "Identifier of the table"
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Overrides"
+            }
+          }
+        },
+        "required": [
+          "table_id"
+        ]
+      },
+      "SetTableStatusResponseSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "StartTaskRequestSchema": {
+        "type": "object",
+        "properties": {
+          "task_name": {
+            "type": "string",
+            "description": "Name of the task to start",
+            "example": "echo"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Payload to the task",
+            "example": {
+              "sleep_time_seconds": 2
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "task_name"
+        ]
+      },
+      "StartTaskResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID of the task"
           }
         }
       },
@@ -828,45 +867,6 @@
             }
           }
         }
-      },
-      "Overrides": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Internal ID of the object in the original table"
-          },
-          "pgc": {
-            "type": "integer",
-            "description": "Validated external ID of the object"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "SetTableStatusRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_id": {
-            "type": "integer",
-            "description": "Identifier of the table"
-          },
-          "overrides": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Overrides"
-            }
-          }
-        },
-        "required": [
-          "table_id"
-        ]
-      },
-      "SetTableStatusResponseSchema": {
-        "type": "object",
-        "properties": {}
       }
     },
     "securitySchemes": {
