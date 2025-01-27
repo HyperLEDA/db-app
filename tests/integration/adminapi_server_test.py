@@ -13,7 +13,7 @@ from app.lib import testing
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
-class ServerTest(unittest.TestCase):
+class AdminAPIServerTest(unittest.TestCase):
     """
     Tests server startup.
     """

@@ -64,6 +64,11 @@ class WebServer:
 
         spec, router = get_router(routes)
 
+        async def ping_handler(request: web.Request) -> web.Response:
+            return web.json_response({"data": {"ping": "pong"}})
+
+        router.add_route("GET", "/ping", ping_handler)
+
         log.debug("initialized routes", n=len(routes))
 
         app = web.Application(middlewares=middlewares, router=router)
