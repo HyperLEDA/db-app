@@ -1,22 +1,18 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load, validate
+from marshmallow import Schema, ValidationError, fields, validate
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class CreateSourceRequestSchema(Schema):
+class CreateSourceRequestSchema(schema.RequestSchema):
     title = fields.Str(required=True, description="Title of publication")
     authors = fields.List(fields.Str, required=True, description="List of authors")
     year = fields.Int(required=True, description="Year of the publication", validate=validate.Range(1500), example=2006)
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.CreateSourceRequest:
-        return schema.CreateSourceRequest(**data)
+    class Meta:
+        model = interface.CreateSourceRequest
 
 
 class CreateSourceResponseSchema(Schema):
@@ -26,7 +22,7 @@ class CreateSourceResponseSchema(Schema):
     )
 
 
-async def create_source_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def create_source_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: New source entry
     description: Creates new source entry in the database for internal communication and unpublished articles.
@@ -53,13 +49,4 @@ async def create_source_handler(dpt: depot.Depot, r: web.Request) -> responses.A
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.create_source(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/admin/source",
-    create_source_handler,
-    CreateSourceRequestSchema,
-    CreateSourceResponseSchema,
-)
+    return responses.APIOkResponse(actions.create_source(request))

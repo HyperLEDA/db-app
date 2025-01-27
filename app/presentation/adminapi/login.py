@@ -1,21 +1,17 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class LoginRequestSchema(Schema):
+class LoginRequestSchema(schema.RequestSchema):
     username = fields.Str(required=True, description="Username")
     password = fields.Str(required=True, description="Password")
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.LoginRequest:
-        return schema.LoginRequest(**data)
+    class Meta:
+        model = interface.LoginRequest
 
 
 class LoginResponseSchema(Schema):
@@ -24,7 +20,7 @@ class LoginResponseSchema(Schema):
     )
 
 
-async def login_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def login_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Login user with username and password
     description: Gives user credentials for authentication in handlers
@@ -49,13 +45,4 @@ async def login_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResp
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.login(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/login",
-    login_handler,
-    LoginRequestSchema,
-    LoginResponseSchema,
-)
+    return responses.APIOkResponse(actions.login(request))

@@ -5,14 +5,13 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app import schema
-from app.commands.adminapi import depot
 from app.data import repositories
-from app.domain import adminapi
-from app.entities.layer0 import ColumnDescription, Layer0Creation, Layer0RawData
-from app.lib import testing
+from app.domain import adminapi as domain
+from app.entities import ColumnDescription, Layer0Creation, Layer0RawData
+from app.lib import clients, testing
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
+from app.presentation import adminapi as presentation
 
 
 class RawDataTableTest(unittest.TestCase):
@@ -20,16 +19,18 @@ class RawDataTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = testing.get_test_postgres_storage()
 
-        cls.depot = depot.get_mock_depot()
-        cls.depot.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.depot.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.manager = domain.TableUploadManager(
+            repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),
+            repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
+            clients.get_mock_clients(),
+        )
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def test_create_table_happy_case(self):
         testing.returns(
-            self.depot.clients.ads.query_simple,
+            self.manager.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -40,14 +41,13 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = adminapi.create_table(
-            self.depot,
-            schema.CreateTableRequest(
+        table_resp, _ = self.manager.create_table(
+            presentation.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
-                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
+                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -55,9 +55,8 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        adminapi.add_data(
-            self.depot,
-            schema.AddDataRequest(
+        self.manager.add_data(
+            presentation.AddDataRequest(
                 table_id=table_resp.id,
                 data=[
                     {"ra": 5.5, "dec": 88},
@@ -73,7 +72,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_create_table_with_nulls(self):
         testing.returns(
-            self.depot.clients.ads.query_simple,
+            self.manager.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -84,14 +83,13 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = adminapi.create_table(
-            self.depot,
-            schema.CreateTableRequest(
+        table_resp, _ = self.manager.create_table(
+            presentation.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
-                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
+                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -99,9 +97,8 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
 
-        adminapi.add_data(
-            self.depot,
-            schema.AddDataRequest(
+        self.manager.add_data(
+            presentation.AddDataRequest(
                 table_resp.id,
                 data=[{"ra": 5.5}, {"ra": 5.0}],
             ),
@@ -114,7 +111,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_duplicate_column(self):
         testing.returns(
-            self.depot.clients.ads.query_simple,
+            self.manager.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -126,16 +123,15 @@ class RawDataTableTest(unittest.TestCase):
         )
 
         with self.assertRaises(psycopg.errors.DuplicateColumn):
-            _ = adminapi.create_table(
-                self.depot,
-                schema.CreateTableRequest(
+            _ = self.manager.create_table(
+                presentation.CreateTableRequest(
                     "test_table",
                     [
-                        schema.ColumnDescription("objname", "str", ucd="meta.id"),
-                        schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
-                        schema.ColumnDescription("duplicate", "str"),
-                        schema.ColumnDescription("duplicate", "str"),
+                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
+                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                        presentation.ColumnDescription("duplicate", "str"),
+                        presentation.ColumnDescription("duplicate", "str"),
                     ],
                     bibcode="2024arXiv240411942F",
                     datatype="regular",
@@ -145,7 +141,7 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_add_data_to_unknown_column(self):
         testing.returns(
-            self.depot.clients.ads.query_simple,
+            self.manager.clients.ads.query_simple,
             [
                 {
                     "bibcode": "2024arXiv240411942F",
@@ -156,14 +152,13 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = adminapi.create_table(
-            self.depot,
-            schema.CreateTableRequest(
+        table_resp, _ = self.manager.create_table(
+            presentation.CreateTableRequest(
                 "test_table",
                 [
-                    schema.ColumnDescription("objname", "str", ucd="meta.id"),
-                    schema.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    schema.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
+                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
+                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
                 ],
                 bibcode="2024arXiv240411942F",
                 datatype="regular",
@@ -172,9 +167,8 @@ class RawDataTableTest(unittest.TestCase):
         )
 
         with self.assertRaises(psycopg.errors.UndefinedColumn):
-            adminapi.add_data(
-                self.depot,
-                schema.AddDataRequest(
+            self.manager.add_data(
+                presentation.AddDataRequest(
                     table_resp.id,
                     data=[{"totally_nonexistent_column": 5.5}],
                 ),
@@ -182,8 +176,8 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_resp = self.depot.layer0_repo.create_table(
+        bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        table_resp = self.manager.layer0_repo.create_table(
             Layer0Creation(
                 "test_table",
                 [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
@@ -191,16 +185,16 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self.depot.layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
-        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id)
+        self.manager.layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
+        from_db = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id)
 
         self.assertTrue(from_db.data.equals(data))
 
-        from_db = self.depot.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
+        from_db = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
         self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
-        bib_id = self.depot.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected_creation = Layer0Creation(
             table_name,
@@ -208,8 +202,8 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_resp = self.depot.layer0_repo.create_table(expected_creation)
+        table_resp = self.manager.layer0_repo.create_table(expected_creation)
 
-        from_db = self.depot.layer0_repo.fetch_metadata(table_resp.table_id)
+        from_db = self.manager.layer0_repo.fetch_metadata(table_resp.table_id)
 
         self.assertEqual(expected_creation, from_db)

@@ -1,16 +1,13 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load, validate
+from marshmallow import Schema, ValidationError, fields, validate
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
 from app.lib.storage import enums, mapping
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class ColumnDescriptionSchema(Schema):
+class ColumnDescriptionSchema(schema.RequestSchema):
     name = fields.Str(required=True, description="Name of the column. Should not equal `hyperleda_internal_id`.")
     data_type = fields.Str(required=True, description="Type of data", validate=validate.OneOf(mapping.type_map.keys()))
     unit = fields.Str(allow_none=True, description="Unit of the data", example="m/s")
@@ -19,12 +16,11 @@ class ColumnDescriptionSchema(Schema):
     )
     description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the column")
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.ColumnDescription:
-        return schema.ColumnDescription(**data)
+    class Meta:
+        model = interface.ColumnDescription
 
 
-class CreateTableRequestSchema(Schema):
+class CreateTableRequestSchema(schema.RequestSchema):
     table_name = fields.Str(required=True, description="Name of the table")
     columns = fields.List(
         fields.Nested(ColumnDescriptionSchema),
@@ -49,16 +45,15 @@ class CreateTableRequestSchema(Schema):
     )
     description = fields.Str(allow_none=True, load_default="", description="Human-readable description of the table")
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.CreateTableRequest:
-        return schema.CreateTableRequest(**data)
+    class Meta:
+        model = interface.CreateTableRequest
 
 
 class CreateTableResponseSchema(Schema):
     id = fields.Int(description="Output id of the table", required=True)
 
 
-async def create_table_handler(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def create_table_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get or create schema for the table.
     description: |
@@ -97,18 +92,9 @@ async def create_table_handler(dpt: depot.Depot, r: web.Request) -> responses.AP
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    result, created = adminapi.create_table(dpt, request)
+    result, created = actions.create_table(request)
 
     if created:
         return responses.APIOkResponse(result)
 
     return responses.APIOkResponse(result, status=201)
-
-
-description = common.handler_description(
-    server.HTTPMethod.POST,
-    "/api/v1/admin/table",
-    create_table_handler,
-    CreateTableRequestSchema,
-    CreateTableResponseSchema,
-)

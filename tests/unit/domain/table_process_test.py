@@ -1,20 +1,25 @@
 import datetime
 import unittest
 import uuid
+from unittest import mock
 
 import astropy.units as u
 import pandas
 from astropy.coordinates import ICRS
 
-from app import entities, schema
-from app.commands.adminapi import depot
+from app import entities
 from app.data import repositories
-from app.domain.adminapi.table_process import cross_identification_func_type, table_process_with_cross_identification
+from app.domain import adminapi as domain
+from app.domain.adminapi.cross_identification import (
+    cross_identification_func_type,
+    table_process_with_cross_identification,
+)
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
 from app.lib import testing
 from app.lib.storage import enums
 from app.lib.web import errors
+from app.presentation import adminapi as presentation
 
 
 def get_noop_cross_identification(
@@ -25,11 +30,16 @@ def get_noop_cross_identification(
 
 class TableProcessTest(unittest.TestCase):
     def setUp(self):
-        self.depot = depot.get_mock_depot()
+        self.manager = domain.TableTransferManager(
+            common_repo=mock.MagicMock(),
+            layer0_repo=mock.MagicMock(),
+            layer1_repo=mock.MagicMock(),
+            layer2_repo=mock.MagicMock(),
+        )
 
     def test_invalid_table(self):
         testing.returns(
-            self.depot.layer0_repo.fetch_metadata,
+            self.manager.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -44,11 +54,12 @@ class TableProcessTest(unittest.TestCase):
 
         with self.assertRaises(errors.LogicalError):
             table_process_with_cross_identification(
-                self.depot,
+                self.manager.layer0_repo,
+                self.manager.layer2_repo,
                 ci_func,
-                schema.TableProcessRequest(
+                presentation.TableProcessRequest(
                     table_id=1234,
-                    cross_identification=schema.CrossIdentification(1.5, 4.5),
+                    cross_identification=presentation.CrossIdentification(1.5, 4.5),
                 ),
             )
 
@@ -78,7 +89,7 @@ class TableProcessTest(unittest.TestCase):
         ]
 
         testing.returns(
-            self.depot.layer0_repo.fetch_metadata,
+            self.manager.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
                 column_descriptions=[
@@ -104,23 +115,24 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata, pgc))
 
-        testing.returns(self.depot.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
+        testing.returns(self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
         testing.returns(
-            self.depot.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
+            self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
         )
 
         ci_func = get_noop_cross_identification(ci_results)
 
         table_process_with_cross_identification(
-            self.depot,
+            self.manager.layer0_repo,
+            self.manager.layer2_repo,
             ci_func,
-            schema.TableProcessRequest(
+            presentation.TableProcessRequest(
                 table_id=1234,
-                cross_identification=schema.CrossIdentification(1.5, 4.5),
+                cross_identification=presentation.CrossIdentification(1.5, 4.5),
             ),
         )
 
-        calls = self.depot.layer0_repo.upsert_object.call_args_list
+        calls = self.manager.layer0_repo.upsert_object.call_args_list
         self.assertEqual(len(calls), len(expected))
 
         for call, (status, metadata, pgc) in zip(calls, expected, strict=False):

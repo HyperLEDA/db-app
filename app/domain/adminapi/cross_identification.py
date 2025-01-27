@@ -3,8 +3,7 @@ from collections.abc import Callable
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
-from app import entities, schema
-from app.commands.adminapi import depot
+from app import entities
 from app.data import repositories
 from app.domain import converters
 from app.domain.cross_id_simultaneous_data_provider import (
@@ -16,6 +15,7 @@ from app.domain.model.params.cross_identification_user_param import CrossIdentif
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.lib.storage import enums
 from app.lib.web import errors
+from app.presentation import adminapi
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
@@ -31,16 +31,13 @@ cross_identification_func_type = Callable[
 ]
 
 
-def table_process(dpt: depot.Depot, r: schema.TableProcessRequest) -> schema.TableProcessResponse:
-    return table_process_with_cross_identification(dpt, cross_identification, r)
-
-
 def table_process_with_cross_identification(
-    dpt: depot.Depot,
+    layer0_repo: repositories.Layer0Repository,
+    layer2_repo: repositories.Layer2Repository,
     cross_identification_func: cross_identification_func_type,
-    r: schema.TableProcessRequest,
-) -> schema.TableProcessResponse:
-    meta = dpt.layer0_repo.fetch_metadata(r.table_id)
+    r: adminapi.TableProcessRequest,
+) -> adminapi.TableProcessResponse:
+    meta = layer0_repo.fetch_metadata(r.table_id)
 
     converter = converters.CompositeConverter(
         converters.NameConverter(),
@@ -55,7 +52,7 @@ def table_process_with_cross_identification(
     offset = 0
 
     while True:
-        data = dpt.layer0_repo.fetch_raw_data(
+        data = layer0_repo.fetch_raw_data(
             r.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
         )
         offset += min(r.batch_size, len(data.data))
@@ -67,7 +64,7 @@ def table_process_with_cross_identification(
             obj = converter.apply(entities.ObjectInfo(), obj_data)
 
             result = cross_identification_func(
-                dpt.layer2_repo,
+                layer2_repo,
                 obj,
                 SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
                 CrossIdentificationUserParam(
@@ -77,11 +74,11 @@ def table_process_with_cross_identification(
             )
 
             processing_info = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], result, obj)
-            dpt.layer0_repo.upsert_object(r.table_id, processing_info)
+            layer0_repo.upsert_object(r.table_id, processing_info)
 
     # TODO: remove col_name and coordinate_part from entities?
 
-    return schema.TableProcessResponse()
+    return adminapi.TableProcessResponse()
 
 
 def get_processing_info(

@@ -1,28 +1,24 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load
+from marshmallow import Schema, ValidationError, fields
 
-from app import schema
-from app.commands.adminapi import depot
-from app.domain import adminapi
 from app.lib.storage import enums
-from app.lib.web import responses, server
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
-from app.presentation.adminapi import common
+from app.presentation.adminapi import interface
 
 
-class TableStatusStatsRequestSchema(Schema):
+class TableStatusStatsRequestSchema(schema.RequestSchema):
     table_id = fields.Integer(required=True, description="Identifier of the table")
 
-    @post_load
-    def make(self, data, **kwargs) -> schema.TableStatusStatsRequest:
-        return schema.TableStatusStatsRequest(**data)
+    class Meta:
+        model = interface.TableStatusStatsRequest
 
 
 class TableStatusStatsResponseSchema(Schema):
     processing = fields.Dict(keys=fields.Enum(enums.ObjectProcessingStatus), values=fields.Integer())
 
 
-async def table_status_stats(dpt: depot.Depot, r: web.Request) -> responses.APIOkResponse:
+async def table_status_stats(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
     summary: Get statistics on table processing
     description: |
@@ -51,13 +47,4 @@ async def table_status_stats(dpt: depot.Depot, r: web.Request) -> responses.APIO
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(adminapi.table_status_stats(dpt, request))
-
-
-description = common.handler_description(
-    server.HTTPMethod.GET,
-    "/api/v1/table/status/stats",
-    table_status_stats,
-    TableStatusStatsRequestSchema,
-    TableStatusStatsResponseSchema,
-)
+    return responses.APIOkResponse(actions.table_status_stats(request))
