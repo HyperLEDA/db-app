@@ -1,29 +1,5 @@
 {
   "paths": {
-    "/ping": {
-      "get": {
-        "summary": "Test that service is up and running",
-        "tags": [
-          "admin"
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/PingResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/admin/source": {
       "post": {
         "summary": "New source entry",
@@ -449,19 +425,6 @@
   "openapi": "3.0.2",
   "components": {
     "schemas": {
-      "PingRequestSchema": {
-        "type": "object",
-        "properties": {}
-      },
-      "PingResponseSchema": {
-        "type": "object",
-        "properties": {
-          "ping": {
-            "type": "string",
-            "example": "pong"
-          }
-        }
-      },
       "CreateSourceRequestSchema": {
         "type": "object",
         "properties": {
