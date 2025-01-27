@@ -3,12 +3,12 @@ from typing import final
 import structlog
 
 from app.commands.adminapi import config
-from app.commands.adminapi.depot import depot
 from app.data import repositories
+from app.domain import adminapi as domain
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
 from app.lib.web import server
-from app.presentation import adminapi
+from app.presentation import adminapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -19,35 +19,31 @@ class AdminAPICommand(commands.Command):
         self.config_path = config_path
 
     def prepare(self):
-        self.config = config.parse_config(self.config_path)
+        cfg = config.parse_config(self.config_path)
 
-        self.pg_storage = postgres.PgStorage(self.config.storage, log)
+        self.pg_storage = postgres.PgStorage(cfg.storage, log)
         self.pg_storage.connect()
 
-        self.redis_storage = redis.RedisQueue(self.config.queue, log)
+        self.redis_storage = redis.RedisQueue(cfg.queue, log)
         self.redis_storage.connect()
 
-        d = depot.Depot(
+        authenticator = auth.PostgresAuthenticator(self.pg_storage)
+
+        actions = domain.Actions(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
             layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
-            tmp_data_repo=repositories.TmpDataRepositoryImpl(self.pg_storage),
-            queue_repo=repositories.QueueRepository(self.redis_storage, self.config.storage, log),
-            authenticator=auth.PostgresAuthenticator(self.pg_storage),
-            clients=clients.Clients(self.config.clients.ads_token),
+            queue_repo=repositories.QueueRepository(self.redis_storage, cfg.storage, log),
+            authenticator=authenticator,
+            clients=clients.Clients(cfg.clients.ads_token),
         )
 
-        routes = []
-
-        for handler in adminapi.routes:
-            routes.append(handler(d))
-
         middlewares = []
-        if self.config.auth_enabled:
-            middlewares.append(server.get_auth_middleware("/api/v1/admin", d.authenticator))
+        if cfg.auth_enabled:
+            middlewares.append(server.get_auth_middleware("/api/v1/admin", authenticator))
 
-        self.app = server.WebServer(routes, self.config.server, middlewares=middlewares)
+        self.app = presentation.Server(actions, cfg.server, middlewares=middlewares)
 
     def run(self):
         self.app.run()

@@ -8,7 +8,7 @@ from app import entities, schema
 from app.commands.adminapi import depot
 from app.data import repositories
 from app.domain import adminapi
-from app.domain.adminapi.create_table import domain_descriptions_to_data, get_source_id
+from app.domain.adminapi.table_transfer import domain_descriptions_to_data, get_source_id
 from app.lib import testing
 from app.lib.storage import mapping
 from app.lib.web import errors

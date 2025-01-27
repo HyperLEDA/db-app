@@ -1,49 +1,97 @@
+import hashlib
+import json
+import uuid
 from datetime import UTC, datetime
 
 import astropy.io.votable.ucd as ucd
+import pandas
 import regex
 from astropy import units
 from astroquery import nasa_ads as ads
 
-from app import entities, schema
-from app.commands.adminapi import depot
+from app import entities
 from app.data import repositories
 from app.domain import converters
+from app.lib import clients
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
 from app.lib.web.errors import RuleValidationError
+from app.presentation import adminapi
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 
 FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 
 
-def create_table(
-    dpt: depot.Depot,
-    r: schema.CreateTableRequest,
-) -> tuple[schema.CreateTableResponse, bool]:
-    source_id = get_source_id(dpt.common_repo, dpt.clients.ads, r.bibcode)
+class TableUploadManager:
+    def __init__(
+        self,
+        common_repo: repositories.CommonRepository,
+        layer0_repo: repositories.Layer0Repository,
+        clients: clients.Clients,
+    ) -> None:
+        self.common_repo = common_repo
+        self.layer0_repo = layer0_repo
+        self.clients = clients
 
-    r.table_name = sanitize_name(r.table_name)
+    def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
+        source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
-    for col in r.columns:
-        if col.name in FORBIDDEN_COLUMN_NAMES:
-            raise RuleValidationError(f"{col} is a reserved column name")
+        r.table_name = sanitize_name(r.table_name)
 
-    columns = domain_descriptions_to_data(r.columns)
-    validate_columns(columns)
+        for col in r.columns:
+            if col.name in FORBIDDEN_COLUMN_NAMES:
+                raise RuleValidationError(f"{col} is a reserved column name")
 
-    table_resp = dpt.layer0_repo.create_table(
-        entities.Layer0Creation(
-            table_name=r.table_name,
-            column_descriptions=columns,
-            bibliography_id=source_id,
-            datatype=enums.DataType(r.datatype),
-            comment=r.description,
-        ),
-    )
+        columns = domain_descriptions_to_data(r.columns)
+        validate_columns(columns)
 
-    return schema.CreateTableResponse(table_resp.table_id), table_resp.created
+        table_resp = self.layer0_repo.create_table(
+            entities.Layer0Creation(
+                table_name=r.table_name,
+                column_descriptions=columns,
+                bibliography_id=source_id,
+                datatype=enums.DataType(r.datatype),
+                comment=r.description,
+            ),
+        )
+
+        return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
+
+    def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
+        data_df = pandas.DataFrame.from_records(r.data)
+        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_compute_hash, axis=1)
+        data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
+
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.insert_raw_data(
+                entities.Layer0RawData(
+                    table_id=r.table_id,
+                    data=data_df,
+                ),
+            )
+
+        return adminapi.AddDataResponse()
+
+
+def _compute_hash(row: pandas.Series) -> str:
+    """
+    This function applies special algorithm to an iterable to compute stable hash.
+    It ensures that values are sorted and that spacing is not an issue.
+    """
+    data = []
+
+    for key, val in dict(row).items():
+        data.append([key, val])
+
+    data = sorted(data, key=lambda t: t[0])
+    data_string = json.dumps(data, separators=(",", ":"))
+
+    return _hashfunc(data_string)
+
+
+def _hashfunc(string: str) -> str:
+    return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
 def sanitize_name(name: str) -> str:
@@ -83,7 +131,7 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
     return repo.create_bibliography(code, year, authors, title)
 
 
-def domain_descriptions_to_data(columns: list[schema.ColumnDescription]) -> list[entities.ColumnDescription]:
+def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> list[entities.ColumnDescription]:
     result = [
         entities.ColumnDescription(
             name=repositories.INTERNAL_ID_COLUMN_NAME,

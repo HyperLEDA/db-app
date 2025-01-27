@@ -1,12 +1,16 @@
-from app import schema
-from app.commands.adminapi import depot
+from app.lib import auth
 from app.lib.web.errors import UnauthorizedError
+from app.presentation import adminapi
 
 
-def login(dpt: depot.Depot, r: schema.LoginRequest) -> schema.LoginResponse:
-    token, is_authenticated = dpt.authenticator.login(r.username, r.password)
+class LoginManager:
+    def __init__(self, authenticator: auth.Authenticator) -> None:
+        self.authenticator = authenticator
 
-    if not is_authenticated:
-        raise UnauthorizedError("invalid username or password")
+    def login(self, r: adminapi.LoginRequest) -> adminapi.LoginResponse:
+        token, is_authenticated = self.authenticator.login(r.username, r.password)
 
-    return schema.LoginResponse(token=token)
+        if not is_authenticated:
+            raise UnauthorizedError("invalid username or password")
+
+        return adminapi.LoginResponse(token=token)

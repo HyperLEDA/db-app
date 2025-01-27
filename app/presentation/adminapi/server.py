@@ -83,9 +83,11 @@ class Route(server.Route):
 
 class Server(server.WebServer):
     def __init__(self, actions: interface.Actions, config: server.ServerConfig, *args, **kwargs):
-        self.actions = actions
+        super().__init__(self.routes(actions), config, *args, **kwargs)
 
-        routes: list[server.Route] = [
+    @classmethod
+    def routes(cls, actions: interface.Actions) -> list[server.Route]:
+        return [
             Route(
                 actions,
                 server.RouteInfo(
@@ -187,5 +189,3 @@ class Server(server.WebServer):
                 table_status_stats.table_status_stats,
             ),
         ]
-
-        super().__init__(routes, config, *args, **kwargs)
