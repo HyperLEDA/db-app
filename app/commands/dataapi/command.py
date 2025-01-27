@@ -1,11 +1,13 @@
-import time
 from typing import final
 
 import structlog
 
 from app.commands.dataapi import config
+from app.data import repositories
+from app.domain import dataapi as domain
 from app.lib import commands
 from app.lib.storage import postgres
+from app.presentation import dataapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -21,8 +23,14 @@ class DataAPIServer(commands.Command):
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
 
+        actions = domain.Actions(
+            layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+        )
+
+        self.app = presentation.Server(actions, self.config.server)
+
     def run(self):
-        time.sleep(10)
+        self.app.run()
 
     def cleanup(self):
         self.pg_storage.disconnect()
