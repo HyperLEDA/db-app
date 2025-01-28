@@ -3,4 +3,4 @@ FROM postgis/postgis:17-3.5
 RUN apt-get update
 RUN apt-get install python3-pip libpq-dev -y
 RUN apt-get install jq -y
-RUN pip3 install yandex-pgmigrate --break-system-packages
+RUN pip3 install yandex-pgmigrate
