@@ -17,7 +17,7 @@ class TestPostgresStorage:
         self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
-            "postgres:16",
+            "postgis/postgis:17-3.5",
             port=5432,
             user="hyperleda",
             password="password",
@@ -62,6 +62,13 @@ class TestPostgresStorage:
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
+
+        for table in self.storage.query(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'layer2'"
+        ):
+            self.storage.exec(f"TRUNCATE layer2.{table['table_name']} CASCADE")
+
+        self.storage.exec("INSERT INTO layer2.last_update VALUES (to_timestamp(0))")
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage

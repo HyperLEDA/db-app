@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pandas import DataFrame
 
 from app import entities
+from app.data.repositories.layer2_repository import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,
@@ -24,7 +25,6 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseCoordinates,
     ParseValues,
 )
-from app.domain.repositories.layer_2_repository import Layer2Repository
 from app.domain.usecases import TransformationO1UseCase
 from tests.unit.domain.util import noop_cross_identify_function
 

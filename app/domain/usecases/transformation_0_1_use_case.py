@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from app import entities
+from app.data.repositories.layer2_repository import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail
@@ -13,7 +14,6 @@ from app.domain.model.params.transformation_0_1_stages import (
     ParseValues,
     Transformation01Stage,
 )
-from app.domain.repositories.layer_2_repository import Layer2Repository
 
 
 class TransformationO1UseCase:

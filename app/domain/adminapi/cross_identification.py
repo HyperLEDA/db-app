@@ -12,7 +12,6 @@ from app.domain.cross_id_simultaneous_data_provider import (
 )
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
-from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.presentation import adminapi
@@ -159,8 +158,8 @@ def _identify_by_coordinates(
     :return: UseCase result
     """
 
-    r1_hit = layer2_repo.query_data(Layer2QueryInCircle(coordinates, inner_r))
-    r2_hit = layer2_repo.query_data(Layer2QueryInCircle(coordinates, outer_r))
+    r1_hit = []  # layer2_repo.query_data(Layer2QueryInCircle(coordinates, inner_r))
+    r2_hit = []  # layer2_repo.query_data(Layer2QueryInCircle(coordinates, outer_r))
 
     # no hits, new objects
     if len(r2_hit) == 0:
@@ -187,7 +186,7 @@ def _identify_by_names(layer2_repo: repositories.Layer2Repository, names: list[s
     :return: UseCase result
     """
 
-    names_hit = layer2_repo.query_data(Layer2QueryByNames(names))
+    names_hit = []
 
     if len(names_hit) == 0:
         # no hits, pass object to user identification
