@@ -36,21 +36,17 @@ class ImporterCommand(commands.Command):
         new_objects = self.layer1_repository.get_new_objects(last_update_dt)
 
         objects_by_catalog = group_by(new_objects, key_func=lambda obj: obj.catalog())
-        aggregated_objects_by_catalog: dict[model.RawCatalog, dict[int, model.CatalogObject]] = {}
+        aggregated_objects = []
 
         for catalog, objects in objects_by_catalog.items():
             objects_by_pgc = group_by(objects, key_func=lambda obj: obj.pgc())
 
-            for pgc, objects in objects_by_pgc.items():
-                if catalog not in aggregated_objects_by_catalog:
-                    aggregated_objects_by_catalog[catalog] = {}
+            for _, objects in objects_by_pgc.items():
+                aggregated_objects.append(model.get_catalog_object_type(catalog).aggregate(objects))
 
-                aggregated_objects_by_catalog[catalog][pgc] = model.get_catalog_object_type(catalog).aggregate(objects)
-
-        for catalog, objects in aggregated_objects_by_catalog.items():
-            self.layer2_repository.save_data(catalog, objects)
-
-        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
+        with self.layer2_repository.with_tx():
+            self.layer2_repository.save_data(aggregated_objects)
+            self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
 
     def cleanup(self):
         self.pg_storage.disconnect()

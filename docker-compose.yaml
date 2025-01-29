@@ -1,6 +1,6 @@
 services:
   hyperledadb:
-    image: postgres:16
+    image: postgis/postgis:17-3.5
     environment:
       POSTGRES_DB: "hyperleda"
       POSTGRES_USER: "hyperleda"

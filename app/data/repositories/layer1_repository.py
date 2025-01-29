@@ -16,7 +16,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[model.CatalogObject]) -> None:
+    def save_data(self, objects: list[tuple[str, model.CatalogObject]]) -> None:
         """
         For each object, saves it to corresponding catalog in the storage.
         Object has no knowledge of the table name of the catalog it belongs to.
@@ -25,13 +25,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         For now, objects are saved one by one but the `list` allows for future optimizations.
         """
 
-        for obj in objects:
+        for object_id, obj in objects:
             catalog = obj.catalog()
             table = tables[catalog]
 
             self._logger.info("Saving data to layer 1", table=table, pgc=obj.pgc())
 
             data = obj.layer1_data()
+            data["object_id"] = object_id
+
             columns = list(data.keys())
             values = [data[column] for column in columns]
 
