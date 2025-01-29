@@ -9,15 +9,15 @@ from app.presentation.dataapi import interface, model
 class QuerySimpleRequestSchema(schema.RequestSchema):
     ra = fields.Float(description="Right ascension of the center of the search area in degrees")
     dec = fields.Float(description="Declination of the center of the search area in degrees")
-    radius = fields.Float(description="Radius of the search area in arcseconds")
+    radius = fields.Float(description="Radius of the search area in degrees")
     name = fields.String(description="Name of the object")
     designation = fields.String(description="Designation of the object")
     page_size = fields.Integer(
-        required=True,
         description="Number of objects per page",
         validate=validate.OneOf([10, 25, 50, 100]),
+        load_default=25,
     )
-    page = fields.Integer(required=True, description="Page number")
+    page = fields.Integer(description="Page number", load_default=0)
 
     class Meta:
         model = interface.QuerySimpleRequest
@@ -37,12 +37,9 @@ async def query_simple_handler(actions: interface.Actions, r: web.Request) -> re
         the specified designation.
 
         Note that the answer is paginated to improve performance.
-    security:
-        - TokenAuth: []
-    requestBody:
-        content:
-            application/json:
-                schema: QuerySimpleRequestSchema
+    parameters:
+      - in: query
+        schema: QuerySimpleRequestSchema
     responses:
         200:
             description: Success

@@ -23,6 +23,9 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
+    def __init__(self, pgc: int) -> None:
+        self._pgc = pgc
+
     @classmethod
     @abc.abstractmethod
     def aggregate(cls, objects: list[Self]) -> Self:
@@ -59,6 +62,10 @@ def get_catalog_object_type(catalog: RawCatalog) -> type[CatalogObject]:
     raise ValueError(f"Unknown catalog: {catalog}")
 
 
+def new_catalog_object(catalog: RawCatalog, pgc: int, **kwargs) -> CatalogObject:
+    return get_catalog_object_type(catalog)(pgc, **kwargs)
+
+
 def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[tuple[str, CatalogObject]]:
     objects = []
 
@@ -82,8 +89,9 @@ def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[tuple[str, Ca
 @final
 class DesignationCatalogObject(CatalogObject):
     def __init__(self, pgc: int, design: str, **kwargs) -> None:
-        self._pgc = pgc
         self.designation = design
+
+        super().__init__(pgc)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, DesignationCatalogObject):
@@ -117,7 +125,7 @@ class DesignationCatalogObject(CatalogObject):
 
     @classmethod
     def layer2_keys(cls) -> list[str]:
-        return ["pgc", "design"]
+        return ["design"]
 
     def layer1_data(self) -> dict[str, Any]:
         return {
@@ -127,7 +135,6 @@ class DesignationCatalogObject(CatalogObject):
 
     def layer2_data(self) -> dict[str, Any]:
         return {
-            "pgc": self.pgc(),
             "design": self.designation,
         }
 
@@ -135,11 +142,12 @@ class DesignationCatalogObject(CatalogObject):
 @final
 class ICRSCatalogObject(CatalogObject):
     def __init__(self, pgc: int, ra: float, e_ra: float, dec: float, e_dec: float, **kwargs) -> None:
-        self._pgc = pgc
         self.ra = ra
         self.e_ra = e_ra
         self.dec = dec
         self.e_dec = e_dec
+
+        super().__init__(pgc)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):
@@ -179,7 +187,7 @@ class ICRSCatalogObject(CatalogObject):
 
     @classmethod
     def layer2_keys(cls) -> list[str]:
-        return ["pgc", "ra", "e_ra", "dec", "e_dec"]
+        return ["ra", "e_ra", "dec", "e_dec"]
 
     def layer1_data(self) -> dict[str, Any]:
         return {
@@ -192,7 +200,6 @@ class ICRSCatalogObject(CatalogObject):
 
     def layer2_data(self) -> dict[str, Any]:
         return {
-            "pgc": self.pgc(),
             "ra": self.ra,
             "e_ra": self.e_ra,
             "dec": self.dec,
