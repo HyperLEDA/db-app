@@ -7,10 +7,7 @@ from app.presentation.adminapi import interface
 
 
 class GetSourceRequestSchema(schema.RequestSchema):
-    id = fields.Int(
-        required=True,
-        description="HyperLeda source id",
-    )
+    id = fields.Int(required=True, description="HyperLeda source id")
 
     class Meta:
         model = interface.GetSourceRequest

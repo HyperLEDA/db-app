@@ -5,6 +5,7 @@ from app.data.model.common import (
     RawCatalog,
     get_catalog_object,
     get_catalog_object_type,
+    new_catalog_object,
 )
 from app.data.model.layer1 import Layer1CatalogObject
 
@@ -16,4 +17,5 @@ __all__ = [
     "ICRSCatalogObject",
     "get_catalog_object",
     "get_catalog_object_type",
+    "new_catalog_object",
 ]

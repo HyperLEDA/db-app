@@ -66,6 +66,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             rows = self._storage.query(query, params=[dt])
             for row in rows:
-                objects.append(model.get_catalog_object_type(catalog)(**row))
+                objects.append(model.new_catalog_object(catalog, **row))
 
         return objects

@@ -1,12 +1,11 @@
 import datetime
-from collections.abc import Callable
 from typing import final
 
 import structlog
 
 from app.commands.importer import config
 from app.data import model, repositories
-from app.lib import commands
+from app.lib import commands, containers
 from app.lib.storage import postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -35,11 +34,11 @@ class ImporterCommand(commands.Command):
         last_update_dt = self.layer2_repository.get_last_update_time()
         new_objects = self.layer1_repository.get_new_objects(last_update_dt)
 
-        objects_by_catalog = group_by(new_objects, key_func=lambda obj: obj.catalog())
+        objects_by_catalog = containers.group_by(new_objects, key_func=lambda obj: obj.catalog())
         aggregated_objects = []
 
         for catalog, objects in objects_by_catalog.items():
-            objects_by_pgc = group_by(objects, key_func=lambda obj: obj.pgc())
+            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc())
 
             for _, objects in objects_by_pgc.items():
                 aggregated_objects.append(model.get_catalog_object_type(catalog).aggregate(objects))
@@ -50,17 +49,3 @@ class ImporterCommand(commands.Command):
 
     def cleanup(self):
         self.pg_storage.disconnect()
-
-
-def group_by[T, V](objects: list[T], key_func: Callable[[T], V]) -> dict[V, list[T]]:
-    result = {}
-
-    for obj in objects:
-        key = key_func(obj)
-
-        if key not in result:
-            result[key] = []
-
-        result[key].append(obj)
-
-    return result

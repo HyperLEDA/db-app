@@ -30,6 +30,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             table = catalog_to_tables[obj.catalog()]
 
             data = obj.layer2_data()
+            data["pgc"] = obj.pgc()
             columns = list(data.keys())
             values = [data[column] for column in columns]
 
@@ -49,7 +50,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         offset: int,
     ) -> list[model.CatalogObject]:
         table_names = []
-        columns = []
+        columns = ["pgc"]
 
         for catalog in catalogs:
             table_name = catalog_to_tables[catalog]
@@ -63,9 +64,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         joined_tables = " JOIN ".join(
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
         )
-        conditions = " AND ".join([f.get_query() for f in filters])
 
-        query = f"SELECT {', '.join(columns)} FROM {joined_tables} WHERE {conditions} LIMIT %s OFFSET %s"
+        conditions = ""
+        if len(filters) != 0:
+            conditions = "WHERE " + " AND ".join([f.get_query() for f in filters])
+
+        query = f"SELECT {', '.join(columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
 
         params = []
         for f in filters:
@@ -82,6 +86,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             res: dict[model.RawCatalog, dict[str, Any]] = {}
 
             for key, value in obj.items():
+                if key == "pgc":
+                    continue
+
                 catalog_name, column = key.split("|")
                 catalog = model.RawCatalog(catalog_name)
 
@@ -92,6 +99,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
             for catalog, data in res.items():
                 constructor = model.get_catalog_object_type(catalog)
-                result_objects.append(constructor(**data))
+                result_objects.append(model.new_catalog_object(catalog, pgc=int(obj.get("pgc")), **data))
 
         return result_objects
