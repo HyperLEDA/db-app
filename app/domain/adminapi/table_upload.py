@@ -95,7 +95,7 @@ def _hashfunc(string: str) -> str:
 
 
 def sanitize_name(name: str) -> str:
-    return name.replace(" ", "_").replace("-", "_")
+    return name.replace(" ", "_").replace("-", "_").replace(".", "_")
 
 
 def validate_columns(columns: list[entities.ColumnDescription]):
@@ -158,7 +158,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
 
         result.append(
             entities.ColumnDescription(
-                name=col.name,
+                name=sanitize_name(col.name),
                 data_type=mapping.type_map[data_type],
                 unit=unit,
                 ucd=col.ucd,

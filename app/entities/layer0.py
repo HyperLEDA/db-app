@@ -27,7 +27,6 @@ class ColumnDescription:
     unit: u.Unit | None = None
     description: str | None = None
     ucd: str | None = None
-    coordinate_part: CoordinatePart | None = None
 
 
 @dataclass

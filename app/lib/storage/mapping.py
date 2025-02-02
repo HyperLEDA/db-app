@@ -10,6 +10,8 @@ type_map = {
     "string": TYPE_TEXT,
     "character varying": TYPE_TEXT,
     "character": TYPE_TEXT,
+    "char": TYPE_TEXT,
+    "short": TYPE_INTEGER,
     "int": TYPE_INTEGER,
     "integer": TYPE_INTEGER,
     "smallint": TYPE_INTEGER,

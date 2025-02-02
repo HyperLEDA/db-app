@@ -1,5 +1,7 @@
 import abc
 
+from aiohttp import web
+
 INTERNAL_ERROR_CODE = "internal_error"
 LOGICAL_ERROR_CODE = "logical_error"
 VALIDATION_ERROR_CODE = "validation_error"
@@ -10,6 +12,19 @@ FORBIDDEN_ERROR = "forbidden"
 
 
 class APIError(abc.ABC, Exception):
+    @staticmethod
+    def from_http_exception(e: web.HTTPException) -> "APIError":
+        if e.status == 404:
+            return NotFoundError(str(e))
+        if e.status == 401:
+            return UnauthorizedError(str(e))
+        if e.status == 403:
+            return ForbiddenError(str(e))
+        if e.status == 400:
+            return RuleValidationError(str(e))
+
+        return InternalError(str(e))
+
     def dict(self) -> dict:
         code, status, msg = self.data()
         return {

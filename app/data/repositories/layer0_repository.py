@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 from app import entities
 from app.data import template
-from app.entities import ColumnDescription, CoordinatePart, Layer0Creation
+from app.entities import ColumnDescription, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
@@ -40,13 +40,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
             if column_descr.unit is not None:
                 col_params["unit"] = column_descr.unit.to_string()
-
-            if column_descr.coordinate_part is not None:
-                col_params["coordinate_part"] = {
-                    "descr_id": column_descr.coordinate_part.descr_id,
-                    "arg_num": column_descr.coordinate_part.arg_num,
-                    "column_name": column_descr.coordinate_part.column_name,
-                }
 
             if column_descr.ucd is not None:
                 col_params["ucd"] = column_descr.ucd
@@ -202,14 +195,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             if param is None:
                 raise DatabaseError(f"unable to metadata for table {table_name}, column {column_name}")
 
-            coordinate_part = None
-            if param["param"].get("coordinate_part") is not None:
-                coordinate_part = CoordinatePart(
-                    param["param"]["coordinate_part"]["descr_id"],
-                    param["param"]["coordinate_part"]["arg_num"],
-                    param["param"]["coordinate_part"]["column_name"],
-                )
-
             unit = None
             if param["param"].get("unit") is not None:
                 unit = u.Unit(param["param"]["unit"])
@@ -221,7 +206,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                     unit=unit,
                     description=param["param"]["description"],
                     ucd=param["param"].get("ucd"),
-                    coordinate_part=coordinate_part,
                 )
             )
 
