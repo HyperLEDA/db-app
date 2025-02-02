@@ -7,7 +7,7 @@ import structlog
 from testcontainers import postgres as pgcontainer
 
 from app.lib.storage import postgres
-from app.lib.testing import web
+from tests.lib import web
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -88,7 +88,7 @@ _test_storage: TestPostgresStorage | None = None
 
 def get_test_postgres_storage() -> TestPostgresStorage:
     """
-    Obtains Postgres storage object that may be used for testing.
+    Obtains Postgres storage object that may be used for lib.
 
     It is made efficiently - if the storage was already created (using this function)
     it will not be created again but reused to save time. This requires the caller to clear the

@@ -14,14 +14,14 @@ from app.domain.cross_id_simultaneous_data_provider import (
     PostgreSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,
 )
-from app.lib import testing
+from tests import lib
 from tests.unit.domain.util import make_points
 
 
 class CrossIdDataProviderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.storage = testing.get_test_postgres_storage()
+        cls.storage = lib.get_test_postgres_storage()
 
         cls._tmp_data_repository: TmpDataRepositoryImpl = TmpDataRepositoryImpl(cls.storage.get_storage())
 

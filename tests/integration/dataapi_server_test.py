@@ -8,7 +8,7 @@ from concurrent import futures
 import requests
 import structlog
 
-from app.lib import testing
+from tests import lib
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -21,8 +21,8 @@ class DataAPIServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(testing.get_test_postgres_storage)
-            port_thread = group.submit(testing.find_free_port)
+            pg_thread = group.submit(lib.get_test_postgres_storage)
+            port_thread = group.submit(lib.find_free_port)
 
         cls.pg_storage = pg_thread.result()
         cls.server_port = port_thread.result()

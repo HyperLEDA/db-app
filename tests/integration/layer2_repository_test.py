@@ -4,13 +4,13 @@ import structlog
 
 from app.data import model, repositories
 from app.data.repositories import layer2_repository
-from app.lib import testing
+from tests import lib
 
 
 class Layer2RepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.pg_storage = lib.get_test_postgres_storage()
 
         cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 

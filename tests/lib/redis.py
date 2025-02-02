@@ -4,7 +4,7 @@ import structlog
 from testcontainers import redis as rediscontainer
 
 from app.lib.storage import redis
-from app.lib.testing import web
+from tests.lib import web
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 

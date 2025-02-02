@@ -12,15 +12,15 @@ from app.domain.model.layer0.coordinates import ICRSDescrStr
 from app.domain.model.layer0.layer_0_meta import Layer0Meta
 from app.domain.model.layer0.values import NoErrorValue
 from app.domain.model.params.layer_0_query_param import Layer0QueryParam
-from app.lib import testing
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
+from tests import lib
 
 
 class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.pg_storage = lib.get_test_postgres_storage()
 
         common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())

@@ -8,10 +8,11 @@ from app import entities
 from app.data import repositories
 from app.domain import adminapi as domain
 from app.domain.adminapi.table_upload import domain_descriptions_to_data, get_source_id
-from app.lib import clients, testing
+from app.lib import clients
 from app.lib.storage import mapping
 from app.lib.web import errors
 from app.presentation import adminapi as presentation
+from tests import lib
 
 
 class TableUploadManagerTest(unittest.TestCase):
@@ -123,8 +124,8 @@ class TableUploadManagerTest(unittest.TestCase):
         expected_created: bool = True,
         err_substr: str | None = None,
     ):
-        testing.returns(self.manager.common_repo.create_bibliography, 41)
-        testing.returns(
+        lib.returns(self.manager.common_repo.create_bibliography, 41)
+        lib.returns(
             self.manager.layer0_repo.create_table, entities.Layer0CreationResponse(51, not table_already_existed)
         )
 
@@ -157,9 +158,9 @@ class GetSourceIDTest(unittest.TestCase):
         ]
     )
     def test_get_source_id(self, code: str, ads_query_needed: bool):
-        testing.returns(self.manager.common_repo.create_bibliography, 41)
-        testing.returns(self.manager.common_repo.get_source_entry, mock.MagicMock(id=42))
-        testing.returns(
+        lib.returns(self.manager.common_repo.create_bibliography, 41)
+        lib.returns(self.manager.common_repo.get_source_entry, mock.MagicMock(id=42))
+        lib.returns(
             self.manager.clients.ads.query_simple,
             [
                 {
@@ -177,13 +178,13 @@ class GetSourceIDTest(unittest.TestCase):
             self.assertEqual(result, 42)
 
     def test_ads_not_found(self):
-        testing.raises(self.manager.clients.ads.query_simple, RuntimeError("Not found"))
+        lib.raises(self.manager.clients.ads.query_simple, RuntimeError("Not found"))
 
         with self.assertRaises(errors.RuleValidationError):
             _ = get_source_id(self.manager.common_repo, self.manager.clients.ads, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
-        testing.raises(self.manager.common_repo.get_source_entry, RuntimeError("Not found"))
+        lib.raises(self.manager.common_repo.get_source_entry, RuntimeError("Not found"))
         ads_client = mock.MagicMock()
 
         with self.assertRaises(errors.RuleValidationError):

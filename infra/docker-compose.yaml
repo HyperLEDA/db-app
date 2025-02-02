@@ -15,7 +15,7 @@ services:
   backend:
     image: ghcr.io/hyperleda/hyperleda:latest
     environment:
-      - CONFIG=configs/prod/config.yaml
+      - CONFIG=configs/prod/adminapi.yaml
       - ADS_TOKEN
     volumes:
       - ./configs:/usr/src/app/configs
