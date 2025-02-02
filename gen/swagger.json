@@ -515,6 +515,8 @@
               "string",
               "character varying",
               "character",
+              "char",
+              "short",
               "int",
               "integer",
               "smallint",
