@@ -10,7 +10,6 @@
           }
         ],
         "tags": [
-          "admin",
           "table"
         ],
         "requestBody": {
@@ -51,7 +50,6 @@
           }
         ],
         "tags": [
-          "admin",
           "source"
         ],
         "requestBody": {
@@ -87,7 +85,6 @@
         "summary": "Get or create schema for the table.",
         "description": "Creates new schema for the table which can later be used to upload data.\n\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.\n",
         "tags": [
-          "admin",
           "table"
         ],
         "security": [
@@ -138,6 +135,43 @@
         }
       }
     },
+    "/api/v1/admin/table/validation": {
+      "get": {
+        "summary": "Validate table schema",
+        "description": "Validates the schema of the table, including column units and UCDs.\n\nReturns code 200 even if there are validation errors.\n",
+        "tags": [
+          "table"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "table_id",
+            "description": "ID of the table",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table was successfully validated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GetTableValidationResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/task": {
       "get": {
         "summary": "Get information about the task",
@@ -148,8 +182,7 @@
           }
         ],
         "tags": [
-          "tasks",
-          "admin"
+          "tasks"
         ],
         "parameters": [
           {
@@ -226,7 +259,6 @@
           }
         ],
         "tags": [
-          "admin",
           "table"
         ],
         "requestBody": {
@@ -267,7 +299,6 @@
           }
         ],
         "tags": [
-          "admin",
           "table"
         ],
         "requestBody": {
@@ -308,7 +339,6 @@
           }
         ],
         "tags": [
-          "admin",
           "table"
         ],
         "parameters": [
@@ -551,6 +581,43 @@
         "required": [
           "id"
         ]
+      },
+      "GetTableValidationRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "ID of the table"
+          }
+        },
+        "required": [
+          "table_id"
+        ]
+      },
+      "TableValidation": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "validator": {
+            "type": "string",
+            "description": "Type of the rule that was not satisfied"
+          }
+        }
+      },
+      "GetTableValidationResponseSchema": {
+        "type": "object",
+        "properties": {
+          "validations": {
+            "type": "array",
+            "description": "List of validation errors",
+            "items": {
+              "$ref": "#/components/schemas/TableValidation"
+            }
+          }
+        }
       },
       "GetTaskInfoRequestSchema": {
         "type": "object",
