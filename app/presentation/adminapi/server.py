@@ -9,6 +9,7 @@ from app.presentation.adminapi import (
     get_task_info,
     interface,
     login,
+    patch_api_v1_table,
     set_table_status,
     table_process,
     table_status_stats,
@@ -61,6 +62,16 @@ class Server(server.WebServer):
                     get_api_v1_table_validation.GetTableValidationResponseSchema,
                 ),
                 get_api_v1_table_validation.get_table_validation_handler,
+            ),
+            server.ActionRoute(
+                actions,
+                server.RouteInfo(
+                    http.HTTPMethod.PATCH,
+                    "/api/v1/admin/table",
+                    patch_api_v1_table.PatchTableRequestSchema,
+                    patch_api_v1_table.PatchTableResponseSchema,
+                ),
+                patch_api_v1_table.patch_table_handler,
             ),
             server.ActionRoute(
                 actions,

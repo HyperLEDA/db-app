@@ -178,6 +178,10 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def patch_table(self, request: PatchTableRequest) -> PatchTableResponse:
+        pass
+
+    @abc.abstractmethod
     def create_source(self, request: CreateSourceRequest) -> CreateSourceResponse:
         pass
 

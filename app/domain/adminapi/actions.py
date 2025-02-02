@@ -44,6 +44,9 @@ class Actions(adminapi.Actions):
     def get_table_validation(self, r: adminapi.GetTableValidationRequest) -> adminapi.GetTableValidationResponse:
         return self.table_upload_manager.validate_table(r)
 
+    def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
+        return self.table_upload_manager.patch_table(r)
+
     def set_table_status(self, r: adminapi.SetTableStatusRequest) -> adminapi.SetTableStatusResponse:
         return self.table_transfer_manager.set_table_status(r)
 
