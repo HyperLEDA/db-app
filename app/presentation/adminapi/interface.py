@@ -73,6 +73,29 @@ class GetTableValidationResponse:
 
 
 @dataclass
+class PatchTableActionTypeChangeUCD:
+    column: str
+    ucd: str
+
+
+@dataclass
+class PatchTableActionTypeChangeUnit:
+    column: str
+    unit: str
+
+
+@dataclass
+class PatchTableRequest:
+    table_id: int
+    actions: list[PatchTableActionTypeChangeUCD | PatchTableActionTypeChangeUnit]
+
+
+@dataclass
+class PatchTableResponse:
+    pass
+
+
+@dataclass
 class CrossIdentification:
     inner_radius_arcsec: float = 1.5
     outer_radius_arcsec: float = 3

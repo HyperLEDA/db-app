@@ -24,8 +24,11 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
         """
+        table_id, ok = self.get_table_id(data.table_name)
+        if ok:
+            return entities.Layer0CreationResponse(table_id, False)
+
         fields = []
-        comment_queries = []
 
         for column_descr in data.column_descriptions:
             constraint = ""
@@ -33,30 +36,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                 constraint = "PRIMARY KEY"
 
             fields.append((column_descr.name, column_descr.data_type, constraint))
-            col_params = {
-                "description": column_descr.description,
-                "data_type": column_descr.data_type,
-            }
-
-            if column_descr.unit is not None:
-                col_params["unit"] = column_descr.unit.to_string()
-
-            if column_descr.ucd is not None:
-                col_params["ucd"] = column_descr.ucd
-
-            comment_queries.append(
-                template.render_query(
-                    template.ADD_COLUMN_COMMENT,
-                    schema=RAWDATA_SCHEMA,
-                    table_name=data.table_name,
-                    column_name=column_descr.name,
-                    params=json.dumps(col_params),
-                )
-            )
-
-        table_id, ok = self.get_table_id(data.table_name)
-        if ok:
-            return entities.Layer0CreationResponse(table_id, False)
 
         with self.with_tx():
             row = self._storage.query_one(
@@ -84,8 +63,8 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                     ),
                 )
 
-            for query in comment_queries:
-                self._storage.exec(query)
+            for column_descr in data.column_descriptions:
+                self.update_column_metadata(table_id, column_descr)
 
         return entities.Layer0CreationResponse(table_id, True)
 
@@ -224,6 +203,30 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             param["param"].get("description"),
         )
 
+    def update_column_metadata(self, table_id: int, column_description: entities.ColumnDescription) -> None:
+        table_name = self._get_table_name(table_id)
+
+        column_params = {
+            "description": column_description.description,
+            "data_type": column_description.data_type,
+        }
+
+        if column_description.unit is not None:
+            column_params["unit"] = column_description.unit.to_string()
+
+        if column_description.ucd is not None:
+            column_params["ucd"] = column_description.ucd
+
+        query = template.render_query(
+            template.ADD_COLUMN_COMMENT,
+            schema=RAWDATA_SCHEMA,
+            table_name=table_name,
+            column_name=column_description.name,
+            params=json.dumps(column_params),
+        )
+
+        self._storage.exec(query)
+
     def get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
             row = self._storage.query_one(
@@ -234,6 +237,13 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             return 0, False
 
         return row["id"], True
+
+    def _get_table_name(self, table_id: int) -> str:
+        row = self._storage.query_one(
+            "SELECT table_name FROM rawdata.tables WHERE id = %s",
+            params=[table_id],
+        )
+        return row["table_name"]
 
     def get_all_table_ids(self) -> list[int]:
         res = self._storage.query("SELECT id FROM rawdata.tables")
