@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 from astropy import units as u
+from parameterized import param, parameterized
 
 from app import entities
 from app.domain import adminapi as domain
@@ -19,32 +20,42 @@ class TableValidationTest(unittest.TestCase):
             clients=clients.get_mock_clients(),
         )
 
-    def test_valid_table(self):
+    @parameterized.expand(
+        [
+            param(
+                "valid table",
+                [
+                    entities.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
+                    entities.ColumnDescription(name="ra", data_type="float", unit=u.Unit("hourangle"), ucd="pos.eq.ra"),
+                    entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
+                ],
+                0,
+            ),
+            param(
+                "one invalid validator",
+                [
+                    entities.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
+                    entities.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra"),
+                    entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
+                ],
+                1,
+            ),
+            param(
+                "two invalid validators",
+                [
+                    entities.ColumnDescription(name="name", data_type="text"),
+                    entities.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra"),
+                    entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
+                ],
+                2,
+            ),
+        ]
+    )
+    def test_validation(self, name: str, columns: list[entities.ColumnDescription], expected_len: int):
         request = presentation.GetTableValidationRequest(42)
 
-        self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(
-            column_descriptions=[
-                entities.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
-                entities.ColumnDescription(name="ra", data_type="float", unit=u.Unit("hourangle"), ucd="pos.eq.ra"),
-                entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
-            ]
-        )
+        self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(column_descriptions=columns)
 
         response = self.manager.validate_table(request)
 
-        self.assertEqual(response.validations, [])
-
-    def test_invalid_table(self):
-        request = presentation.GetTableValidationRequest(42)
-
-        self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(
-            column_descriptions=[
-                entities.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
-                entities.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra"),
-                entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
-            ]
-        )
-
-        response = self.manager.validate_table(request)
-
-        self.assertEqual(len(response.validations), 1)
+        self.assertEqual(len(response.validations), expected_len)

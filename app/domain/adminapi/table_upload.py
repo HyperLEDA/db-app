@@ -114,7 +114,7 @@ def validate_columns(columns: list[entities.ColumnDescription]) -> list[adminapi
         try:
             converter.parse_columns(columns)
         except converters.ConverterError as e:
-            validations.append(adminapi.TableValidation(message=str(e)))
+            validations.append(adminapi.TableValidation(message=str(e), validator=converter.name()))
 
     return validations
 

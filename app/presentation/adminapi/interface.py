@@ -63,6 +63,7 @@ class GetTableValidationRequest:
 
 @dataclass
 class TableValidation:
+    validator: str
     message: str
 
 

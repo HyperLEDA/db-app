@@ -12,8 +12,13 @@ class GetTableValidationRequestSchema(schema.RequestSchema):
         model = interface.GetTableValidationRequest
 
 
+class TableValidation(Schema):
+    message = fields.Str(description="Error message")
+    validator = fields.Str(description="Type of the rule that was not satisfied")
+
+
 class GetTableValidationResponseSchema(Schema):
-    validations = fields.List(fields.Str, description="List of validation errors")
+    validations = fields.List(fields.Nested(TableValidation), description="List of validation errors")
 
 
 async def get_table_validation_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
