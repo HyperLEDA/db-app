@@ -9,6 +9,7 @@ type_map = {
     "str": TYPE_TEXT,
     "string": TYPE_TEXT,
     "character varying": TYPE_TEXT,
+    "text": TYPE_TEXT,
     "character": TYPE_TEXT,
     "char": TYPE_TEXT,
     "short": TYPE_INTEGER,

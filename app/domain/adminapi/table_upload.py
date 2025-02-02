@@ -63,6 +63,26 @@ class TableUploadManager:
 
         return adminapi.GetTableValidationResponse(validations=validation_result)
 
+    def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
+        table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
+        columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
+
+        for action in r.actions:
+            if isinstance(action, adminapi.PatchTableActionTypeChangeUCD):
+                column_metadata = columns_by_id[action.column]
+                column_metadata.ucd = action.ucd
+
+                self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+            elif isinstance(action, adminapi.PatchTableActionTypeChangeUnit):
+                column_metadata = columns_by_id[action.column]
+                column_metadata.unit = units.Unit(action.unit)
+
+                self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+            else:
+                raise RuntimeError(f"unknown action type: {action}")
+
+        return adminapi.PatchTableResponse()
+
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
         data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_compute_hash, axis=1)
