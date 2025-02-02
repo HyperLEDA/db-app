@@ -6,11 +6,8 @@ all: test
 
 ## General targets
 
-recreate-venv:
-	uv venv
-
 install:
-	uv init
+	uv sync
 
 adminapi:
 	uv run main.py adminapi -c configs/dev/adminapi.yaml

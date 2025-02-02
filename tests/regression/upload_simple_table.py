@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import requests
@@ -77,7 +78,10 @@ def set_table_status(session: requests.Session, table_id: str) -> requests.Respo
 
 
 def run():
-    session = testing.TestSession("http://localhost:8080")
+    api_host = os.getenv("API_HOST", "localhost")
+    api_port = os.getenv("API_PORT", "8080")
+    api_url = f"http://{api_host}:{api_port}"
+    session = testing.TestSession(api_url)
 
     create_bibliography_data = create_bibliography(session)
     create_table_data = create_table(session, create_bibliography_data.json()["data"]["code"])
