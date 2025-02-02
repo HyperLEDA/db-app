@@ -5,12 +5,10 @@ from app.presentation.adminapi import (
     add_data,
     create_source,
     create_table,
-    get_source,
     get_task_info,
     interface,
     login,
     set_table_status,
-    start_task,
     table_process,
     table_status_stats,
 )
@@ -57,16 +55,6 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.GET,
-                    "/api/v1/source",
-                    get_source.GetSourceRequestSchema,
-                    get_source.GetSourceResponseSchema,
-                ),
-                get_source.get_source_handler,
-            ),
-            server.ActionRoute(
-                actions,
-                server.RouteInfo(
-                    http.HTTPMethod.GET,
                     "/api/v1/admin/task",
                     get_task_info.GetTaskInfoRequestSchema,
                     get_task_info.GetTaskInfoResponseSchema,
@@ -92,16 +80,6 @@ class Server(server.WebServer):
                     set_table_status.SetTableStatusResponseSchema,
                 ),
                 set_table_status.set_table_status_handler,
-            ),
-            server.ActionRoute(
-                actions,
-                server.RouteInfo(
-                    http.HTTPMethod.POST,
-                    "/api/v1/admin/task",
-                    start_task.StartTaskRequestSchema,
-                    start_task.StartTaskResponseSchema,
-                ),
-                start_task.start_task_handler,
             ),
             server.ActionRoute(
                 actions,
