@@ -28,7 +28,7 @@ async def table_status_stats(actions: interface.Actions, r: web.Request) -> resp
         If there are no objects with the given status, it will not be present in the response.
     security:
         - TokenAuth: []
-    tags: [admin, table]
+    tags: [table]
     parameters:
       - in: query
         schema: TableStatusStatsRequestSchema

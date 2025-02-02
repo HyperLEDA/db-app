@@ -41,6 +41,9 @@ class Actions(adminapi.Actions):
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
         return self.table_upload_manager.create_table(r)
 
+    def get_table_validation(self, r: adminapi.GetTableValidationRequest) -> adminapi.GetTableValidationResponse:
+        return self.table_upload_manager.validate_table(r)
+
     def set_table_status(self, r: adminapi.SetTableStatusRequest) -> adminapi.SetTableStatusResponse:
         return self.table_transfer_manager.set_table_status(r)
 

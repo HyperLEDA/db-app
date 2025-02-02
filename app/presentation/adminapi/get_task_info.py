@@ -29,7 +29,7 @@ async def get_task_info_handler(actions: interface.Actions, r: web.Request) -> r
     description: Retrieves information about the task using its id.
     security:
         - TokenAuth: []
-    tags: [tasks, admin]
+    tags: [tasks]
     parameters:
       - in: query
         schema: GetTaskInfoRequestSchema

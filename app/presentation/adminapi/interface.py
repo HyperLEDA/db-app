@@ -57,6 +57,22 @@ class AddDataResponse:
 
 
 @dataclass
+class GetTableValidationRequest:
+    table_id: int
+
+
+@dataclass
+class TableValidation:
+    validator: str
+    message: str
+
+
+@dataclass
+class GetTableValidationResponse:
+    validations: list[TableValidation]
+
+
+@dataclass
 class CrossIdentification:
     inner_radius_arcsec: float = 1.5
     outer_radius_arcsec: float = 3
@@ -132,6 +148,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+        pass
+
+    @abc.abstractmethod
+    def get_table_validation(self, request: GetTableValidationRequest) -> GetTableValidationResponse:
         pass
 
     @abc.abstractmethod
