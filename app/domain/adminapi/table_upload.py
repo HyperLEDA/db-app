@@ -187,7 +187,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
 
         result.append(
             entities.ColumnDescription(
-                name=sanitize_name(col.name),
+                name=col.name,
                 data_type=mapping.type_map[data_type],
                 unit=unit,
                 ucd=col.ucd,
