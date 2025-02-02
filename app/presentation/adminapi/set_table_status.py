@@ -33,7 +33,7 @@ async def set_table_status_handler(actions: interface.Actions, r: web.Request) -
         Set status of the table and its objects.
     security:
         - TokenAuth: []
-    tags: [admin, table]
+    tags: [table]
     requestBody:
         content:
             application/json:

@@ -8,6 +8,8 @@ from app.presentation.adminapi.interface import (
     CreateTableRequest,
     CreateTableResponse,
     CrossIdentification,
+    GetTableValidationRequest,
+    GetTableValidationResponse,
     GetTaskInfoRequest,
     GetTaskInfoResponse,
     LoginRequest,
@@ -20,8 +22,6 @@ from app.presentation.adminapi.interface import (
     TableStatusStatsRequest,
     TableStatusStatsResponse,
     TableValidation,
-    ValidateTableRequest,
-    ValidateTableResponse,
 )
 from app.presentation.adminapi.server import Server
 
@@ -31,8 +31,8 @@ __all__ = [
     "CrossIdentification",
     "AddDataRequest",
     "AddDataResponse",
-    "ValidateTableRequest",
-    "ValidateTableResponse",
+    "GetTableValidationRequest",
+    "GetTableValidationResponse",
     "TableValidation",
     "ColumnDescription",
     "SetTableStatusOverrides",

@@ -57,7 +57,7 @@ class AddDataResponse:
 
 
 @dataclass
-class ValidateTableRequest:
+class GetTableValidationRequest:
     table_id: int
 
 
@@ -67,7 +67,7 @@ class TableValidation:
 
 
 @dataclass
-class ValidateTableResponse:
+class GetTableValidationResponse:
     validations: list[TableValidation]
 
 
@@ -147,6 +147,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+        pass
+
+    @abc.abstractmethod
+    def get_table_validation(self, request: GetTableValidationRequest) -> GetTableValidationResponse:
         pass
 
     @abc.abstractmethod

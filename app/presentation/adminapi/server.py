@@ -5,6 +5,7 @@ from app.presentation.adminapi import (
     add_data,
     create_source,
     create_table,
+    get_api_v1_table_validation,
     get_task_info,
     interface,
     login,
@@ -50,6 +51,16 @@ class Server(server.WebServer):
                     create_table.CreateTableResponseSchema,
                 ),
                 create_table.create_table_handler,
+            ),
+            server.ActionRoute(
+                actions,
+                server.RouteInfo(
+                    http.HTTPMethod.GET,
+                    "/api/v1/admin/table/validation",
+                    get_api_v1_table_validation.GetTableValidationRequestSchema,
+                    get_api_v1_table_validation.GetTableValidationResponseSchema,
+                ),
+                get_api_v1_table_validation.get_table_validation_handler,
             ),
             server.ActionRoute(
                 actions,

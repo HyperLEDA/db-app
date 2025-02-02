@@ -40,7 +40,7 @@ async def add_data_handler(actions: interface.Actions, r: web.Request) -> respon
         If two rows were identical this method will only insert the last one.
     security:
         - TokenAuth: []
-    tags: [admin, table]
+    tags: [table]
     requestBody:
         content:
             application/json:

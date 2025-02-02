@@ -61,7 +61,7 @@ async def create_table_handler(actions: interface.Actions, r: web.Request) -> re
 
         **Important**: If the table with the specified name already exists, does nothing and returns ID
         of the previously created table without any alterations.
-    tags: [admin, table]
+    tags: [table]
     security:
         - TokenAuth: []
     requestBody:

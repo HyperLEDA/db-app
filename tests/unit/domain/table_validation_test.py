@@ -20,7 +20,7 @@ class TableValidationTest(unittest.TestCase):
         )
 
     def test_valid_table(self):
-        request = presentation.ValidateTableRequest(42)
+        request = presentation.GetTableValidationRequest(42)
 
         self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(
             column_descriptions=[
@@ -35,7 +35,7 @@ class TableValidationTest(unittest.TestCase):
         self.assertEqual(response.validations, [])
 
     def test_invalid_table(self):
-        request = presentation.ValidateTableRequest(42)
+        request = presentation.GetTableValidationRequest(42)
 
         self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(
             column_descriptions=[

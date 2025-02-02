@@ -28,7 +28,7 @@ async def create_source_handler(actions: interface.Actions, r: web.Request) -> r
     description: Creates new source entry in the database for internal communication and unpublished articles.
     security:
         - TokenAuth: []
-    tags: [admin, source]
+    tags: [source]
     requestBody:
         content:
             application/json:

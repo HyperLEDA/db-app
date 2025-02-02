@@ -45,7 +45,7 @@ async def table_process_handler(actions: interface.Actions, r: web.Request) -> r
         Starts different processing steps on the table: for example, homogenization and cross-identification.
     security:
         - TokenAuth: []
-    tags: [admin, table]
+    tags: [table]
     requestBody:
         content:
             application/json:

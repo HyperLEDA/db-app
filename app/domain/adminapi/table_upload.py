@@ -56,12 +56,12 @@ class TableUploadManager:
 
         return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
 
-    def validate_table(self, r: adminapi.ValidateTableRequest) -> adminapi.ValidateTableResponse:
+    def validate_table(self, r: adminapi.GetTableValidationRequest) -> adminapi.GetTableValidationResponse:
         table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
 
         validation_result = validate_columns(table_metadata.column_descriptions)
 
-        return adminapi.ValidateTableResponse(validations=validation_result)
+        return adminapi.GetTableValidationResponse(validations=validation_result)
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
