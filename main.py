@@ -6,7 +6,6 @@ import app.commands.adminapi as adminapi_cmd
 import app.commands.dataapi as dataapi_cmd
 import app.commands.generate_spec as generate_spec_cmd
 import app.commands.importer as importer_cmd
-import app.commands.regression_tests as regression_tests_cmd
 from app.lib import commands
 
 
@@ -61,11 +60,6 @@ def importer(config: str):
 )
 def generate_spec(output: str):
     commands.run(generate_spec_cmd.GenerateSpecCommand(output))
-
-
-@cli.command(short_help="Run regression tests")
-def regression_tests():
-    commands.run(regression_tests_cmd.RegressionTestsCommand())
 
 
 if __name__ == "__main__":

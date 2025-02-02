@@ -4,38 +4,45 @@ version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "aiohttp>=3.11.11",
     "apispec>=6.8.1",
     "apispec-webframeworks>=1.2.0",
-    "astropy>=7.0.0",
+    "aiohttp>=3.11.11",
+    "astropy>=7.0.0", 
     "astroquery>=0.4.9.post1",
     "bcrypt>=4.2.1",
     "click>=8.1.8",
-    "datamodel-code-generator>=0.26.5",
     "jinja2>=3.1.5",
     "marshmallow>=3.26.0",
     "marshmallow-oneofschema>=3.1.1",
-    "mypy>=1.14.1",
     "pandas>=2.2.3",
-    "pandas-stubs>=2.2.3.241126",
-    "parameterized>=0.9.0",
     "psycopg[binary,pool]>=3.2.4",
-    "pymdown-extensions>=10.14.1",
-    "pytest>=8.3.4",
     "pyyaml>=6.0.2",
     "redis>=5.2.1",
-    "regex>=2024.11.6",
     "requests>=2.32.3",
+    "regex>=2024.11.6",
     "rq>=2.1.0",
+    "structlog>=25.1.0",
+    "swagger-ui-py>=23.9.23"
+]
+
+[project.optional-dependencies]
+dev = [
+    "datamodel-code-generator>=0.26.5",
+    "mypy>=1.14.1",
+    "pymdown-extensions>=10.14.1", 
     "ruff>=0.9.3",
     "setuptools>=75.8.0",
-    "structlog>=25.1.0",
-    "swagger-ui-py>=23.9.23",
-    "testcontainers-postgres>=0.0.1rc1",
-    "testcontainers-redis>=0.0.1rc1",
     "types-psycopg2>=2.9.21.20250121",
     "types-pyyaml>=6.0.12.20241230",
-    "types-regex>=2024.11.6.20241221",
+    "types-regex>=2024.11.6.20241221"
+]
+
+test = [
+    "pandas-stubs>=2.2.3.241126",
+    "parameterized>=0.9.0",
+    "pytest>=8.3.4",
+    "testcontainers-postgres>=0.0.1rc1",
+    "testcontainers-redis>=0.0.1rc1"
 ]
 
 [tool.ruff]
