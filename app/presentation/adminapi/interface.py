@@ -57,6 +57,21 @@ class AddDataResponse:
 
 
 @dataclass
+class ValidateTableRequest:
+    table_id: int
+
+
+@dataclass
+class TableValidation:
+    message: str
+
+
+@dataclass
+class ValidateTableResponse:
+    validations: list[TableValidation]
+
+
+@dataclass
 class CrossIdentification:
     inner_radius_arcsec: float = 1.5
     outer_radius_arcsec: float = 3

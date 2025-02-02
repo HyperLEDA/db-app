@@ -14,7 +14,6 @@ from app.data import repositories
 from app.domain import converters
 from app.lib import clients
 from app.lib.storage import enums, mapping
-from app.lib.web import errors
 from app.lib.web.errors import RuleValidationError
 from app.presentation import adminapi
 
@@ -44,7 +43,6 @@ class TableUploadManager:
                 raise RuleValidationError(f"{col} is a reserved column name")
 
         columns = domain_descriptions_to_data(r.columns)
-        validate_columns(columns)
 
         table_resp = self.layer0_repo.create_table(
             entities.Layer0Creation(
@@ -57,6 +55,13 @@ class TableUploadManager:
         )
 
         return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
+
+    def validate_table(self, r: adminapi.ValidateTableRequest) -> adminapi.ValidateTableResponse:
+        table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
+
+        validation_result = validate_columns(table_metadata.column_descriptions)
+
+        return adminapi.ValidateTableResponse(validations=validation_result)
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
@@ -98,16 +103,20 @@ def sanitize_name(name: str) -> str:
     return name.replace(" ", "_").replace("-", "_").replace(".", "_")
 
 
-def validate_columns(columns: list[entities.ColumnDescription]):
-    converter = converters.CompositeConverter(
+def validate_columns(columns: list[entities.ColumnDescription]) -> list[adminapi.TableValidation]:
+    convs = [
         converters.NameConverter(),
         converters.ICRSConverter(),
-    )
+    ]
 
-    try:
-        converter.parse_columns(columns)
-    except converters.ConverterError as e:
-        raise errors.RuleValidationError(f"Unable to parse the columns: {str(e)}") from e
+    validations = []
+    for converter in convs:
+        try:
+            converter.parse_columns(columns)
+        except converters.ConverterError as e:
+            validations.append(adminapi.TableValidation(message=str(e)))
+
+    return validations
 
 
 def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:

@@ -19,6 +19,9 @@ from app.presentation.adminapi.interface import (
     TableProcessResponse,
     TableStatusStatsRequest,
     TableStatusStatsResponse,
+    TableValidation,
+    ValidateTableRequest,
+    ValidateTableResponse,
 )
 from app.presentation.adminapi.server import Server
 
@@ -28,6 +31,9 @@ __all__ = [
     "CrossIdentification",
     "AddDataRequest",
     "AddDataResponse",
+    "ValidateTableRequest",
+    "ValidateTableResponse",
+    "TableValidation",
     "ColumnDescription",
     "SetTableStatusOverrides",
     "TableProcessRequest",
