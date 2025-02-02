@@ -30,10 +30,10 @@ class PatchTableActionSchema(one_of_schema.OneOfSchema):
 
     def get_obj_type(self, obj):
         if isinstance(obj, interface.PatchTableActionTypeChangeUCD):
-            return "PatchTableActionTypeChangeUCD"
+            return "change_ucd"
 
         if isinstance(obj, interface.PatchTableActionTypeChangeUnit):
-            return "PatchTableActionTypeChangeUnit"
+            return "change_unit"
 
         raise Exception(f"Unknown object type: {obj.__class__.__name__}")
 
