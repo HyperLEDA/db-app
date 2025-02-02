@@ -138,43 +138,6 @@
         }
       }
     },
-    "/api/v1/source": {
-      "get": {
-        "summary": "Get information about source",
-        "description": "Retrieves information about the source using its id",
-        "tags": [
-          "source"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "id",
-            "description": "HyperLeda source id",
-            "schema": {
-              "type": "integer"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Source was successfully obtained",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetSourceResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/admin/task": {
       "get": {
         "summary": "Get information about the task",
@@ -209,45 +172,6 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/GetTaskInfoResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Start processing task",
-        "description": "Starts background task.",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "admin",
-          "tasks"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartTaskRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Task successfully started",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateSourceResponseSchema"
                     }
                   }
                 }
@@ -628,42 +552,6 @@
           "id"
         ]
       },
-      "GetSourceRequestSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "HyperLeda source id"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "GetSourceResponseSchema": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Bibcode or internal code of the publication"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title of publication"
-          },
-          "authors": {
-            "type": "array",
-            "description": "List of authors",
-            "items": {
-              "type": "string"
-            }
-          },
-          "year": {
-            "type": "integer",
-            "description": "Year of the publication"
-          }
-        }
-      },
       "GetTaskInfoRequestSchema": {
         "type": "object",
         "properties": {
@@ -777,36 +665,6 @@
       "SetTableStatusResponseSchema": {
         "type": "object",
         "properties": {}
-      },
-      "StartTaskRequestSchema": {
-        "type": "object",
-        "properties": {
-          "task_name": {
-            "type": "string",
-            "description": "Name of the task to start",
-            "example": "echo"
-          },
-          "payload": {
-            "type": "object",
-            "description": "Payload to the task",
-            "example": {
-              "sleep_time_seconds": 2
-            },
-            "additionalProperties": {}
-          }
-        },
-        "required": [
-          "task_name"
-        ]
-      },
-      "StartTaskResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "ID of the task"
-          }
-        }
       },
       "CrossIdentification": {
         "type": "object",
