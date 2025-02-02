@@ -133,6 +133,40 @@
             }
           }
         }
+      },
+      "patch": {
+        "summary": "Patch table schema",
+        "description": "Patch the schema of the table, including column UCDs and units.\n",
+        "tags": [
+          "table"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchTableRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table was successfully patched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PatchTableResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/table/validation": {
@@ -468,6 +502,7 @@
               "str",
               "string",
               "character varying",
+              "text",
               "character",
               "char",
               "short",
@@ -618,6 +653,34 @@
             }
           }
         }
+      },
+      "PatchTableAction": {
+        "type": "object",
+        "properties": {}
+      },
+      "PatchTableRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "integer",
+            "description": "ID of the table"
+          },
+          "actions": {
+            "type": "array",
+            "description": "List of actions to perform",
+            "items": {
+              "$ref": "#/components/schemas/PatchTableAction"
+            }
+          }
+        },
+        "required": [
+          "actions",
+          "table_id"
+        ]
+      },
+      "PatchTableResponseSchema": {
+        "type": "object",
+        "properties": {}
       },
       "GetTaskInfoRequestSchema": {
         "type": "object",
