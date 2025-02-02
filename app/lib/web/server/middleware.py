@@ -22,7 +22,11 @@ async def exception_middleware(
         log.exception(str(e))
         response = web.json_response(e.dict(), status=e.status())
     except Exception as e:
-        exc = errors.InternalError(str(e))
+        if isinstance(e, web.HTTPException):
+            exc = errors.APIError.from_http_exception(e)
+        else:
+            exc = errors.InternalError(str(e))
+
         log.exception(str(exc))
         response = web.json_response(exc.dict(), status=500)
 

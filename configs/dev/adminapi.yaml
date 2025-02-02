@@ -17,3 +17,7 @@ queue:
   # endpoint: host.docker.internal # if inside a docker container
   port: 6379
   queue_name: default
+
+clients:
+  enabled: true
+  ads_token: token

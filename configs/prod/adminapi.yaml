@@ -15,3 +15,7 @@ queue:
   endpoint: 172.17.0.1
   port: 6379
   queue_name: default
+
+clients:
+  enabled: true
+  ads_token: token
