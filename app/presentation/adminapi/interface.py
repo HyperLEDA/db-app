@@ -7,17 +7,6 @@ from app.lib.storage import enums
 
 
 @dataclass
-class StartTaskRequest:
-    task_name: str
-    payload: dict[str, Any]
-
-
-@dataclass
-class StartTaskResponse:
-    id: int
-
-
-@dataclass
 class GetTaskInfoRequest:
     task_id: int
 
@@ -126,19 +115,6 @@ class CreateSourceResponse:
 
 
 @dataclass
-class GetSourceRequest:
-    id: int
-
-
-@dataclass
-class GetSourceResponse:
-    code: str
-    title: str
-    authors: list[str]
-    year: int
-
-
-@dataclass
 class LoginRequest:
     username: str
     password: str
@@ -163,15 +139,7 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_source(self, request: GetSourceRequest) -> GetSourceResponse:
-        pass
-
-    @abc.abstractmethod
     def set_table_status(self, request: SetTableStatusRequest) -> SetTableStatusResponse:
-        pass
-
-    @abc.abstractmethod
-    def start_task(self, request: StartTaskRequest) -> StartTaskResponse:
         pass
 
     @abc.abstractmethod

@@ -29,12 +29,6 @@ class Actions(adminapi.Actions):
     def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
         return self.source_manager.create_source(r)
 
-    def get_source(self, r: adminapi.GetSourceRequest) -> adminapi.GetSourceResponse:
-        return self.source_manager.get_source(r)
-
-    def start_task(self, r: adminapi.StartTaskRequest) -> adminapi.StartTaskResponse:
-        return self.task_manager.start_task(r)
-
     def get_task_info(self, r: adminapi.GetTaskInfoRequest) -> adminapi.GetTaskInfoResponse:
         return self.task_manager.get_task_info(r)
 

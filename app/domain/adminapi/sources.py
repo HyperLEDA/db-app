@@ -23,13 +23,3 @@ class SourceManager:
         _ = self.common_repo.create_bibliography(code, r.year, r.authors, r.title)
 
         return adminapi.CreateSourceResponse(code=code)
-
-    def get_source(self, r: adminapi.GetSourceRequest) -> adminapi.GetSourceResponse:
-        result = self.common_repo.get_source_by_id(r.id)
-
-        return adminapi.GetSourceResponse(
-            result.code,
-            result.title,
-            result.author,
-            result.year,
-        )
