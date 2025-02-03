@@ -145,3 +145,4 @@ cython_debug/
 # Other
 uml
 uv.lock
+.vizier_cache/

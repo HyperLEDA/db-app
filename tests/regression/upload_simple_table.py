@@ -1,14 +1,18 @@
 import os
+import random
+import time
 import uuid
 
 import requests
 
 from tests import lib
 
+random.seed(time.time())
+
 
 def test_decorator(func):
     f = lib.test_status_decorator(func)
-    return lib.test_logging_decorator(f, __file__)
+    return lib.test_logging_decorator(__file__)(f)
 
 
 @test_decorator
@@ -47,8 +51,8 @@ def upload_data(session: requests.Session, table_id: str) -> requests.Response:
         json={
             "table_id": table_id,
             "data": [
-                {"name": "M 33", "ra": 1.5641, "dec": 30.6602, "fuzz": str(uuid.uuid4())},
-                {"name": "M 31", "ra": 0.7123, "dec": 41.269, "fuzz": str(uuid.uuid4())},
+                {"name": f"M {random.randint(1, 1000)}", "ra": 1.5641, "dec": 30.6602, "fuzz": str(uuid.uuid4())},
+                {"name": f"M {random.randint(1, 1000)}", "ra": 0.7123, "dec": 41.269, "fuzz": str(uuid.uuid4())},
             ],
         },
     )
