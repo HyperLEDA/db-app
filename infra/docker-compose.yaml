@@ -13,12 +13,12 @@ services:
       driver: local
 
   backend:
-    image: ghcr.io/hyperleda/hyperleda:a14aa75
+    image: ghcr.io/hyperleda/hyperleda:latest
     environment:
       - CONFIG=configs/prod/adminapi.yaml
       - ADS_TOKEN
     volumes:
-      - ../configs:/usr/src/app/configs
+      - ./configs:/usr/src/app/configs
     restart: unless-stopped
     logging:
       driver: local

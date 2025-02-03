@@ -21,7 +21,7 @@ class DataAPIServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(lib.get_test_postgres_storage)
+            pg_thread = group.submit(lib.TestPostgresStorage.get)
             port_thread = group.submit(lib.find_free_port)
 
         cls.pg_storage = pg_thread.result()

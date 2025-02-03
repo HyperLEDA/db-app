@@ -8,6 +8,15 @@ from tests.lib import web
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
+_test_storage: "TestRedisStorage | None" = None
+
+
+def exit_handler():
+    global _test_storage
+    if _test_storage is not None:
+        log.info("Stopping redis container")
+        _test_storage.stop()
+
 
 class TestRedisStorage:
     def __init__(self) -> None:
@@ -16,6 +25,18 @@ class TestRedisStorage:
         self.container = rediscontainer.RedisContainer("redis:7").with_bind_ports(6379, self.port)
         self.config = redis.QueueConfig(endpoint="localhost", port=self.port, queue_name="test_queue")
         self.storage = redis.RedisQueue(self.config, log)
+
+    @staticmethod
+    def get() -> "TestRedisStorage":
+        global _test_storage
+        if _test_storage is None:
+            _test_storage = TestRedisStorage()
+            log.info("Starting redis container")
+            _test_storage.start()
+
+            atexit.register(exit_handler)
+
+        return _test_storage
 
     def get_storage(self) -> redis.RedisQueue:
         return self.storage
@@ -30,25 +51,3 @@ class TestRedisStorage:
     def stop(self) -> None:
         self.storage.disconnect()
         self.container.stop()
-
-
-_test_storage: TestRedisStorage | None = None
-
-
-def get_test_redis_storage() -> TestRedisStorage:
-    global _test_storage
-    if _test_storage is None:
-        _test_storage = TestRedisStorage()
-        log.info("Starting redis container")
-        _test_storage.start()
-
-        atexit.register(exit_handler)
-
-    return _test_storage
-
-
-def exit_handler():
-    global _test_storage
-    if _test_storage is not None:
-        log.info("Stopping redis container")
-        _test_storage.stop()

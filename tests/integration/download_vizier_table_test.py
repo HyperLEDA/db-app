@@ -12,7 +12,7 @@ from tests import lib
 class DownloadVizierTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.storage = lib.get_test_postgres_storage()
+        cls.storage = lib.TestPostgresStorage.get()
 
     def tearDown(self):
         self.storage.clear()

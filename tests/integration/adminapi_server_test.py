@@ -21,8 +21,8 @@ class AdminAPIServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(lib.get_test_postgres_storage)
-            redis_thread = group.submit(lib.get_test_redis_storage)
+            pg_thread = group.submit(lib.TestPostgresStorage.get)
+            redis_thread = group.submit(lib.TestRedisStorage.get)
             port_thread = group.submit(lib.find_free_port)
 
         cls.pg_storage = pg_thread.result()

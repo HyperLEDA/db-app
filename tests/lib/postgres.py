@@ -11,6 +11,15 @@ from tests.lib import web
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
+_test_storage: "TestPostgresStorage | None" = None
+
+
+def exit_handler():
+    global _test_storage
+    if _test_storage is not None:
+        logger.info("Stopping postgres container")
+        _test_storage.stop()
+
 
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
@@ -33,6 +42,29 @@ class TestPostgresStorage:
 
         self.storage = postgres.PgStorage(self.config, logger)
         self.migrations_dir = migrations_dir
+
+    @staticmethod
+    def get() -> "TestPostgresStorage":
+        """
+        Obtains Postgres storage object that may be used for testing.
+
+        It is made efficiently - if the storage was already created (using this function)
+        it will not be created again but reused to save time. This requires the caller to clear the
+        storage themselves when they need it (by calling `clear()` function of the return value
+        of this function).
+
+        Usually caller does not need to stop the containers manually - it will be stopped once the
+        process stops (if it happens gracefully, of course).
+        """
+        global _test_storage
+        if _test_storage is None:
+            _test_storage = TestPostgresStorage("postgres/migrations")
+            logger.info("Starting postgres container")
+            _test_storage.start()
+
+            atexit.register(exit_handler)
+
+        return _test_storage
 
     def _run_migrations(self, migrations_dir: str):
         connection = psycopg.connect(self.config.get_dsn(), autocommit=True)
@@ -81,36 +113,3 @@ class TestPostgresStorage:
     def stop(self):
         self.storage.disconnect()
         self.container.stop()
-
-
-_test_storage: TestPostgresStorage | None = None
-
-
-def get_test_postgres_storage() -> TestPostgresStorage:
-    """
-    Obtains Postgres storage object that may be used for lib.
-
-    It is made efficiently - if the storage was already created (using this function)
-    it will not be created again but reused to save time. This requires the caller to clear the
-    storage themselves when they need it (by calling `clear()` function of the return value
-    of this function).
-
-    Usually caller does not need to stop the containers manually - it will be stopped once the
-    process stops (if it happens gracefully, of course).
-    """
-    global _test_storage
-    if _test_storage is None:
-        _test_storage = TestPostgresStorage("postgres/migrations")
-        logger.info("Starting postgres container")
-        _test_storage.start()
-
-        atexit.register(exit_handler)
-
-    return _test_storage
-
-
-def exit_handler():
-    global _test_storage
-    if _test_storage is not None:
-        logger.info("Stopping postgres container")
-        _test_storage.stop()
