@@ -20,6 +20,7 @@ jobs:
           docker compose up -d
 
       - name: Start server
+        shell: bash
         run: |
           make adminapi &
 
