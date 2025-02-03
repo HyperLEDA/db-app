@@ -8,16 +8,17 @@ from pandas import DataFrame
 from app.data import repositories
 from app.domain import adminapi as domain
 from app.entities import ColumnDescription, Layer0Creation, Layer0RawData
-from app.lib import clients, testing
+from app.lib import clients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 from app.presentation import adminapi as presentation
+from tests import lib
 
 
 class RawDataTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.pg_storage = lib.TestPostgresStorage.get()
 
         cls.manager = domain.TableUploadManager(
             repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),
@@ -29,7 +30,7 @@ class RawDataTableTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_create_table_happy_case(self):
-        testing.returns(
+        lib.returns(
             self.manager.clients.ads.query_simple,
             [
                 {
@@ -71,7 +72,7 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["dec"].to_list(), [-50, 88])
 
     def test_create_table_with_nulls(self):
-        testing.returns(
+        lib.returns(
             self.manager.clients.ads.query_simple,
             [
                 {
@@ -110,7 +111,7 @@ class RawDataTableTest(unittest.TestCase):
         self.assertListEqual(data_df["dec"].to_list(), [None, None])
 
     def test_duplicate_column(self):
-        testing.returns(
+        lib.returns(
             self.manager.clients.ads.query_simple,
             [
                 {
@@ -140,7 +141,7 @@ class RawDataTableTest(unittest.TestCase):
             )
 
     def test_add_data_to_unknown_column(self):
-        testing.returns(
+        lib.returns(
             self.manager.clients.ads.query_simple,
             [
                 {

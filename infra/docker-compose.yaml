@@ -15,20 +15,10 @@ services:
   backend:
     image: ghcr.io/hyperleda/hyperleda:latest
     environment:
-      - CONFIG=configs/prod/config.yaml
+      - CONFIG=configs/prod/adminapi.yaml
       - ADS_TOKEN
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped
     logging:
       driver: local
-
-  grafana:
-    image: grafana/grafana-enterprise
-    ports:
-      - "3000:3000"
-    container_name: grafana
-    restart: unless-stopped
-    logging:
-      driver: local
-

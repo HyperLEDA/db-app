@@ -8,9 +8,9 @@ from astropy.coordinates import ICRS
 from app import entities
 from app.domain import adminapi as domain
 from app.domain.adminapi.table_transfer import assign_pgc
-from app.lib import testing
 from app.lib.storage import enums
 from app.presentation import adminapi as presentation
+from tests import lib
 
 
 class AssignPGCTest(unittest.TestCase):
@@ -23,8 +23,8 @@ class AssignPGCTest(unittest.TestCase):
         )
 
     def test_new_and_existing(self):
-        testing.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004, 123])
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004, 123])
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
             entities.ObjectProcessingInfo(
@@ -56,7 +56,7 @@ class AssignPGCTest(unittest.TestCase):
         self.assertEqual([obj.pgc for obj in actual], expected)
 
     def test_only_new(self):
-        testing.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004])
+        lib.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004])
 
         original = [
             entities.ObjectProcessingInfo(
@@ -77,7 +77,7 @@ class AssignPGCTest(unittest.TestCase):
         self.assertEqual([obj.pgc for obj in actual], expected)
 
     def test_only_existing(self):
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
             entities.ObjectProcessingInfo(
@@ -98,8 +98,8 @@ class AssignPGCTest(unittest.TestCase):
         self.assertEqual([obj.pgc for obj in actual], expected)
 
     def test_other_statuses(self):
-        testing.returns(self.manager.common_repo.generate_pgc, [1002])
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.generate_pgc, [1002])
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
             entities.ObjectProcessingInfo(
@@ -129,7 +129,7 @@ class SetTableStatusTest(unittest.TestCase):
         )
 
     def test_one_batch_no_overrides(self):
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
@@ -154,8 +154,8 @@ class SetTableStatusTest(unittest.TestCase):
             ],
         )
 
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
-        testing.returns(self.manager.common_repo.generate_pgc, [1002])
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.generate_pgc, [1002])
 
         self.manager.set_table_status(presentation.SetTableStatusRequest(table_id=1, batch_size=5, overrides=[]))
 
@@ -165,7 +165,7 @@ class SetTableStatusTest(unittest.TestCase):
     def test_one_batch_with_overrides(self):
         obj2_id = str(uuid.uuid4())
         obj3_id = str(uuid.uuid4())
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
@@ -190,8 +190,8 @@ class SetTableStatusTest(unittest.TestCase):
             ],
         )
 
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
-        testing.returns(self.manager.common_repo.generate_pgc, [1234, 1235])
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.generate_pgc, [1234, 1235])
 
         self.manager.set_table_status(
             presentation.SetTableStatusRequest(
@@ -208,7 +208,7 @@ class SetTableStatusTest(unittest.TestCase):
         self.manager.common_repo.generate_pgc.assert_called_once_with(2)
 
     def test_multiple_batches(self):
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
@@ -232,7 +232,7 @@ class SetTableStatusTest(unittest.TestCase):
                 ),
             ],
         )
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.get_objects,
             [
                 entities.ObjectProcessingInfo(
@@ -244,9 +244,9 @@ class SetTableStatusTest(unittest.TestCase):
             ],
         )
 
-        testing.returns(self.manager.common_repo.upsert_pgc, None)
-        testing.returns(self.manager.common_repo.generate_pgc, [1234])
-        testing.returns(self.manager.common_repo.generate_pgc, [1235])
+        lib.returns(self.manager.common_repo.upsert_pgc, None)
+        lib.returns(self.manager.common_repo.generate_pgc, [1234])
+        lib.returns(self.manager.common_repo.generate_pgc, [1235])
 
         self.manager.set_table_status(presentation.SetTableStatusRequest(table_id=1, batch_size=3, overrides=[]))
 

@@ -3,12 +3,12 @@ import uuid
 
 import requests
 
-from app.lib import testing
+from tests import lib
 
 
 def test_decorator(func):
-    f = testing.test_status_decorator(func)
-    return testing.test_logging_decorator(f, __file__)
+    f = lib.test_status_decorator(func)
+    return lib.test_logging_decorator(f, __file__)
 
 
 @test_decorator
@@ -81,7 +81,7 @@ def run():
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
     api_url = f"http://{api_host}:{api_port}"
-    session = testing.TestSession(api_url)
+    session = lib.TestSession(api_url)
 
     create_bibliography_data = create_bibliography(session)
     create_table_data = create_table(session, create_bibliography_data.json()["data"]["code"])

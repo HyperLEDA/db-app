@@ -6,13 +6,13 @@ import structlog
 from astropy import table
 
 from app.domain import tasks
-from app.lib import testing
+from tests import lib
 
 
 class DownloadVizierTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.storage = testing.get_test_postgres_storage()
+        cls.storage = lib.TestPostgresStorage.get()
 
     def tearDown(self):
         self.storage.clear()
@@ -28,7 +28,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("D333", 120.0, 10))
         test_table.add_row(("D541", 90, -50))
 
-        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
+        lib.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -81,7 +81,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", "type1"))
         test_table.add_row(("M541", "type2"))
 
-        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
+        lib.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -100,7 +100,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
-        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
+        lib.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),
@@ -118,7 +118,7 @@ class DownloadVizierTableTest(unittest.TestCase):
         test_table.add_row(("M333", np.nan, 10))
         test_table.add_row(("M541", 90, -50))
 
-        testing.returns(vizier_mock.return_value.get_catalogs, [test_table])
+        lib.returns(vizier_mock.return_value.get_catalogs, [test_table])
 
         tasks.download_vizier_table(
             self.storage.get_storage(),

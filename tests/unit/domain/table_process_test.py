@@ -16,10 +16,10 @@ from app.domain.adminapi.cross_identification import (
 )
 from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
-from app.lib import testing
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.presentation import adminapi as presentation
+from tests import lib
 
 
 def get_noop_cross_identification(
@@ -38,7 +38,7 @@ class TableProcessTest(unittest.TestCase):
         )
 
     def test_invalid_table(self):
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
@@ -88,7 +88,7 @@ class TableProcessTest(unittest.TestCase):
             ),
         ]
 
-        testing.returns(
+        lib.returns(
             self.manager.layer0_repo.fetch_metadata,
             entities.Layer0Creation(
                 table_name="table_name",
@@ -115,8 +115,8 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata, pgc))
 
-        testing.returns(self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
-        testing.returns(
+        lib.returns(self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
+        lib.returns(
             self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
         )
 

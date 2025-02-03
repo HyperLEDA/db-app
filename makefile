@@ -66,7 +66,7 @@ test-all: check
 	uv run pytest --config-file=pyproject.toml tests
 
 test-regression:
-	uv run main.py regression-tests
+	uv run tests.py regression-tests
 
 mypy:
 	uvx mypy app --config-file pyproject.toml

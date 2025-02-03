@@ -1,13 +1,13 @@
 import unittest
 
-from app.lib import testing
 from app.lib.storage.postgres import transactional
+from tests import lib
 
 
 class TransactionalRepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = testing.get_test_postgres_storage()
+        cls.pg_storage = lib.TestPostgresStorage.get()
 
     def test_several_queries(self):
         repo = transactional.TransactionalPGRepository(self.pg_storage.get_storage())
