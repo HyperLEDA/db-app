@@ -51,8 +51,18 @@ def upload_data(session: requests.Session, table_id: str) -> requests.Response:
         json={
             "table_id": table_id,
             "data": [
-                {"name": f"M {random.randint(1, 1000)}", "ra": 1.5641, "dec": 30.6602, "fuzz": str(uuid.uuid4())},
-                {"name": f"M {random.randint(1, 1000)}", "ra": 0.7123, "dec": 41.269, "fuzz": str(uuid.uuid4())},
+                {
+                    "name": f"M {random.randint(1, 1000)}",
+                    "ra": random.uniform(0, 360),
+                    "dec": random.uniform(-90, 90),
+                    "fuzz": str(uuid.uuid4()),
+                },
+                {
+                    "name": f"M {random.randint(1, 1000)}",
+                    "ra": random.uniform(0, 360),
+                    "dec": random.uniform(-90, 90),
+                    "fuzz": str(uuid.uuid4()),
+                },
             ],
         },
     )
