@@ -35,7 +35,7 @@ class TableValidationTest(unittest.TestCase):
                 "one invalid validator",
                 [
                     entities.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
-                    entities.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra"),
+                    entities.ColumnDescription(name="ra", data_type="float", unit=u.Unit("kg"), ucd="pos.eq.ra"),
                     entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
                 ],
                 1,
@@ -44,7 +44,7 @@ class TableValidationTest(unittest.TestCase):
                 "two invalid validators",
                 [
                     entities.ColumnDescription(name="name", data_type="text"),
-                    entities.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra"),
+                    entities.ColumnDescription(name="ra", data_type="float", unit=u.Unit("kg"), ucd="pos.eq.ra"),
                     entities.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
                 ],
                 2,

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 import astropy.io.votable.ucd as ucd
@@ -85,7 +86,7 @@ class TableUploadManager:
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_compute_hash, axis=1)
+        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_id), axis=1)
         data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self.layer0_repo.with_tx():
@@ -99,20 +100,23 @@ class TableUploadManager:
         return adminapi.AddDataResponse()
 
 
-def _compute_hash(row: pandas.Series) -> str:
-    """
-    This function applies special algorithm to an iterable to compute stable hash.
-    It ensures that values are sorted and that spacing is not an issue.
-    """
-    data = []
+def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
+    def _compute_hash(row: pandas.Series) -> str:
+        """
+        This function applies special algorithm to an iterable to compute stable hash.
+        It ensures that values are sorted and that spacing is not an issue.
+        """
+        data = []
 
-    for key, val in dict(row).items():
-        data.append([key, val])
+        for key, val in dict(row).items():
+            data.append([key, val])
 
-    data = sorted(data, key=lambda t: t[0])
-    data_string = json.dumps(data, separators=(",", ":"))
+        data = sorted(data, key=lambda t: t[0])
+        data_string = json.dumps(data, separators=(",", ":"))
 
-    return _hashfunc(data_string)
+        return _hashfunc(f"{table_id}_{data_string}")
+
+    return _compute_hash
 
 
 def _hashfunc(string: str) -> str:

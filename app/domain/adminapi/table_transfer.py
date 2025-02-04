@@ -55,6 +55,8 @@ class TableTransferManager:
 
                 self.layer1_repo.save_data(catalog_objects)
 
+            offset += r.batch_size
+
             if len(objects) < r.batch_size:
                 break
 

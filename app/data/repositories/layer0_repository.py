@@ -139,7 +139,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         columns_str = ",".join(columns or ["*"])
 
         params = []
-        query = f"SELECT {columns_str} FROM {RAWDATA_SCHEMA}.{table_name}\n"
+        query = f"""
+        SELECT {columns_str} FROM {RAWDATA_SCHEMA}."{table_name}"\n
+        """
 
         if order_column is not None:
             query += f"ORDER BY {order_column} {order_direction}\n"

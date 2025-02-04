@@ -46,7 +46,7 @@ class TableUploadManagerTest(unittest.TestCase):
         self.assertListEqual(list(request.args[0].data["number"]), [41, 43])
         self.assertListEqual(
             list(request.args[0].data["hyperleda_internal_id"]),
-            ["b595be2e-b143-7a9e-3428-0e0f01e5f674", "d7a02ed8-6c59-e5e8-2a7b-346150685abf"],
+            ["e75d9505-36d1-26c6-23e9-54f663ce35a2", "27fb0c18-b72b-3457-0bff-56b40182638a"],
         )
 
     def test_add_data_identical_rows(self):

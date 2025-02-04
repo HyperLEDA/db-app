@@ -15,18 +15,18 @@ class Layer0RepositoryTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            param("no kwargs", {}, "SELECT * FROM rawdata.ironman OFFSET %s"),
-            param("with columns", {"columns": ["one", "two"]}, "SELECT one, two FROM rawdata.ironman OFFSET %s"),
+            param("no kwargs", {}, 'SELECT * FROM rawdata."ironman" OFFSET %s'),
+            param("with columns", {"columns": ["one", "two"]}, 'SELECT one, two FROM rawdata."ironman" OFFSET %s'),
             param(
                 "with order by",
                 {"order_column": "one", "order_direction": "desc"},
-                "SELECT * FROM rawdata.ironman ORDER BY one DESC OFFSET %s",
+                'SELECT * FROM rawdata."ironman" ORDER BY one DESC OFFSET %s',
             ),
-            param("with limit", {"limit": 10}, "SELECT * FROM rawdata.ironman OFFSET %s LIMIT %s"),
+            param("with limit", {"limit": 10}, 'SELECT * FROM rawdata."ironman" OFFSET %s LIMIT %s'),
             param(
                 "with all",
                 {"columns": ["one", "two"], "order_column": "one", "order_direction": "desc", "limit": 10},
-                "SELECT one, two FROM rawdata.ironman ORDER BY one DESC OFFSET %s LIMIT %s",
+                'SELECT one, two FROM rawdata."ironman" ORDER BY one DESC OFFSET %s LIMIT %s',
             ),
         ]
     )
