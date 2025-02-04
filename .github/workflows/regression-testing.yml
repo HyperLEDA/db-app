@@ -21,6 +21,8 @@ jobs:
 
       - name: Start server
         shell: bash
+        env:
+          ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
         run: |
           make adminapi &
 
