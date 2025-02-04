@@ -131,6 +131,6 @@ class PgStorage:
         result = self.query(query, params=params)
 
         if len(result) != 1:
-            raise RuntimeError("was unable to fetch one value")
+            raise RuntimeError(f"was unable to fetch one value, got {len(result)} values")
 
         return result[0]
