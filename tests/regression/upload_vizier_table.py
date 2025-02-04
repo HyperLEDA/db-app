@@ -1,16 +1,18 @@
+import hyperleda
 import hyperleda_scripts
 
 from tests import lib
 
 
 @lib.test_logging_decorator(__file__)
-def upload_vizier_table():
-    hyperleda_scripts.vizier_command("III/258", "III/258/fbs", False)
+def upload_vizier_table() -> int:
+    return hyperleda_scripts.vizier_command("III/258", "III/258/fbs", False)
 
 
 def run():
-    upload_vizier_table()
-    # Run the script with the predefined table
+    client = hyperleda.HyperLedaClient()
+    table_id = upload_vizier_table()
+
     # Start processing
     # Check object statuses
     # Transfer tables to layer 1
