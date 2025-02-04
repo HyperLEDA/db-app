@@ -97,7 +97,7 @@ module = "astroquery.*"
 ignore_missing_imports = true
 
 [tool.uv.sources]
-hyperleda-scripts = { git = "https://github.com/HyperLEDA/scripts.git", rev = "issue-13-v4" }
+hyperleda-scripts = { git = "https://github.com/HyperLEDA/scripts.git" }
 
 [dependency-groups]
 dev = [
