@@ -1,4 +1,4 @@
-from tests.lib.decorators import test_logging_decorator, test_status_decorator
+from tests.lib.decorators import test_logging_decorator
 from tests.lib.mocks import raises, returns
 from tests.lib.postgres import TestPostgresStorage
 from tests.lib.redis import TestRedisStorage
@@ -12,5 +12,4 @@ __all__ = [
     "returns",
     "raises",
     "test_logging_decorator",
-    "test_status_decorator",
 ]

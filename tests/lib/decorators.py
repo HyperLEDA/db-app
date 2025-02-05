@@ -1,8 +1,6 @@
 import functools
 import pathlib
 
-import requests
-
 
 def test_logging_decorator(source_file: str):
     def decorator(func):
@@ -23,17 +21,3 @@ def test_logging_decorator(source_file: str):
         return wrapper
 
     return decorator
-
-
-def test_status_decorator(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        result = func(*args, **kwargs)
-
-        if isinstance(result, requests.Response):
-            if result.status_code != 200:
-                raise RuntimeError(f"Status code: {result.status_code}, {result.json()}")
-
-        return result
-
-    return wrapper

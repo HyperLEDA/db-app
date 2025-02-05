@@ -11,12 +11,7 @@ from tests import lib
 random.seed(time.time())
 
 
-def test_decorator(func):
-    f = lib.test_status_decorator(func)
-    return lib.test_logging_decorator(__file__)(f)
-
-
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def create_bibliography(client: hyperleda.HyperLedaClient) -> str:
     return client.create_internal_source(
         authors=["Doe, J."],
@@ -25,7 +20,7 @@ def create_bibliography(client: hyperleda.HyperLedaClient) -> str:
     )
 
 
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> int:
     return client.create_table(
         hyperleda.CreateTableRequestSchema(
@@ -41,7 +36,7 @@ def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> int:
     )
 
 
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def upload_data(client: hyperleda.HyperLedaClient, table_id: int):
     df = pandas.DataFrame.from_records(
         [
@@ -63,12 +58,12 @@ def upload_data(client: hyperleda.HyperLedaClient, table_id: int):
     client.add_data(table_id, df)
 
 
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def start_processing(client: hyperleda.HyperLedaClient, table_id: int):
     client.start_processing(table_id)
 
 
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dict[str, int]:
     stats = client.get_table_status_stats(table_id)
     if stats.processing is None:
@@ -77,7 +72,7 @@ def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dic
     return stats.processing
 
 
-@test_decorator
+@lib.test_logging_decorator(__file__)
 def set_table_status(client: hyperleda.HyperLedaClient, table_id: int):
     client.set_table_status(table_id)
 
