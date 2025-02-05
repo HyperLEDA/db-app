@@ -66,21 +66,18 @@ def new_catalog_object(catalog: RawCatalog, pgc: int, **kwargs) -> CatalogObject
     return get_catalog_object_type(catalog)(pgc, **kwargs)
 
 
-def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[tuple[str, CatalogObject]]:
-    objects = []
+def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject]:
+    objects: list[CatalogObject] = []
 
     if obj.pgc is None:
         return []
 
     if obj.data.primary_name is not None:
-        objects.append((obj.object_id, DesignationCatalogObject(obj.pgc, obj.data.primary_name)))
+        objects.append(DesignationCatalogObject(obj.pgc, obj.data.primary_name))
 
     if obj.data.coordinates is not None:
         objects.append(
-            (
-                obj.object_id,
-                ICRSCatalogObject(obj.pgc, obj.data.coordinates.ra.deg, 0.01, obj.data.coordinates.dec.deg, 0.02),
-            )
+            ICRSCatalogObject(obj.pgc, obj.data.coordinates.ra.deg, 0.01, obj.data.coordinates.dec.deg, 0.02),
         )
 
     return objects

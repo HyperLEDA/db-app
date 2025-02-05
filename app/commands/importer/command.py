@@ -29,14 +29,15 @@ class ImporterCommand(commands.Command):
         last_update_dt = self.layer2_repository.get_last_update_time()
         new_objects = self.layer1_repository.get_new_objects(last_update_dt)
 
-        objects_by_catalog = containers.group_by(new_objects, key_func=lambda obj: obj.catalog())
+        objects_by_catalog = containers.group_by(new_objects, key_func=lambda obj: obj.catalog_object.catalog())
         aggregated_objects = []
 
         for catalog, objects in objects_by_catalog.items():
-            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc())
+            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
 
             for _, objects in objects_by_pgc.items():
-                aggregated_objects.append(model.get_catalog_object_type(catalog).aggregate(objects))
+                catalog_objects = [obj.catalog_object for obj in objects]
+                aggregated_objects.append(model.get_catalog_object_type(catalog).aggregate(catalog_objects))
 
         with self.layer2_repository.with_tx():
             self.layer2_repository.save_data(aggregated_objects)
