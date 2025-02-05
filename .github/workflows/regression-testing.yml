@@ -19,11 +19,11 @@ jobs:
         run: |
           docker compose up -d
 
-      - name: Start server
+      - name: Start AdminAPI server
         env:
           ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
         run: |
-          ADS_TOKEN=$ADS_TOKEN make adminapi &
+          make adminapi &
 
       - name: Run tests
         run: |
