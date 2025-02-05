@@ -20,10 +20,12 @@ jobs:
           docker compose up -d
 
       - name: Start AdminAPI server
-        env:
-          ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
         run: |
-          ADS_TOKEN=${{ secrets.ADS_TOKEN }} make adminapi &
+          make adminapi &
+
+      - name: Start DataAPI server
+        run: |
+          SERVER_PORT=8081 make dataapi &
 
       - name: Run tests
         run: |

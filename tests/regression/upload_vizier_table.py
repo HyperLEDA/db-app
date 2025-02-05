@@ -12,7 +12,13 @@ from tests import lib
 @lib.test_logging_decorator(__file__)
 def upload_vizier_table() -> int:
     return hyperleda_scripts.vizier_command(
-        "III/258", "III/258/fbs", hyperleda_table_name=f"vizier_{str(uuid.uuid4())}"
+        "III/258",
+        "III/258/fbs",
+        hyperleda_table_name=f"vizier_{str(uuid.uuid4())}",
+        bib_author="Flesch, E.",
+        bib_year="2015",
+        bib_title="A catalogue of integrated H I fluxes",
+        log_level="warn",
     )
 
 

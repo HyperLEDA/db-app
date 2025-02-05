@@ -23,7 +23,6 @@ dependencies = [
     "rq>=2.1.0",
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
-    "hyperleda-scripts",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +32,7 @@ test = [
     "pytest>=8.3.4",
     "testcontainers-postgres>=0.0.1rc1",
     "testcontainers-redis>=0.0.1rc1",
+    "hyperleda-scripts",
 ]
 
 [tool.ruff]
