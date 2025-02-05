@@ -10,7 +10,10 @@ install:
 	uv sync
 
 adminapi:
-	set -a && source .env.local && set +a && uv run main.py adminapi -c configs/dev/adminapi.yaml
+	uv run main.py adminapi -c configs/dev/adminapi.yaml
+
+adminapi-dev:
+	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml

@@ -2,7 +2,10 @@ import uuid
 
 import hyperleda
 import hyperleda_scripts
+import requests
 
+from app.commands.importer.command import ImporterCommand
+from app.lib import commands
 from tests import lib
 
 
@@ -48,6 +51,17 @@ def set_table_status(client: hyperleda.HyperLedaClient, table_id: int):
     client.set_table_status(table_id)
 
 
+@lib.test_logging_decorator(__file__)
+def run_importer():
+    commands.run(ImporterCommand("configs/dev/importer.yaml"))
+
+
+@lib.test_logging_decorator(__file__)
+def query_objects() -> list[dict]:
+    response = requests.get("http://localhost:8081/api/v1/query/simple", params={"name": "1203+668"})
+    return response.json().get("data", {}).get("objects", {})
+
+
 def run():
     client = hyperleda.HyperLedaClient()
     table_id = upload_vizier_table()
@@ -64,11 +78,12 @@ def run():
 
     statuses = check_statuses(client, table_id)
     assert statuses["new"] > 0
-    assert ("existing" not in statuses) or (statuses["existing"] == 0)
-    assert ("collided" not in statuses) or (statuses["collided"] == 0)
+    assert statuses.get("existing", 0) == 0
+    assert statuses.get("collided", 0) == 0
 
     set_table_status(client, table_id)
-    # Transfer tables to layer 1
-    # Run importer
-    # Run layer2 api
-    # Query objects from layer 2 api
+
+    run_importer()
+
+    objects = query_objects()
+    assert len(objects) > 0
