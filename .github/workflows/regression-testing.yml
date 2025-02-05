@@ -24,7 +24,7 @@ jobs:
         env:
           ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
         run: |
-          make adminapi &
+          uv run main.py adminapi -c configs/dev/adminapi.yaml &
 
       - name: Run tests
         run: |
