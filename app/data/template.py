@@ -24,7 +24,7 @@ SELECT id, task_name, payload, user_id, status, start_time, end_time, message FR
 """
 
 CREATE_TABLE = """
-CREATE TABLE {{ schema }}.{{ name }} (
+CREATE TABLE {{ schema }}."{{ name }}" (
     {% for field_name, field_type, constraint in fields %}
     "{{field_name}}" {{field_type}} {{constraint}}{% if not loop.last %},{% endif %}
     {% endfor %}
@@ -40,11 +40,11 @@ CREATE TEMPORARY TABLE {{ name }} (
 """
 
 ADD_COLUMN_COMMENT = """
-SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '"{{ column_name }}"', '{{ params }}'::json)
+SELECT meta.setparams('{{ schema }}', '"{{ table_name }}"', '"{{ column_name }}"', '{{ params }}'::json)
 """
 
 ADD_TABLE_COMMENT = """
-SELECT meta.setparams('{{ schema }}', '{{ table_name }}', '{{ params }}'::json)
+SELECT meta.setparams('{{ schema }}', '"{{ table_name }}"', '{{ params }}'::json)
 """
 
 INSERT_TABLE_REGISTRY_ITEM = """
@@ -55,7 +55,7 @@ RETURNING id
 
 INSERT_RAW_DATA = """
 INSERT INTO 
-    {{ schema }}.{{ table }} 
+    {{ schema }}."{{ table }}" 
     ({% for field_name in fields %}"{{ field_name }}"{% if not loop.last %},{% endif %}{% endfor %})
     VALUES{% for object in objects %}
     ({% for field_name in fields %}

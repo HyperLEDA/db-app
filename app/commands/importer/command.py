@@ -26,11 +26,6 @@ class ImporterCommand(commands.Command):
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, log)
 
     def run(self):
-        # 1. for each catalog on layer 1 collect all objects that were modified
-        # since the last import: collect(dt) -> dict[pgc, UnaggregatedInfo]
-        # 2. for each pgc aggregate all objects: aggregate(pgc, dict[pgc, UnaggregatedInfo]) -> ObjectInfo
-        # 3. write objects to the storage: write(objects: dict[pgc, ObjectInfo]) -> None
-
         last_update_dt = self.layer2_repository.get_last_update_time()
         new_objects = self.layer1_repository.get_new_objects(last_update_dt)
 

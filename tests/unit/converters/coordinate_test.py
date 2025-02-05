@@ -19,18 +19,18 @@ class CoordinateConverterTest(unittest.TestCase):
                 ],
             ),
             param(
-                "one unit is None",
-                [
-                    entities.ColumnDescription("test", "float", unit=u.hourangle, ucd="pos.eq.ra"),
-                    entities.ColumnDescription("test", "float", ucd="pos.eq.dec"),
-                ],
-                True,
-            ),
-            param(
                 "one unit is not angular",
                 [
                     entities.ColumnDescription("test", "float", unit=u.joule, ucd="pos.eq.ra"),
                     entities.ColumnDescription("test", "float", unit=u.hourangle, ucd="pos.eq.dec"),
+                ],
+                True,
+            ),
+            param(
+                "one unit is None",
+                [
+                    entities.ColumnDescription("test", "float", unit=u.hourangle, ucd="pos.eq.ra"),
+                    entities.ColumnDescription("test", "float", ucd="pos.eq.dec"),
                 ],
                 True,
             ),

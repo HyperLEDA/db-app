@@ -139,7 +139,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         columns_str = ",".join(columns or ["*"])
 
         params = []
-        query = f"SELECT {columns_str} FROM {RAWDATA_SCHEMA}.{table_name}\n"
+        query = f"""
+        SELECT {columns_str} FROM {RAWDATA_SCHEMA}."{table_name}"\n
+        """
 
         if order_column is not None:
             query += f"ORDER BY {order_column} {order_direction}\n"
@@ -279,14 +281,15 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
 
-    def get_objects(self, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
+    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
         rows = self._storage.query(
             """
             SELECT object_id, pgc, status, data, metadata
             FROM rawdata.objects
+            WHERE table_id = %s
             LIMIT %s OFFSET %s
             """,
-            params=[batch_size, offset],
+            params=[table_id, batch_size, offset],
         )
 
         return [

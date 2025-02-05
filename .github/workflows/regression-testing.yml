@@ -19,9 +19,13 @@ jobs:
         run: |
           docker compose up -d
 
-      - name: Start server
+      - name: Start AdminAPI server
         run: |
           make adminapi &
+
+      - name: Start DataAPI server
+        run: |
+          SERVER_PORT=8081 make dataapi &
 
       - name: Run tests
         run: |

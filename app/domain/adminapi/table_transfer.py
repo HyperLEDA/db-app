@@ -40,7 +40,7 @@ class TableTransferManager:
         offset = 0
 
         while True:
-            objects = self.layer0_repo.get_objects(r.batch_size, offset)
+            objects = self.layer0_repo.get_objects(r.table_id, r.batch_size, offset)
 
             for i, obj in enumerate(objects):
                 if obj.object_id in overrides:
@@ -54,6 +54,8 @@ class TableTransferManager:
                     catalog_objects.extend(model.get_catalog_object(obj))
 
                 self.layer1_repo.save_data(catalog_objects)
+
+            offset += r.batch_size
 
             if len(objects) < r.batch_size:
                 break

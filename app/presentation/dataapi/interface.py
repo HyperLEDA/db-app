@@ -10,7 +10,6 @@ class QuerySimpleRequest:
     dec: float | None = None
     radius: float | None = None
     name: str | None = None
-    designation: str | None = None
     page_size: int = 25
     page: int = 0
 

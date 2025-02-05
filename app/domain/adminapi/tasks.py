@@ -7,7 +7,6 @@ from app.presentation import adminapi
 
 TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
     "echo": (tasks.echo_task, tasks.EchoTaskParams),
-    "download_vizier_table": (tasks.download_vizier_table, tasks.DownloadVizierTableParams),
 }
 
 

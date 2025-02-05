@@ -23,11 +23,11 @@ COMMENT ON SCHEMA designation IS 'Designation catalog' ;
 CREATE TABLE designation.data (
   pgc	integer	NOT NULL	REFERENCES common.pgc ( id ) ON DELETE restrict ON UPDATE cascade
 , object_id text NOT NULL REFERENCES rawdata.objects (object_id) ON DELETE restrict ON UPDATE cascade
-, design	text	NOT NULL	UNIQUE
+, design	text	NOT NULL
 , modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
 , PRIMARY KEY (pgc,design)
 ) ;
-CREATE UNIQUE INDEX ON designation.data (upper(replace(design,' ',''))) ;
+CREATE INDEX ON designation.data (upper(replace(design,' ',''))) ;
 
 COMMENT ON TABLE designation.data IS 'List of unique object names' ;
 COMMENT ON COLUMN designation.data.pgc IS '{"description" : "PGC number of the object" , "ucd" : "meta.id"}' ;
