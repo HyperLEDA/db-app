@@ -22,10 +22,8 @@ jobs:
       - name: Start AdminAPI server
         env:
           ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
-          TEST_VAR: test
         run: |
-          echo $TEST_VAR
-          make adminapi &
+          ADS_TOKEN=${{ secrets.ADS_TOKEN }} make adminapi &
 
       - name: Run tests
         run: |
