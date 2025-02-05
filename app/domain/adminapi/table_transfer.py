@@ -49,9 +49,12 @@ class TableTransferManager:
             with self.common_repo.with_tx():
                 objects_to_move = assign_pgc(self.common_repo, objects)
 
-                catalog_objects = []
+                catalog_objects: list[model.Layer1CatalogObject] = []
                 for obj in objects_to_move:
-                    catalog_objects.extend(model.get_catalog_object(obj))
+                    for catalog_object in model.get_catalog_object(obj):
+                        catalog_objects.append(
+                            model.Layer1CatalogObject(obj.pgc, obj.object_id, catalog_object),
+                        )
 
                 self.layer1_repo.save_data(catalog_objects)
 

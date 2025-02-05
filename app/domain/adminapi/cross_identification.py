@@ -8,7 +8,6 @@ from app.data import repositories
 from app.domain import converters
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
-    SimpleSimultaneousDataProvider,
 )
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
@@ -62,27 +61,18 @@ def table_process_with_cross_identification(
         for obj_data in data.data.to_dict(orient="records"):
             obj = converter.apply(entities.ObjectInfo(), obj_data)
 
-            result = cross_identification_func(
-                layer2_repo,
-                obj,
-                SimpleSimultaneousDataProvider([]),  # TODO: use correct provider
-                CrossIdentificationUserParam(
-                    r.cross_identification.inner_radius_arcsec * u.arcsec,
-                    r.cross_identification.outer_radius_arcsec * u.arcsec,
-                ),
-            )
+            # TODO: cross-identification
 
-            processing_info = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], result, obj)
+            processing_info = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], obj)
             layer0_repo.upsert_object(r.table_id, processing_info)
 
-    # TODO: remove col_name and coordinate_part from entities?
+    # TODO: remove col_name from entities?
 
     return adminapi.TableProcessResponse()
 
 
 def get_processing_info(
     object_id: str,
-    res: result.CrossIdentifyResult,
     obj: entities.ObjectInfo,
 ) -> entities.ObjectProcessingInfo:
     """
@@ -90,13 +80,7 @@ def get_processing_info(
     :param res: Object that stores data about the cross identification processing
     :param obj: Processed and homogenous information about the object
     """
-    if res.fail is None:
-        if res.result is None:
-            return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.NEW, {}, obj)
-
-        return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.EXISTING, {}, obj, res.result.pgc)
-
-    return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.COLLIDED, {"error": res.fail}, obj)
+    return entities.ObjectProcessingInfo(object_id, enums.ObjectProcessingStatus.NEW, {}, obj)
 
 
 def cross_identification(

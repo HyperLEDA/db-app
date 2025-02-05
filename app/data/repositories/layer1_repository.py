@@ -16,7 +16,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[tuple[str, model.CatalogObject]]) -> None:
+    def save_data(self, objects: list[model.Layer1CatalogObject]) -> None:
         """
         For each object, saves it to corresponding catalog in the storage.
         Object has no knowledge of the table name of the catalog it belongs to.
@@ -25,14 +25,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         For now, objects are saved one by one but the `list` allows for future optimizations.
         """
 
-        for object_id, obj in objects:
-            catalog = obj.catalog()
+        for layer1_obj in objects:
+            catalog = layer1_obj.catalog_object.catalog()
             table = tables[catalog]
 
-            self._logger.info("Saving data to layer 1", table=table, pgc=obj.pgc())
+            self._logger.info("Saving data to layer 1", table=table, pgc=layer1_obj.pgc)
 
-            data = obj.layer1_data()
-            data["object_id"] = object_id
+            data = layer1_obj.catalog_object.layer1_data()
+            data["pgc"] = layer1_obj.pgc
+            data["object_id"] = layer1_obj.object_id
 
             columns = list(data.keys())
             values = [data[column] for column in columns]
@@ -44,14 +45,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             self._storage.exec(query, params=values)
 
-    def get_new_objects(self, dt: datetime.datetime) -> list[model.CatalogObject]:
+    def get_new_objects(self, dt: datetime.datetime) -> list[model.Layer1CatalogObject]:
         """
         Returns all objects that were modified since `dt`.
 
         TODO: make the selection in batches instead of everything at once.
         """
 
-        objects: list[model.CatalogObject] = []
+        objects: list[model.Layer1CatalogObject] = []
 
         for catalog, table in tables.items():
             query = f"""
@@ -66,6 +67,10 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             rows = self._storage.query(query, params=[dt])
             for row in rows:
-                objects.append(model.new_catalog_object(catalog, **row))
+                object_id = row.pop("object_id")
+                pgc = int(row.pop("pgc"))
+                catalog_object = model.new_catalog_object(catalog, **row)
+
+                objects.append(model.Layer1CatalogObject(pgc, object_id, catalog_object))
 
         return objects

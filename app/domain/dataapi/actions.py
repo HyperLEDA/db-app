@@ -24,11 +24,11 @@ class Actions(dataapi.Actions):
 
         objects = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
 
-        objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc())
+        objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
 
         response_objects = []
         for pgc, catalogs in objects_by_pgc.items():
-            catalog_data = {obj.catalog().value: obj.layer2_data() for obj in catalogs}
+            catalog_data = {obj.catalog_object.catalog().value: obj.catalog_object.layer2_data() for obj in catalogs}
 
             response_objects.append(dataapi.PGCObject(pgc, catalog_data))
 

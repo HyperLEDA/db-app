@@ -4,7 +4,6 @@ from app.data.model import common
 
 
 @dataclass
-class Layer1CatalogObject:
+class Layer2CatalogObject:
     pgc: int
-    object_id: str
     catalog_object: common.CatalogObject
