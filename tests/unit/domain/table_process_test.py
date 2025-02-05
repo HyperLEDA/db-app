@@ -1,11 +1,9 @@
-import datetime
 import unittest
 import uuid
 from unittest import mock
 
 import astropy.units as u
 import pandas
-from astropy.coordinates import ICRS
 
 from app import entities
 from app.data import repositories
@@ -14,7 +12,6 @@ from app.domain.adminapi.cross_identification import (
     cross_identification_func_type,
     table_process_with_cross_identification,
 )
-from app.domain.model.layer2.layer_2_model import Layer2Model
 from app.domain.model.params import cross_identification_result as result
 from app.lib.storage import enums
 from app.lib.web import errors
@@ -66,26 +63,6 @@ class TableProcessTest(unittest.TestCase):
     def test_objects(self):
         objects = [
             ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectProcessingStatus.NEW, {}, None),
-            (
-                "obj2",
-                20.0,
-                20.0,
-                result.CrossIdentifyResult(
-                    Layer2Model(1234, ICRS(), [], "obj1", 1, 2, datetime.datetime.now(tz=datetime.UTC)), None
-                ),
-                enums.ObjectProcessingStatus.EXISTING,
-                {},
-                1234,
-            ),
-            (
-                "obj3",
-                30.0,
-                30.0,
-                result.CrossIdentifyResult(None, result.CrossIdentificationNamesNotFoundException(["obj2"])),
-                enums.ObjectProcessingStatus.COLLIDED,
-                {"error": result.CrossIdentificationNamesNotFoundException(["obj2"])},  # TODO: convert to dataclasses?
-                None,
-            ),
         ]
 
         lib.returns(

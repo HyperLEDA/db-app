@@ -32,6 +32,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             self._logger.info("Saving data to layer 1", table=table, pgc=layer1_obj.pgc)
 
             data = layer1_obj.catalog_object.layer1_data()
+            data["pgc"] = layer1_obj.pgc
             data["object_id"] = layer1_obj.object_id
 
             columns = list(data.keys())
@@ -67,9 +68,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             rows = self._storage.query(query, params=[dt])
             for row in rows:
                 object_id = row.pop("object_id")
-                pgc = row.pop("pgc")
+                pgc = int(row.pop("pgc"))
                 catalog_object = model.new_catalog_object(catalog, **row)
 
-                objects.append(model.Layer1CatalogObject(object_id, pgc, catalog_object))
+                objects.append(model.Layer1CatalogObject(pgc, object_id, catalog_object))
 
         return objects

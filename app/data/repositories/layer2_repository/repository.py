@@ -25,12 +25,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def update_last_update_time(self, dt: datetime.datetime):
         self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
 
-    def save_data(self, objects: list[model.CatalogObject]):
+    def save_data(self, objects: list[model.Layer2CatalogObject]):
         for obj in objects:
-            table = catalog_to_tables[obj.catalog()]
+            table = catalog_to_tables[obj.catalog_object.catalog()]
 
-            data = obj.layer2_data()
-            data["pgc"] = obj.pgc()
+            data = obj.catalog_object.layer2_data()
+            data["pgc"] = obj.pgc
             columns = list(data.keys())
             values = [data[column] for column in columns]
 
@@ -48,7 +48,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         filters: list[repofilters.Filter],
         limit: int,
         offset: int,
-    ) -> list[model.CatalogObject]:
+    ) -> list[model.Layer2CatalogObject]:
         table_names = []
         columns = ["pgc"]
 
@@ -80,15 +80,13 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         objects = self._storage.query(query, params=params)
 
-        result_objects = []
+        result_objects: list[model.Layer2CatalogObject] = []
 
         for obj in objects:
             res: dict[model.RawCatalog, dict[str, Any]] = {}
+            pgc = int(obj.pop("pgc"))
 
             for key, value in obj.items():
-                if key == "pgc":
-                    continue
-
                 catalog_name, column = key.split("|")
                 catalog = model.RawCatalog(catalog_name)
 
@@ -98,7 +96,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 res[catalog][column] = value
 
             for catalog, data in res.items():
-                constructor = model.get_catalog_object_type(catalog)
-                result_objects.append(model.new_catalog_object(catalog, pgc=int(obj.get("pgc")), **data))
+                result_objects.append(model.Layer2CatalogObject(pgc, model.new_catalog_object(catalog, **data)))
 
         return result_objects

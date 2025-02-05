@@ -8,7 +8,6 @@ from app.data import repositories
 from app.domain import converters
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
-    SimpleSimultaneousDataProvider,
 )
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam

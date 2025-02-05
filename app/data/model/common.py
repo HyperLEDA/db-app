@@ -4,8 +4,6 @@ from typing import Any, Self, final
 
 from app import entities
 
-pgc = int
-
 
 class RawCatalog(enum.Enum):
     """
@@ -23,9 +21,6 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
-    def __init__(self, pgc: int) -> None:
-        self._pgc = pgc
-
     @classmethod
     @abc.abstractmethod
     def aggregate(cls, objects: list[Self]) -> Self:
@@ -34,10 +29,6 @@ class CatalogObject(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def layer2_keys(cls) -> list[str]:
-        pass
-
-    @abc.abstractmethod
-    def pgc(self) -> int:
         pass
 
     @abc.abstractmethod
@@ -62,22 +53,19 @@ def get_catalog_object_type(catalog: RawCatalog) -> type[CatalogObject]:
     raise ValueError(f"Unknown catalog: {catalog}")
 
 
-def new_catalog_object(catalog: RawCatalog, pgc: int, **kwargs) -> CatalogObject:
-    return get_catalog_object_type(catalog)(pgc, **kwargs)
+def new_catalog_object(catalog: RawCatalog, **kwargs) -> CatalogObject:
+    return get_catalog_object_type(catalog)(**kwargs)
 
 
 def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject]:
     objects: list[CatalogObject] = []
 
-    if obj.pgc is None:
-        return []
-
     if obj.data.primary_name is not None:
-        objects.append(DesignationCatalogObject(obj.pgc, obj.data.primary_name))
+        objects.append(DesignationCatalogObject(obj.data.primary_name))
 
     if obj.data.coordinates is not None:
         objects.append(
-            ICRSCatalogObject(obj.pgc, obj.data.coordinates.ra.deg, 0.01, obj.data.coordinates.dec.deg, 0.02),
+            ICRSCatalogObject(obj.data.coordinates.ra.deg, 0.01, obj.data.coordinates.dec.deg, 0.02),
         )
 
     return objects
@@ -85,16 +73,14 @@ def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject
 
 @final
 class DesignationCatalogObject(CatalogObject):
-    def __init__(self, pgc: int, design: str, **kwargs) -> None:
+    def __init__(self, design: str, **kwargs) -> None:
         self.designation = design
-
-        super().__init__(pgc)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, DesignationCatalogObject):
             return False
 
-        return self.pgc() == value.pgc() and self.designation == value.designation
+        return self.designation == value.designation
 
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
@@ -112,10 +98,7 @@ class DesignationCatalogObject(CatalogObject):
             if count > name_counts.get(max_name, 0):
                 max_name = name
 
-        return cls(objects[0].pgc(), max_name)
-
-    def pgc(self) -> int:
-        return self._pgc
+        return cls(max_name)
 
     def catalog(self) -> RawCatalog:
         return RawCatalog.DESIGNATION
@@ -126,7 +109,6 @@ class DesignationCatalogObject(CatalogObject):
 
     def layer1_data(self) -> dict[str, Any]:
         return {
-            "pgc": self.pgc(),
             "design": self.designation,
         }
 
@@ -138,25 +120,17 @@ class DesignationCatalogObject(CatalogObject):
 
 @final
 class ICRSCatalogObject(CatalogObject):
-    def __init__(self, pgc: int, ra: float, e_ra: float, dec: float, e_dec: float, **kwargs) -> None:
+    def __init__(self, ra: float, e_ra: float, dec: float, e_dec: float, **kwargs) -> None:
         self.ra = ra
         self.e_ra = e_ra
         self.dec = dec
         self.e_dec = e_dec
 
-        super().__init__(pgc)
-
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):
             return False
 
-        return (
-            self.pgc() == value.pgc()
-            and self.ra == value.ra
-            and self.e_ra == value.e_ra
-            and self.dec == value.dec
-            and self.e_dec == value.e_dec
-        )
+        return self.ra == value.ra and self.e_ra == value.e_ra and self.dec == value.dec and self.e_dec == value.e_dec
 
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
@@ -174,10 +148,7 @@ class ICRSCatalogObject(CatalogObject):
         dec = sum(decs) / len(decs)
         e_dec = sum(e_decs) / len(e_decs)
 
-        return cls(objects[0].pgc(), ra, e_ra, dec, e_dec)
-
-    def pgc(self) -> int:
-        return self._pgc
+        return cls(ra, e_ra, dec, e_dec)
 
     def catalog(self) -> RawCatalog:
         return RawCatalog.ICRS
@@ -188,7 +159,6 @@ class ICRSCatalogObject(CatalogObject):
 
     def layer1_data(self) -> dict[str, Any]:
         return {
-            "pgc": self.pgc(),
             "ra": self.ra,
             "e_ra": self.e_ra,
             "dec": self.dec,
