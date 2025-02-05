@@ -20,11 +20,8 @@ jobs:
           docker compose up -d
 
       - name: Start server
-        shell: bash
-        env:
-          ADS_TOKEN: ${{ secrets.ADS_TOKEN }}
         run: |
-          uv run main.py adminapi -c configs/dev/adminapi.yaml &
+          ADS_TOKEN=${{ secrets.ADS_TOKEN }} make adminapi &
 
       - name: Run tests
         run: |
