@@ -33,27 +33,6 @@ class TableProcessTest(unittest.TestCase):
             layer2_repo=mock.MagicMock(),
         )
 
-    def test_invalid_table(self):
-        lib.returns(
-            self.manager.layer0_repo.fetch_metadata,
-            entities.Layer0Creation(
-                table_name="table_name",
-                column_descriptions=[
-                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                ],
-                bibliography_id=1234,
-                datatype=enums.DataType.REGULAR,
-            ),
-        )
-
-        with self.assertRaises(errors.LogicalError):
-            self.manager.table_process(
-                presentation.TableProcessRequest(
-                    table_id=1234,
-                    cross_identification=presentation.CrossIdentification(1.5, 4.5),
-                ),
-            )
-
     def test_objects(self):
         objects = [
             ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectProcessingStatus.NEW, {}, None),

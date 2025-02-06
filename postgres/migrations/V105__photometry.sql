@@ -80,7 +80,7 @@ CREATE TABLE photometry.data (
 ) ;
 
 COMMENT ON TABLE photometry.data	IS 'Total magnitudes catalog' ;
-COMMENT ON COLUMN photometry.data.id	IS 'Totla magnitude ID' ;
+COMMENT ON COLUMN photometry.data.id	IS 'Total magnitude ID' ;
 COMMENT ON COLUMN photometry.data.pgc	IS 'PGC number of the object' ;
 COMMENT ON COLUMN photometry.data.dataset	IS 'Dataset of the measurements' ;
 COMMENT ON COLUMN photometry.data.band	IS 'Passband ID' ;
