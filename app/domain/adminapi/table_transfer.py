@@ -1,7 +1,6 @@
 from app.data import model, repositories
 from app.domain import converters
 from app.lib.storage import enums
-from app.lib.web import errors
 from app.presentation import adminapi
 
 
