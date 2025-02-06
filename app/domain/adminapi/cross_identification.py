@@ -4,15 +4,11 @@ import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 
 from app.data import model, repositories
-from app.domain import converters
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
 )
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
-from app.lib.storage import enums
-from app.lib.web import errors
-from app.presentation import adminapi
 
 DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
 DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
@@ -26,61 +22,6 @@ cross_identification_func_type = Callable[
     ],
     result.CrossIdentifyResult,
 ]
-
-
-def table_process(
-    layer0_repo: repositories.Layer0Repository,
-    r: adminapi.TableProcessRequest,
-) -> adminapi.TableProcessResponse:
-    meta = layer0_repo.fetch_metadata(r.table_id)
-
-    convs = [
-        converters.NameConverter(),
-        converters.ICRSConverter(),
-    ]
-
-    for conv in convs:
-        try:
-            conv.parse_columns(meta.column_descriptions)
-        except converters.ConverterError as e:
-            raise errors.LogicalError(f"Unable to process table: {str(e)}") from e
-
-    offset = 0
-
-    while True:
-        data = layer0_repo.fetch_raw_data(
-            r.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
-        )
-        offset += min(r.batch_size, len(data.data))
-
-        if len(data.data) == 0:
-            break
-
-        for obj_data in data.data.to_dict(orient="records"):
-            objects: list[model.CatalogObject] = []
-            for conv in convs:
-                obj = conv.apply(obj_data)
-                objects.append(obj)
-
-            # TODO: cross-identification
-
-            layer0_repo.upsert_object(
-                r.table_id,
-                get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], obj),
-            )
-
-    # TODO: remove col_name from entities?
-
-    return adminapi.TableProcessResponse()
-
-
-def get_processing_info(object_id: str, data: list[model.CatalogObject]) -> model.Layer0CatalogObject:
-    """
-    :param object_id: Internal ID of the object
-    :param res: Object that stores data about the cross identification processing
-    :param obj: Processed and homogenous information about the object
-    """
-    return model.Layer0CatalogObject(object_id, enums.ObjectProcessingStatus.NEW, {}, data)
 
 
 def cross_identification(

@@ -10,7 +10,6 @@ from app.data import repositories
 from app.domain import adminapi as domain
 from app.domain.adminapi.cross_identification import (
     cross_identification_func_type,
-    table_process,
 )
 from app.domain.model.params import cross_identification_result as result
 from app.lib.storage import enums
@@ -48,8 +47,7 @@ class TableProcessTest(unittest.TestCase):
         )
 
         with self.assertRaises(errors.LogicalError):
-            table_process(
-                self.manager.layer0_repo,
+            self.manager.table_process(
                 presentation.TableProcessRequest(
                     table_id=1234,
                     cross_identification=presentation.CrossIdentification(1.5, 4.5),
@@ -93,8 +91,7 @@ class TableProcessTest(unittest.TestCase):
             self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
         )
 
-        table_process(
-            self.manager.layer0_repo,
+        self.manager.table_process(
             presentation.TableProcessRequest(
                 table_id=1234,
                 cross_identification=presentation.CrossIdentification(1.5, 4.5),
