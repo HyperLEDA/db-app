@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from math import acos, cos, sin
 
 import astropy.units as u
 from astropy.coordinates import ICRS, Angle
 from pandas import DataFrame
 
-from app import entities
 from app.domain.model.params import TmpCoordinateTableQueryParam, TmpNameTableQueryParam
 from app.domain.repositories.tmp_data_repository import TmpDataRepository
 
@@ -18,6 +18,11 @@ def _sph_dist(a: ICRS, b: ICRS) -> Angle:
     return acos(sin(b_dec) * sin(a_dec) + cos(b_dec) * cos(a_dec) * cos(b_ra - a_ra)) * u.rad
 
 
+@dataclass
+class ObjectInfo:
+    pass
+
+
 class CrossIdSimultaneousDataProvider(ABC):
     """
     Used to access currently processing data from cross identification action.
@@ -25,11 +30,11 @@ class CrossIdSimultaneousDataProvider(ABC):
     but also currently processed objects
     """
 
-    def __init__(self, data: list[entities.ObjectInfo]):
-        self._data: list[entities.ObjectInfo] = data
+    def __init__(self, data: list[ObjectInfo]):
+        self._data: list[ObjectInfo] = data
 
     @abstractmethod
-    def data_inside(self, center: ICRS, r: Angle) -> list[entities.ObjectInfo]:
+    def data_inside(self, center: ICRS, r: Angle) -> list[ObjectInfo]:
         """
         Get all points around given point
 
@@ -39,7 +44,7 @@ class CrossIdSimultaneousDataProvider(ABC):
         """
 
     @abstractmethod
-    def by_name(self, names: list[str]) -> list[entities.ObjectInfo]:
+    def by_name(self, names: list[str]) -> list[ObjectInfo]:
         """
         Select items by names
 
@@ -52,7 +57,7 @@ class CrossIdSimultaneousDataProvider(ABC):
 
 
 class SimpleSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
-    def data_inside(self, center: ICRS, r: Angle) -> list[entities.ObjectInfo]:
+    def data_inside(self, center: ICRS, r: Angle) -> list[ObjectInfo]:
         return [
             it
             for it in self._data
@@ -61,13 +66,13 @@ class SimpleSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
             and _sph_dist(it.coordinates, center) < r
         ]
 
-    def by_name(self, names: list[str]) -> list[entities.ObjectInfo]:
+    def by_name(self, names: list[str]) -> list[ObjectInfo]:
         names_set = set(names)
         return [it for it in self._data if len(set(it.names or []) & names_set) > 0]
 
 
 class PostgreSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
-    def __init__(self, data: list[entities.ObjectInfo], tmp_data_repository: TmpDataRepository):
+    def __init__(self, data: list[ObjectInfo], tmp_data_repository: TmpDataRepository):
         super().__init__(data)
         self._tmp_data_repository = tmp_data_repository
         self.table_name: str = tmp_data_repository.make_table(
@@ -82,11 +87,11 @@ class PostgreSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
             index_on=["ra", "dec"],
         )
 
-    def data_inside(self, center: ICRS, r: Angle) -> list[entities.ObjectInfo]:
+    def data_inside(self, center: ICRS, r: Angle) -> list[ObjectInfo]:
         res = self._tmp_data_repository.query_table(TmpCoordinateTableQueryParam(self.table_name, center, r))
         return [self._data[it["idx"]] for it in res]
 
-    def by_name(self, names: list[str]) -> list[entities.ObjectInfo]:
+    def by_name(self, names: list[str]) -> list[ObjectInfo]:
         res = self._tmp_data_repository.query_table(TmpNameTableQueryParam(self.table_name, names))
 
         return [self._data[it["idx"]] for it in res]

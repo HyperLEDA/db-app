@@ -6,6 +6,7 @@ from astropy import coordinates
 from astropy import units as u
 
 from app import entities
+from app.data import model
 from app.domain.converters import common, errors, interface
 
 
@@ -47,13 +48,12 @@ class ICRSConverter(interface.QuantityConverter):
         self.ra_column = ColumnInfo.parse(common.get_main_column(columns, "pos.eq.ra"))
         self.dec_column = ColumnInfo.parse(common.get_main_column(columns, "pos.eq.dec"))
 
-    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
+    def apply(self, data: dict[Hashable, Any]) -> model.CatalogObject:
         if self.ra_column is None or self.dec_column is None:
             raise errors.ConverterError("unknown rules for coordinate specification")
 
-        object_info.coordinates = coordinates.ICRS(
-            ra=self.ra_column.apply(data),
-            dec=self.dec_column.apply(data),
-        )
+        coords = coordinates.ICRS(ra=self.ra_column.apply(data), dec=self.dec_column.apply(data))
+        ra = coords.ra.deg
+        dec = coords.dec.deg
 
-        return object_info
+        return model.ICRSCatalogObject(ra, 0.01, dec, 0.01)

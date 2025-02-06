@@ -3,6 +3,7 @@ from collections.abc import Hashable
 from typing import Any
 
 from app import entities
+from app.data import model
 
 
 class QuantityConverter(abc.ABC):
@@ -38,7 +39,7 @@ class QuantityConverter(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
+    def apply(self, data: dict[Hashable, Any]) -> model.CatalogObject:
         """
         Applies the transformation of the data to the particular object
         """

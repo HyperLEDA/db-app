@@ -3,6 +3,7 @@ from collections.abc import Hashable
 from typing import Any, final
 
 from app import entities
+from app.data import model
 from app.domain.converters import common, errors, interface
 
 
@@ -17,13 +18,11 @@ class NameConverter(interface.QuantityConverter):
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
         self.column = common.get_main_column(columns, "meta.id")
 
-    def apply(self, object_info: entities.ObjectInfo, data: dict[Hashable, Any]) -> entities.ObjectInfo:
+    def apply(self, data: dict[Hashable, Any]) -> model.CatalogObject:
         if self.column is None:
             raise errors.ConverterError("unknown rules for name specification")
 
-        object_info.primary_name = data[self.column.name]
-
-        return object_info
+        return model.DesignationCatalogObject(data[self.column.name])
 
 
 def generalize_name(source: str) -> str:

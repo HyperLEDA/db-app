@@ -5,7 +5,7 @@ from astropy import units as u
 from pandas import DataFrame
 
 from app import entities
-from app.data import template
+from app.data import model, template
 from app.entities import ColumnDescription, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
@@ -251,21 +251,24 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
 
-    def upsert_object(self, table_id: int, obj: entities.ObjectProcessingInfo) -> None:
+    def upsert_object(
+        self,
+        table_id: int,
+        processing_info: model.Layer0CatalogObject,
+    ) -> None:
         self._storage.exec(
             """
-            INSERT INTO rawdata.objects (table_id, object_id, pgc, status, data, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s) 
+            INSERT INTO rawdata.objects (table_id, object_id, status, data, metadata)
+            VALUES (%s, %s, %s, %s, %s) 
             ON CONFLICT (table_id, object_id) DO 
                 UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
             """,
             params=[
                 table_id,
-                obj.object_id,
-                obj.pgc,
-                obj.status,
-                json.dumps(obj.data, cls=entities.ObjectInfoEncoder),
-                json.dumps(obj.metadata),
+                processing_info.object_id,
+                processing_info.status,
+                json.dumps(processing_info.data, cls=model.CatalogObjectEncoder),
+                json.dumps(processing_info.metadata),
             ],
         )
 
@@ -281,7 +284,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
 
-    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[entities.ObjectProcessingInfo]:
+    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0CatalogObject]:
         rows = self._storage.query(
             """
             SELECT object_id, pgc, status, data, metadata
@@ -293,11 +296,11 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         )
 
         return [
-            entities.ObjectProcessingInfo(
+            model.Layer0CatalogObject(
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
                 row["metadata"],
-                entities.ObjectInfo.load(row["data"]),
+                json.loads(row["data"], object_hook=model.CatalogObjectDecoder),
                 row["pgc"],
             )
             for row in rows

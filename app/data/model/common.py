@@ -1,8 +1,7 @@
 import abc
 import enum
+import json
 from typing import Any, Self, final
-
-from app import entities
 
 
 class RawCatalog(enum.Enum):
@@ -44,6 +43,30 @@ class CatalogObject(abc.ABC):
         pass
 
 
+class CatalogObjectEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if not isinstance(obj, CatalogObject):
+            return json.JSONEncoder.default(self, obj)
+
+        data = obj.layer1_data()
+        data["catalog"] = obj.catalog().value
+
+        return data
+
+
+class CatalogObjectDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, **kwargs)
+
+    def object_hook(self, obj):
+        if "catalog" not in obj:
+            return obj
+
+        catalog = RawCatalog(obj.pop("catalog"))
+
+        return new_catalog_object(catalog, **obj)
+
+
 def get_catalog_object_type(catalog: RawCatalog) -> type[CatalogObject]:
     if catalog == RawCatalog.DESIGNATION:
         return DesignationCatalogObject
@@ -55,20 +78,6 @@ def get_catalog_object_type(catalog: RawCatalog) -> type[CatalogObject]:
 
 def new_catalog_object(catalog: RawCatalog, **kwargs) -> CatalogObject:
     return get_catalog_object_type(catalog)(**kwargs)
-
-
-def get_catalog_object(obj: entities.ObjectProcessingInfo) -> list[CatalogObject]:
-    objects: list[CatalogObject] = []
-
-    if obj.data.primary_name is not None:
-        objects.append(DesignationCatalogObject(obj.data.primary_name))
-
-    if obj.data.coordinates is not None:
-        objects.append(
-            ICRSCatalogObject(obj.data.coordinates.ra.deg, 0.01, obj.data.coordinates.dec.deg, 0.02),
-        )
-
-    return objects
 
 
 @final

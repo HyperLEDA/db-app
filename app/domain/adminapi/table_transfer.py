@@ -1,4 +1,3 @@
-from app import entities
 from app.data import model, repositories
 from app.domain.adminapi import cross_identification
 from app.lib.storage import enums
@@ -22,7 +21,7 @@ class TableTransferManager:
         return adminapi.TableStatusStatsResponse(processing=self.layer0_repo.get_object_statuses(r.table_id))
 
     def table_process(self, r: adminapi.TableProcessRequest) -> adminapi.TableProcessResponse:
-        return cross_identification.table_process_with_cross_identification(
+        return cross_identification.table_process(
             self.layer0_repo,
             self.layer2_repo,
             cross_identification.cross_identification,
@@ -51,7 +50,7 @@ class TableTransferManager:
 
                 catalog_objects: list[model.Layer1CatalogObject] = []
                 for obj in objects_to_move:
-                    for catalog_object in model.get_catalog_object(obj):
+                    for catalog_object in obj.data:
                         catalog_objects.append(
                             model.Layer1CatalogObject(obj.pgc, obj.object_id, catalog_object),
                         )
@@ -67,9 +66,9 @@ class TableTransferManager:
 
 
 def apply_override(
-    obj: entities.ObjectProcessingInfo,
+    obj: model.Layer0CatalogObject,
     override: adminapi.SetTableStatusOverrides,
-) -> entities.ObjectProcessingInfo:
+) -> model.Layer0CatalogObject:
     if override.pgc is not None:
         obj.status = enums.ObjectProcessingStatus.EXISTING
         obj.pgc = override.pgc
@@ -81,8 +80,8 @@ def apply_override(
 
 
 def assign_pgc(
-    common_repo: repositories.CommonRepository, objects: list[entities.ObjectProcessingInfo]
-) -> list[entities.ObjectProcessingInfo]:
+    common_repo: repositories.CommonRepository, objects: list[model.Layer0CatalogObject]
+) -> list[model.Layer0CatalogObject]:
     new_pgc_items_num = 0
     existing_pgc_items = []
     output_list = []
