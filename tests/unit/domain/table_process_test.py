@@ -13,7 +13,6 @@ from app.domain.usecases.cross_identification import (
     cross_identification_func_type,
 )
 from app.lib.storage import enums
-from app.lib.web import errors
 from app.presentation import adminapi as presentation
 from tests import lib
 
