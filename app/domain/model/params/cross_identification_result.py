@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 from astropy.coordinates import ICRS, Angle
 
-from app import entities
 from app.domain.model.layer2 import Layer2Model
 
 
@@ -70,12 +69,17 @@ class CrossIdentificationCoordCollisionException(CrossIdentificationException):
 
 
 @dataclass
+class ObjectInfo:
+    pass
+
+
+@dataclass
 class CrossIdentificationNameCoordCollisionException(CrossIdentificationException):
     """
     Describes collision, when cross identified name and coordinates mismatch
     """
 
-    def __init__(self, target_param: entities.ObjectInfo, name_hit: Layer2Model | None, coord_hit: Layer2Model | None):
+    def __init__(self, target_param: ObjectInfo, name_hit: Layer2Model | None, coord_hit: Layer2Model | None):
         """
         :param target_param: The configuration, that caused collision
         :param name_hit: Cross identification by name result
@@ -94,7 +98,7 @@ class CrossIdentificationNameCoordFailException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: entities.ObjectInfo,
+        target_param: ObjectInfo,
         name_collision: CrossIdentificationException,
         coord_collision: CrossIdentificationException,
     ):
@@ -117,7 +121,7 @@ class CrossIdentificationNameCoordCoordException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: entities.ObjectInfo,
+        target_param: ObjectInfo,
         name_hit: Layer2Model | None,
         coord_collision: CrossIdentificationException,
     ):
@@ -140,7 +144,7 @@ class CrossIdentificationNameCoordNameFailException(CrossIdentificationException
 
     def __init__(
         self,
-        target_param: entities.ObjectInfo,
+        target_param: ObjectInfo,
         name_collision: CrossIdentificationException,
         coord_hit: Layer2Model | None,
     ):
@@ -162,8 +166,8 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
 
     def __init__(
         self,
-        target_param: entities.ObjectInfo,
-        collisions: list[entities.ObjectInfo],
+        target_param: ObjectInfo,
+        collisions: list[ObjectInfo],
         db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException,
     ):
         """
@@ -171,6 +175,6 @@ class CrossIdentificationDuplicateException(CrossIdentificationException):
         :param collisions: Collisions with simultaneously processed objects
         :param db_cross_id_result: The result of cross identification with DB objects
         """
-        self.target_param: entities.ObjectInfo = target_param
-        self.collisions: list[entities.ObjectInfo] = collisions
+        self.target_param: ObjectInfo = target_param
+        self.collisions: list[ObjectInfo] = collisions
         self.db_cross_id_result: CrossIdentifyResult | CrossIdentificationCoordCollisionException = db_cross_id_result

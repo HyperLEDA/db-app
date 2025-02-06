@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from app import entities
+from app.data import model
 from app.data.repositories.layer2_repository import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model import Layer0Model, Layer1Model
@@ -25,10 +25,15 @@ class TransformationO1UseCase:
         self,
         layer2_repo: Layer2Repository,
         cross_identification_function: Callable[
-            [Layer2Repository, entities.ObjectInfo, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
+            [
+                Layer2Repository,
+                model.Layer0CatalogObject,
+                CrossIdSimultaneousDataProvider,
+                CrossIdentificationUserParam,
+            ],
             CrossIdentifyResult,
         ],
-        simultaneous_data_provider: Callable[[list[entities.ObjectInfo]], CrossIdSimultaneousDataProvider],
+        simultaneous_data_provider: Callable[[list[model.Layer0CatalogObject]], CrossIdSimultaneousDataProvider],
     ):
         """
         :param cross_identification_function: Cross identification logic
@@ -42,7 +47,12 @@ class TransformationO1UseCase:
         self,
         layer2_repo: Layer2Repository,
         cross_identification_function: Callable[
-            [Layer2Repository, entities.ObjectInfo, CrossIdSimultaneousDataProvider, CrossIdentificationUserParam],
+            [
+                Layer2Repository,
+                model.Layer0CatalogObject,
+                CrossIdSimultaneousDataProvider,
+                CrossIdentificationUserParam,
+            ],
             CrossIdentifyResult,
         ],
     ):
@@ -94,10 +104,10 @@ class TransformationO1UseCase:
             elif isinstance(name, BaseException):
                 identification_params.append(name)
             elif name is None:
-                identification_params.append(entities.ObjectInfo(None, None, coordinate))
+                identification_params.append(model.Layer0CatalogObject(None, None, coordinate))
             else:
                 primary_name, all_names = name
-                identification_params.append(entities.ObjectInfo(all_names, primary_name, coordinate))
+                identification_params.append(model.Layer0CatalogObject(all_names, primary_name, coordinate))
         # Simultaneous data provider needs only valid entities.ObjectInfos
         simultaneous_data_provider = self._simultaneous_data_provider(
             [it for it in identification_params if not isinstance(it, BaseException)]
@@ -133,7 +143,7 @@ class TransformationO1UseCase:
                 continue
 
             pgc = identification_result.result.pgc if identification_result.result is not None else None
-            model = Layer1Model(
+            m = Layer1Model(
                 pgc=pgc,
                 source_id=data.id,
                 processed=False,
@@ -145,6 +155,6 @@ class TransformationO1UseCase:
                 ],
                 dataset=data.meta.dataset,
             )
-            models.append(model)
+            models.append(m)
 
         return models, fails

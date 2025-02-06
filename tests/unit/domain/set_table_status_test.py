@@ -2,10 +2,7 @@ import unittest
 import uuid
 from unittest import mock
 
-from astropy import units as u
-from astropy.coordinates import ICRS
-
-from app import entities
+from app.data import model
 from app.domain import adminapi as domain
 from app.domain.adminapi.table_transfer import assign_pgc
 from app.lib.storage import enums
@@ -27,27 +24,13 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1001
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1005
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1010
-            ),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -59,15 +42,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004])
 
         original = [
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -80,15 +57,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1001
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1005
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 1010
-            ),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -102,15 +73,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, entities.ObjectInfo()
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, entities.ObjectInfo(), 12345
-            ),
-            entities.ObjectProcessingInfo(
-                str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, entities.ObjectInfo()
-            ),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, []),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 12345),
+            model.Layer0CatalogObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -132,24 +97,24 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
             ],
         )
@@ -168,24 +133,24 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     obj2_id,
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     obj3_id,
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
             ],
         )
@@ -211,35 +176,35 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
             ],
         )
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                entities.ObjectProcessingInfo(
+                model.Layer0CatalogObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
-                    entities.ObjectInfo(coordinates=ICRS(ra=12.4 * u.deg, dec=11.4 * u.deg)),
+                    [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 )
             ],
         )

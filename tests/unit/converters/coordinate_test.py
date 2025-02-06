@@ -1,10 +1,13 @@
 import unittest
+from collections.abc import Hashable
+from typing import Any
 
 from astropy import coordinates
 from astropy import units as u
 from parameterized import param, parameterized
 
 from app import entities
+from app.data import model
 from app.domain import converters
 
 
@@ -67,8 +70,8 @@ class CoordinateConverterTest(unittest.TestCase):
             ]
         )
 
-        data = {"ra": 10, "dec": 22}
+        data: dict[Hashable, Any] = {"ra": 10, "dec": 22}
         expected = coordinates.ICRS(10 * u.hour, dec=22 * u.deg)
 
-        actual = converter.apply(entities.ObjectInfo(), data)
-        self.assertEqual(actual.coordinates, expected)
+        actual = converter.apply(data)
+        self.assertEqual(actual, model.ICRSCatalogObject(expected.ra.deg, 0.01, expected.dec.deg, 0.01))

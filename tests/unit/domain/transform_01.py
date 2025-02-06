@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 from pandas import DataFrame
 
-from app import entities
+from app.data import model
 from app.data.repositories.layer2_repository import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
@@ -29,10 +29,12 @@ from app.domain.usecases import TransformationO1UseCase
 from tests.unit.domain.util import noop_cross_identify_function
 
 
-def get_purposefully_failing_cross_identification_function(fail_condition: Callable[[entities.ObjectInfo], bool]):
+def get_purposefully_failing_cross_identification_function(
+    fail_condition: Callable[[model.Layer0CatalogObject], bool],
+):
     def func(
         layer2_repo: Layer2Repository,
-        param: entities.ObjectInfo,
+        param: model.Layer0CatalogObject,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
         user_param: CrossIdentificationUserParam,
     ) -> result.CrossIdentifyResult:

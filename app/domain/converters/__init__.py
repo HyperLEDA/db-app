@@ -1,4 +1,3 @@
-from app.domain.converters.composite import CompositeConverter
 from app.domain.converters.coordinate import ICRSConverter
 from app.domain.converters.errors import ConverterError, ConverterNoColumnError
 from app.domain.converters.interface import QuantityConverter
@@ -8,7 +7,6 @@ __all__ = [
     "QuantityConverter",
     "ICRSConverter",
     "NameConverter",
-    "CompositeConverter",
     "ConverterError",
     "ConverterNoColumnError",
 ]
