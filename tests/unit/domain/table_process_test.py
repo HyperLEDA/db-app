@@ -8,10 +8,10 @@ import pandas
 from app import entities
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.domain.adminapi.cross_identification import (
+from app.domain.model.params import cross_identification_result as result
+from app.domain.usecases.cross_identification import (
     cross_identification_func_type,
 )
-from app.domain.model.params import cross_identification_result as result
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.presentation import adminapi as presentation

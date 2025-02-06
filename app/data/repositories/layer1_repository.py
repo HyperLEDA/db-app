@@ -8,6 +8,7 @@ from app.lib.storage import postgres
 tables: dict[model.RawCatalog, str] = {
     model.RawCatalog.ICRS: "icrs.data",
     model.RawCatalog.DESIGNATION: "designation.data",
+    model.RawCatalog.REDSHIFT: "cz.data",
 }
 
 

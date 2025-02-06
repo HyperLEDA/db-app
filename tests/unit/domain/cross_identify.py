@@ -6,7 +6,6 @@ from astropy.coordinates import ICRS, angular_separation
 
 from app import entities
 from app.data.repositories.layer2_repository import Layer2Repository
-from app.domain.adminapi.cross_identification import DEFAULT_INNER_RADIUS, cross_identification
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params.cross_identification_result import (
@@ -22,6 +21,7 @@ from app.domain.model.params.cross_identification_result import (
 )
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 from app.domain.model.params.layer_2_query_param import Layer2QueryByNames, Layer2QueryInCircle, Layer2QueryParam
+from app.domain.usecases.cross_identification import DEFAULT_INNER_RADIUS, cross_identification
 from tests.unit.domain.util import make_points
 
 

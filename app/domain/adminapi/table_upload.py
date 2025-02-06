@@ -131,6 +131,7 @@ def validate_columns(columns: list[entities.ColumnDescription]) -> list[adminapi
     convs = [
         converters.NameConverter(),
         converters.ICRSConverter(),
+        converters.RedshiftConverter(),
     ]
 
     validations = []

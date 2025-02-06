@@ -10,6 +10,7 @@ from app.lib.storage import postgres
 catalog_to_tables = {
     model.RawCatalog.ICRS: "layer2.icrs",
     model.RawCatalog.DESIGNATION: "layer2.designation",
+    model.RawCatalog.REDSHIFT: "layer2.cz",
 }
 tables_to_catalog = {v: k for k, v in catalog_to_tables.items()}
 
