@@ -48,8 +48,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self,
         catalogs: list[model.RawCatalog],
         filters: dict[str, list[repofilters.Filter]],
-        offset: int,
         limit: int,
+        offset: int,
     ) -> dict[str, dict[int, list[model.CatalogObject]]]:
         """
         Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
@@ -84,7 +84,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             if len(filters) != 0:
                 conditions = "WHERE " + " AND ".join([f.get_query() for f in object_filters])
 
-            params = []
             for f in object_filters:
                 params.extend(f.get_params())
 
@@ -94,7 +93,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             curr_columns = [f"'{object_id}' AS object_id"] + columns
             query = f"SELECT {', '.join(curr_columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
 
-            queries.append(query)
+            queries.append(f"({query})")
 
         objects = self._storage.query(" UNION ALL ".join(queries), params=params)
 
@@ -141,5 +140,5 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         limit: int,
         offset: int,
     ) -> dict[int, list[model.CatalogObject]]:
-        res = self.query_batch(catalogs, {"obj": filters}, offset, limit)
+        res = self.query_batch(catalogs, {"obj": filters}, limit, offset)
         return res["obj"]
