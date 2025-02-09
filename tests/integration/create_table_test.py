@@ -24,7 +24,7 @@ class CreateTableTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def test_create_table_no_validation(self):
+    def test_create_table_no_validation_errors(self):
         source_code = self.source_manager.create_source(
             presentation.CreateSourceRequest("title", ["author"], 2022)
         ).code
@@ -36,6 +36,7 @@ class CreateTableTest(unittest.TestCase):
                     presentation.ColumnDescription("name", "text", ucd="meta.id"),
                     presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.rad),
                     presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.rad),
+                    presentation.ColumnDescription("redshift", "float", ucd="src.redshift"),
                 ],
                 source_code,
                 "regular",
@@ -70,7 +71,7 @@ class CreateTableTest(unittest.TestCase):
         self.assertTrue(created)
 
         validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest(response.id))
-        self.assertEqual(len(validation_result.validations), 2)
+        self.assertEqual(len(validation_result.validations), 3)
 
         self.upload_manager.patch_table(
             presentation.PatchTableRequest(
@@ -83,4 +84,4 @@ class CreateTableTest(unittest.TestCase):
         )
 
         validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest(response.id))
-        self.assertEqual(len(validation_result.validations), 0)
+        self.assertEqual(len(validation_result.validations), 1)
