@@ -10,6 +10,11 @@ from app.presentation import adminapi as presentation
 
 @final
 class GenerateSpecCommand(commands.Command):
+    """
+    Generates OpenAPI spec of the admin API and writes it to a file. This command is used by
+    the generator of the documentation to create the API docs page.
+    """
+
     def __init__(self, filename: str):
         self.filename = filename
 

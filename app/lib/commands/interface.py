@@ -6,6 +6,13 @@ class Command(abc.ABC):
     Base class for any command that can be run by the CLI.
     """
 
+    @classmethod
+    def help(cls) -> str:
+        """
+        Return a string that describes the command.
+        """
+        return cls.__doc__ or ""
+
     @abc.abstractmethod
     def prepare(self):
         """
