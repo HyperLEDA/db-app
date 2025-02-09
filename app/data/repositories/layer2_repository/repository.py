@@ -5,6 +5,7 @@ import structlog
 
 from app.data import model
 from app.data.repositories.layer2_repository import filters as repofilters
+from app.lib import containers
 from app.lib.storage import postgres
 
 catalog_to_tables = {
@@ -43,15 +44,24 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
             self._storage.exec(query, params=values)
 
-    def query(
+    def query_batch(
         self,
         catalogs: list[model.RawCatalog],
-        filters: list[repofilters.Filter],
+        filters: dict[str, list[repofilters.Filter]],
         limit: int,
         offset: int,
-    ) -> list[model.Layer2CatalogObject]:
-        table_names = []
+    ) -> dict[str, dict[int, list[model.CatalogObject]]]:
+        """
+        Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
+        The ID is not processed in any way and is used only as a key for the output data.
+
+        The objects are queried independently and are not joined in any way.
+
+        Offset and limit are applied individually to each object.
+        """
+
         columns = ["pgc"]
+        table_names = []
 
         for catalog in catalogs:
             table_name = catalog_to_tables[catalog]
@@ -66,37 +76,69 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
         )
 
-        conditions = ""
-        if len(filters) != 0:
-            conditions = "WHERE " + " AND ".join([f.get_query() for f in filters])
-
-        query = f"SELECT {', '.join(columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
-
         params = []
-        for f in filters:
-            params.extend(f.get_params())
+        queries = []
 
-        params.append(limit)
-        params.append(offset)
+        for object_id, object_filters in filters.items():
+            conditions = ""
+            if len(filters) != 0:
+                conditions = "WHERE " + " AND ".join([f.get_query() for f in object_filters])
 
-        objects = self._storage.query(query, params=params)
+            for f in object_filters:
+                params.extend(f.get_params())
 
-        result_objects: list[model.Layer2CatalogObject] = []
+            params.append(limit)
+            params.append(offset)
 
-        for obj in objects:
-            res: dict[model.RawCatalog, dict[str, Any]] = {}
-            pgc = int(obj.pop("pgc"))
+            curr_columns = [f"'{object_id}' AS object_id"] + columns
+            query = f"SELECT {', '.join(curr_columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
 
-            for key, value in obj.items():
-                catalog_name, column = key.split("|")
-                catalog = model.RawCatalog(catalog_name)
+            queries.append(f"({query})")
 
-                if catalog not in res:
-                    res[catalog] = {}
+        objects = self._storage.query(" UNION ALL ".join(queries), params=params)
 
-                res[catalog][column] = value
+        objects_by_id = containers.group_by(objects, key_func=lambda obj: str(obj["object_id"]))
 
-            for catalog, data in res.items():
-                result_objects.append(model.Layer2CatalogObject(pgc, model.new_catalog_object(catalog, **data)))
+        result: dict[str, dict[int, list[model.CatalogObject]]] = {}
 
-        return result_objects
+        for object_id, objects in objects_by_id.items():
+            if object_id not in result:
+                result[object_id] = {}
+
+            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
+
+            for pgc, pgc_objects in objects_by_pgc.items():
+                if pgc not in result[object_id]:
+                    result[object_id][pgc] = []
+
+                # TODO: what if for each pgc there are multiple rows? For example, if
+                # the catalog does not have a UNIQUE constraint on pgc.
+                obj = pgc_objects[0]
+                obj.pop("object_id")
+                obj.pop("pgc")
+
+                res: dict[model.RawCatalog, dict[str, Any]] = {}
+
+                for key, value in obj.items():
+                    catalog_name, column = key.split("|")
+                    catalog = model.RawCatalog(catalog_name)
+
+                    if catalog not in res:
+                        res[catalog] = {}
+
+                    res[catalog][column] = value
+
+                for catalog, data in res.items():
+                    result[object_id][pgc].append(model.new_catalog_object(catalog, **data))
+
+        return result
+
+    def query(
+        self,
+        catalogs: list[model.RawCatalog],
+        filters: list[repofilters.Filter],
+        limit: int,
+        offset: int,
+    ) -> dict[int, list[model.CatalogObject]]:
+        res = self.query_batch(catalogs, {"obj": filters}, limit, offset)
+        return res["obj"]

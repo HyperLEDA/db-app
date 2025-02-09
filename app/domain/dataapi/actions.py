@@ -1,6 +1,5 @@
 from app.data import model, repositories
 from app.data.repositories import layer2_repository
-from app.lib import containers
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -22,13 +21,11 @@ class Actions(dataapi.Actions):
         if query.name is not None:
             filters.append(layer2_repository.DesignationEqualsFilter(query.name))
 
-        objects = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
-
-        objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
+        objects_by_pgc = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
 
         response_objects = []
         for pgc, catalogs in objects_by_pgc.items():
-            catalog_data = {obj.catalog_object.catalog().value: obj.catalog_object.layer2_data() for obj in catalogs}
+            catalog_data = {obj.catalog().value: obj.layer2_data() for obj in catalogs}
 
             response_objects.append(dataapi.PGCObject(pgc, catalog_data))
 
