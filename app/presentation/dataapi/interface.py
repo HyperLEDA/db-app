@@ -6,6 +6,7 @@ from app.presentation.dataapi import model
 
 @dataclass
 class QuerySimpleRequest:
+    pgcs: list[int] | None = None
     ra: float | None = None
     dec: float | None = None
     radius: float | None = None

@@ -16,6 +16,9 @@ class Actions(dataapi.Actions):
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         filters = []
 
+        if query.pgcs is not None:
+            filters.append(layer2_repository.PGCOneOfFilter(query.pgcs))
+
         if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
             filters.append(layer2_repository.ICRSCoordinatesInRadiusFilter(query.ra, query.dec, query.radius))
 

@@ -12,6 +12,17 @@ class Filter(abc.ABC):
         pass
 
 
+class PGCOneOfFilter(Filter):
+    def __init__(self, pgcs: list[int]):
+        self._pgcs = pgcs
+
+    def get_query(self):
+        return "pgc IN ({})".format(", ".join(["%s"] * len(self._pgcs)))
+
+    def get_params(self):
+        return self._pgcs
+
+
 class DesignationEqualsFilter(Filter):
     def __init__(self, designation: str):
         self._designation = designation
