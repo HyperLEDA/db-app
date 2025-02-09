@@ -1,16 +1,19 @@
-from app.data.model.common import (
-    CatalogObject,
+from app.data.model.designation import DesignationCatalogObject
+from app.data.model.helpers import (
     CatalogObjectDecoder,
     CatalogObjectEncoder,
-    DesignationCatalogObject,
-    ICRSCatalogObject,
-    RawCatalog,
     get_catalog_object_type,
     new_catalog_object,
+)
+from app.data.model.icrs import ICRSCatalogObject
+from app.data.model.interface import (
+    CatalogObject,
+    RawCatalog,
 )
 from app.data.model.layer0 import Layer0CatalogObject
 from app.data.model.layer1 import Layer1CatalogObject
 from app.data.model.layer2 import Layer2CatalogObject
+from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
     "Layer0CatalogObject",
@@ -22,6 +25,7 @@ __all__ = [
     "CatalogObjectDecoder",
     "DesignationCatalogObject",
     "ICRSCatalogObject",
+    "RedshiftCatalogObject",
     "get_catalog_object_type",
     "new_catalog_object",
 ]

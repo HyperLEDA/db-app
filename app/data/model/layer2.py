@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from app.data.model import common
+from app.data.model import interface
 
 
 @dataclass
 class Layer2CatalogObject:
     pgc: int
-    catalog_object: common.CatalogObject
+    catalog_object: interface.CatalogObject

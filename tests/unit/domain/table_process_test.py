@@ -8,12 +8,11 @@ import pandas
 from app import entities
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.domain.adminapi.cross_identification import (
+from app.domain.model.params import cross_identification_result as result
+from app.domain.usecases.cross_identification import (
     cross_identification_func_type,
 )
-from app.domain.model.params import cross_identification_result as result
 from app.lib.storage import enums
-from app.lib.web import errors
 from app.presentation import adminapi as presentation
 from tests import lib
 
@@ -32,27 +31,6 @@ class TableProcessTest(unittest.TestCase):
             layer1_repo=mock.MagicMock(),
             layer2_repo=mock.MagicMock(),
         )
-
-    def test_invalid_table(self):
-        lib.returns(
-            self.manager.layer0_repo.fetch_metadata,
-            entities.Layer0Creation(
-                table_name="table_name",
-                column_descriptions=[
-                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                ],
-                bibliography_id=1234,
-                datatype=enums.DataType.REGULAR,
-            ),
-        )
-
-        with self.assertRaises(errors.LogicalError):
-            self.manager.table_process(
-                presentation.TableProcessRequest(
-                    table_id=1234,
-                    cross_identification=presentation.CrossIdentification(1.5, 4.5),
-                ),
-            )
 
     def test_objects(self):
         objects = [

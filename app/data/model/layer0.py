@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.data.model import common
+from app.data.model import interface
 from app.lib.storage import enums
 
 
@@ -10,5 +10,5 @@ class Layer0CatalogObject:
     object_id: str
     status: enums.ObjectProcessingStatus
     metadata: dict[str, Any]
-    data: list[common.CatalogObject]
+    data: list[interface.CatalogObject]
     pgc: int | None = None

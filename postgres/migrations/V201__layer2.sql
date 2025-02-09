@@ -21,3 +21,9 @@ CREATE TABLE layer2.icrs (
 ,   dec double precision NOT NULL
 ,   e_dec real NOT NULL
 );
+
+CREATE TABLE layer2.cz (
+    pgc integer PRIMARY KEY
+,   cz double precision NOT NULL
+,   e_cz real NOT NULL
+);

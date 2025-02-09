@@ -1,7 +1,6 @@
 from app.data import model, repositories
 from app.domain import converters
 from app.lib.storage import enums
-from app.lib.web import errors
 from app.presentation import adminapi
 
 
@@ -27,13 +26,18 @@ class TableTransferManager:
         convs: list[converters.QuantityConverter] = [
             converters.NameConverter(),
             converters.ICRSConverter(),
+            converters.RedshiftConverter(),
         ]
+
+        valid_converters = []
 
         for conv in convs:
             try:
                 conv.parse_columns(meta.column_descriptions)
-            except converters.ConverterError as e:
-                raise errors.LogicalError(f"Unable to process table: {str(e)}") from e
+            except converters.ConverterError:
+                continue
+
+            valid_converters.append(conv)
 
         offset = 0
 
@@ -48,8 +52,12 @@ class TableTransferManager:
 
             for obj_data in data.data.to_dict(orient="records"):
                 objects: list[model.CatalogObject] = []
-                for conv in convs:
-                    obj = conv.apply(obj_data)
+                for conv in valid_converters:
+                    try:
+                        obj = conv.apply(obj_data)
+                    except converters.ConverterError:
+                        continue
+
                     objects.append(obj)
 
                 # TODO: cross-identification
