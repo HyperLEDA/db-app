@@ -19,7 +19,7 @@ class Actions(dataapi.Actions):
             filters.append(layer2_repository.ICRSCoordinatesInRadiusFilter(query.ra, query.dec, query.radius))
 
         if query.name is not None:
-            filters.append(layer2_repository.DesignationEqualsFilter(query.name))
+            filters.append(layer2_repository.DesignationCloseFilter(query.name, 3))
 
         objects_by_pgc = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
 

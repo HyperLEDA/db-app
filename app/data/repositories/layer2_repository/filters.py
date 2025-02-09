@@ -23,6 +23,18 @@ class DesignationEqualsFilter(Filter):
         return [self._designation]
 
 
+class DesignationCloseFilter(Filter):
+    def __init__(self, designation: str, distance: int):
+        self._designation = designation
+        self._distance = distance
+
+    def get_query(self):
+        return "levenshtein_less_equal(designation.design, %s, %s) < %s"
+
+    def get_params(self):
+        return [self._designation, self._distance, self._distance]
+
+
 class ICRSCoordinatesInRadiusFilter(Filter):
     def __init__(self, ra: float, dec: float, radius: float):
         self._ra = ra
