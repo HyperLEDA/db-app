@@ -48,3 +48,15 @@ class ICRSCoordinatesInRadiusFilter(Filter):
 
     def get_params(self):
         return [self._dec, self._ra, self._radius]
+
+
+class RedshiftCloseFilter(Filter):
+    def __init__(self, redshift: float, distance_percent: float):
+        self._redshift = redshift
+        self._distance_percent = distance_percent
+
+    def get_query(self):
+        return "abs(cz.cz - %s) / cz.cz < %s / 100"
+
+    def get_params(self):
+        return [self._redshift, self._distance_percent]

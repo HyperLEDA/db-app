@@ -72,7 +72,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 [f'{table_name}.{column} AS "{catalog.value}|{column}"' for column in constructor.layer2_keys()]
             )
 
-        joined_tables = " JOIN ".join(
+        joined_tables = " FULL JOIN ".join(
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
         )
 
@@ -82,7 +82,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         for object_id, object_filters in filters.items():
             conditions = ""
             if len(filters) != 0:
-                conditions = "WHERE " + " AND ".join([f.get_query() for f in object_filters])
+                conditions = "WHERE " + " AND ".join([f"({f.get_query()})" for f in object_filters])
 
             for f in object_filters:
                 params.extend(f.get_params())

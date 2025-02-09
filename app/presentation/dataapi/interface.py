@@ -10,6 +10,8 @@ class QuerySimpleRequest:
     dec: float | None = None
     radius: float | None = None
     name: str | None = None
+    cz: float | None = None
+    cz_err_percent: float | None = None
     page_size: int = 25
     page: int = 0
 

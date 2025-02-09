@@ -11,6 +11,8 @@ class QuerySimpleRequestSchema(schema.RequestSchema):
     dec = fields.Float(description="Declination of the center of the search area in degrees")
     radius = fields.Float(description="Radius of the search area in degrees")
     name = fields.String(description="Name of the object")
+    cz = fields.Float(description="Redshift value")
+    cz_err_percent = fields.Float(description="Acceptable deviation of the redshift value in percent")
     page_size = fields.Integer(
         description="Number of objects per page",
         validate=validate.OneOf([10, 25, 50, 100]),
