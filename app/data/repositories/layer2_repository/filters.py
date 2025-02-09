@@ -12,6 +12,17 @@ class Filter(abc.ABC):
         pass
 
 
+class PGCOneOfFilter(Filter):
+    def __init__(self, pgcs: list[int]):
+        self._pgcs = pgcs
+
+    def get_query(self):
+        return "pgc IN ({})".format(", ".join(["%s"] * len(self._pgcs)))
+
+    def get_params(self):
+        return self._pgcs
+
+
 class DesignationEqualsFilter(Filter):
     def __init__(self, designation: str):
         self._designation = designation
@@ -21,6 +32,18 @@ class DesignationEqualsFilter(Filter):
 
     def get_params(self):
         return [self._designation]
+
+
+class DesignationCloseFilter(Filter):
+    def __init__(self, designation: str, distance: int):
+        self._designation = designation
+        self._distance = distance
+
+    def get_query(self):
+        return "levenshtein_less_equal(designation.design, %s, %s) < %s"
+
+    def get_params(self):
+        return [self._designation, self._distance, self._distance]
 
 
 class ICRSCoordinatesInRadiusFilter(Filter):
@@ -36,3 +59,15 @@ class ICRSCoordinatesInRadiusFilter(Filter):
 
     def get_params(self):
         return [self._dec, self._ra, self._radius]
+
+
+class RedshiftCloseFilter(Filter):
+    def __init__(self, redshift: float, distance_percent: float):
+        self._redshift = redshift
+        self._distance_percent = distance_percent
+
+    def get_query(self):
+        return "abs(cz.cz - %s) / cz.cz < %s / 100"
+
+    def get_params(self):
+        return [self._redshift, self._distance_percent]

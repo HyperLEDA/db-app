@@ -5,6 +5,7 @@ from app.presentation import dataapi
 ENABLED_CATALOGS = [
     model.RawCatalog.DESIGNATION,
     model.RawCatalog.ICRS,
+    model.RawCatalog.REDSHIFT,
 ]
 
 
@@ -15,11 +16,17 @@ class Actions(dataapi.Actions):
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         filters = []
 
+        if query.pgcs is not None:
+            filters.append(layer2_repository.PGCOneOfFilter(query.pgcs))
+
         if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
             filters.append(layer2_repository.ICRSCoordinatesInRadiusFilter(query.ra, query.dec, query.radius))
 
         if query.name is not None:
-            filters.append(layer2_repository.DesignationEqualsFilter(query.name))
+            filters.append(layer2_repository.DesignationCloseFilter(query.name, 3))
+
+        if (query.cz is not None) and (query.cz_err_percent is not None):
+            filters.append(layer2_repository.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
         objects_by_pgc = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
 
