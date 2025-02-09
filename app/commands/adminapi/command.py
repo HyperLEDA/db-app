@@ -15,6 +15,10 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 @final
 class AdminAPICommand(commands.Command):
+    """
+    Starts the API server for the admin interface of the database.
+    """
+
     def __init__(self, config_path: str):
         self.config_path = config_path
 

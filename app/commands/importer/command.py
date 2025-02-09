@@ -13,6 +13,11 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 @final
 class ImporterCommand(commands.Command):
+    """
+    Performs the transfer of the objects from Layer 1 to Layer 2. This transfer mostly
+    consists of aggregating the objects and saving them into the relevant catalogs.
+    """
+
     def __init__(self, config_path: str) -> None:
         self.config_path = config_path
 

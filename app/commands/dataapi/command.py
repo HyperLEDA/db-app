@@ -13,7 +13,12 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @final
-class DataAPIServer(commands.Command):
+class DataAPICommand(commands.Command):
+    """
+    Starts the API server for the data interface of the database. This interface is
+    used to obtain the data stored in aggregated catalogs.
+    """
+
     def __init__(self, config_path: str) -> None:
         self.config_path = config_path
 
