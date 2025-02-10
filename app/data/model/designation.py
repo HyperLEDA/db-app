@@ -37,7 +37,7 @@ class DesignationCatalogObject(interface.CatalogObject):
 
     @classmethod
     def layer1_table(cls) -> str:
-        raise NotImplementedError
+        return "designation.data"
 
     def layer1_data(self) -> dict[str, Any]:
         return {"design": self.designation}
