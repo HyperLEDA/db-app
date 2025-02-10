@@ -60,12 +60,11 @@ class TableTransferManager:
 
                     objects.append(obj)
 
+                layer0_object = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], objects)
+
                 # TODO: cross-identification
 
-                self.layer0_repo.upsert_object(
-                    r.table_id,
-                    get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], objects),
-                )
+                self.layer0_repo.upsert_object(r.table_id, layer0_object)
 
         # TODO: remove col_name from entities?
 
