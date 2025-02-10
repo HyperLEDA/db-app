@@ -28,7 +28,12 @@ class Actions(dataapi.Actions):
         if (query.cz is not None) and (query.cz_err_percent is not None):
             filters.append(layer2_repository.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
-        objects_by_pgc = self.layer2_repo.query(ENABLED_CATALOGS, filters, query.page_size, query.page)
+        objects_by_pgc = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            layer2_repository.AndFilter(filters),
+            query.page_size,
+            query.page,
+        )
 
         response_objects = []
         for pgc, catalogs in objects_by_pgc.items():

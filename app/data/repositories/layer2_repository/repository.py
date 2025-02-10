@@ -47,7 +47,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def _construct_batch_query(
         self,
         catalogs: list[model.RawCatalog],
-        filters: dict[str, list[repofilters.Filter]],
+        filters: dict[str, repofilters.Filter],
         limit: int,
         offset: int,
     ) -> tuple[str, list[Any]]:
@@ -72,16 +72,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         params = []
         queries = []
 
-        for object_id, object_filters in filters.items():
+        for object_id, object_filter in filters.items():
             conditions = ""
             if len(filters) != 0:
-                conditions = "WHERE " + " AND ".join([f"({f.get_query()})" for f in object_filters])
+                conditions = "WHERE " + object_filter.get_query()
 
-            for f in object_filters:
-                params.extend(f.get_params())
-
-            params.append(limit)
-            params.append(offset)
+            params.extend(object_filter.get_params() + [limit, offset])
 
             curr_columns = [f"'{object_id}' AS object_id"] + columns
             query = f"SELECT {', '.join(curr_columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
@@ -93,7 +89,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def query_batch(
         self,
         catalogs: list[model.RawCatalog],
-        filters: dict[str, list[repofilters.Filter]],
+        filters: dict[str, repofilters.Filter],
         limit: int,
         offset: int,
     ) -> dict[str, dict[int, list[model.CatalogObject]]]:
@@ -150,7 +146,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def query(
         self,
         catalogs: list[model.RawCatalog],
-        filters: list[repofilters.Filter],
+        filters: repofilters.Filter,
         limit: int,
         offset: int,
     ) -> dict[int, list[model.CatalogObject]]:

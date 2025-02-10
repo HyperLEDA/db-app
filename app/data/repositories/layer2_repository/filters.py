@@ -23,6 +23,22 @@ class PGCOneOfFilter(Filter):
         return self._pgcs
 
 
+class AndFilter(Filter):
+    def __init__(self, filters: list[Filter]):
+        self._filters = filters
+
+    def get_query(self):
+        return " AND ".join([f"({f.get_query()})" for f in self._filters])
+
+    def get_params(self):
+        params = []
+
+        for f in self._filters:
+            params.extend(f.get_params())
+
+        return params
+
+
 class DesignationEqualsFilter(Filter):
     def __init__(self, designation: str):
         self._designation = designation
