@@ -13,7 +13,6 @@ class Authenticator(abc.ABC):
         """
         Given username and password, returns a token and a boolean indicating if the user is authenticated.
         """
-        raise NotImplementedError("not implemented")
 
     @abc.abstractmethod
     def authenticate(self, token: str) -> tuple[user.User, bool]:
@@ -21,4 +20,3 @@ class Authenticator(abc.ABC):
         Given a token, returns the boolean indicating if the user is authenticated and if they are,
         instance of the user.
         """
-        raise NotImplementedError("not implemented")

@@ -27,13 +27,13 @@ class TransformationO1UseCase:
         cross_identification_function: Callable[
             [
                 Layer2Repository,
-                model.Layer0CatalogObject,
+                model.Layer0Object,
                 CrossIdSimultaneousDataProvider,
                 CrossIdentificationUserParam,
             ],
             CrossIdentifyResult,
         ],
-        simultaneous_data_provider: Callable[[list[model.Layer0CatalogObject]], CrossIdSimultaneousDataProvider],
+        simultaneous_data_provider: Callable[[list[model.Layer0Object]], CrossIdSimultaneousDataProvider],
     ):
         """
         :param cross_identification_function: Cross identification logic
@@ -49,7 +49,7 @@ class TransformationO1UseCase:
         cross_identification_function: Callable[
             [
                 Layer2Repository,
-                model.Layer0CatalogObject,
+                model.Layer0Object,
                 CrossIdSimultaneousDataProvider,
                 CrossIdentificationUserParam,
             ],
@@ -104,10 +104,10 @@ class TransformationO1UseCase:
             elif isinstance(name, BaseException):
                 identification_params.append(name)
             elif name is None:
-                identification_params.append(model.Layer0CatalogObject(None, None, coordinate))
+                identification_params.append(model.Layer0Object(None, None, coordinate))
             else:
                 primary_name, all_names = name
-                identification_params.append(model.Layer0CatalogObject(all_names, primary_name, coordinate))
+                identification_params.append(model.Layer0Object(all_names, primary_name, coordinate))
         # Simultaneous data provider needs only valid entities.ObjectInfos
         simultaneous_data_provider = self._simultaneous_data_provider(
             [it for it in identification_params if not isinstance(it, BaseException)]

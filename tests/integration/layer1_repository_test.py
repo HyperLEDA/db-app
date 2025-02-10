@@ -43,7 +43,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
         self.layer0_repo.upsert_object(
             table_resp.table_id,
-            model.Layer0CatalogObject("111", enums.ObjectProcessingStatus.EXISTING, {}, [], 1),
+            model.Layer0Object("111", enums.ObjectProcessingStatus.EXISTING, {}, [], 1),
         )
         self.common_repo.upsert_pgc([1])
 
