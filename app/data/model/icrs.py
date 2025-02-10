@@ -48,7 +48,7 @@ class ICRSCatalogObject(interface.CatalogObject):
 
     @classmethod
     def layer1_table(cls) -> str:
-        raise NotImplementedError
+        return "icrs.data"
 
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:

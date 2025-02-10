@@ -143,7 +143,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 for catalog, data in res.items():
                     object_cls = model.get_catalog_object_type(catalog)
 
-                    result[object_id][pgc].append(object_cls.from_layer2(**data))
+                    result[object_id][pgc].append(object_cls.from_layer2(data))
 
         return result
 
