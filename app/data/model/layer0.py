@@ -6,7 +6,7 @@ from app.lib.storage import enums
 
 
 @dataclass
-class Layer0CatalogObject:
+class Layer0Object:
     object_id: str
     status: enums.ObjectProcessingStatus
     metadata: dict[str, Any]

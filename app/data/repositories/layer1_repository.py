@@ -5,11 +5,11 @@ import structlog
 from app.data import model
 from app.lib.storage import postgres
 
-tables: dict[model.RawCatalog, str] = {
-    model.RawCatalog.ICRS: "icrs.data",
-    model.RawCatalog.DESIGNATION: "designation.data",
-    model.RawCatalog.REDSHIFT: "cz.data",
-}
+catalogs = [
+    model.RawCatalog.ICRS,
+    model.RawCatalog.DESIGNATION,
+    model.RawCatalog.REDSHIFT,
+]
 
 
 class Layer1Repository(postgres.TransactionalPGRepository):
@@ -27,8 +27,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         """
 
         for layer1_obj in objects:
-            catalog = layer1_obj.catalog_object.catalog()
-            table = tables[catalog]
+            table = layer1_obj.catalog_object.layer1_table()
 
             self._logger.info("Saving data to layer 1", table=table, pgc=layer1_obj.pgc)
 
@@ -55,13 +54,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         objects: list[model.Layer1CatalogObject] = []
 
-        for catalog, table in tables.items():
+        for catalog in catalogs:
+            object_cls = model.get_catalog_object_type(catalog)
+
             query = f"""
             SELECT * 
-            FROM {table}
+            FROM {object_cls.layer1_table()}
             WHERE pgc IN (
                 SELECT DISTINCT pgc
-                FROM {table}
+                FROM {object_cls.layer1_table()}
                 WHERE modification_time > %s
             )
             """
@@ -70,7 +71,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             for row in rows:
                 object_id = row.pop("object_id")
                 pgc = int(row.pop("pgc"))
-                catalog_object = model.new_catalog_object(catalog, **row)
+                catalog_object = object_cls.from_layer1(row)
 
                 objects.append(model.Layer1CatalogObject(pgc, object_id, catalog_object))
 

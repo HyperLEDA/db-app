@@ -36,15 +36,27 @@ class DesignationCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.DESIGNATION
 
     @classmethod
+    def layer1_table(cls) -> str:
+        raise NotImplementedError
+
+    def layer1_data(self) -> dict[str, Any]:
+        return {"design": self.designation}
+
+    @classmethod
+    def from_layer1(cls, data: dict[str, Any]) -> Self:
+        return cls(design=data["design"])
+
+    @classmethod
+    def layer2_table(cls) -> str:
+        return "layer2.designation"
+
+    @classmethod
     def layer2_keys(cls) -> list[str]:
         return ["design"]
 
-    def layer1_data(self) -> dict[str, Any]:
-        return {
-            "design": self.designation,
-        }
-
     def layer2_data(self) -> dict[str, Any]:
-        return {
-            "design": self.designation,
-        }
+        return {"design": self.designation}
+
+    @classmethod
+    def from_layer2(cls, data: dict[str, Any]) -> Self:
+        return cls(design=data["design"])

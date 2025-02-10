@@ -254,7 +254,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def upsert_object(
         self,
         table_id: int,
-        processing_info: model.Layer0CatalogObject,
+        processing_info: model.Layer0Object,
     ) -> None:
         self._storage.exec(
             """
@@ -284,7 +284,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
 
-    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0CatalogObject]:
+    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0Object]:
         rows = self._storage.query(
             """
             SELECT object_id, pgc, status, data, metadata
@@ -296,7 +296,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         )
 
         return [
-            model.Layer0CatalogObject(
+            model.Layer0Object(
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
                 row["metadata"],

@@ -38,10 +38,6 @@ class ICRSCatalogObject(interface.CatalogObject):
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 
-    @classmethod
-    def layer2_keys(cls) -> list[str]:
-        return ["ra", "e_ra", "dec", "e_dec"]
-
     def layer1_data(self) -> dict[str, Any]:
         return {
             "ra": self.ra,
@@ -50,6 +46,22 @@ class ICRSCatalogObject(interface.CatalogObject):
             "e_dec": self.e_dec,
         }
 
+    @classmethod
+    def layer1_table(cls) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def from_layer1(cls, data: dict[str, Any]) -> Self:
+        return cls(ra=data["ra"], e_ra=data["e_ra"], dec=data["dec"], e_dec=data["e_dec"])
+
+    @classmethod
+    def layer2_table(cls) -> str:
+        return "layer2.icrs"
+
+    @classmethod
+    def layer2_keys(cls) -> list[str]:
+        return ["ra", "e_ra", "dec", "e_dec"]
+
     def layer2_data(self) -> dict[str, Any]:
         return {
             "ra": self.ra,
@@ -57,3 +69,7 @@ class ICRSCatalogObject(interface.CatalogObject):
             "dec": self.dec,
             "e_dec": self.e_dec,
         }
+
+    @classmethod
+    def from_layer2(cls, data: dict[str, Any]) -> Self:
+        return cls(ra=data["ra"], e_ra=data["e_ra"], dec=data["dec"], e_dec=data["e_dec"])

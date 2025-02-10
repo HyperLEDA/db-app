@@ -8,12 +8,11 @@ from app.data.repositories.layer2_repository import filters as repofilters
 from app.lib import containers
 from app.lib.storage import postgres
 
-catalog_to_tables = {
-    model.RawCatalog.ICRS: "layer2.icrs",
-    model.RawCatalog.DESIGNATION: "layer2.designation",
-    model.RawCatalog.REDSHIFT: "layer2.cz",
-}
-tables_to_catalog = {v: k for k, v in catalog_to_tables.items()}
+catalogs = [
+    model.RawCatalog.ICRS,
+    model.RawCatalog.DESIGNATION,
+    model.RawCatalog.REDSHIFT,
+]
 
 
 class Layer2Repository(postgres.TransactionalPGRepository):
@@ -29,7 +28,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
     def save_data(self, objects: list[model.Layer2CatalogObject]):
         for obj in objects:
-            table = catalog_to_tables[obj.catalog_object.catalog()]
+            # TODO: batch inserts grouped by table
+            table = obj.catalog_object.layer2_table()
 
             data = obj.catalog_object.layer2_data()
             data["pgc"] = obj.pgc
@@ -44,32 +44,25 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
             self._storage.exec(query, params=values)
 
-    def query_batch(
+    def _construct_batch_query(
         self,
         catalogs: list[model.RawCatalog],
         filters: dict[str, list[repofilters.Filter]],
         limit: int,
         offset: int,
-    ) -> dict[str, dict[int, list[model.CatalogObject]]]:
-        """
-        Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
-        The ID is not processed in any way and is used only as a key for the output data.
-
-        The objects are queried independently and are not joined in any way.
-
-        Offset and limit are applied individually to each object.
-        """
-
+    ) -> tuple[str, list[Any]]:
         columns = ["pgc"]
         table_names = []
 
         for catalog in catalogs:
-            table_name = catalog_to_tables[catalog]
-            constructor = model.get_catalog_object_type(catalog)
+            object_cls = model.get_catalog_object_type(catalog)
 
-            table_names.append(table_name)
+            table_names.append(object_cls.layer2_table())
             columns.extend(
-                [f'{table_name}.{column} AS "{catalog.value}|{column}"' for column in constructor.layer2_keys()]
+                [
+                    f'{object_cls.layer2_table()}.{column} AS "{catalog.value}|{column}"'
+                    for column in object_cls.layer2_keys()
+                ]
             )
 
         joined_tables = " FULL JOIN ".join(
@@ -95,7 +88,26 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
             queries.append(f"({query})")
 
-        objects = self._storage.query(" UNION ALL ".join(queries), params=params)
+        return " UNION ALL ".join(queries), params
+
+    def query_batch(
+        self,
+        catalogs: list[model.RawCatalog],
+        filters: dict[str, list[repofilters.Filter]],
+        limit: int,
+        offset: int,
+    ) -> dict[str, dict[int, list[model.CatalogObject]]]:
+        """
+        Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
+        The ID is not processed in any way and is used only as a key for the output data.
+
+        The objects are queried independently and are not joined in any way.
+
+        Offset and limit are applied individually to each object.
+        """
+        query, params = self._construct_batch_query(catalogs, filters, limit, offset)
+
+        objects = self._storage.query(query, params=params)
 
         objects_by_id = containers.group_by(objects, key_func=lambda obj: str(obj["object_id"]))
 
@@ -129,7 +141,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                     res[catalog][column] = value
 
                 for catalog, data in res.items():
-                    result[object_id][pgc].append(model.new_catalog_object(catalog, **data))
+                    object_cls = model.get_catalog_object_type(catalog)
+
+                    result[object_id][pgc].append(object_cls.from_layer2(**data))
 
         return result
 

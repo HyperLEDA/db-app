@@ -25,19 +25,39 @@ class CatalogObject(abc.ABC):
     def aggregate(cls, objects: list[Self]) -> Self:
         pass
 
-    @classmethod
-    @abc.abstractmethod
-    def layer2_keys(cls) -> list[str]:
-        pass
-
     @abc.abstractmethod
     def catalog(self) -> RawCatalog:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def layer1_table(cls) -> str:
         pass
 
     @abc.abstractmethod
     def layer1_data(self) -> dict[str, Any]:
         pass
 
+    @classmethod
+    @abc.abstractmethod
+    def from_layer1(cls, data: dict[str, Any]) -> Self:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def layer2_table(cls) -> str:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def layer2_keys(cls) -> list[str]:
+        pass
+
     @abc.abstractmethod
     def layer2_data(self) -> dict[str, Any]:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def from_layer2(cls, data: dict[str, Any]) -> Self:
         pass
