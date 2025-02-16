@@ -4,7 +4,7 @@ from app.data import model
 from app.data.repositories import layer2_repository
 
 
-class CI(abc.ABC):
+class Crossmatcher(abc.ABC):
     """
     Base class for cross-identification processing.
 
@@ -34,7 +34,7 @@ class CI(abc.ABC):
         """
 
 
-class DesignationCI(CI):
+class DesignationCrossmatcher(Crossmatcher):
     def __init__(self, levenstein_distance: int) -> None:
         self.dst = levenstein_distance
 
@@ -50,9 +50,9 @@ class DesignationCI(CI):
         return None
 
 
-class ICRSCI(CI):
-    def __init__(self, radius: float) -> None:
-        self.radius = radius
+class ICRSCrossmatcher(Crossmatcher):
+    def __init__(self, radius_deg: float) -> None:
+        self.radius = radius_deg
 
     @staticmethod
     def name():

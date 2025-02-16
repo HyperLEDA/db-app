@@ -17,7 +17,7 @@ def crossmatch(
     layer2_repo: repositories.Layer2Repository,
     objects: list[model.Layer0Object],
     designation_levenstein_threshold: int = 3,
-    icrs_radius_threshold: float = 0.1,
+    icrs_radius_threshold_deg: float = 0.1,
 ) -> dict[str, set[int]]:
     """
     Performs the cross-identification of the objects. For each object layer 2 is queried to
@@ -32,8 +32,8 @@ def crossmatch(
     Returns the mapping of the id of the object to the set of possible PGC numbers of this object.
     """
     cis = [
-        interface.DesignationCI(designation_levenstein_threshold),
-        interface.ICRSCI(icrs_radius_threshold),
+        interface.DesignationCrossmatcher(designation_levenstein_threshold),
+        interface.ICRSCrossmatcher(icrs_radius_threshold_deg),
     ]
 
     object_filters = {}
