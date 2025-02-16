@@ -12,13 +12,14 @@ from app.data.model.interface import (
 )
 from app.data.model.layer0 import Layer0Object
 from app.data.model.layer1 import Layer1CatalogObject
-from app.data.model.layer2 import Layer2CatalogObject
+from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
     "Layer0Object",
     "Layer1CatalogObject",
     "Layer2CatalogObject",
+    "Layer2Object",
     "RawCatalog",
     "CatalogObject",
     "CatalogObjectEncoder",

@@ -28,7 +28,7 @@ class Actions(dataapi.Actions):
         if (query.cz is not None) and (query.cz_err_percent is not None):
             filters.append(layer2_repository.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
-        objects_by_pgc = self.layer2_repo.query(
+        objects = self.layer2_repo.query(
             ENABLED_CATALOGS,
             layer2_repository.AndFilter(filters),
             query.page_size,
@@ -36,9 +36,9 @@ class Actions(dataapi.Actions):
         )
 
         response_objects = []
-        for pgc, catalogs in objects_by_pgc.items():
-            catalog_data = {obj.catalog().value: obj.layer2_data() for obj in catalogs}
+        for obj in objects:
+            catalog_data = {o.catalog().value: o.layer2_data() for o in obj.data}
 
-            response_objects.append(dataapi.PGCObject(pgc, catalog_data))
+            response_objects.append(dataapi.PGCObject(obj.pgc, catalog_data))
 
         return dataapi.QuerySimpleResponse(response_objects)
