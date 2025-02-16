@@ -28,7 +28,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         actual = self.layer2_repo.query(
             [model.RawCatalog.DESIGNATION], layer2_repository.DesignationEqualsFilter("test"), 10, 0
         )
-        expected = {1: [model.DesignationCatalogObject(design="test")]}
+        expected = [model.Layer2Object(1, [model.DesignationCatalogObject(design="test")])]
 
         self.assertEqual(actual, expected)
 
@@ -43,10 +43,10 @@ class Layer2RepositoryTest(unittest.TestCase):
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS], layer2_repository.ICRSCoordinatesInRadiusFilter(12, 12, 10), 10, 0
         )
-        expected = {
-            1: [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)],
-            2: [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)],
-        }
+        expected = [
+            model.Layer2Object(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2Object(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+        ]
 
         self.assertEqual(actual, expected)
 
@@ -65,12 +65,15 @@ class Layer2RepositoryTest(unittest.TestCase):
             10,
             0,
         )
-        expected = {
-            2: [
-                model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                model.DesignationCatalogObject(design="test2"),
-            ],
-        }
+        expected = [
+            model.Layer2Object(
+                2,
+                [
+                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    model.DesignationCatalogObject(design="test2"),
+                ],
+            ),
+        ]
 
         self.assertEqual(actual, expected)
 
@@ -95,12 +98,16 @@ class Layer2RepositoryTest(unittest.TestCase):
             10,
             0,
         )
-        expected = {
-            2: [
-                model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                model.DesignationCatalogObject(design="test2"),
-            ],
-        }
+
+        expected = [
+            model.Layer2Object(
+                2,
+                [
+                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    model.DesignationCatalogObject(design="test2"),
+                ],
+            )
+        ]
 
         self.assertEqual(actual, expected)
 

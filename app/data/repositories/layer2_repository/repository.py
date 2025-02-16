@@ -92,7 +92,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         filters: dict[str, repofilters.Filter],
         limit: int,
         offset: int,
-    ) -> dict[str, dict[int, list[model.CatalogObject]]]:
+    ) -> dict[str, list[model.Layer2Object]]:
         """
         Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
         The ID is not processed in any way and is used only as a key for the output data.
@@ -107,17 +107,16 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         objects_by_id = containers.group_by(objects, key_func=lambda obj: str(obj["object_id"]))
 
-        result: dict[str, dict[int, list[model.CatalogObject]]] = {}
+        result: dict[str, list[model.Layer2Object]] = {}
 
         for object_id, objects in objects_by_id.items():
             if object_id not in result:
-                result[object_id] = {}
+                result[object_id] = []
 
             objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
 
             for pgc, pgc_objects in objects_by_pgc.items():
-                if pgc not in result[object_id]:
-                    result[object_id][pgc] = []
+                layer2_obj = model.Layer2Object(pgc, [])
 
                 # TODO: what if for each pgc there are multiple rows? For example, if
                 # the catalog does not have a UNIQUE constraint on pgc.
@@ -139,7 +138,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 for catalog, data in res.items():
                     object_cls = model.get_catalog_object_type(catalog)
 
-                    result[object_id][pgc].append(object_cls.from_layer2(data))
+                    layer2_obj.data.append(object_cls.from_layer2(data))
+
+                result[object_id].append(layer2_obj)
 
         return result
 
@@ -149,6 +150,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         filters: repofilters.Filter,
         limit: int,
         offset: int,
-    ) -> dict[int, list[model.CatalogObject]]:
+    ) -> list[model.Layer2Object]:
         res = self.query_batch(catalogs, {"obj": filters}, limit, offset)
         return res["obj"]
