@@ -21,13 +21,13 @@ class Crossmatcher(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def name():
+    def name() -> str:
         """
         Name is necessary to identify the object in the result of the filtering on layer 2.
         """
 
     @abc.abstractmethod
-    def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter:
+    def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:
         """
         Returns actual filters to get layer 2 objects.
         Filters may be as complex as needed, including a long chain of ANDs and ORs.
@@ -39,7 +39,7 @@ class DesignationCrossmatcher(Crossmatcher):
         self.dst = levenstein_distance
 
     @staticmethod
-    def name():
+    def name() -> str:
         return "designation"
 
     def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:
@@ -55,7 +55,7 @@ class ICRSCrossmatcher(Crossmatcher):
         self.radius = radius_deg
 
     @staticmethod
-    def name():
+    def name() -> str:
         return "icrs"
 
     def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:

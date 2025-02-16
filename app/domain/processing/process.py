@@ -31,7 +31,7 @@ def crossmatch(
 
     Returns the mapping of the id of the object to the set of possible PGC numbers of this object.
     """
-    cis = [
+    cis: list[interface.Crossmatcher] = [
         interface.DesignationCrossmatcher(designation_levenstein_threshold),
         interface.ICRSCrossmatcher(icrs_radius_threshold_deg),
     ]
@@ -42,7 +42,7 @@ def crossmatch(
         for ci in cis:
             filter_ = ci.get_filter(obj)
 
-            if filter is not None:
+            if filter_ is not None:
                 key = BatchKey(obj.object_id, ci.name())
                 object_filters[key] = filter_
 
