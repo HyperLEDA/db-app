@@ -35,8 +35,8 @@ class Crossmatcher(abc.ABC):
 
 
 class DesignationCrossmatcher(Crossmatcher):
-    def __init__(self, levenstein_distance: int) -> None:
-        self.dst = levenstein_distance
+    def __init__(self, levenshtein_distance: int) -> None:
+        self.dst = levenshtein_distance
 
     @staticmethod
     def name() -> str:

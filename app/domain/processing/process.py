@@ -16,7 +16,7 @@ class BatchKey:
 def crossmatch(
     layer2_repo: repositories.Layer2Repository,
     objects: list[model.Layer0Object],
-    designation_levenstein_threshold: int = 3,
+    designation_levenshtein_threshold: int = 3,
     icrs_radius_threshold_deg: float = 0.1,
 ) -> dict[str, set[int]]:
     """
@@ -32,7 +32,7 @@ def crossmatch(
     Returns the mapping of the id of the object to the set of possible PGC numbers of this object.
     """
     cis: list[interface.Crossmatcher] = [
-        interface.DesignationCrossmatcher(designation_levenstein_threshold),
+        interface.DesignationCrossmatcher(designation_levenshtein_threshold),
         interface.ICRSCrossmatcher(icrs_radius_threshold_deg),
     ]
 
