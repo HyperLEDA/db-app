@@ -90,7 +90,7 @@ class TestPostgresStorage:
         tables = self.storage.query("""
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'objects')
+            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'objects', 'old_objects')
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
