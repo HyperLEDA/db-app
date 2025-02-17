@@ -12,11 +12,11 @@ from app.data.model.interface import (
 )
 from app.data.model.layer0 import (
     ColumnDescription,
-    Layer0Creation,
     Layer0CreationResponse,
     Layer0Object,
     Layer0OldObject,
     Layer0RawData,
+    Layer0TableMeta,
 )
 from app.data.model.layer1 import Layer1CatalogObject
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
@@ -26,7 +26,7 @@ __all__ = [
     "Layer0OldObject",
     "Layer0Object",
     "Layer0RawData",
-    "Layer0Creation",
+    "Layer0TableMeta",
     "Layer0CreationResponse",
     "ColumnDescription",
     "Layer1CatalogObject",

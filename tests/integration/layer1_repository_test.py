@@ -28,7 +28,7 @@ class Layer1RepositoryTest(unittest.TestCase):
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
-            model.Layer0Creation(
+            model.Layer0TableMeta(
                 "test_table",
                 [
                     model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hour),

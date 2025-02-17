@@ -34,7 +34,7 @@ class ColumnDescription:
 
 
 @dataclass
-class Layer0Creation:
+class Layer0TableMeta:
     """
     Metadata about the table to upload to layer 0
 
@@ -42,16 +42,14 @@ class Layer0Creation:
         `table_name`: name of the table that will be written into database
         `column_descriptions`: information about each column
         `bibliography_id`: id of bibliography
-        `name_col`: Name of column, holding object name
-        `comment`: description of the table
+        `description`: description of the table
     """
 
     table_name: str
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
     datatype: enums.DataType
-    name_col: str | None = None
-    comment: str | None = None
+    description: str | None = None
 
 
 @dataclass

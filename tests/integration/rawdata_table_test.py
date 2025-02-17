@@ -178,7 +178,7 @@ class RawDataTableTest(unittest.TestCase):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_resp = self.manager.layer0_repo.create_table(
-            model.Layer0Creation(
+            model.Layer0TableMeta(
                 "test_table",
                 [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
                 bib_id,
@@ -196,7 +196,7 @@ class RawDataTableTest(unittest.TestCase):
     def test_fetch_metadata(self):
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
-        expected_creation = model.Layer0Creation(
+        expected_creation = model.Layer0TableMeta(
             table_name,
             [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
             bib_id,

@@ -6,7 +6,7 @@ from app.domain.model import Layer0Model
 from app.lib.storage import enums, mapping
 
 
-def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> model.Layer0Creation:
+def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> model.Layer0TableMeta:
     """
     Maps Layer0 domain model to data creation model
     """
@@ -21,7 +21,7 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> model.
         for col_name in domain.data.columns.values
     ]
 
-    return model.Layer0Creation(
+    return model.Layer0TableMeta(
         domain.id,
         columns,
         bibliography_id,

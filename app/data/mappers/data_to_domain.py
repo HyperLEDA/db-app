@@ -10,7 +10,7 @@ from app.domain.model.layer0.values.value_descr import ValueDescr
 
 
 def layer_0_mapper(
-    creation: model.Layer0Creation, raw: model.Layer0RawData, bibliography: entities.Bibliography
+    creation: model.Layer0TableMeta, raw: model.Layer0RawData, bibliography: entities.Bibliography
 ) -> Layer0Model:
     coordinate_cols = [it.coordinate_part for it in creation.column_descriptions if it.coordinate_part is not None]
     coordinate_cols.sort(key=lambda it: it.arg_num)
@@ -25,7 +25,7 @@ def layer_0_mapper(
         coordinate_descr,
         creation.name_col,
         None,
-        creation.comment,
+        creation.description,
         Biblio(bibliography.id, bibliography.code, bibliography.author, bibliography.year, bibliography.title),
     )
 

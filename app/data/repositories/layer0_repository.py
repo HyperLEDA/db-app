@@ -17,7 +17,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def create_table(self, data: model.Layer0Creation) -> model.Layer0CreationResponse:
+    def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
@@ -51,13 +51,13 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                 )
             )
 
-            if data.comment is not None:
+            if data.description is not None:
                 self._storage.exec(
                     template.render_query(
                         template.ADD_TABLE_COMMENT,
                         schema=RAWDATA_SCHEMA,
                         table_name=data.table_name,
-                        params=json.dumps({"description": data.comment, "name_col": data.name_col}),
+                        params=json.dumps({"description": data.description}),
                     ),
                 )
 
@@ -154,7 +154,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         rows = self._storage.query(query, params=params)
         return model.Layer0RawData(table_id, DataFrame(rows))
 
-    def fetch_metadata(self, table_id: int) -> model.Layer0Creation:
+    def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
 
@@ -194,12 +194,11 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         if param is None:
             raise DatabaseError(f"unable to metadata for table {table_name}")
 
-        return model.Layer0Creation(
+        return model.Layer0TableMeta(
             table_name,
             descriptions,
             registry_item["bib"],
             registry_item["datatype"],
-            param["param"].get("name_col"),
             param["param"].get("description"),
         )
 

@@ -38,7 +38,7 @@ class TableProcessTest(unittest.TestCase):
 
         lib.returns(
             self.manager.layer0_repo.fetch_metadata,
-            model.Layer0Creation(
+            model.Layer0TableMeta(
                 table_name="table_name",
                 column_descriptions=[
                     model.ColumnDescription("objname", "str", ucd="meta.id"),

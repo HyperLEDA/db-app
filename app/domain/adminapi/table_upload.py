@@ -45,12 +45,12 @@ class TableUploadManager:
         columns = domain_descriptions_to_data(r.columns)
 
         table_resp = self.layer0_repo.create_table(
-            model.Layer0Creation(
+            model.Layer0TableMeta(
                 table_name=r.table_name,
                 column_descriptions=columns,
                 bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
-                comment=r.description,
+                description=r.description,
             ),
         )
 
