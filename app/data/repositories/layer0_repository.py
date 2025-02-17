@@ -263,7 +263,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     ) -> None:
         self._storage.exec(
             """
-            INSERT INTO rawdata.objects (table_id, object_id, status, data, metadata)
+            INSERT INTO rawdata.old_objects (table_id, object_id, status, data, metadata)
             VALUES (%s, %s, %s, %s, %s) 
             ON CONFLICT (table_id, object_id) DO 
                 UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata
@@ -280,7 +280,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
         rows = self._storage.query(
             """
-            SELECT status, COUNT(*) FROM rawdata.objects 
+            SELECT status, COUNT(*) FROM rawdata.old_objects 
             WHERE table_id = %s 
             GROUP BY status
             """,
@@ -293,7 +293,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         rows = self._storage.query(
             """
             SELECT object_id, pgc, status, data, metadata
-            FROM rawdata.objects
+            FROM rawdata.old_objects
             WHERE table_id = %s
             LIMIT %s OFFSET %s
             """,
