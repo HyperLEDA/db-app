@@ -5,9 +5,9 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app.data import repositories
+from app.data import model, repositories
 from app.domain import adminapi as domain
-from app.entities import ColumnDescription, Layer0Creation, Layer0RawData
+from app.entities import ColumnDescription, Layer0Creation
 from app.lib import clients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
@@ -186,7 +186,7 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self.manager.layer0_repo.insert_raw_data(Layer0RawData(table_resp.table_id, data))
+        self.manager.layer0_repo.insert_raw_data(model.Layer0RawData(table_resp.table_id, data))
         from_db = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id)
 
         self.assertTrue(from_db.data.equals(data))

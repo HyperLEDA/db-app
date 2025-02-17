@@ -11,7 +11,7 @@ from astropy import units
 from astroquery import nasa_ads as ads
 
 from app import entities
-from app.data import repositories
+from app.data import model, repositories
 from app.domain import converters
 from app.lib import clients
 from app.lib.storage import enums, mapping
@@ -83,8 +83,6 @@ class TableUploadManager:
                 else:
                     raise RuntimeError(f"unknown action type: {action}")
 
-            self.layer0_repo.update_modification_time(r.table_id)
-
         return adminapi.PatchTableResponse()
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
@@ -94,7 +92,7 @@ class TableUploadManager:
 
         with self.layer0_repo.with_tx():
             self.layer0_repo.insert_raw_data(
-                entities.Layer0RawData(
+                model.Layer0RawData(
                     table_id=r.table_id,
                     data=data_df,
                 ),

@@ -4,6 +4,7 @@ import structlog
 
 from app.commands.processor import config
 from app.data import repositories
+from app.domain import processing
 from app.lib.commands import interface
 from app.lib.storage import postgres
 
@@ -18,9 +19,10 @@ class ProcessorCommand(interface.Command):
     objects on layer 2 of the database.
     """
 
-    def __init__(self, config_path: str, table_id: int) -> None:
+    def __init__(self, config_path: str, table_id: int, batch_size: int) -> None:
         self.config_path = config_path
         self.table_id = table_id
+        self.batch_size = batch_size
 
     def prepare(self):
         self.config = config.parse_config(self.config_path)
@@ -28,11 +30,12 @@ class ProcessorCommand(interface.Command):
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
 
-        self.layer0_repository = repositories.Layer0Repository(self.pg_storage, log)
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, log)
+        self.layer0_repo = repositories.Layer0Repository(self.pg_storage, log)
+        self.layer2_repo = repositories.Layer2Repository(self.pg_storage, log)
 
     def run(self):
-        log.info("starting processing", table_id=self.table_id)
+        log.info("Starting marking of objects")
+        processing.mark_objects(self.layer0_repo, self.table_id, self.batch_size)
 
     def cleanup(self):
         self.pg_storage.disconnect()

@@ -4,8 +4,7 @@ import structlog
 from pandas import DataFrame
 
 from app import entities
-from app.data import repositories
-from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
+from app.data import model, repositories
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -27,7 +26,7 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
 
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
         cls._common_repo: repositories.CommonRepository = common_repo
-        cls._layer0_repo_impl: Layer0RepositoryImpl = Layer0RepositoryImpl(layer0_repo, common_repo)
+        cls._layer0_repo_impl: repositories.Layer0Repository = repositories.Layer0Repository(layer0_repo, common_repo)
 
     def tearDown(self):
         self.pg_storage.clear()
@@ -42,7 +41,7 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
             enums.DataType.REGULAR,
         )
         resp = self._layer0_repo.create_table(creation)
-        self._layer0_repo.insert_raw_data(entities.Layer0RawData(resp.table_id, data))
+        self._layer0_repo.insert_raw_data(model.Layer0RawData(resp.table_id, data))
 
         from_db = await self._layer0_repo_impl.fetch_data(Layer0QueryParam())
         self.assertTrue(data.equals(from_db[0].data))

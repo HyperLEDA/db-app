@@ -6,7 +6,7 @@ COMMENT ON SCHEMA cz IS 'Heliocentric Redshift catalog';
 CREATE TABLE cz.data (
   id serial PRIMARY KEY,
   pgc integer NOT NULL REFERENCES common.pgc (id) ON DELETE restrict ON UPDATE cascade,
-  object_id text NOT NULL REFERENCES rawdata.objects (object_id) ON DELETE restrict ON UPDATE cascade,
+  object_id text NOT NULL REFERENCES rawdata.old_objects (object_id) ON DELETE restrict ON UPDATE cascade,
   cz real NOT NULL,
   e_cz real,
   modification_time timestamp without time zone NOT NULL DEFAULT now()

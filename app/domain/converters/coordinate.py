@@ -41,7 +41,8 @@ class ICRSConverter(interface.QuantityConverter):
         self.ra_column = None
         self.dec_column = None
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return "ICRS"
 
     def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:

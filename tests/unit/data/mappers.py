@@ -3,6 +3,7 @@ import unittest
 from pandas import DataFrame
 
 from app import entities
+from app.data import model
 from app.data.mappers import data_to_domain, domain_to_data
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -52,7 +53,7 @@ class MappersTest(unittest.TestCase):
             None,
             None,
         )
-        raw = entities.Layer0RawData(
+        raw = model.Layer0RawData(
             0,
             DataFrame(
                 {
@@ -64,8 +65,8 @@ class MappersTest(unittest.TestCase):
 
         bibliography = entities.Bibliography(42, "fake_bibcode", 1999, ["a"], "t")
 
-        model = data_to_domain.layer_0_mapper(creation, raw, bibliography)
+        m = data_to_domain.layer_0_mapper(creation, raw, bibliography)
         self.assertListEqual(
-            [descr.units for descr in model.meta.value_descriptions],
+            [descr.units for descr in m.meta.value_descriptions],
             [descr.unit for descr in creation.column_descriptions],
         )

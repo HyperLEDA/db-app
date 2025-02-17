@@ -18,8 +18,9 @@ class QuantityConverter(abc.ABC):
     - Convert the name of the object into a common form without abbreviations.
     """
 
+    @staticmethod
     @abc.abstractmethod
-    def name(self) -> str:
+    def name() -> str:
         """
         Returns the identification name of the converter.
         It is usually used in errors or in other feedback for the user.

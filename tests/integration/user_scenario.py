@@ -5,7 +5,7 @@ from astropy import units as u
 from pandas import DataFrame
 
 from app.data import repositories
-from app.data.repositories.layer_0_repository_impl import Layer0RepositoryImpl
+from app.data.repositories import Layer0Repository
 from app.domain import usecases
 from app.domain.cross_id_simultaneous_data_provider import PostgreSimultaneousDataProvider
 from app.domain.model import Layer0Model
@@ -27,7 +27,7 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
         layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         tmp_repo = repositories.TmpDataRepositoryImpl(cls.pg_storage.get_storage())
 
-        layer0_repo_impl = Layer0RepositoryImpl(layer0_repo, common_repo)
+        layer0_repo_impl = Layer0Repository(layer0_repo, common_repo)
         transformation_use_case = usecases.TransformationO1UseCase(
             None,
             noop_cross_identify_function,
@@ -38,7 +38,7 @@ class SaveAndTransform01(unittest.IsolatedAsyncioTestCase):
         )
         cls._store_l0_use_case: usecases.StoreL0UseCase = usecases.StoreL0UseCase(layer0_repo_impl)
         cls._layer0_repo: repositories.Layer0Repository = layer0_repo
-        cls._layer0_repo_impl: Layer0RepositoryImpl = layer0_repo_impl
+        cls._layer0_repo_impl: Layer0Repository = layer0_repo_impl
 
     def tearDown(self):
         self.pg_storage.clear()

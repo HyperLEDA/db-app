@@ -1,4 +1,5 @@
 from app import entities
+from app.data import model
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
 from app.domain.model.layer0.coordinates import ICRSDescrStr
@@ -9,7 +10,7 @@ from app.domain.model.layer0.values.value_descr import ValueDescr
 
 
 def layer_0_mapper(
-    creation: entities.Layer0Creation, raw: entities.Layer0RawData, bibliography: entities.Bibliography
+    creation: entities.Layer0Creation, raw: model.Layer0RawData, bibliography: entities.Bibliography
 ) -> Layer0Model:
     coordinate_cols = [it.coordinate_part for it in creation.column_descriptions if it.coordinate_part is not None]
     coordinate_cols.sort(key=lambda it: it.arg_num)
