@@ -22,7 +22,7 @@ class MarkObjectsTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def test_one_batch(self):
+    def _get_table(self) -> int:
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
             entities.Layer0Creation(
@@ -31,6 +31,7 @@ class MarkObjectsTest(unittest.TestCase):
                     entities.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
                     entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.deg),
                     entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
+                    entities.ColumnDescription("redshift", "float", unit=u.dimensionless_unscaled),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,
@@ -39,24 +40,55 @@ class MarkObjectsTest(unittest.TestCase):
 
         data = pandas.DataFrame(
             {
-                repositories.INTERNAL_ID_COLUMN_NAME: ["1", "2", "3"],
-                "ra": [10.0, 20.0, 30.0],
-                "dec": [20.0, 30.0, 40.0],
+                repositories.INTERNAL_ID_COLUMN_NAME: ["1", "2", "3", "4", "5", "6"],
+                "ra": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+                "dec": [20.0, 30.0, 40.0, 50.0, 60.0, 70.0],
+                "redshift": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
             }
         )
 
         self.layer0_repo.insert_raw_data(model.Layer0RawData(table_resp.table_id, data))
 
-        processing.mark_objects(self.layer0_repo, table_resp.table_id, 5)
-
-        actual = self.layer0_repo.get_objects(table_resp.table_id, 5, 0)
-        self.assertEqual(len(actual), 3)
+        return table_resp.table_id
 
     def test_multiple_batches(self):
-        pass
+        table_id = self._get_table()
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+
+        actual = self.layer0_repo.get_objects(table_id, 5, 0)
+        self.assertEqual(len(actual), 5)
+
+        actual = self.layer0_repo.get_objects(table_id, 5, 5)
+        self.assertEqual(len(actual), 1)
 
     def test_number_of_objects_divisible_by_batch_size(self):
-        pass
+        table_id = self._get_table()
+
+        processing.mark_objects(self.layer0_repo, table_id, 3)
+
+        actual = self.layer0_repo.get_objects(table_id, 3, 0)
+        self.assertEqual(len(actual), 3)
+
+        actual = self.layer0_repo.get_objects(table_id, 3, 3)
+        self.assertEqual(len(actual), 3)
 
     def test_table_patched_after_processing(self):
-        pass
+        table_id = self._get_table()
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+
+        before = self.layer0_repo.get_objects(table_id, 5, 0)
+        obj_before = before[0]
+
+        self.layer0_repo.update_column_metadata(
+            table_id,
+            entities.ColumnDescription("redshift", "float", ucd="src.redshift"),
+        )
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+
+        after = self.layer0_repo.get_objects(table_id, 5, 0)
+        obj_after = after[0]
+
+        self.assertGreater(len(obj_after.data), len(obj_before.data))
