@@ -1,22 +1,8 @@
 /* pgmigrate-encoding: utf-8 */
 
-BEGIN;
+CREATE SCHEMA IF NOT EXISTS common;
+COMMENT ON SCHEMA common IS 'Common Leda tables';
 
-CREATE EXTENSION IF NOT EXISTS postgis;
-
-DROP SCHEMA IF EXISTS common CASCADE ;
-DROP TYPE IF EXISTS task_status CASCADE ;
-
------------------------------------------------------------
------- Common ---------------------------------------------
-CREATE SCHEMA common ;
-
-COMMENT ON SCHEMA common IS 'Common Leda tables' ;
-
-
------------------------------------------------------------
---------- The object list ---------------------------------
--- Все остальные параметры (координаты, имена, природа и т.д. определяются на основе данных уровня 1)
 CREATE TABLE common.pgc (
   id	serial PRIMARY KEY
 );
@@ -25,9 +11,6 @@ COMMENT ON TABLE common.pgc IS 'The list of Principal Galaxy Catalog (PGC) numbe
 COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object.' ;
 
 
------------------------------------------------------------
---------- Bibliography ------------------------------------
--- Помимо ссылок на литературу содержит ID работ, которые выполняются в рамках Леда, а также на частные сообщения
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
 , code	text	UNIQUE
@@ -47,25 +30,6 @@ COMMENT ON COLUMN common.bib.year IS 'Year of publication' ;
 COMMENT ON COLUMN common.bib.author IS 'Author list' ;
 COMMENT ON COLUMN common.bib.title IS 'Publication title' ;
 COMMENT ON COLUMN common.bib.modification_time IS 'Timestamp when the record was added to the database' ;
-
-
-------------------------------------------
--- List of obsoleted bibliography --------
-CREATE TABLE common.obsoleted (
-  bib	integer	PRIMARY KEY	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, renewed	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, modification_time	timestamp without time zone	NOT NULL	DEFAULT NOW()
-) ;
-
-COMMENT ON TABLE common.obsoleted	IS 'List of obsoleted bibliography' ;
-COMMENT ON COLUMN common.obsoleted.bib	IS 'Obsoleted bibliography' ;
-COMMENT ON COLUMN common.obsoleted.renewed	IS 'Bibliography that made the previous one obsolete' ;
-COMMENT ON COLUMN common.obsoleted.modification_time	IS 'Timestamp when the record was added to the database' ;
-
-
-
------------------------------------------------------------
---------- User --------------------------------------------
 CREATE TYPE common.user_role AS ENUM('admin');
 
 CREATE TABLE common.users (
@@ -114,8 +78,6 @@ CREATE TRIGGER tr_disable_other_tokens
   FOR EACH ROW
 EXECUTE PROCEDURE common.disable_other_tokens();
 
------------------------------------------------
---------- Observation Data Types --------------
 CREATE TYPE common.datatype AS ENUM('regular', 'reprocessing', 'preliminary', 'compilation');
 
 -- TODO: add meta function to read/write these comments
@@ -125,11 +87,6 @@ COMMENT ON TYPE common.datatype IS '{
   "preliminary": "Preliminary results",
   "compilation": "Compilation of data from literature"
 }';
-
-
-
------------------------------------------------------------
---------- Tasks -------------------------------------------
 
 CREATE TYPE common.task_status AS ENUM('new', 'in_progress', 'failed', 'done');
 
@@ -179,29 +136,5 @@ CREATE TRIGGER tr_set_task_end_time
     FOR EACH ROW
 EXECUTE PROCEDURE common.set_task_times();
 
-
-
------------------------------------------------
---------- Data Quality ------------------------
 CREATE TYPE common.quality AS ENUM ('ok', 'lowsnr', 'sus', '>', '<', 'wrong' ) ;
 COMMENT ON TYPE common.quality IS 'Data quality: ok = regular measurement; lowsnr = low signal-to-noise; sus = suspected measurement; > = lower limit; < = upper limit; wrong = wrong measurement' ;
-
-
-------------------------------------------------
------- Notes -----------------------------------
-CREATE TABLE common.notes (
-  pgc	integer	NULL	REFERENCES common.pgc ( id ) ON DELETE restrict ON UPDATE cascade
-, bib	integer	NOT NULL	REFERENCES common.bib ( id ) ON DELETE restrict ON UPDATE cascade
-, note	text	NOT NULL
-, modification_time	timestamp without time zone	NOT NULL	DEFAULT now()
-, PRIMARY KEY (pgc,bib)
-) ;
-
-COMMENT ON TABLE common.notes IS 'List of important notes on object' ;
-COMMENT ON COLUMN common.notes.pgc	IS '{"description" : "PGC number of the object" , "ucd" : "meta.id"}' ;
-COMMENT ON COLUMN common.notes.bib	IS '{"description" : "Bibliography reference" , "ucd" : "meta.bib"}' ;
-COMMENT ON COLUMN common.notes.note	IS '{"description" : "Important comments on the object" , "ucd" : "meta.note"}' ;
-COMMENT ON COLUMN common.notes.modification_time	IS '{"description" : "Timestamp when the record was added to the database" , "ucd" : "time.creation"}' ;
-
-
-COMMIT;

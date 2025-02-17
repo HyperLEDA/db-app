@@ -1,19 +1,8 @@
 /* pgmigrate-encoding: utf-8 */
 
-BEGIN ;
+CREATE SCHEMA IF NOT EXISTS meta ;
+COMMENT ON SCHEMA meta IS 'Some views and functions for convenient metadata management' ;
 
-DROP SCHEMA IF EXISTS meta CASCADE;
-
-----------------------------------------------------
--- Meta data schema --------------------------------
-
-CREATE SCHEMA meta ;
-
-COMMENT ON SCHEMA meta IS 'Metadata' ;
-
-
----------------------------------------------------
--- Column metadata --------------------------------
 CREATE OR REPLACE VIEW meta.column_info AS
 WITH
   s1 AS (
@@ -33,7 +22,7 @@ SELECT
   schema_name
 , table_name
 , column_name
-, CASE WHEN isjson(str_comment)
+, CASE WHEN str_comment IS JSON
     THEN str_comment::json
     ELSE json_build_object('description', str_comment )
   END	AS param
@@ -46,9 +35,6 @@ COMMENT ON COLUMN meta.column_info.table_name IS 'Table name' ;
 COMMENT ON COLUMN meta.column_info.column_name IS 'Column name' ;
 COMMENT ON COLUMN meta.column_info.param IS 'Metadata in JSON format' ;
 
-
----------------------------------------------------
--- Table metadata ---------------------------------
 CREATE OR REPLACE VIEW meta.table_info AS
 WITH
   s1 AS (
@@ -66,7 +52,7 @@ WITH
 SELECT
   schema_name
 , table_name
-, CASE WHEN isjson(str_comment)
+, CASE WHEN str_comment IS JSON
     THEN str_comment::json
     ELSE json_build_object('description', str_comment )
   END	AS param
@@ -78,9 +64,6 @@ COMMENT ON COLUMN meta.table_info.schema_name IS 'Schema name' ;
 COMMENT ON COLUMN meta.table_info.table_name IS 'Table name' ;
 COMMENT ON COLUMN meta.table_info.param IS 'Metadata in JSON format' ;
 
-
----------------------------------------------------
--- Schema metadata --------------------------------
 CREATE OR REPLACE VIEW meta.schema_info AS
 WITH
   s1 AS (
@@ -96,7 +79,7 @@ WITH
   )
 SELECT
   schema_name
-, CASE WHEN isjson(str_comment)
+, CASE WHEN str_comment IS JSON
     THEN str_comment::json
     ELSE json_build_object('description', str_comment )
   END	AS param
@@ -106,10 +89,6 @@ FROM s1
 COMMENT ON VIEW meta.schema_info IS 'Schema Metadata' ;
 COMMENT ON COLUMN meta.schema_info.schema_name IS 'Schema name' ;
 COMMENT ON COLUMN meta.schema_info.param IS 'Metadata in JSON format' ;
-
-
----------------------------------------------------
--- Function to write metadata ---------------------
 
 CREATE OR REPLACE FUNCTION 
   meta.setparams( schema_name text, table_name text, column_name text, param json )
@@ -160,7 +139,3 @@ AS $$
   END ;
 $$  LANGUAGE plpgsql COST 100 VOLATILE STRICT PARALLEL UNSAFE
 ;
-
-
-
-COMMIT ;
