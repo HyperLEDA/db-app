@@ -68,19 +68,22 @@ class TableUploadManager:
         table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
         columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
 
-        for action in r.actions:
-            if isinstance(action, adminapi.PatchTableActionTypeChangeUCD):
-                column_metadata = columns_by_id[action.column]
-                column_metadata.ucd = action.ucd
+        with self.layer0_repo.with_tx():
+            for action in r.actions:
+                if isinstance(action, adminapi.PatchTableActionTypeChangeUCD):
+                    column_metadata = columns_by_id[action.column]
+                    column_metadata.ucd = action.ucd
 
-                self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
-            elif isinstance(action, adminapi.PatchTableActionTypeChangeUnit):
-                column_metadata = columns_by_id[action.column]
-                column_metadata.unit = units.Unit(action.unit)
+                    self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+                elif isinstance(action, adminapi.PatchTableActionTypeChangeUnit):
+                    column_metadata = columns_by_id[action.column]
+                    column_metadata.unit = units.Unit(action.unit)
 
-                self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
-            else:
-                raise RuntimeError(f"unknown action type: {action}")
+                    self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+                else:
+                    raise RuntimeError(f"unknown action type: {action}")
+
+            self.layer0_repo.update_modification_time(r.table_id)
 
         return adminapi.PatchTableResponse()
 

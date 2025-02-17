@@ -229,6 +229,11 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query)
 
+    def update_modification_time(self, table_id: int) -> None:
+        query = "UPDATE rawdata.tables SET modification_dt = now() WHERE id = %s"
+
+        self._storage.exec(query, params=[table_id])
+
     def get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
             row = self._storage.query_one(
