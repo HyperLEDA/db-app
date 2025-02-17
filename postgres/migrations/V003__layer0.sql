@@ -30,6 +30,7 @@ CREATE TABLE rawdata.tables (
 , table_name	text	NOT NULL	UNIQUE
 , datatype	common.datatype	NOT NULL
 , status	rawdata.status	NOT NULL	DEFAULT 'initiated'
+, modification_dt timestamp DEFAULT NOW()
 );
 CREATE INDEX ON rawdata.tables (datatype) ;
 CREATE INDEX ON rawdata.tables (bib) ;
