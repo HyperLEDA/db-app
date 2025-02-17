@@ -33,11 +33,10 @@ class ProcessorCommand(interface.Command):
         self.layer2_repo = repositories.Layer2Repository(self.pg_storage, log)
 
     def run(self):
-        data = self.layer0_repo.fetch_raw_data(
-            self.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
-        )
-
-
+        pass
+        # data = self.layer0_repo.fetch_raw_data(
+        #     self.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
+        # )
 
     def cleanup(self):
         self.pg_storage.disconnect()

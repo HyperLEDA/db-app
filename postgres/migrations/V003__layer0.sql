@@ -68,18 +68,15 @@ COMMENT ON COLUMN rawdata.old_objects.status IS 'Status of the processing';
 COMMENT ON COLUMN rawdata.old_objects.data IS 'Homogeneous data about the object';
 COMMENT ON COLUMN rawdata.old_objects.metadata IS 'Metadata related to the processing steps';
 
-CREATE TABLE rawdata.new_objects (
-  id text NOT NULL
+CREATE TABLE rawdata.objects (
+  id text NOT NULL PRIMARY KEY
 , table_id int NOT NULL REFERENCES rawdata.tables(id)
 , data json
 , modification_dt timestamp DEFAULT NOW()
-, PRIMARY KEY (table_id, object_id)
-)
+);
 
 CREATE TABLE rawdata.processing (
-  object_id text NOT NULL REFERENCES rawdata.new_objects(id)
+  object_id text NOT NULL REFERENCES rawdata.objects(id)
 , status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
 , metadata json
-)
-
-COMMIT ;
+);
