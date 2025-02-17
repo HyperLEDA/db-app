@@ -3,7 +3,6 @@ import unittest
 import structlog
 from pandas import DataFrame
 
-from app import entities
 from app.data import model, repositories
 from app.domain.model import Layer0Model
 from app.domain.model.layer0.biblio import Biblio
@@ -34,9 +33,9 @@ class Layer0RepositoryTest(unittest.IsolatedAsyncioTestCase):
     async def test_retrieve(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self._common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        creation = entities.Layer0Creation(
+        creation = model.Layer0Creation(
             "test_table",
-            [entities.ColumnDescription("col0", TYPE_INTEGER), entities.ColumnDescription("col1", TYPE_TEXT)],
+            [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
             bib_id,
             enums.DataType.REGULAR,
         )

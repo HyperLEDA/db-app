@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from app.data import model, repositories
 from app.domain import adminapi as domain
-from app.entities import ColumnDescription, Layer0Creation
 from app.lib import clients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
@@ -179,9 +178,9 @@ class RawDataTableTest(unittest.TestCase):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_resp = self.manager.layer0_repo.create_table(
-            Layer0Creation(
+            model.Layer0Creation(
                 "test_table",
-                [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
+                [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
                 bib_id,
                 enums.DataType.REGULAR,
             ),
@@ -197,9 +196,9 @@ class RawDataTableTest(unittest.TestCase):
     def test_fetch_metadata(self):
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
-        expected_creation = Layer0Creation(
+        expected_creation = model.Layer0Creation(
             table_name,
-            [ColumnDescription("col0", TYPE_INTEGER), ColumnDescription("col1", TYPE_TEXT)],
+            [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
             bib_id,
             enums.DataType.REGULAR,
         )

@@ -8,7 +8,6 @@ import numpy as np
 from app.data import model
 from app.data.model.interface import CatalogObject
 from app.domain.converters import common, errors, interface
-from app.entities.layer0 import ColumnDescription
 
 
 @final
@@ -21,7 +20,7 @@ class RedshiftConverter(interface.QuantityConverter):
     def name() -> str:
         return "redshift"
 
-    def parse_columns(self, columns: list[ColumnDescription]) -> None:
+    def parse_columns(self, columns: list[model.ColumnDescription]) -> None:
         column = common.get_main_column(columns, "src.redshift")
 
         self.column_name = column.name

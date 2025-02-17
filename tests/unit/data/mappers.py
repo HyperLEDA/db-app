@@ -43,11 +43,11 @@ class MappersTest(unittest.TestCase):
         self.assertEqual(creation.column_descriptions[0].unit, schema.meta.value_descriptions[0].units)
 
     def test_layer_0_to_domain(self):
-        creation = entities.Layer0Creation(
+        creation = model.Layer0Creation(
             "test_name",
             [
-                entities.ColumnDescription("col0", mapping.TYPE_TEXT, ucd="fake-ucd"),
-                entities.ColumnDescription("col1", mapping.TYPE_DOUBLE_PRECISION, unit="km/s", ucd="fake-ucd"),
+                model.ColumnDescription("col0", mapping.TYPE_TEXT, ucd="fake-ucd"),
+                model.ColumnDescription("col1", mapping.TYPE_DOUBLE_PRECISION, unit="km/s", ucd="fake-ucd"),
             ],
             0,
             None,

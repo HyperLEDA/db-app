@@ -3,7 +3,6 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app import entities
 from app.data import model, repositories
 from app.lib.storage import enums
 from tests import lib
@@ -29,13 +28,13 @@ class Layer1RepositoryTest(unittest.TestCase):
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
-            entities.Layer0Creation(
+            model.Layer0Creation(
                 "test_table",
                 [
-                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hour),
-                    entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.hour),
-                    entities.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.hour),
-                    entities.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.hour),
+                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hour),
+                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.hour),
+                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.hour),
+                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.hour),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,

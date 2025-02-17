@@ -4,9 +4,7 @@ import structlog
 from astropy import units as u
 from pandas import DataFrame
 
-from app import entities
 from app.data import model, template
-from app.entities import ColumnDescription, Layer0Creation
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
@@ -19,14 +17,14 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def create_table(self, data: entities.Layer0Creation) -> entities.Layer0CreationResponse:
+    def create_table(self, data: model.Layer0Creation) -> model.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
         """
         table_id, ok = self._get_table_id(data.table_name)
         if ok:
-            return entities.Layer0CreationResponse(table_id, False)
+            return model.Layer0CreationResponse(table_id, False)
 
         fields = []
 
@@ -66,7 +64,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             for column_descr in data.column_descriptions:
                 self.update_column_metadata(table_id, column_descr)
 
-        return entities.Layer0CreationResponse(table_id, True)
+        return model.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(
         self,
@@ -156,7 +154,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         rows = self._storage.query(query, params=params)
         return model.Layer0RawData(table_id, DataFrame(rows))
 
-    def fetch_metadata(self, table_id: int) -> Layer0Creation:
+    def fetch_metadata(self, table_id: int) -> model.Layer0Creation:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
 
@@ -181,7 +179,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
                 unit = u.Unit(param["param"]["unit"])
 
             descriptions.append(
-                ColumnDescription(
+                model.ColumnDescription(
                     column_name,
                     param["param"]["data_type"],
                     unit=unit,
@@ -196,7 +194,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         if param is None:
             raise DatabaseError(f"unable to metadata for table {table_name}")
 
-        return Layer0Creation(
+        return model.Layer0Creation(
             table_name,
             descriptions,
             registry_item["bib"],
@@ -205,7 +203,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             param["param"].get("description"),
         )
 
-    def update_column_metadata(self, table_id: int, column_description: entities.ColumnDescription) -> None:
+    def update_column_metadata(self, table_id: int, column_description: model.ColumnDescription) -> None:
         table_name = self._get_table_name(table_id)
 
         column_params = {

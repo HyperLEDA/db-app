@@ -1,10 +1,10 @@
 from astropy.io.votable import ucd
 
-from app import entities
+from app.data import model
 from app.domain.converters import errors
 
 
-def get_main_column(columns: list[entities.ColumnDescription], ucd_word: str) -> entities.ColumnDescription:
+def get_main_column(columns: list[model.ColumnDescription], ucd_word: str) -> model.ColumnDescription:
     id_columns = []
     main_id_columns = []
 

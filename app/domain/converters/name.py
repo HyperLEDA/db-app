@@ -2,7 +2,6 @@ import re
 from collections.abc import Hashable
 from typing import Any, final
 
-from app import entities
 from app.data import model
 from app.domain.converters import common, errors, interface
 
@@ -16,7 +15,7 @@ class NameConverter(interface.QuantityConverter):
     def name() -> str:
         return "name"
 
-    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
+    def parse_columns(self, columns: list[model.ColumnDescription]) -> None:
         self.column = common.get_main_column(columns, "meta.id")
 
     def apply(self, data: dict[Hashable, Any]) -> model.CatalogObject:

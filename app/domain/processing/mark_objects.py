@@ -2,7 +2,6 @@ from collections.abc import Iterator
 
 import structlog
 
-from app import entities
 from app.data import model, repositories
 from app.domain import converters
 
@@ -57,7 +56,7 @@ def convert_rawdata_to_layer0_object(
     return objects
 
 
-def get_converters(columns: list[entities.ColumnDescription]) -> list[converters.QuantityConverter]:
+def get_converters(columns: list[model.ColumnDescription]) -> list[converters.QuantityConverter]:
     convs: list[converters.QuantityConverter] = [
         converters.NameConverter(),
         converters.ICRSConverter(),

@@ -6,13 +6,13 @@ from app.domain.model import Layer0Model
 from app.lib.storage import enums, mapping
 
 
-def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> entities.Layer0Creation:
+def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> model.Layer0Creation:
     """
     Maps Layer0 domain model to data creation model
     """
     descr_dict = dict([[d.column_name, d] for d in domain.meta.value_descriptions])
     columns = [
-        entities.ColumnDescription(
+        model.ColumnDescription(
             name=col_name,
             data_type=mapping.get_type_from_dtype(domain.data[col_name].dtype),
             unit=u.Unit(descr_dict.get(col_name).units) if descr_dict.get(col_name) is not None else None,
@@ -21,7 +21,7 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> entiti
         for col_name in domain.data.columns.values
     ]
 
-    return entities.Layer0Creation(
+    return model.Layer0Creation(
         domain.id,
         columns,
         bibliography_id,

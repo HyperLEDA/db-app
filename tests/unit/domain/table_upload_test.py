@@ -4,8 +4,7 @@ from unittest import mock
 
 from parameterized import param, parameterized
 
-from app import entities
-from app.data import repositories
+from app.data import model, repositories
 from app.domain import adminapi as domain
 from app.domain.adminapi.table_upload import domain_descriptions_to_data, get_source_id
 from app.lib import clients
@@ -125,9 +124,7 @@ class TableUploadManagerTest(unittest.TestCase):
         err_substr: str | None = None,
     ):
         lib.returns(self.manager.common_repo.create_bibliography, 41)
-        lib.returns(
-            self.manager.layer0_repo.create_table, entities.Layer0CreationResponse(51, not table_already_existed)
-        )
+        lib.returns(self.manager.layer0_repo.create_table, model.Layer0CreationResponse(51, not table_already_existed))
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:
@@ -196,10 +193,10 @@ class MappingTest(unittest.TestCase):
     class TestData:
         name: str
         input_columns: list[presentation.ColumnDescription]
-        expected: list[entities.ColumnDescription] | None = None
+        expected: list[model.ColumnDescription] | None = None
         err_substr: str | None = None
 
-    internal_id_column = entities.ColumnDescription(
+    internal_id_column = model.ColumnDescription(
         name=repositories.INTERNAL_ID_COLUMN_NAME,
         data_type=mapping.TYPE_TEXT,
         is_primary_key=True,
@@ -216,7 +213,7 @@ class MappingTest(unittest.TestCase):
                 ],
                 [
                     internal_id_column,
-                    entities.ColumnDescription(
+                    model.ColumnDescription(
                         "name", "text", ucd="phys.veloc.orbital", unit="m / s", description="description"
                     ),
                 ],
@@ -234,17 +231,17 @@ class MappingTest(unittest.TestCase):
             param(
                 "unit is None",
                 [presentation.ColumnDescription("name", "str")],
-                [internal_id_column, entities.ColumnDescription("name", "text")],
+                [internal_id_column, model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
                 [presentation.ColumnDescription("name", "str", unit="m     /       s")],
-                [internal_id_column, entities.ColumnDescription("name", "text", unit="m / s")],
+                [internal_id_column, model.ColumnDescription("name", "text", unit="m / s")],
             ),
             param(
                 "data type has extra spaces",
                 [presentation.ColumnDescription("name", "   str    ")],
-                [internal_id_column, entities.ColumnDescription("name", "text", unit=None)],
+                [internal_id_column, model.ColumnDescription("name", "text", unit=None)],
             ),
             param(
                 "invalid ucd",
@@ -257,7 +254,7 @@ class MappingTest(unittest.TestCase):
         self,
         name: str,
         input_columns: list[presentation.ColumnDescription],
-        expected: list[entities.ColumnDescription] | None = None,
+        expected: list[model.ColumnDescription] | None = None,
         err_substr: str | None = None,
     ):
         if err_substr:
