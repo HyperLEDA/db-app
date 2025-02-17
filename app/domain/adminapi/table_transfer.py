@@ -81,7 +81,7 @@ class TableTransferManager:
         offset = 0
 
         while True:
-            objects = self.layer0_repo.get_objects(r.table_id, r.batch_size, offset)
+            objects = self.layer0_repo.get_old_objects(r.table_id, r.batch_size, offset)
 
             for i, obj in enumerate(objects):
                 if obj.object_id in overrides:

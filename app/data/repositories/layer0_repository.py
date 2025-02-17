@@ -24,7 +24,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
         """
-        table_id, ok = self.get_table_id(data.table_name)
+        table_id, ok = self._get_table_id(data.table_name)
         if ok:
             return entities.Layer0CreationResponse(table_id, False)
 
@@ -226,49 +226,27 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             column_name=column_description.name,
             params=json.dumps(column_params),
         )
+        modification_query = "UPDATE rawdata.tables SET modification_dt = now() WHERE id = %s"
 
-        self._storage.exec(query)
-
-    def update_modification_time(self, table_id: int) -> None:
-        query = "UPDATE rawdata.tables SET modification_dt = now() WHERE id = %s"
-
-        self._storage.exec(query, params=[table_id])
-
-    def get_table_id(self, table_name: str) -> tuple[int, bool]:
-        try:
-            row = self._storage.query_one(
-                f"SELECT id FROM {RAWDATA_SCHEMA}.tables WHERE table_name = %s",
-                params=[table_name],
-            )
-        except RuntimeError:
-            return 0, False
-
-        return row["id"], True
-
-    def _get_table_name(self, table_id: int) -> str:
-        row = self._storage.query_one(
-            "SELECT table_name FROM rawdata.tables WHERE id = %s",
-            params=[table_id],
-        )
-        return row["table_name"]
-
-    def get_all_table_ids(self) -> list[int]:
-        res = self._storage.query("SELECT id FROM rawdata.tables")
-        return [it["id"] for it in res]
+        with self.with_tx():
+            self._storage.exec(query)
+            self._storage.exec(modification_query, params=[table_id])
 
     def upsert_objects(
         self,
         table_id: int,
         objects: list[model.Layer0Object],
     ) -> None:
-        query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES"
+        query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES "
         params = []
+        values = []
 
         for obj in objects:
-            query += " (%s, %s, %s),"
+            values.append("(%s, %s, %s)")
             params.extend([obj.object_id, table_id, json.dumps(obj.data, cls=model.CatalogObjectEncoder)])
 
-        query += " ON CONFLICT (id, table_id) DO UPDATE SET data = EXCLUDED.data"
+        query += ",".join(values)
+        query += " ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, table_id = EXCLUDED.table_id"
 
         self._storage.exec(query, params=params)
 
@@ -305,7 +283,26 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
 
-    def get_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0Object]:
+    def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
+        rows = self._storage.query(
+            """
+            SELECT id, data
+            FROM rawdata.objects
+            WHERE table_id = %s
+            LIMIT %s OFFSET %s
+            """,
+            params=[table_id, limit, offset],
+        )
+
+        return [
+            model.Layer0Object(
+                row["id"],
+                json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
+            )
+            for row in rows
+        ]
+
+    def get_old_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0OldObject]:
         rows = self._storage.query(
             """
             SELECT object_id, pgc, status, data, metadata
@@ -317,7 +314,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         )
 
         return [
-            model.Layer0Object(
+            model.Layer0OldObject(
                 row["object_id"],
                 enums.ObjectProcessingStatus(row["status"]),
                 row["metadata"],
@@ -326,3 +323,21 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             )
             for row in rows
         ]
+
+    def _get_table_id(self, table_name: str) -> tuple[int, bool]:
+        try:
+            row = self._storage.query_one(
+                f"SELECT id FROM {RAWDATA_SCHEMA}.tables WHERE table_name = %s",
+                params=[table_name],
+            )
+        except RuntimeError:
+            return 0, False
+
+        return row["id"], True
+
+    def _get_table_name(self, table_id: int) -> str:
+        row = self._storage.query_one(
+            "SELECT table_name FROM rawdata.tables WHERE id = %s",
+            params=[table_id],
+        )
+        return row["table_name"]

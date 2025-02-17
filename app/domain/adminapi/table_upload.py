@@ -83,8 +83,6 @@ class TableUploadManager:
                 else:
                     raise RuntimeError(f"unknown action type: {action}")
 
-            self.layer0_repo.update_modification_time(r.table_id)
-
         return adminapi.PatchTableResponse()
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:

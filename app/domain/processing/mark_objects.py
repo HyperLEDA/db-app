@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 import structlog
 
 from app import entities
@@ -11,6 +13,13 @@ def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batc
     meta = layer0_repo.fetch_metadata(table_id)
     convs = get_converters(meta.column_descriptions)
 
+    for data in object_batches(layer0_repo, table_id, batch_size):
+        layer0_repo.upsert_objects(table_id, convert_rawdata_to_layer0_object(data, convs))
+
+
+def object_batches(
+    layer0_repo: repositories.Layer0Repository, table_id: int, batch_size: int
+) -> Iterator[model.Layer0RawData]:
     offset = 0
 
     while True:
@@ -22,7 +31,7 @@ def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batc
         if len(data.data) == 0:
             break
 
-        layer0_repo.upsert_objects(table_id, convert_rawdata_to_layer0_object(data, convs))
+        yield data
 
         log.info("Processed batch", offset=offset)
 

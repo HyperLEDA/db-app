@@ -95,7 +95,7 @@ class SetTableStatusTest(unittest.TestCase):
 
     def test_one_batch_no_overrides(self):
         lib.returns(
-            self.manager.layer0_repo.get_objects,
+            self.manager.layer0_repo.get_old_objects,
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
@@ -131,7 +131,7 @@ class SetTableStatusTest(unittest.TestCase):
         obj2_id = str(uuid.uuid4())
         obj3_id = str(uuid.uuid4())
         lib.returns(
-            self.manager.layer0_repo.get_objects,
+            self.manager.layer0_repo.get_old_objects,
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
@@ -174,7 +174,7 @@ class SetTableStatusTest(unittest.TestCase):
 
     def test_multiple_batches(self):
         lib.returns(
-            self.manager.layer0_repo.get_objects,
+            self.manager.layer0_repo.get_old_objects,
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
@@ -198,7 +198,7 @@ class SetTableStatusTest(unittest.TestCase):
             ],
         )
         lib.returns(
-            self.manager.layer0_repo.get_objects,
+            self.manager.layer0_repo.get_old_objects,
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
