@@ -70,7 +70,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def insert_raw_data(
         self,
-        data: entities.Layer0RawData,
+        data: model.Layer0RawData,
     ) -> None:
         """
         This method puts everything in parameters for prepared statement. This should not be a big
@@ -120,7 +120,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         order_direction: str = "asc",
         offset: int = 0,
         limit: int | None = None,
-    ) -> entities.Layer0RawData:
+    ) -> model.Layer0RawData:
         """
         :param table_id: ID of the raw table
         :param columns: select only given columns
@@ -154,7 +154,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             params.append(limit)
 
         rows = self._storage.query(query, params=params)
-        return entities.Layer0RawData(table_id, DataFrame(rows))
+        return model.Layer0RawData(table_id, DataFrame(rows))
 
     def fetch_metadata(self, table_id: int) -> Layer0Creation:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
@@ -256,10 +256,26 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         res = self._storage.query("SELECT id FROM rawdata.tables")
         return [it["id"] for it in res]
 
-    def upsert_object(
+    def upsert_objects(
         self,
         table_id: int,
-        processing_info: model.Layer0Object,
+        objects: list[model.Layer0Object],
+    ) -> None:
+        query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES"
+        params = []
+
+        for obj in objects:
+            query += " (%s, %s, %s),"
+            params.extend([obj.object_id, table_id, json.dumps(obj.data, cls=model.CatalogObjectEncoder)])
+
+        query += " ON CONFLICT (id, table_id) DO UPDATE SET data = EXCLUDED.data"
+
+        self._storage.exec(query, params=params)
+
+    def upsert_old_object(
+        self,
+        table_id: int,
+        processing_info: model.Layer0OldObject,
     ) -> None:
         self._storage.exec(
             """

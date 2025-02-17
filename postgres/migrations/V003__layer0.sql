@@ -75,6 +75,21 @@ CREATE TABLE rawdata.objects (
 , modification_dt timestamp DEFAULT NOW()
 );
 
+CREATE OR REPLACE FUNCTION rawdata.update_modification_dt() RETURNS trigger
+  LANGUAGE plpgsql
+AS 
+$$
+  BEGIN
+    NEW.modification_dt = NOW();
+    RETURN NEW;
+  END
+$$;
+
+CREATE TRIGGER update_modification_dt
+  BEFORE UPDATE ON rawdata.objects
+  FOR EACH ROW
+EXECUTE PROCEDURE rawdata.update_modification_dt();
+
 CREATE TABLE rawdata.processing (
   object_id text NOT NULL REFERENCES rawdata.objects(id)
 , status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'

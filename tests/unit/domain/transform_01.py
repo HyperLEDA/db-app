@@ -30,11 +30,11 @@ from tests.unit.domain.util import noop_cross_identify_function
 
 
 def get_purposefully_failing_cross_identification_function(
-    fail_condition: Callable[[model.Layer0Object], bool],
+    fail_condition: Callable[[model.Layer0OldObject], bool],
 ):
     def func(
         layer2_repo: Layer2Repository,
-        param: model.Layer0Object,
+        param: model.Layer0OldObject,
         simultaneous_data_provider: CrossIdSimultaneousDataProvider,
         user_param: CrossIdentificationUserParam,
     ) -> result.CrossIdentifyResult:

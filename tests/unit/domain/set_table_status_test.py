@@ -24,13 +24,13 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -42,9 +42,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004])
 
         original = [
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -57,9 +57,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -73,9 +73,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, []),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 12345),
-            model.Layer0Object(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 12345),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -97,20 +97,20 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
@@ -133,20 +133,20 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     obj2_id,
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     obj3_id,
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
@@ -176,20 +176,20 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.COLLIDED,
                     {"error": "collision"},
@@ -200,7 +200,7 @@ class SetTableStatusTest(unittest.TestCase):
         lib.returns(
             self.manager.layer0_repo.get_objects,
             [
-                model.Layer0Object(
+                model.Layer0OldObject(
                     str(uuid.uuid4()),
                     enums.ObjectProcessingStatus.NEW,
                     {},

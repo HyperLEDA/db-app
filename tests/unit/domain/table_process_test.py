@@ -6,7 +6,7 @@ import astropy.units as u
 import pandas
 
 from app import entities
-from app.data import repositories
+from app.data import model, repositories
 from app.domain import adminapi as domain
 from app.domain.model.params import cross_identification_result as result
 from app.domain.usecases.cross_identification import (
@@ -64,9 +64,9 @@ class TableProcessTest(unittest.TestCase):
             ci_results.append(res)
             expected.append((status, metadata, pgc))
 
-        lib.returns(self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=data))
+        lib.returns(self.manager.layer0_repo.fetch_raw_data, model.Layer0RawData(table_id=1234, data=data))
         lib.returns(
-            self.manager.layer0_repo.fetch_raw_data, entities.Layer0RawData(table_id=1234, data=pandas.DataFrame())
+            self.manager.layer0_repo.fetch_raw_data, model.Layer0RawData(table_id=1234, data=pandas.DataFrame())
         )
 
         self.manager.table_process(
@@ -76,7 +76,7 @@ class TableProcessTest(unittest.TestCase):
             ),
         )
 
-        calls = self.manager.layer0_repo.upsert_object.call_args_list
+        calls = self.manager.layer0_repo.upsert_old_object.call_args_list
         self.assertEqual(len(calls), len(expected))
 
         for call, (status, metadata, pgc) in zip(calls, expected, strict=False):

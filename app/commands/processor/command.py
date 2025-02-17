@@ -4,6 +4,7 @@ import structlog
 
 from app.commands.processor import config
 from app.data import repositories
+from app.domain import processing
 from app.lib.commands import interface
 from app.lib.storage import postgres
 
@@ -33,10 +34,8 @@ class ProcessorCommand(interface.Command):
         self.layer2_repo = repositories.Layer2Repository(self.pg_storage, log)
 
     def run(self):
-        pass
-        # data = self.layer0_repo.fetch_raw_data(
-        #     self.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
-        # )
+        log.info("Starting marking of objects")
+        processing.mark_objects(self.layer0_repo, self.table_id, self.batch_size)
 
     def cleanup(self):
         self.pg_storage.disconnect()

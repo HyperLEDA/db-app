@@ -1,6 +1,7 @@
 from astropy import units as u
 
 from app import entities
+from app.data import model
 from app.domain.model import Layer0Model
 from app.lib.storage import enums, mapping
 
@@ -30,12 +31,12 @@ def layer_0_creation_mapper(domain: Layer0Model, bibliography_id: int) -> entiti
     )
 
 
-def layer_0_raw_mapper(domain: Layer0Model, table_id: int) -> entities.Layer0RawData:
+def layer_0_raw_mapper(domain: Layer0Model, table_id: int) -> model.Layer0RawData:
     """
     Maps Layer0 domain model to data raw data model
     """
 
-    return entities.Layer0RawData(table_id, domain.data)
+    return model.Layer0RawData(table_id, domain.data)
 
 
 def layer_0_bibliography_mapper(domain: Layer0Model) -> entities.Bibliography:

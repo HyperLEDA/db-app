@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import pandas
 from astropy import units as u
 
 from app.lib.storage import enums
@@ -62,9 +61,3 @@ class Layer0CreationResponse:
 
     table_id: int
     created: bool
-
-
-@dataclass
-class Layer0RawData:
-    table_id: int
-    data: pandas.DataFrame

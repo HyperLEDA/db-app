@@ -16,7 +16,7 @@ DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
 cross_identification_func_type = Callable[
     [
         repositories.Layer2Repository,
-        model.Layer0Object,
+        model.Layer0OldObject,
         CrossIdSimultaneousDataProvider,
         CrossIdentificationUserParam,
     ],
@@ -26,7 +26,7 @@ cross_identification_func_type = Callable[
 
 def cross_identification(
     layer2_repo: repositories.Layer2Repository,
-    param: model.Layer0Object,
+    param: model.Layer0OldObject,
     simultaneous_data_provider: CrossIdSimultaneousDataProvider,
     user_param: CrossIdentificationUserParam,
 ) -> result.CrossIdentifyResult:
@@ -126,7 +126,7 @@ def _identify_by_names(layer2_repo: repositories.Layer2Repository, names: list[s
 
 
 def _compile_results(
-    param: model.Layer0Object,
+    param: model.Layer0OldObject,
     coord_res: result.CrossIdentifyResult | None,
     names_res: result.CrossIdentifyResult | None,
 ) -> result.CrossIdentifyResult:

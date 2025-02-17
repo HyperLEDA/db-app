@@ -64,7 +64,7 @@ class TableTransferManager:
 
                 # TODO: cross-identification
 
-                self.layer0_repo.upsert_object(r.table_id, layer0_object)
+                self.layer0_repo.upsert_old_object(r.table_id, layer0_object)
 
         # TODO: remove col_name from entities?
 
@@ -107,19 +107,19 @@ class TableTransferManager:
         return adminapi.SetTableStatusResponse()
 
 
-def get_processing_info(object_id: str, data: list[model.CatalogObject]) -> model.Layer0Object:
+def get_processing_info(object_id: str, data: list[model.CatalogObject]) -> model.Layer0OldObject:
     """
     :param object_id: Internal ID of the object
     :param res: Object that stores data about the cross identification processing
     :param obj: Processed and homogenous information about the object
     """
-    return model.Layer0Object(object_id, enums.ObjectProcessingStatus.NEW, {}, data)
+    return model.Layer0OldObject(object_id, enums.ObjectProcessingStatus.NEW, {}, data)
 
 
 def apply_override(
-    obj: model.Layer0Object,
+    obj: model.Layer0OldObject,
     override: adminapi.SetTableStatusOverrides,
-) -> model.Layer0Object:
+) -> model.Layer0OldObject:
     if override.pgc is not None:
         obj.status = enums.ObjectProcessingStatus.EXISTING
         obj.pgc = override.pgc
@@ -131,8 +131,8 @@ def apply_override(
 
 
 def assign_pgc(
-    common_repo: repositories.CommonRepository, objects: list[model.Layer0Object]
-) -> list[model.Layer0Object]:
+    common_repo: repositories.CommonRepository, objects: list[model.Layer0OldObject]
+) -> list[model.Layer0OldObject]:
     new_pgc_items_num = 0
     existing_pgc_items = []
     output_list = []
