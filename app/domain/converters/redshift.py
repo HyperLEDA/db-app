@@ -17,7 +17,8 @@ class RedshiftConverter(interface.QuantityConverter):
         self.column_name = None
         self.unit = None
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return "redshift"
 
     def parse_columns(self, columns: list[ColumnDescription]) -> None:

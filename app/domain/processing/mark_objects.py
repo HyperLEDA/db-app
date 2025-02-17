@@ -10,8 +10,6 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batch_size: int) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     convs = get_converters(meta.column_descriptions)
-    for conv in convs:
-        log.debug("Initialized converter", converter=conv.name())
 
     offset = 0
 
@@ -51,7 +49,7 @@ def convert_rawdata_to_layer0_object(
 
 
 def get_converters(columns: list[entities.ColumnDescription]) -> list[converters.QuantityConverter]:
-    convs = [
+    convs: list[converters.QuantityConverter] = [
         converters.NameConverter(),
         converters.ICRSConverter(),
         converters.RedshiftConverter(),
@@ -62,9 +60,16 @@ def get_converters(columns: list[entities.ColumnDescription]) -> list[converters
     for conv in convs:
         try:
             conv.parse_columns(columns)
-        except converters.ConverterError:
+            log.debug("Initialized converter", converter=conv.name())
+        except converters.ConverterError as e:
+            log.debug("Converter will not be used", converter=conv.name(), error=str(e))
             continue
 
         valid_converters.append(conv)
+
+    if len(valid_converters) == 0:
+        raise RuntimeError(
+            "Unable to apply converters to the schema of the input table. Did you forget to validate it?"
+        )
 
     return valid_converters
