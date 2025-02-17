@@ -40,7 +40,7 @@ class Layer0TableMeta:
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
     datatype: enums.DataType
-    modification_dt: datetime.datetime
+    modification_dt: datetime.datetime | None = None
     description: str | None = None
 
 
@@ -54,3 +54,11 @@ class Layer0CreationResponse:
 class Layer0Object:
     object_id: int
     data: list[interface.CatalogObject]
+
+
+@dataclass
+class TableStatistics:
+    statuses: dict[enums.ObjectProcessingStatus, int]
+    last_modified_dt: datetime.datetime
+    total_rows: int
+    total_original_rows: int

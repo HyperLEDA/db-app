@@ -163,37 +163,34 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         if table_name is None:
             raise DatabaseError(f"unable to fetch table with id {table_id}")
 
-        rows = self._storage.query(template.GET_COLUMN_NAMES, params=[RAWDATA_SCHEMA, table_name])
-        column_names = [it["column_name"] for it in rows]
+        column_descriptions = self._storage.query(
+            "SELECT column_name, param FROM meta.column_info WHERE schema_name=%s AND table_name=%s",
+            params=[RAWDATA_SCHEMA, table_name],
+        )
 
         descriptions = []
-        for column_name in column_names:
-            param = self._storage.query_one(
-                template.FETCH_COLUMN_METADATA,
-                params=[RAWDATA_SCHEMA, table_name, column_name],
-            )
-
-            if param is None:
-                raise DatabaseError(f"unable to metadata for table {table_name}, column {column_name}")
+        for description in column_descriptions:
+            column_name = description["column_name"]
+            metadata = description["param"]
 
             unit = None
-            if param["param"].get("unit") is not None:
-                unit = u.Unit(param["param"]["unit"])
+            if metadata.get("unit") is not None:
+                unit = u.Unit(metadata["unit"])
 
             descriptions.append(
                 model.ColumnDescription(
                     column_name,
-                    param["param"]["data_type"],
+                    metadata["data_type"],
                     unit=unit,
-                    description=param["param"]["description"],
-                    ucd=param["param"].get("ucd"),
+                    description=metadata["description"],
+                    ucd=metadata.get("ucd"),
                 )
             )
 
-        param = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
+        table_metadata = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
         registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
-        if param is None:
+        if table_metadata is None:
             raise DatabaseError(f"unable to metadata for table {table_name}")
 
         return model.Layer0TableMeta(
@@ -202,7 +199,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             registry_item["bib"],
             registry_item["datatype"],
             modification_dt,
-            param["param"].get("description"),
+            table_metadata["param"].get("description"),
         )
 
     def update_column_metadata(self, table_id: int, column_description: model.ColumnDescription) -> None:
@@ -271,7 +268,40 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             ],
         )
 
-    def get_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+    def get_table_statistics(self, table_id: int) -> model.TableStatistics:
+        statuses_query = """
+            SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
+            FROM rawdata.processing AS p
+            RIGHT JOIN rawdata.objects AS o ON p.object_id = o.id
+            WHERE o.table_id = %s
+            GROUP BY status"""
+
+        stats_query = """
+            SELECT MAX(modification_dt) AS modification_dt , COUNT(1) AS cnt
+            FROM rawdata.objects 
+            WHERE table_id = %s"""
+
+        status_rows = self._storage.query(statuses_query, params=[table_id])
+        stats = self._storage.query_one(stats_query, params=[table_id])
+
+        table_name = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id]).get("table_name")
+        if table_name is None:
+            raise DatabaseError(f"unable to fetch table with id {table_id}")
+
+        total_original_rows_query = f'SELECT COUNT(1) AS cnt FROM {RAWDATA_SCHEMA}."{table_name}"'
+
+        total_original_rows = self._storage.query_one(total_original_rows_query).get("cnt")
+        if total_original_rows is None:
+            raise DatabaseError(f"unable to fetch total rows for table {table_name}")
+
+        return model.TableStatistics(
+            {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in status_rows},
+            stats["modification_dt"],
+            stats["cnt"],
+            total_original_rows,
+        )
+
+    def get_old_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
         rows = self._storage.query(
             """
             SELECT status, COUNT(*) FROM rawdata.old_objects 

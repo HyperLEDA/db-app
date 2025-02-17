@@ -17,6 +17,7 @@ from app.data.model.layer0 import (
     Layer0OldObject,
     Layer0RawData,
     Layer0TableMeta,
+    TableStatistics,
 )
 from app.data.model.layer1 import Layer1CatalogObject
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
@@ -29,6 +30,7 @@ __all__ = [
     "Layer0TableMeta",
     "Layer0CreationResponse",
     "ColumnDescription",
+    "TableStatistics",
     "Layer1CatalogObject",
     "Layer2CatalogObject",
     "Layer2Object",

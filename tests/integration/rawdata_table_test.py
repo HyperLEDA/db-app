@@ -186,24 +186,27 @@ class RawDataTableTest(unittest.TestCase):
             ),
         )
         self.manager.layer0_repo.insert_raw_data(model.Layer0RawData(table_resp.table_id, data))
-        from_db = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id)
+        expected = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id)
 
-        self.assertTrue(from_db.data.equals(data))
+        self.assertTrue(expected.data.equals(data))
 
-        from_db = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
-        self.assertTrue(from_db.data.equals(data.drop(["col0"], axis=1)))
+        expected = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
+        self.assertTrue(expected.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
-        expected_creation = model.Layer0TableMeta(
+        expected = model.Layer0TableMeta(
             table_name,
             [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_resp = self.manager.layer0_repo.create_table(expected_creation)
+        table_resp = self.manager.layer0_repo.create_table(expected)
 
-        from_db = self.manager.layer0_repo.fetch_metadata(table_resp.table_id)
+        actual = self.manager.layer0_repo.fetch_metadata(table_resp.table_id)
 
-        self.assertEqual(expected_creation, from_db)
+        self.assertEqual(expected.table_name, actual.table_name)
+        self.assertEqual(expected.column_descriptions, actual.column_descriptions)
+        self.assertEqual(expected.bibliography_id, actual.bibliography_id)
+        self.assertEqual(expected.datatype, actual.datatype)
