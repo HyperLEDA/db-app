@@ -103,36 +103,4 @@ $$ LANGUAGE sql COST 100 IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE
 COMMENT ON FUNCTION public.sphdist (double precision, double precision, double precision, double precision) 
 IS 'Angular separation in DEGREES between 2 points on sphere. The coordinates (RA1,Dec1) and (RA2,Dec2) are in DEGREES.' ;
 
-
---------------------------------------------------------------
----------- Check if string is JSON ---------------------------
---------------------------------------------------------------
--- in Postgresql 16 there is special function for that purpose
---
--- This solution is from
--- https://stackoverflow.com/questions/2583472/regex-to-validate-json
---
--- Unfortunatly, the improved solution by Gino Pane does not work in Postgres
---        (?(DEFINE)
---           (?<number>   -? (?= [1-9]|0(?!\d) ) \d+ (\.\d+)? ([eE] [+-]? \d+)? )
---           (?<boolean>   true | false | null )
---           (?<string>    " ([^"\n\r\t\\\\]* | \\\\ ["\\\\bfnrt\/] | \\\\ u [0-9a-f]{4} )* " )
---           (?<array>     \[  (?:  (?&json)  (?: , (?&json)  )*  )?  \s* \] )
---           (?<pair>      \s* (?&string) \s* : (?&json)  )
---           (?<object>    \{  (?:  (?&pair)  (?: , (?&pair)  )*  )?  \s* \} )
---           (?<json>   \s* (?: (?&number) | (?&boolean) | (?&string) | (?&array) | (?&object) ) \s* )
---        )
---        \A (?&json) \Z
---
--- I have implemented simplified solution by @cjbarth
--- [{\[]{1}([,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]|".*?")+[}\]]{1}
-
-CREATE OR REPLACE FUNCTION
-  public.isjson( str text )
-RETURNS boolean
-AS $$
-  SELECT str ~* '[{\[]{1}([,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]|".*?")+[}\]]{1}' ;
-$$  LANGUAGE sql COST 100 IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE
-;
-
 COMMIT ;

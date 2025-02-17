@@ -1,18 +1,8 @@
 /* pgmigrate-encoding: utf-8 */
 
-BEGIN ;
-
-DROP SCHEMA IF EXISTS rawdata CASCADE ;
-
------------------------------------------------------------
--------- Raw data -----------------------------------------
-CREATE SCHEMA rawdata;
-
+CREATE SCHEMA IF NOT EXISTS rawdata;
 COMMENT ON SCHEMA rawdata IS 'Container for the original tables from different sources' ;
 
-
------------------------------------------------------------
--------- Data processing Status ---------------------------
 CREATE TYPE rawdata.status AS ENUM(
   'initiated', 
   'downloading', 
@@ -34,8 +24,6 @@ COMMENT ON TYPE rawdata.status IS '{
   "processed": "Table is processed"
 }';
 
------------------------------------------------------------
--------- List of source data tables -----------------------
 CREATE TABLE rawdata.tables (
   id	serial	PRIMARY KEY
 , bib	integer	NOT NULL	REFERENCES common.bib(id)	ON DELETE restrict	ON UPDATE cascade
