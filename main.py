@@ -64,8 +64,15 @@ def importer(config: str):
     required=True,
     type=int,
 )
-def processor(config: str, table_id: int):
-    commands.run(ProcessorCommand(config, table_id))
+@click.option(
+    "-b",
+    "--batch-size",
+    type=int,
+    default=1000,
+    help="Batch size for processing",
+)
+def processor(config: str, table_id: int, batch_size: int):
+    commands.run(ProcessorCommand(config, table_id, batch_size))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())
