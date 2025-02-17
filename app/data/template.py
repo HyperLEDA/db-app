@@ -86,7 +86,7 @@ WHERE
 """
 
 GET_RAWDATA_TABLE = """
-SELECT table_name FROM rawdata.tables
+SELECT table_name, modification_dt FROM rawdata.tables
 WHERE id = %s
 """
 

@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import structlog
@@ -157,6 +158,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
+        modification_dt: datetime.datetime = row.get("modification_dt")
 
         if table_name is None:
             raise DatabaseError(f"unable to fetch table with id {table_id}")
@@ -199,6 +201,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             descriptions,
             registry_item["bib"],
             registry_item["datatype"],
+            modification_dt,
             param["param"].get("description"),
         )
 

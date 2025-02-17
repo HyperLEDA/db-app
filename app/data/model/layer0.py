@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import Any
 
@@ -35,33 +36,16 @@ class ColumnDescription:
 
 @dataclass
 class Layer0TableMeta:
-    """
-    Metadata about the table to upload to layer 0
-
-    Args:
-        `table_name`: name of the table that will be written into database
-        `column_descriptions`: information about each column
-        `bibliography_id`: id of bibliography
-        `description`: description of the table
-    """
-
     table_name: str
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
     datatype: enums.DataType
+    modification_dt: datetime.datetime
     description: str | None = None
 
 
 @dataclass
 class Layer0CreationResponse:
-    """
-    Response from the data layer after the creation of the table.
-
-    Args:
-        `table_id`: id of the table in the internal registry
-        `created`: False if table with this name already existed, True otherwise
-    """
-
     table_id: int
     created: bool
 
