@@ -2,50 +2,50 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://hyperleda.github.io/db-app/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/openapi/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/change.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/db_photometry.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/documentation.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/environment.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/login.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/dev/system_diagram.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/handlers/v1_admin_table_status/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/upload/create_table.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/upload/index.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
     <url>
          <loc>https://hyperleda.github.io/db-app/upload/upload_data.ru/</loc>
-         <lastmod>2025-02-17</lastmod>
+         <lastmod>2025-02-20</lastmod>
     </url>
 </urlset>
