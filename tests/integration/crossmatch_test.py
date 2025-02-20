@@ -2,7 +2,8 @@ import unittest
 
 import structlog
 
-from app.data import repositories
+from app.data import model, repositories
+from app.domain import processing
 from tests import lib
 
 
@@ -15,14 +16,72 @@ class CrossmatchTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def test_no_existing_objects(self):
-        pass
+    def test_new_object(self):
+        actual = processing.crossmatch(
+            self.layer2_repo,
+            [
+                model.Layer0Object(
+                    "1212",
+                    [
+                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.DesignationCatalogObject("M33"),
+                    ],
+                )
+            ],
+        )
+        expected = {"1212": processing.CIResultObjectNew()}
 
-    def test_one_intersection(self):
-        pass
+        self.assertEqual(actual, expected)
 
-    def test_several_intersections(self):
-        pass
+    def test_icrs_hit_designation_ambiguity(self):
+        layer2_objects = [
+            model.Layer2CatalogObject(123, model.ICRSCatalogObject(12, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(123, model.DesignationCatalogObject("M33")),
+            model.Layer2CatalogObject(456, model.DesignationCatalogObject("M34")),
+        ]
 
-    def test_batch(self):
-        pass
+        self.layer2_repo.save_data(layer2_objects)
+
+        actual = processing.crossmatch(
+            self.layer2_repo,
+            [
+                model.Layer0Object(
+                    "1212",
+                    [
+                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.DesignationCatalogObject("M33"),
+                    ],
+                )
+            ],
+        )
+        expected = {"1212": processing.CIResultObjectExisting(123)}
+
+        self.assertEqual(actual, expected)
+
+    def test_both_ambiguous(self):
+        layer2_objects = [
+            model.Layer2CatalogObject(123, model.ICRSCatalogObject(12, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(123, model.DesignationCatalogObject("M33")),
+            model.Layer2CatalogObject(456, model.ICRSCatalogObject(12.001, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(456, model.DesignationCatalogObject("M34")),
+        ]
+
+        self.layer2_repo.save_data(layer2_objects)
+
+        actual = processing.crossmatch(
+            self.layer2_repo,
+            [
+                model.Layer0Object(
+                    "1212",
+                    [
+                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.DesignationCatalogObject("M33"),
+                    ],
+                )
+            ],
+        )
+        expected = {
+            "1212": processing.CIResultObjectCollision({"icrs": {123, 456}, "designation": {123, 456}}),
+        }
+
+        self.assertEqual(actual, expected)

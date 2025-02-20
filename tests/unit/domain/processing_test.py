@@ -42,28 +42,28 @@ class TestCrossmatchCIResult(unittest.TestCase):
         [
             param(
                 "object is new",
-                [set(), set(), set()],
+                {"a": set(), "b": set(), "c": set()},
                 processing.CIResultObjectNew(),
             ),
             param(
                 "all empty one nonempty",
-                [set(), set(), {1}],
-                processing.CIResultObjectCollision({1}),
+                {"a": set(), "b": set(), "c": {1}},
+                processing.CIResultObjectCollision({"a": set(), "b": set(), "c": {1}}),
             ),
             param(
                 "all nonempty no intersection",
-                [{12, 34}, {56, 67}],
-                processing.CIResultObjectCollision({12, 34, 56, 67}),
+                {"a": {12, 34}, "b": {56, 67}},
+                processing.CIResultObjectCollision({"a": {12, 34}, "b": {56, 67}}),
             ),
             param(
                 "all nonempty one intersection",
-                [{12, 34}, {34, 56}],
+                {"a": {12, 34}, "b": {34, 56}},
                 processing.CIResultObjectExisting(34),
             ),
             param(
                 "all nonempty several intersections",
-                [{12, 34, 56}, {34, 56, 78}],
-                processing.CIResultObjectCollision({12, 34, 56, 78}),
+                {"a": {12, 34, 56}, "b": {34, 56, 78}},
+                processing.CIResultObjectCollision({"a": {12, 34, 56}, "b": {34, 56, 78}}),
             ),
         ]
     )

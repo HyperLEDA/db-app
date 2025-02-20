@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.data import model, repositories
@@ -17,7 +16,7 @@ class CIResultObjectExisting:
 
 @dataclass
 class CIResultObjectCollision:
-    possible_pgcs: set[int]
+    possible_pgcs: dict[str, set[int]]
 
 
 CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
@@ -45,7 +44,7 @@ def query_objects(
 
             if filter_ is not None:
                 key = BatchKey(obj.object_id, cm.name())
-                object_filters[key] = filter_
+                object_filters[str(key)] = filter_
 
     flat_result = layer2_repo.query_batch(
         [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
@@ -70,7 +69,7 @@ def query_objects(
     return result
 
 
-def compute_ci_result(possible_pgcs: Iterable[set[int]]) -> CIResult:
+def compute_ci_result(possible_pgcs: dict[str, set[int]]) -> CIResult:
     """
     If all of the CIs returned zero PGCs, then object is `new`.
 
@@ -79,22 +78,22 @@ def compute_ci_result(possible_pgcs: Iterable[set[int]]) -> CIResult:
     In all other cases, there is a `collision`.
     """
 
-    union = set.union(*possible_pgcs)
+    union = set.union(*possible_pgcs.values())
     if len(union) == 0:
         return CIResultObjectNew()
 
-    intersection = set.intersection(*possible_pgcs)
+    intersection = set.intersection(*possible_pgcs.values())
 
     if len(intersection) == 1:
         return CIResultObjectExisting(intersection.pop())
 
-    return CIResultObjectCollision(union)
+    return CIResultObjectCollision(possible_pgcs)
 
 
 def crossmatch(
     layer2_repo: repositories.Layer2Repository,
     objects: list[model.Layer0Object],
-    designation_levenshtein_threshold: int = 3,
+    designation_levenshtein_threshold: int = 2,
     icrs_radius_threshold_deg: float = 0.1,
 ) -> dict[str, CIResult]:
     """
@@ -118,6 +117,6 @@ def crossmatch(
 
     result: dict[str, CIResult] = {}
     for obj_id, ci_pgcs in layer2_objects.items():
-        result[obj_id] = compute_ci_result(ci_pgcs.values())
+        result[obj_id] = compute_ci_result(ci_pgcs)
 
     return result
