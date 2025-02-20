@@ -52,7 +52,7 @@ class Layer0CreationResponse:
 
 @dataclass
 class Layer0Object:
-    object_id: int
+    object_id: str
     data: list[interface.CatalogObject]
 
 

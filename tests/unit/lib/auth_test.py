@@ -43,10 +43,10 @@ class PostgresAuthenticatorTest(unittest.TestCase):
                 "expiry_time": datetime.now(UTC) + timedelta(days=1),
                 "active": True,
                 "user_id": 1,
-                "role": auth.user.Role.ADMIN,
+                "role": auth.Role.ADMIN,
             },
         )
 
         user, is_authenticated = self.authenticator.authenticate("correct_token")
         self.assertTrue(is_authenticated)
-        self.assertEqual(user, auth.user.User(1, auth.user.Role.ADMIN))
+        self.assertEqual(user, auth.User(1, auth.Role.ADMIN))
