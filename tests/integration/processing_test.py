@@ -1,10 +1,10 @@
+import datetime
 import unittest
 
 import pandas
 import structlog
 from astropy import units as u
 
-from app import entities
 from app.data import model, repositories
 from app.domain import processing
 from app.lib.storage import enums
@@ -25,13 +25,13 @@ class MarkObjectsTest(unittest.TestCase):
     def _get_table(self) -> int:
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
-            entities.Layer0Creation(
+            model.Layer0TableMeta(
                 "test_table",
                 [
-                    entities.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
-                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.deg),
-                    entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
-                    entities.ColumnDescription("redshift", "float", unit=u.dimensionless_unscaled),
+                    model.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
+                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.deg),
+                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
+                    model.ColumnDescription("redshift", "float", unit=u.dimensionless_unscaled),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,
@@ -83,7 +83,7 @@ class MarkObjectsTest(unittest.TestCase):
 
         self.layer0_repo.update_column_metadata(
             table_id,
-            entities.ColumnDescription("redshift", "float", ucd="src.redshift"),
+            model.ColumnDescription("redshift", "float", ucd="src.redshift"),
         )
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
@@ -92,3 +92,14 @@ class MarkObjectsTest(unittest.TestCase):
         obj_after = after[0]
 
         self.assertGreater(len(obj_after.data), len(obj_before.data))
+
+    def test_table_didnt_change_since_last_upload(self):
+        table_id = self._get_table()
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+        modification_dt = datetime.datetime.now(tz=datetime.UTC)
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+
+        stats = self.layer0_repo.get_table_statistics(table_id)
+        self.assertLess(stats.last_modified_dt.timestamp(), modification_dt.timestamp())

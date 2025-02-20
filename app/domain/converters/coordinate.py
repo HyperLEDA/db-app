@@ -5,7 +5,6 @@ from typing import Any, final
 from astropy import coordinates
 from astropy import units as u
 
-from app import entities
 from app.data import model
 from app.domain.converters import common, errors, interface
 
@@ -19,7 +18,7 @@ class ColumnInfo:
         return coordinates.Angle(data[self.name], unit=self.unit)
 
     @staticmethod
-    def parse(column: entities.ColumnDescription) -> "ColumnInfo":
+    def parse(column: model.ColumnDescription) -> "ColumnInfo":
         name = column.name
 
         if column.unit is None:
@@ -45,7 +44,7 @@ class ICRSConverter(interface.QuantityConverter):
     def name() -> str:
         return "ICRS"
 
-    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
+    def parse_columns(self, columns: list[model.ColumnDescription]) -> None:
         self.ra_column = ColumnInfo.parse(common.get_main_column(columns, "pos.eq.ra"))
         self.dec_column = ColumnInfo.parse(common.get_main_column(columns, "pos.eq.dec"))
 

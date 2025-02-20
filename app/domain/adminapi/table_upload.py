@@ -10,7 +10,6 @@ import regex
 from astropy import units
 from astroquery import nasa_ads as ads
 
-from app import entities
 from app.data import model, repositories
 from app.domain import converters
 from app.lib import clients
@@ -37,8 +36,6 @@ class TableUploadManager:
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
         source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
-        r.table_name = sanitize_name(r.table_name)
-
         for col in r.columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
                 raise RuleValidationError(f"{col} is a reserved column name")
@@ -46,12 +43,12 @@ class TableUploadManager:
         columns = domain_descriptions_to_data(r.columns)
 
         table_resp = self.layer0_repo.create_table(
-            entities.Layer0Creation(
+            model.Layer0TableMeta(
                 table_name=r.table_name,
                 column_descriptions=columns,
                 bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
-                comment=r.description,
+                description=r.description,
             ),
         )
 
@@ -124,11 +121,7 @@ def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
-def sanitize_name(name: str) -> str:
-    return name.replace(" ", "_").replace("-", "_").replace(".", "_")
-
-
-def validate_columns(columns: list[entities.ColumnDescription]) -> list[adminapi.TableValidation]:
+def validate_columns(columns: list[model.ColumnDescription]) -> list[adminapi.TableValidation]:
     convs = [
         converters.NameConverter(),
         converters.ICRSConverter(),
@@ -166,9 +159,9 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
     return repo.create_bibliography(code, year, authors, title)
 
 
-def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> list[entities.ColumnDescription]:
+def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> list[model.ColumnDescription]:
     result = [
-        entities.ColumnDescription(
+        model.ColumnDescription(
             name=repositories.INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
             is_primary_key=True,
@@ -192,7 +185,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
 
         result.append(
-            entities.ColumnDescription(
+            model.ColumnDescription(
                 name=col.name,
                 data_type=mapping.type_map[data_type],
                 unit=unit,

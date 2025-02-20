@@ -2,7 +2,6 @@ import abc
 from collections.abc import Hashable
 from typing import Any
 
-from app import entities
 from app.data import model
 
 
@@ -28,7 +27,7 @@ class QuantityConverter(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def parse_columns(self, columns: list[entities.ColumnDescription]) -> None:
+    def parse_columns(self, columns: list[model.ColumnDescription]) -> None:
         """
         Adds columns' metadata to the definition of the converter.
 

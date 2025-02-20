@@ -2,7 +2,6 @@ from collections.abc import Iterator
 
 import structlog
 
-from app import entities
 from app.data import model, repositories
 from app.domain import converters
 
@@ -11,6 +10,19 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batch_size: int) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
+    table_stats = layer0_repo.get_table_statistics(table_id)
+
+    # the first condition is needed in case the uploading process was interrupted
+    # TODO: in this case the algorithm should determine the last uploaded row and start from there
+    if (
+        table_stats.total_rows == table_stats.total_original_rows
+        and meta.modification_dt is not None
+        and table_stats.last_modified_dt is not None
+        and meta.modification_dt < table_stats.last_modified_dt
+    ):
+        log.info("Table was not modified since the last processing", table_id=table_id)
+        return
+
     convs = get_converters(meta.column_descriptions)
 
     for data in object_batches(layer0_repo, table_id, batch_size):
@@ -57,7 +69,7 @@ def convert_rawdata_to_layer0_object(
     return objects
 
 
-def get_converters(columns: list[entities.ColumnDescription]) -> list[converters.QuantityConverter]:
+def get_converters(columns: list[model.ColumnDescription]) -> list[converters.QuantityConverter]:
     convs: list[converters.QuantityConverter] = [
         converters.NameConverter(),
         converters.ICRSConverter(),

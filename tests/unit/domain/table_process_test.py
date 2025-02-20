@@ -5,7 +5,6 @@ from unittest import mock
 import astropy.units as u
 import pandas
 
-from app import entities
 from app.data import model, repositories
 from app.domain import adminapi as domain
 from app.domain.model.params import cross_identification_result as result
@@ -39,12 +38,12 @@ class TableProcessTest(unittest.TestCase):
 
         lib.returns(
             self.manager.layer0_repo.fetch_metadata,
-            entities.Layer0Creation(
+            model.Layer0TableMeta(
                 table_name="table_name",
                 column_descriptions=[
-                    entities.ColumnDescription("objname", "str", ucd="meta.id"),
-                    entities.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hourangle),
-                    entities.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
+                    model.ColumnDescription("objname", "str", ucd="meta.id"),
+                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hourangle),
+                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
                 ],
                 bibliography_id=1234,
                 datatype=enums.DataType.REGULAR,

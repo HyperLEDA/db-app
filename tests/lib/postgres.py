@@ -26,7 +26,7 @@ class TestPostgresStorage:
         self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
-            "postgis/postgis:17-3.5",
+            "postgis/postgis:17-3.5@sha256:4a962e61b8cf3543d920859dd6583d8248767f89aea9e03ad5ec715c735665c2",
             port=5432,
             user="hyperleda",
             password="password",
@@ -90,7 +90,7 @@ class TestPostgresStorage:
         tables = self.storage.query("""
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'objects', 'old_objects')
+            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'objects', 'old_objects', 'processing')
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")

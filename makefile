@@ -18,6 +18,9 @@ adminapi-dev:
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml
 
+processor:
+	uv run main.py processor -c configs/dev/processor.yaml
+
 importer:
 	uv run main.py importer -c configs/dev/importer.yaml
 
