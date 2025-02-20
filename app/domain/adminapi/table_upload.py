@@ -36,8 +36,6 @@ class TableUploadManager:
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
         source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
-        r.table_name = sanitize_name(r.table_name)
-
         for col in r.columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
                 raise RuleValidationError(f"{col} is a reserved column name")
@@ -121,10 +119,6 @@ def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
 
 def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
-
-
-def sanitize_name(name: str) -> str:
-    return name.replace(" ", "_").replace("-", "_").replace(".", "_")
 
 
 def validate_columns(columns: list[model.ColumnDescription]) -> list[adminapi.TableValidation]:

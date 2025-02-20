@@ -26,7 +26,7 @@ class TestPostgresStorage:
         self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         self.container = pgcontainer.PostgresContainer(
-            "postgis/postgis:17-3.5",
+            "postgis/postgis:17-3.5@sha256:4a962e61b8cf3543d920859dd6583d8248767f89aea9e03ad5ec715c735665c2",
             port=5432,
             user="hyperleda",
             password="password",

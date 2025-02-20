@@ -12,6 +12,8 @@ def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batc
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)
 
+    # the first condition is needed in case the uploading process was interrupted
+    # TODO: in this case the algorithm should determine the last uploaded row and start from there
     if (
         table_stats.total_rows == table_stats.total_original_rows
         and meta.modification_dt is not None

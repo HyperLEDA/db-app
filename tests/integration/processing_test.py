@@ -1,3 +1,4 @@
+import datetime
 import unittest
 
 import pandas
@@ -91,3 +92,14 @@ class MarkObjectsTest(unittest.TestCase):
         obj_after = after[0]
 
         self.assertGreater(len(obj_after.data), len(obj_before.data))
+
+    def test_table_didnt_change_since_last_upload(self):
+        table_id = self._get_table()
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+        modification_dt = datetime.datetime.now(tz=datetime.UTC)
+
+        processing.mark_objects(self.layer0_repo, table_id, 5)
+
+        stats = self.layer0_repo.get_table_statistics(table_id)
+        self.assertLess(stats.last_modified_dt.timestamp(), modification_dt.timestamp())
