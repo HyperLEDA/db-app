@@ -1,9 +1,8 @@
-from collections.abc import Iterator
-
 import structlog
 
 from app.data import model, repositories
 from app.domain import converters
+from app.lib import containers
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -25,25 +24,14 @@ def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batc
 
     convs = get_converters(meta.column_descriptions)
 
-    for data in object_batches(layer0_repo, table_id, batch_size):
+    for offset, data in containers.read_batches(
+        layer0_repo.fetch_raw_data,
+        lambda data: len(data.data) == 0,
+        table_id,
+        batch_size=batch_size,
+    ):
+        # for data in object_batches(layer0_repo, table_id, batch_size):
         layer0_repo.upsert_objects(table_id, convert_rawdata_to_layer0_object(data, convs))
-
-
-def object_batches(
-    layer0_repo: repositories.Layer0Repository, table_id: int, batch_size: int
-) -> Iterator[model.Layer0RawData]:
-    offset = 0
-
-    while True:
-        data = layer0_repo.fetch_raw_data(
-            table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=batch_size, offset=offset
-        )
-        offset += min(batch_size, len(data.data))
-
-        if len(data.data) == 0:
-            break
-
-        yield data
 
         log.info("Processed batch", offset=offset)
 
