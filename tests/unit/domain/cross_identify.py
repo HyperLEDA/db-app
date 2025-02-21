@@ -5,7 +5,7 @@ import astropy.units as u
 from astropy.coordinates import ICRS, angular_separation
 
 from app import entities
-from app.data.repositories.layer2_repository import Layer2Repository
+from app.data.repositories.layer2 import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import SimpleSimultaneousDataProvider
 from app.domain.model.layer2 import Layer2Model
 from app.domain.model.params.cross_identification_result import (

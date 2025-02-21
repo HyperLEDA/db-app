@@ -4,7 +4,7 @@ from typing import Any
 import structlog
 
 from app.data import model
-from app.data.repositories.layer2_repository import filters as repofilters
+from app.data.repositories.layer2 import filters as repofilters
 from app.lib import containers
 from app.lib.storage import postgres
 

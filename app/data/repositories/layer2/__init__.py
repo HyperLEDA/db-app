@@ -1,4 +1,4 @@
-from app.data.repositories.layer2_repository.filters import (
+from app.data.repositories.layer2.filters import (
     AndFilter,
     DesignationCloseFilter,
     DesignationEqualsFilter,
@@ -7,7 +7,7 @@ from app.data.repositories.layer2_repository.filters import (
     PGCOneOfFilter,
     RedshiftCloseFilter,
 )
-from app.data.repositories.layer2_repository.repository import Layer2Repository
+from app.data.repositories.layer2.repository import Layer2Repository
 
 __all__ = [
     "Layer2Repository",

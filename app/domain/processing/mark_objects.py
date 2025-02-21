@@ -30,7 +30,6 @@ def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batc
         table_id,
         batch_size=batch_size,
     ):
-        # for data in object_batches(layer0_repo, table_id, batch_size):
         layer0_repo.upsert_objects(table_id, convert_rawdata_to_layer0_object(data, convs))
 
         log.info("Processed batch", offset=offset)
