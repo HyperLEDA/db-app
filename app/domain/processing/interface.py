@@ -61,8 +61,6 @@ class ICRSCrossmatcher(Crossmatcher):
     def get_filter(self, obj: model.Layer0Object) -> layer2.Filter | None:
         for catalog_object in obj.data:
             if isinstance(catalog_object, model.ICRSCatalogObject):
-                return layer2.ICRSCoordinatesInRadiusFilter(
-                    catalog_object.ra, catalog_object.dec, self.radius
-                )
+                return layer2.ICRSCoordinatesInRadiusFilter(catalog_object.ra, catalog_object.dec, self.radius)
 
         return None

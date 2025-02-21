@@ -16,7 +16,7 @@ def read_batches[T](
     `func` MUST have two at least two integer arguments: `limit` and `offset`.
     They will be changed during the iteration.
 
-    Stops iterating when `stop_condition` is `True`.
+    Stops iterating when `stop_condition` is `True`. The result that satisfies the condition is not yielded.
     """
 
     offset = initial_offset
@@ -26,9 +26,9 @@ def read_batches[T](
         kwargs["offset"] = offset
         result = func(*args, **kwargs)
 
+        if stop_condition(result):
+            break
+
         yield offset, result
 
         offset += batch_size
-
-        if stop_condition(result):
-            break

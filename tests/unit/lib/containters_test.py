@@ -10,11 +10,6 @@ def silly_func(limit: int, offset: int) -> list[int]:
 class TestReadBatches(unittest.TestCase):
     def test_one_batch(self):
         it = containers.read_batches(silly_func, lambda _: True, batch_size=3)
-        _, actual = next(it)
-        expected = [0, 0, 0]
-
-        self.assertEqual(actual, expected)
-
         with self.assertRaises(StopIteration):
             next(it)
 

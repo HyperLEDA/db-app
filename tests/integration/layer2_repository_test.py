@@ -25,9 +25,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         self.layer2_repo.save_data(objects)
 
-        actual = self.layer2_repo.query(
-            [model.RawCatalog.DESIGNATION], layer2.DesignationEqualsFilter("test"), 10, 0
-        )
+        actual = self.layer2_repo.query([model.RawCatalog.DESIGNATION], layer2.DesignationEqualsFilter("test"), 10, 0)
         expected = [model.Layer2Object(1, [model.DesignationCatalogObject(design="test")])]
 
         self.assertEqual(actual, expected)
