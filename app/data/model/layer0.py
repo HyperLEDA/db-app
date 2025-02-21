@@ -12,7 +12,7 @@ from app.lib.storage import enums
 @dataclass
 class Layer0OldObject:
     object_id: str
-    status: enums.ObjectProcessingStatus
+    status: enums.ObjectCrossmatchStatus
     metadata: dict[str, Any]
     data: list[interface.CatalogObject]
     pgc: int | None = None
@@ -58,7 +58,7 @@ class Layer0Object:
 
 @dataclass
 class TableStatistics:
-    statuses: dict[enums.ObjectProcessingStatus, int]
+    statuses: dict[enums.ObjectCrossmatchStatus, int]
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int

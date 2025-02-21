@@ -54,7 +54,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_id: int) -> model.TableStatistics:
         return self.objects_repo.get_table_statistics(table_id)
 
-    def get_old_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+    def get_old_object_statuses(self, table_id: int) -> dict[enums.ObjectCrossmatchStatus, int]:
         return self.old_objects_repo.get_old_object_statuses(table_id)
 
     def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:

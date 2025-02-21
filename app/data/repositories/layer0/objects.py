@@ -28,7 +28,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_id: int) -> model.TableStatistics:
         statuses_query = """
             SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
-            FROM rawdata.processing AS p
+            FROM rawdata.crossmatch AS p
             RIGHT JOIN rawdata.objects AS o ON p.object_id = o.id
             WHERE o.table_id = %s
             GROUP BY status"""
@@ -52,7 +52,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             raise DatabaseError(f"unable to fetch total rows for table {table_name}")
 
         return model.TableStatistics(
-            {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in status_rows},
+            {enums.ObjectCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,

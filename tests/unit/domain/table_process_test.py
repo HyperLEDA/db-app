@@ -33,7 +33,7 @@ class TableProcessTest(unittest.TestCase):
 
     def test_objects(self):
         objects = [
-            ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectProcessingStatus.NEW, {}, None),
+            ("obj1", 10.0, 10.0, result.CrossIdentifyResult(None, None), enums.ObjectCrossmatchStatus.NEW, {}, None),
         ]
 
         lib.returns(

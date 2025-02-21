@@ -113,7 +113,7 @@ def get_processing_info(object_id: str, data: list[model.CatalogObject]) -> mode
     :param res: Object that stores data about the cross identification processing
     :param obj: Processed and homogenous information about the object
     """
-    return model.Layer0OldObject(object_id, enums.ObjectProcessingStatus.NEW, {}, data)
+    return model.Layer0OldObject(object_id, enums.ObjectCrossmatchStatus.NEW, {}, data)
 
 
 def apply_override(
@@ -121,10 +121,10 @@ def apply_override(
     override: adminapi.SetTableStatusOverrides,
 ) -> model.Layer0OldObject:
     if override.pgc is not None:
-        obj.status = enums.ObjectProcessingStatus.EXISTING
+        obj.status = enums.ObjectCrossmatchStatus.EXISTING
         obj.pgc = override.pgc
     else:
-        obj.status = enums.ObjectProcessingStatus.NEW
+        obj.status = enums.ObjectCrossmatchStatus.NEW
         obj.pgc = None
 
     return obj
@@ -138,9 +138,9 @@ def assign_pgc(
     output_list = []
 
     for obj in objects:
-        if obj.status == enums.ObjectProcessingStatus.NEW:
+        if obj.status == enums.ObjectCrossmatchStatus.NEW:
             new_pgc_items_num += 1
-        elif obj.status == enums.ObjectProcessingStatus.EXISTING:
+        elif obj.status == enums.ObjectCrossmatchStatus.EXISTING:
             existing_pgc_items.append(obj.pgc)
         else:
             continue
@@ -156,7 +156,7 @@ def assign_pgc(
     pgc_list = common_repo.generate_pgc(new_pgc_items_num)
 
     for obj in output_list:
-        if obj.status == enums.ObjectProcessingStatus.NEW:
+        if obj.status == enums.ObjectCrossmatchStatus.NEW:
             obj.pgc = pgc_list.pop(0)
 
     return output_list
