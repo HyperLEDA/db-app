@@ -5,6 +5,7 @@ import structlog
 from app.commands.processor import config
 from app.data import repositories
 from app.domain import processing
+from app.lib import containers
 from app.lib.commands import interface
 from app.lib.storage import postgres
 
@@ -40,6 +41,18 @@ class ProcessorCommand(interface.Command):
 
         log.info("Erasing previous crossmatching results", **ctx)
         self.layer0_repo.erase_crossmatch_results(self.table_id)
+
+        log.info("Starting cross-identification", **ctx)
+        for offset, data in containers.read_batches(
+            self.layer0_repo.get_objects,
+            lambda data: len(data) == 0,
+            self.table_id,
+            batch_size=self.batch_size,
+        ):
+            crossmatch_results = processing.crossmatch(self.layer2_repo, data)
+            self.layer0_repo.add_crossmatch_result(crossmatch_results)
+
+            log.info("Processed batch", offset=offset, **ctx)
 
     def cleanup(self):
         self.pg_storage.disconnect()

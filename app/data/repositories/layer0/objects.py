@@ -78,6 +78,12 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         )
 
     def erase_crossmatch_results(self, table_id: int) -> None:
+        """
+        This function locks the table while the data is deleted.
+        Be careful when deleting large tables.
+
+        TODO: consider erasing data in chunks.
+        """
         self._storage.exec(
             """
             DELETE FROM rawdata.crossmatch
@@ -90,5 +96,29 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             params=[table_id],
         )
 
-    def add_crossmatch_result(self, table_id: int, data: dict[str, model.CIResult]) -> None:
-        pass
+    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
+        query = "INSERT INTO rawdata.crossmatch (object_id, status, metadata) VALUES "
+        params = []
+        values = []
+
+        for object_id, result in data.items():
+            values.append("(%s, %s, %s)")
+
+            status = None
+            meta = {}
+
+            if isinstance(result, model.CIResultObjectNew):
+                status = enums.ObjectCrossmatchStatus.NEW
+                meta = {}
+            elif isinstance(result, model.CIResultObjectExisting):
+                status = enums.ObjectCrossmatchStatus.EXISTING
+                meta = {"pgc": result.pgc}
+            else:
+                status = enums.ObjectCrossmatchStatus.COLLIDED
+                meta = {"possible_matches": result.possible_pgcs}
+
+            params.extend([object_id, status, json.dumps(meta)])
+
+        query += ",".join(values)
+
+        self._storage.exec(query, params=params)
