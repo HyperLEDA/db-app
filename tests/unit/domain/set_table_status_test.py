@@ -24,13 +24,13 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1001),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1005),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -42,9 +42,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.generate_pgc, [1002, 1003, 1004])
 
         original = [
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -57,9 +57,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1001),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1005),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 1010),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1001),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1005),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1010),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -73,9 +73,9 @@ class AssignPGCTest(unittest.TestCase):
         lib.returns(self.manager.common_repo.upsert_pgc, None)
 
         original = [
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.COLLIDED, {}, []),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.EXISTING, {}, [], 12345),
-            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectProcessingStatus.NEW, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.COLLIDED, {}, []),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.EXISTING, {}, [], 12345),
+            model.Layer0OldObject(str(uuid.uuid4()), enums.ObjectCrossmatchStatus.NEW, {}, []),
         ]
 
         actual = assign_pgc(self.manager.common_repo, original)
@@ -99,20 +99,20 @@ class SetTableStatusTest(unittest.TestCase):
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.NEW,
+                    enums.ObjectCrossmatchStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.EXISTING,
+                    enums.ObjectCrossmatchStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.COLLIDED,
+                    enums.ObjectCrossmatchStatus.COLLIDED,
                     {"error": "collision"},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
@@ -135,20 +135,20 @@ class SetTableStatusTest(unittest.TestCase):
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.NEW,
+                    enums.ObjectCrossmatchStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
                 model.Layer0OldObject(
                     obj2_id,
-                    enums.ObjectProcessingStatus.EXISTING,
+                    enums.ObjectCrossmatchStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
                 model.Layer0OldObject(
                     obj3_id,
-                    enums.ObjectProcessingStatus.COLLIDED,
+                    enums.ObjectCrossmatchStatus.COLLIDED,
                     {"error": "collision"},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
@@ -178,20 +178,20 @@ class SetTableStatusTest(unittest.TestCase):
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.NEW,
+                    enums.ObjectCrossmatchStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.EXISTING,
+                    enums.ObjectCrossmatchStatus.EXISTING,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                     123456,
                 ),
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.COLLIDED,
+                    enums.ObjectCrossmatchStatus.COLLIDED,
                     {"error": "collision"},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 ),
@@ -202,7 +202,7 @@ class SetTableStatusTest(unittest.TestCase):
             [
                 model.Layer0OldObject(
                     str(uuid.uuid4()),
-                    enums.ObjectProcessingStatus.NEW,
+                    enums.ObjectCrossmatchStatus.NEW,
                     {},
                     [model.ICRSCatalogObject(12.4, 0.01, 11.4, 0.01)],
                 )

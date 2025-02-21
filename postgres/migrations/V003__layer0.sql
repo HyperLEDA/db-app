@@ -46,13 +46,13 @@ COMMENT ON COLUMN rawdata.tables.status IS 'Data processing status' ;
 -----------------------------------------------------------
 -------- Processed objects table --------------------------
 
-CREATE TYPE rawdata.processing_status AS ENUM ('unprocessed', 'new', 'existing', 'collided');
+CREATE TYPE rawdata.crossmatch_status AS ENUM ('unprocessed', 'new', 'existing', 'collided');
 
 CREATE TABLE rawdata.old_objects (
   table_id int NOT NULL REFERENCES rawdata.tables(id)
 , object_id text NOT NULL
 , pgc int NULL
-, status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
+, status rawdata.crossmatch_status NOT NULL DEFAULT 'unprocessed'
 , data jsonb
 , metadata jsonb
 , PRIMARY KEY (table_id, object_id)
@@ -90,8 +90,8 @@ CREATE TRIGGER update_modification_dt
   FOR EACH ROW
 EXECUTE PROCEDURE rawdata.update_modification_dt();
 
-CREATE TABLE rawdata.processing (
-  object_id text NOT NULL REFERENCES rawdata.objects(id)
-, status rawdata.processing_status NOT NULL DEFAULT 'unprocessed'
+CREATE TABLE rawdata.crossmatch (
+  object_id text NOT NULL REFERENCES rawdata.objects(id) PRIMARY KEY
+, status rawdata.crossmatch_status NOT NULL DEFAULT 'unprocessed'
 , metadata json
 );

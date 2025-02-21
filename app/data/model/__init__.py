@@ -11,6 +11,10 @@ from app.data.model.interface import (
     RawCatalog,
 )
 from app.data.model.layer0 import (
+    CIResult,
+    CIResultObjectCollision,
+    CIResultObjectExisting,
+    CIResultObjectNew,
     ColumnDescription,
     Layer0CreationResponse,
     Layer0Object,
@@ -31,6 +35,10 @@ __all__ = [
     "Layer0CreationResponse",
     "ColumnDescription",
     "TableStatistics",
+    "CIResult",
+    "CIResultObjectCollision",
+    "CIResultObjectExisting",
+    "CIResultObjectNew",
     "Layer1CatalogObject",
     "Layer2CatalogObject",
     "Layer2Object",

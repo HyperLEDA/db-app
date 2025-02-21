@@ -120,7 +120,7 @@ class TableStatusStatsRequest:
 
 @dataclass
 class TableStatusStatsResponse:
-    processing: dict[enums.ObjectProcessingStatus, int]
+    processing: dict[enums.ObjectCrossmatchStatus, int]
 
 
 @dataclass

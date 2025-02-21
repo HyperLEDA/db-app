@@ -26,7 +26,7 @@ class RawDataStatus(enum.Enum):
     PROCESSED = "processed"
 
 
-class ObjectProcessingStatus(str, enum.Enum):
+class ObjectCrossmatchStatus(str, enum.Enum):
     UNPROCESSED = "unprocessed"
     NEW = "new"
     COLLIDED = "collided"

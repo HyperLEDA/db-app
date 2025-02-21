@@ -15,7 +15,7 @@ class TableStatusStatsRequestSchema(schema.RequestSchema):
 
 
 class TableStatusStatsResponseSchema(Schema):
-    processing = fields.Dict(keys=fields.Enum(enums.ObjectProcessingStatus), values=fields.Integer())
+    processing = fields.Dict(keys=fields.Enum(enums.ObjectCrossmatchStatus), values=fields.Integer())
 
 
 async def table_status_stats(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:

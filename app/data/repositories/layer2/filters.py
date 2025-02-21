@@ -56,7 +56,7 @@ class DesignationCloseFilter(Filter):
         self._distance = distance
 
     def get_query(self):
-        return "levenshtein_less_equal(designation.design, %s, %s) < %s"
+        return "levenshtein_less_equal(designation.design, %s::text, %s) < %s"
 
     def get_params(self):
         return [self._designation, self._distance, self._distance]

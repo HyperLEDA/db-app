@@ -5,24 +5,6 @@ from app.domain.processing import interface
 
 
 @dataclass
-class CIResultObjectNew:
-    pass
-
-
-@dataclass
-class CIResultObjectExisting:
-    pgc: int
-
-
-@dataclass
-class CIResultObjectCollision:
-    possible_pgcs: dict[str, set[int]]
-
-
-CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
-
-
-@dataclass
 class BatchKey:
     object_id: str
     ci_name: str
@@ -69,7 +51,7 @@ def query_objects(
     return result
 
 
-def compute_ci_result(possible_pgcs: dict[str, set[int]]) -> CIResult:
+def compute_ci_result(possible_pgcs: dict[str, set[int]]) -> model.CIResult:
     """
     If all of the CIs returned zero PGCs, then object is `new`.
 
@@ -80,14 +62,14 @@ def compute_ci_result(possible_pgcs: dict[str, set[int]]) -> CIResult:
 
     union = set.union(*possible_pgcs.values())
     if len(union) == 0:
-        return CIResultObjectNew()
+        return model.CIResultObjectNew()
 
     intersection = set.intersection(*possible_pgcs.values())
 
     if len(intersection) == 1:
-        return CIResultObjectExisting(intersection.pop())
+        return model.CIResultObjectExisting(intersection.pop())
 
-    return CIResultObjectCollision(possible_pgcs)
+    return model.CIResultObjectCollision(possible_pgcs)
 
 
 def crossmatch(
@@ -95,7 +77,7 @@ def crossmatch(
     objects: list[model.Layer0Object],
     designation_levenshtein_threshold: int = 2,
     icrs_radius_threshold_deg: float = 0.1,
-) -> dict[str, CIResult]:
+) -> dict[str, model.CIResult]:
     """
     Performs the cross-identification of the objects. For each object layer 2 is queried to
     get the possible PGC numbers. All of the operations are performed in a single batch.
@@ -115,7 +97,7 @@ def crossmatch(
 
     layer2_objects = query_objects(layer2_repo, objects, crossmatchers)
 
-    result: dict[str, CIResult] = {}
+    result: dict[str, model.CIResult] = {}
     for obj_id, ci_pgcs in layer2_objects.items():
         result[obj_id] = compute_ci_result(ci_pgcs)
 

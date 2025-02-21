@@ -26,7 +26,7 @@ class Layer0OldObjectsRepository(postgres.TransactionalPGRepository):
             ],
         )
 
-    def get_old_object_statuses(self, table_id: int) -> dict[enums.ObjectProcessingStatus, int]:
+    def get_old_object_statuses(self, table_id: int) -> dict[enums.ObjectCrossmatchStatus, int]:
         rows = self._storage.query(
             """
             SELECT status, COUNT(*) FROM rawdata.old_objects 
@@ -36,7 +36,7 @@ class Layer0OldObjectsRepository(postgres.TransactionalPGRepository):
             params=[table_id],
         )
 
-        return {enums.ObjectProcessingStatus(row["status"]): row["count"] for row in rows}
+        return {enums.ObjectCrossmatchStatus(row["status"]): row["count"] for row in rows}
 
     def get_old_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0OldObject]:
         rows = self._storage.query(
@@ -52,7 +52,7 @@ class Layer0OldObjectsRepository(postgres.TransactionalPGRepository):
         return [
             model.Layer0OldObject(
                 row["object_id"],
-                enums.ObjectProcessingStatus(row["status"]),
+                enums.ObjectCrossmatchStatus(row["status"]),
                 row["metadata"],
                 json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
                 row["pgc"],

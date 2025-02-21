@@ -21,21 +21,13 @@ CREATE TABLE icrs.data (
 );
 
 CREATE INDEX ON icrs.data (ra, dec);
-
 CREATE INDEX ON icrs.data (pgc);
 
 COMMENT ON TABLE icrs.data IS 'Collection of the object positions in the International Celestial Reference System (ICRS)';
-
 COMMENT ON COLUMN icrs.data.pgc IS 'PGC number of the object';
-
 COMMENT ON COLUMN icrs.data.object_id IS 'ID of the object in original table';
-
 COMMENT ON COLUMN icrs.data.ra IS 'Right Ascension (ICRS) in degrees';
-
 COMMENT ON COLUMN icrs.data.dec IS 'Declination (ICRS) in degrees';
-
 COMMENT ON COLUMN icrs.data.e_ra IS 'Right Ascension error (RAerr*cos(Des) in arcsec';
-
 COMMENT ON COLUMN icrs.data.e_dec IS 'Declination error in arcsec';
-
 COMMENT ON COLUMN icrs.data.modification_time IS 'Timestamp when the record was added to the database';
