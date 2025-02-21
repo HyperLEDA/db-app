@@ -66,10 +66,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         return model.Layer0CreationResponse(table_id, True)
 
-    def insert_raw_data(
-        self,
-        data: model.Layer0RawData,
-    ) -> None:
+    def insert_raw_data(self, data: model.Layer0RawData) -> None:
         """
         This method puts everything in parameters for prepared statement. This should not be a big
         issue but one would be better off using this function in batches since prepared statements make
