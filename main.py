@@ -68,7 +68,7 @@ def importer(config: str):
     "-b",
     "--batch-size",
     type=int,
-    default=1000,
+    default=50,
     help="Batch size for processing",
 )
 def processor(config: str, table_id: int, batch_size: int):

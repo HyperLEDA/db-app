@@ -29,7 +29,7 @@ class CrossmatchTest(unittest.TestCase):
                 )
             ],
         )
-        expected = {"1212": processing.CIResultObjectNew()}
+        expected = {"1212": model.CIResultObjectNew()}
 
         self.assertEqual(actual, expected)
 
@@ -54,7 +54,7 @@ class CrossmatchTest(unittest.TestCase):
                 )
             ],
         )
-        expected = {"1212": processing.CIResultObjectExisting(123)}
+        expected = {"1212": model.CIResultObjectExisting(123)}
 
         self.assertEqual(actual, expected)
 
@@ -81,7 +81,7 @@ class CrossmatchTest(unittest.TestCase):
             ],
         )
         expected = {
-            "1212": processing.CIResultObjectCollision({"icrs": {123, 456}, "designation": {123, 456}}),
+            "1212": model.CIResultObjectCollision({"icrs": {123, 456}, "designation": {123, 456}}),
         }
 
         self.assertEqual(actual, expected)

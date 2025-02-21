@@ -18,6 +18,8 @@ class ProcessorCommand(interface.Command):
     Command that performs processing on the input table.
     Processing includes cross-identification of the objects from the input table with the
     objects on layer 2 of the database.
+
+    TODO: add option to not overwrite previous results.
     """
 
     def __init__(self, config_path: str, table_id: int, batch_size: int) -> None:
@@ -52,7 +54,7 @@ class ProcessorCommand(interface.Command):
             crossmatch_results = processing.crossmatch(self.layer2_repo, data)
             self.layer0_repo.add_crossmatch_result(crossmatch_results)
 
-            log.info("Processed batch", offset=offset, **ctx)
+            log.info("Processed batch", done=offset, **ctx)
 
     def cleanup(self):
         self.pg_storage.disconnect()

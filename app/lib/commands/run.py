@@ -1,15 +1,14 @@
+import os
+
 import structlog
 
 from app.lib.commands import interface
 
 
 def run(command: interface.Command):
-    structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.dev.ConsoleRenderer(),
-        ],
-    )
+    log_level = os.getenv("LOG_LEVEL", "info")
+
+    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(log_level))
 
     logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
