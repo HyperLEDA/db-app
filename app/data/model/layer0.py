@@ -62,3 +62,21 @@ class TableStatistics:
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int
+
+
+@dataclass
+class CIResultObjectNew:
+    pass
+
+
+@dataclass
+class CIResultObjectExisting:
+    pgc: int
+
+
+@dataclass
+class CIResultObjectCollision:
+    possible_pgcs: dict[str, set[int]]
+
+
+CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision

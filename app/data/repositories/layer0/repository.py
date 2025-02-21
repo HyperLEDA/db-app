@@ -62,3 +62,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def get_old_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0OldObject]:
         return self.old_objects_repo.get_old_objects(table_id, batch_size, offset)
+
+    def erase_crossmatch_results(self, table_id: int) -> None:
+        return self.objects_repo.erase_crossmatch_results(table_id)

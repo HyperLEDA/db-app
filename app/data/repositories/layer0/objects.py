@@ -25,6 +25,25 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
+    def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
+        rows = self._storage.query(
+            """
+            SELECT id, data
+            FROM rawdata.objects
+            WHERE table_id = %s
+            LIMIT %s OFFSET %s
+            """,
+            params=[table_id, limit, offset],
+        )
+
+        return [
+            model.Layer0Object(
+                row["id"],
+                json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
+            )
+            for row in rows
+        ]
+
     def get_table_statistics(self, table_id: int) -> model.TableStatistics:
         statuses_query = """
             SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
@@ -58,21 +77,18 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             total_original_rows,
         )
 
-    def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
-        rows = self._storage.query(
+    def erase_crossmatch_results(self, table_id: int) -> None:
+        self._storage.exec(
             """
-            SELECT id, data
-            FROM rawdata.objects
-            WHERE table_id = %s
-            LIMIT %s OFFSET %s
+            DELETE FROM rawdata.crossmatch
+            WHERE object_id IN (
+                SELECT id
+                FROM rawdata.objects
+                WHERE table_id = %s
+            )
             """,
-            params=[table_id, limit, offset],
+            params=[table_id],
         )
 
-        return [
-            model.Layer0Object(
-                row["id"],
-                json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
-            )
-            for row in rows
-        ]
+    def add_crossmatch_result(self, table_id: int, data: dict[str, model.CIResult]) -> None:
+        pass

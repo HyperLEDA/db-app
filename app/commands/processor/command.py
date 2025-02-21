@@ -34,8 +34,12 @@ class ProcessorCommand(interface.Command):
         self.layer2_repo = repositories.Layer2Repository(self.pg_storage, log)
 
     def run(self):
-        log.info("Starting marking of objects")
+        ctx = {"table_id": self.table_id}
+        log.info("Starting marking of objects", **ctx)
         processing.mark_objects(self.layer0_repo, self.table_id, self.batch_size)
+
+        log.info("Erasing previous crossmatching results", **ctx)
+        self.layer0_repo.erase_crossmatch_results(self.table_id)
 
     def cleanup(self):
         self.pg_storage.disconnect()
