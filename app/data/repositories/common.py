@@ -29,7 +29,7 @@ class CommonRepository(postgres.TransactionalPGRepository):
         if result is None:
             raise DatabaseError("no result returned from query")
 
-        return int(result.get("id"))
+        return int(result["id"])
 
     def get_source_entry(self, source_name: str) -> entities.Bibliography:
         row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name])

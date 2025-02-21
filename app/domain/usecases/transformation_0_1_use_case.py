@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 from app.data import model
-from app.data.repositories.layer2_repository import Layer2Repository
+from app.data.repositories.layer2 import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import CrossIdSimultaneousDataProvider
 from app.domain.model import Layer0Model, Layer1Model
 from app.domain.model.layer0 import Transformation01Fail

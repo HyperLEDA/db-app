@@ -1,7 +1,7 @@
 import abc
 
 from app.data import model
-from app.data.repositories import layer2_repository
+from app.data.repositories import layer2
 
 
 class Crossmatcher(abc.ABC):
@@ -27,7 +27,7 @@ class Crossmatcher(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:
+    def get_filter(self, obj: model.Layer0Object) -> layer2.Filter | None:
         """
         Returns actual filters to get layer 2 objects.
         Filters may be as complex as needed, including a long chain of ANDs and ORs.
@@ -42,10 +42,10 @@ class DesignationCrossmatcher(Crossmatcher):
     def name() -> str:
         return "designation"
 
-    def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:
+    def get_filter(self, obj: model.Layer0Object) -> layer2.Filter | None:
         for catalog_object in obj.data:
             if isinstance(catalog_object, model.DesignationCatalogObject):
-                return layer2_repository.DesignationCloseFilter(catalog_object.designation, self.dst)
+                return layer2.DesignationCloseFilter(catalog_object.designation, self.dst)
 
         return None
 
@@ -58,11 +58,9 @@ class ICRSCrossmatcher(Crossmatcher):
     def name() -> str:
         return "icrs"
 
-    def get_filter(self, obj: model.Layer0Object) -> layer2_repository.Filter | None:
+    def get_filter(self, obj: model.Layer0Object) -> layer2.Filter | None:
         for catalog_object in obj.data:
             if isinstance(catalog_object, model.ICRSCatalogObject):
-                return layer2_repository.ICRSCoordinatesInRadiusFilter(
-                    catalog_object.ra, catalog_object.dec, self.radius
-                )
+                return layer2.ICRSCoordinatesInRadiusFilter(catalog_object.ra, catalog_object.dec, self.radius)
 
         return None

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from pandas import DataFrame
 
 from app.data import model
-from app.data.repositories.layer2_repository import Layer2Repository
+from app.data.repositories.layer2 import Layer2Repository
 from app.domain.cross_id_simultaneous_data_provider import (
     CrossIdSimultaneousDataProvider,
     SimpleSimultaneousDataProvider,

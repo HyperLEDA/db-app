@@ -3,7 +3,7 @@ import unittest
 import structlog
 
 from app.data import model, repositories
-from app.data.repositories import layer2_repository
+from app.data.repositories import layer2
 from tests import lib
 
 
@@ -25,9 +25,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         self.layer2_repo.save_data(objects)
 
-        actual = self.layer2_repo.query(
-            [model.RawCatalog.DESIGNATION], layer2_repository.DesignationEqualsFilter("test"), 10, 0
-        )
+        actual = self.layer2_repo.query([model.RawCatalog.DESIGNATION], layer2.DesignationEqualsFilter("test"), 10, 0)
         expected = [model.Layer2Object(1, [model.DesignationCatalogObject(design="test")])]
 
         self.assertEqual(actual, expected)
@@ -41,7 +39,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
-            [model.RawCatalog.ICRS], layer2_repository.ICRSCoordinatesInRadiusFilter(12, 12, 10), 10, 0
+            [model.RawCatalog.ICRS], layer2.ICRSCoordinatesInRadiusFilter(12, 12, 10), 10, 0
         )
         expected = [
             model.Layer2Object(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
@@ -61,7 +59,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            layer2_repository.DesignationEqualsFilter("test2"),
+            layer2.DesignationEqualsFilter("test2"),
             10,
             0,
         )
@@ -89,10 +87,10 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            layer2_repository.AndFilter(
+            layer2.AndFilter(
                 [
-                    layer2_repository.DesignationEqualsFilter("test2"),
-                    layer2_repository.ICRSCoordinatesInRadiusFilter(12, 12, 10),
+                    layer2.DesignationEqualsFilter("test2"),
+                    layer2.ICRSCoordinatesInRadiusFilter(12, 12, 10),
                 ]
             ),
             10,
@@ -124,7 +122,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS],
-            layer2_repository.ICRSCoordinatesInRadiusFilter(12, 12, 10),
+            layer2.ICRSCoordinatesInRadiusFilter(12, 12, 10),
             2,
             1,
         )
@@ -145,8 +143,8 @@ class Layer2RepositoryTest(unittest.TestCase):
         actual = self.layer2_repo.query_batch(
             [model.RawCatalog.ICRS],
             {
-                "obj1": layer2_repository.ICRSCoordinatesInRadiusFilter(12, 12, 10),
-                "obj2": layer2_repository.ICRSCoordinatesInRadiusFilter(13, 13, 10),
+                "obj1": layer2.ICRSCoordinatesInRadiusFilter(12, 12, 10),
+                "obj2": layer2.ICRSCoordinatesInRadiusFilter(13, 13, 10),
             },
             2,
             1,
