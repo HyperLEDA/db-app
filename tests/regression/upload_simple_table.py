@@ -6,6 +6,7 @@ import uuid
 import hyperleda
 import pandas
 
+from app.commands.layer1_importer.command import Layer1ImporterCommand
 from app.commands.processor.command import ProcessorCommand
 from app.lib import commands
 from tests import lib
@@ -75,8 +76,8 @@ def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dic
 
 
 @lib.test_logging_decorator(__file__)
-def set_table_status(client: hyperleda.HyperLedaClient, table_id: int):
-    client.set_table_status(table_id)
+def layer1_import(client: hyperleda.HyperLedaClient, table_id: int):
+    commands.run(Layer1ImporterCommand("configs/dev/importer.yaml", table_id=table_id, batch_size=50))
 
 
 def run():
@@ -95,4 +96,4 @@ def run():
     statuses_data = get_object_statuses(client, table_id)
     assert statuses_data["new"] == 2
 
-    set_table_status(client, table_id)
+    layer1_import(client, table_id)

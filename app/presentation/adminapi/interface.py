@@ -174,10 +174,6 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def set_table_status(self, request: SetTableStatusRequest) -> SetTableStatusResponse:
-        pass
-
-    @abc.abstractmethod
     def table_status_stats(self, request: TableStatusStatsRequest) -> TableStatusStatsResponse:
         pass
 

@@ -10,7 +10,6 @@ from app.presentation.adminapi import (
     interface,
     login,
     patch_api_v1_table,
-    set_table_status,
     table_status_stats,
 )
 
@@ -91,16 +90,6 @@ class Server(server.WebServer):
                     login.LoginResponseSchema,
                 ),
                 login.login_handler,
-            ),
-            server.ActionRoute(
-                actions,
-                server.RouteInfo(
-                    http.HTTPMethod.POST,
-                    "/api/v1/admin/table/status",
-                    set_table_status.SetTableStatusRequestSchema,
-                    set_table_status.SetTableStatusResponseSchema,
-                ),
-                set_table_status.set_table_status_handler,
             ),
             server.ActionRoute(
                 actions,
