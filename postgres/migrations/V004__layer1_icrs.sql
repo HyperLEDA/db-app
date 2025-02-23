@@ -4,9 +4,8 @@ CREATE SCHEMA IF NOT EXISTS icrs;
 COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial Reference System';
 
 CREATE TABLE icrs.data (
-  id serial PRIMARY KEY,
   pgc integer NOT NULL REFERENCES common.pgc (id) ON DELETE restrict ON UPDATE cascade,
-  object_id text NOT NULL REFERENCES rawdata.old_objects (object_id) ON DELETE restrict ON UPDATE cascade,
+  object_id text UNIQUE NOT NULL REFERENCES rawdata.old_objects (object_id) ON DELETE restrict ON UPDATE cascade,
   ra double precision NOT NULL,
   dec double precision NOT NULL,
   e_ra real NOT NULL,

@@ -31,6 +31,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             SELECT id, data
             FROM rawdata.objects
             WHERE table_id = %s
+            ORDER BY id
             LIMIT %s OFFSET %s
             """,
             params=[table_id, limit, offset],
@@ -43,6 +44,43 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             )
             for row in rows
         ]
+
+    def get_processed_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0ProcessedObject]:
+        rows = self._storage.query(
+            """
+            SELECT o.id, o.data, c.status, c.metadata
+            FROM rawdata.objects AS o
+            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            WHERE o.table_id = %s
+            ORDER BY o.id
+            LIMIT %s OFFSET %s
+            """,
+            params=[table_id, limit, offset],
+        )
+
+        objects = []
+
+        for row in rows:
+            status = row["status"]
+            metadata = row["metadata"]
+            ci_result = None
+
+            if status == enums.ObjectCrossmatchStatus.NEW:
+                ci_result = model.CIResultObjectNew()
+            elif status == enums.ObjectCrossmatchStatus.EXISTING:
+                ci_result = model.CIResultObjectExisting(pgc=metadata["pgc"])
+            else:
+                ci_result = model.CIResultObjectCollision(possible_pgcs=metadata["possible_matches"])
+
+            objects.append(
+                model.Layer0ProcessedObject(
+                    row["id"],
+                    json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
+                    ci_result,
+                )
+            )
+
+        return objects
 
     def get_table_statistics(self, table_id: int) -> model.TableStatistics:
         statuses_query = """
@@ -115,7 +153,11 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 meta = {"pgc": result.pgc}
             else:
                 status = enums.ObjectCrossmatchStatus.COLLIDED
-                meta = {"possible_matches": result.possible_pgcs}
+                possible_pgcs = {}
+                for catalog, vals in result.possible_pgcs.items():
+                    possible_pgcs[catalog] = list(vals)
+
+                meta = {"possible_matches": possible_pgcs}
 
             params.extend([object_id, status, json.dumps(meta)])
 

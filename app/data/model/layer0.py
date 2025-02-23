@@ -57,14 +57,6 @@ class Layer0Object:
 
 
 @dataclass
-class TableStatistics:
-    statuses: dict[enums.ObjectCrossmatchStatus, int]
-    last_modified_dt: datetime.datetime
-    total_rows: int
-    total_original_rows: int
-
-
-@dataclass
 class CIResultObjectNew:
     pass
 
@@ -80,3 +72,18 @@ class CIResultObjectCollision:
 
 
 CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
+
+
+@dataclass
+class Layer0ProcessedObject:
+    object_id: str
+    data: list[interface.CatalogObject]
+    processing_result: CIResult
+
+
+@dataclass
+class TableStatistics:
+    statuses: dict[enums.ObjectCrossmatchStatus, int]
+    last_modified_dt: datetime.datetime
+    total_rows: int
+    total_original_rows: int

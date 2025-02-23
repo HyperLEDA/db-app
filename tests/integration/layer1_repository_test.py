@@ -23,7 +23,7 @@ class Layer1RepositoryTest(unittest.TestCase):
     def test_icrs(self):
         objects: list[model.Layer1CatalogObject] = [
             model.Layer1CatalogObject(1, "111", model.ICRSCatalogObject(pgc=1, ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
-            model.Layer1CatalogObject(1, "111", model.ICRSCatalogObject(pgc=1, ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
+            model.Layer1CatalogObject(1, "112", model.ICRSCatalogObject(pgc=1, ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
@@ -44,9 +44,13 @@ class Layer1RepositoryTest(unittest.TestCase):
             table_resp.table_id,
             model.Layer0OldObject("111", enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1),
         )
+        self.layer0_repo.upsert_old_object(
+            table_resp.table_id,
+            model.Layer0OldObject("112", enums.ObjectCrossmatchStatus.EXISTING, {}, [], 1),
+        )
         self.common_repo.upsert_pgc([1])
 
         self.layer1_repo.save_data(objects)
 
-        result = self.pg_storage.storage.query("SELECT ra FROM icrs.data")
-        self.assertEqual(result, [{"ra": 12.1}, {"ra": 11.1}])
+        result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
+        self.assertEqual(result, [{"ra": 11.1}, {"ra": 12.1}])
