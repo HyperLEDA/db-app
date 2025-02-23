@@ -68,8 +68,6 @@ class TableTransferManager:
 
                 self.layer0_repo.upsert_old_object(r.table_id, layer0_object)
 
-        # TODO: remove col_name from entities?
-
         return adminapi.TableProcessResponse()
 
     def set_table_status(self, r: adminapi.SetTableStatusRequest) -> adminapi.SetTableStatusResponse:

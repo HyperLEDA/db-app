@@ -5,7 +5,7 @@ COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial R
 
 CREATE TABLE icrs.data (
   pgc integer NOT NULL REFERENCES common.pgc (id) ON DELETE restrict ON UPDATE cascade,
-  object_id text UNIQUE NOT NULL REFERENCES rawdata.old_objects (object_id) ON DELETE restrict ON UPDATE cascade,
+  object_id text UNIQUE NOT NULL REFERENCES rawdata.objects (id) ON DELETE restrict ON UPDATE cascade,
   ra double precision NOT NULL,
   dec double precision NOT NULL,
   e_ra real NOT NULL,

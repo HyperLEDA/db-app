@@ -6,6 +6,8 @@ import uuid
 import hyperleda
 import pandas
 
+from app.commands.processor.command import ProcessorCommand
+from app.lib import commands
 from tests import lib
 
 random.seed(time.time())
@@ -59,8 +61,8 @@ def upload_data(client: hyperleda.HyperLedaClient, table_id: int):
 
 
 @lib.test_logging_decorator(__file__)
-def start_processing(client: hyperleda.HyperLedaClient, table_id: int):
-    client.start_processing(table_id)
+def start_processing(table_id: int):
+    commands.run(ProcessorCommand("configs/dev/processor.yaml", table_id=table_id, batch_size=200, workers=8))
 
 
 @lib.test_logging_decorator(__file__)
@@ -88,7 +90,7 @@ def run():
     table_id = create_table(client, code)
 
     upload_data(client, table_id)
-    start_processing(client, table_id)
+    start_processing(table_id)
 
     statuses_data = get_object_statuses(client, table_id)
     assert statuses_data["new"] == 2
