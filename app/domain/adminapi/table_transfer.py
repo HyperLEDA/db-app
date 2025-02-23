@@ -18,7 +18,9 @@ class TableTransferManager:
         self.layer2_repo = layer2_repo
 
     def table_status_stats(self, r: adminapi.TableStatusStatsRequest) -> adminapi.TableStatusStatsResponse:
-        return adminapi.TableStatusStatsResponse(processing=self.layer0_repo.get_old_object_statuses(r.table_id))
+        stats = self.layer0_repo.get_table_statistics(r.table_id)
+
+        return adminapi.TableStatusStatsResponse(processing=stats.statuses)
 
     def table_process(self, r: adminapi.TableProcessRequest) -> adminapi.TableProcessResponse:
         meta = self.layer0_repo.fetch_metadata(r.table_id)
