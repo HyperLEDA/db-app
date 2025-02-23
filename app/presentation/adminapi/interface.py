@@ -1,6 +1,6 @@
 import abc
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from app.lib.storage import enums
@@ -102,18 +102,6 @@ class CrossIdentification:
 
 
 @dataclass
-class TableProcessRequest:
-    table_id: int
-    cross_identification: CrossIdentification = field(default_factory=CrossIdentification)
-    batch_size: int = 100
-
-
-@dataclass
-class TableProcessResponse:
-    pass
-
-
-@dataclass
 class TableStatusStatsRequest:
     table_id: int
 
@@ -187,10 +175,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def set_table_status(self, request: SetTableStatusRequest) -> SetTableStatusResponse:
-        pass
-
-    @abc.abstractmethod
-    def table_process(self, request: TableProcessRequest) -> TableProcessResponse:
         pass
 
     @abc.abstractmethod

@@ -1,5 +1,4 @@
 from app.data import model, repositories
-from app.domain import converters
 from app.lib.storage import enums
 from app.presentation import adminapi
 
@@ -21,54 +20,6 @@ class TableTransferManager:
         stats = self.layer0_repo.get_table_statistics(r.table_id)
 
         return adminapi.TableStatusStatsResponse(processing=stats.statuses)
-
-    def table_process(self, r: adminapi.TableProcessRequest) -> adminapi.TableProcessResponse:
-        meta = self.layer0_repo.fetch_metadata(r.table_id)
-
-        convs: list[converters.QuantityConverter] = [
-            converters.NameConverter(),
-            converters.ICRSConverter(),
-            converters.RedshiftConverter(),
-        ]
-
-        valid_converters = []
-
-        for conv in convs:
-            try:
-                conv.parse_columns(meta.column_descriptions)
-            except converters.ConverterError:
-                continue
-
-            valid_converters.append(conv)
-
-        offset = 0
-
-        while True:
-            data = self.layer0_repo.fetch_raw_data(
-                r.table_id, order_column=repositories.INTERNAL_ID_COLUMN_NAME, limit=r.batch_size, offset=offset
-            )
-            offset += min(r.batch_size, len(data.data))
-
-            if len(data.data) == 0:
-                break
-
-            for obj_data in data.data.to_dict(orient="records"):
-                objects: list[model.CatalogObject] = []
-                for conv in valid_converters:
-                    try:
-                        obj = conv.apply(obj_data)
-                    except converters.ConverterError:
-                        continue
-
-                    objects.append(obj)
-
-                layer0_object = get_processing_info(obj_data[repositories.INTERNAL_ID_COLUMN_NAME], objects)
-
-                # TODO: cross-identification
-
-                self.layer0_repo.upsert_old_object(r.table_id, layer0_object)
-
-        return adminapi.TableProcessResponse()
 
     def set_table_status(self, r: adminapi.SetTableStatusRequest) -> adminapi.SetTableStatusResponse:
         # TODO:
