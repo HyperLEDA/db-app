@@ -52,6 +52,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
         return self.objects_repo.get_objects(table_id, limit, offset)
 
+    def get_processed_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0ProcessedObject]:
+        return self.objects_repo.get_processed_objects(table_id, limit, offset)
+
     def get_old_objects(self, table_id: int, batch_size: int, offset: int) -> list[model.Layer0OldObject]:
         return self.old_objects_repo.get_old_objects(table_id, batch_size, offset)
 

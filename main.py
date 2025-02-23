@@ -6,6 +6,7 @@ from app.commands.adminapi import AdminAPICommand
 from app.commands.dataapi import DataAPICommand
 from app.commands.generate_spec import GenerateSpecCommand
 from app.commands.importer import ImporterCommand
+from app.commands.layer1_importer.command import Layer1ImporterCommand
 from app.commands.processor import ProcessorCommand
 from app.lib import commands
 
@@ -73,6 +74,30 @@ def importer(config: str):
 )
 def processor(config: str, table_id: int, batch_size: int):
     commands.run(ProcessorCommand(config, table_id, batch_size))
+
+
+@cli.command(short_help=Layer1ImporterCommand.help())
+@click.option(
+    "-c",
+    "--config",
+    type=str,
+    default=lambda: os.environ.get("CONFIG", ""),
+    help="Path to configuration file",
+)
+@click.argument(
+    "table_id",
+    required=True,
+    type=int,
+)
+@click.option(
+    "-b",
+    "--batch-size",
+    type=int,
+    default=50,
+    help="Batch size for processing",
+)
+def layer1_importer(config: str, table_id: int, batch_size: int):
+    commands.run(Layer1ImporterCommand(config, table_id, batch_size))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())

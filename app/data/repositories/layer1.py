@@ -38,9 +38,12 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             columns = list(data.keys())
             values = [data[column] for column in columns]
 
+            on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
+
             query = f"""
             INSERT INTO {table} ({", ".join(columns)}) 
             VALUES ({",".join(["%s"] * len(columns))})
+            ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
             """
 
             self._storage.exec(query, params=values)

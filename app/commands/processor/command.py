@@ -51,6 +51,9 @@ class ProcessorCommand(interface.Command):
             self.table_id,
             batch_size=self.batch_size,
         ):
+            # TODO: this should be done in several threads simutaneously.
+            # Since Postgres processes separate queries in separate threads, we can just
+            # send a bunch of queries to the DB and then wait for them to finish.
             crossmatch_results = processing.crossmatch(self.layer2_repo, data)
             self.layer0_repo.add_crossmatch_result(crossmatch_results)
 

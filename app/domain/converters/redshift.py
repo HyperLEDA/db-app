@@ -29,12 +29,12 @@ class RedshiftConverter(interface.QuantityConverter):
     def apply(self, data: dict[Hashable, Any]) -> CatalogObject:
         raw_z = data[self.column_name]
 
+        if raw_z is None or np.isnan(raw_z):
+            raise errors.ConverterError("Redshift is NaN")
+
         if self.unit is None:
             z = raw_z * astropy.constants.c
         else:
             z = raw_z * self.unit
-
-        if np.isnan(z):
-            raise errors.ConverterError("Redshift is NaN")
 
         return model.RedshiftCatalogObject(z.value, 0.1)
