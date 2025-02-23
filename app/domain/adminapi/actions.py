@@ -47,11 +47,5 @@ class Actions(adminapi.Actions):
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         return self.table_upload_manager.patch_table(r)
 
-    def set_table_status(self, r: adminapi.SetTableStatusRequest) -> adminapi.SetTableStatusResponse:
-        return self.table_transfer_manager.set_table_status(r)
-
-    def table_process(self, r: adminapi.TableProcessRequest) -> adminapi.TableProcessResponse:
-        return self.table_transfer_manager.table_process(r)
-
     def table_status_stats(self, r: adminapi.TableStatusStatsRequest) -> adminapi.TableStatusStatsResponse:
         return self.table_transfer_manager.table_status_stats(r)

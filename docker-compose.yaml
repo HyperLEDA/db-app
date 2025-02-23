@@ -9,8 +9,8 @@ services:
       - "6432:5432"
     healthcheck:
       test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
-      timeout: 3s
-      interval: 3s
+      timeout: 5s
+      interval: 5s
       retries: 5
 
   redis:

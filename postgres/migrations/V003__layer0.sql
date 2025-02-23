@@ -48,26 +48,6 @@ COMMENT ON COLUMN rawdata.tables.status IS 'Data processing status' ;
 
 CREATE TYPE rawdata.crossmatch_status AS ENUM ('unprocessed', 'new', 'existing', 'collided');
 
-CREATE TABLE rawdata.old_objects (
-  table_id int NOT NULL REFERENCES rawdata.tables(id)
-, object_id text NOT NULL
-, pgc int NULL
-, status rawdata.crossmatch_status NOT NULL DEFAULT 'unprocessed'
-, data jsonb
-, metadata jsonb
-, PRIMARY KEY (table_id, object_id)
-);
-
-CREATE INDEX ON rawdata.old_objects (status);
-CREATE UNIQUE INDEX ON rawdata.old_objects (object_id);
-
-COMMENT ON TABLE rawdata.old_objects IS 'Table to store processed objects and their metadata';
-COMMENT ON COLUMN rawdata.old_objects.table_id IS 'Reference to the original table';
-COMMENT ON COLUMN rawdata.old_objects.object_id IS 'Identifier for the object within the original table';
-COMMENT ON COLUMN rawdata.old_objects.status IS 'Status of the processing';
-COMMENT ON COLUMN rawdata.old_objects.data IS 'Homogeneous data about the object';
-COMMENT ON COLUMN rawdata.old_objects.metadata IS 'Metadata related to the processing steps';
-
 CREATE TABLE rawdata.objects (
   id text NOT NULL PRIMARY KEY
 , table_id int NOT NULL REFERENCES rawdata.tables(id)

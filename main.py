@@ -69,11 +69,18 @@ def importer(config: str):
     "-b",
     "--batch-size",
     type=int,
-    default=50,
+    default=200,
     help="Batch size for processing",
 )
-def processor(config: str, table_id: int, batch_size: int):
-    commands.run(ProcessorCommand(config, table_id, batch_size))
+@click.option(
+    "-w",
+    "--workers",
+    type=int,
+    default=8,
+    help="Number of workers to run cross-identification with",
+)
+def processor(config: str, table_id: int, batch_size: int, workers: int):
+    commands.run(ProcessorCommand(config, table_id, batch_size, workers))
 
 
 @cli.command(short_help=Layer1ImporterCommand.help())
@@ -94,7 +101,7 @@ def processor(config: str, table_id: int, batch_size: int):
     "--batch-size",
     type=int,
     default=50,
-    help="Batch size for processing",
+    help="Batch size for import",
 )
 def layer1_importer(config: str, table_id: int, batch_size: int):
     commands.run(Layer1ImporterCommand(config, table_id, batch_size))

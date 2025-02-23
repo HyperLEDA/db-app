@@ -5,6 +5,8 @@ import hyperleda_scripts
 import requests
 
 from app.commands.importer.command import ImporterCommand
+from app.commands.layer1_importer.command import Layer1ImporterCommand
+from app.commands.processor.command import ProcessorCommand
 from app.lib import commands
 from tests import lib
 
@@ -39,8 +41,8 @@ def patch_table(client: hyperleda.HyperLedaClient, table_id: int):
 
 
 @lib.test_logging_decorator(__file__)
-def start_processing(client: hyperleda.HyperLedaClient, table_id: int):
-    client.start_processing(table_id)
+def start_processing(table_id: int):
+    commands.run(ProcessorCommand("configs/dev/processor.yaml", table_id=table_id, batch_size=200, workers=8))
 
 
 @lib.test_logging_decorator(__file__)
@@ -53,12 +55,12 @@ def check_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dict[str
 
 
 @lib.test_logging_decorator(__file__)
-def set_table_status(client: hyperleda.HyperLedaClient, table_id: int):
-    client.set_table_status(table_id)
+def layer1_import(table_id: int):
+    commands.run(Layer1ImporterCommand("configs/dev/importer.yaml", table_id=table_id, batch_size=50))
 
 
 @lib.test_logging_decorator(__file__)
-def run_importer():
+def layer2_import():
     commands.run(ImporterCommand("configs/dev/importer.yaml"))
 
 
@@ -80,16 +82,16 @@ def run():
     validations = check_table_validation(client, table_id)
     assert len(validations) == 0
 
-    start_processing(client, table_id)
+    start_processing(table_id)
 
     statuses = check_statuses(client, table_id)
     assert statuses["new"] > 0
     assert statuses.get("existing", 0) == 0
     assert statuses.get("collided", 0) == 0
 
-    set_table_status(client, table_id)
+    layer1_import(table_id)
 
-    run_importer()
+    layer2_import()
 
     objects = query_objects()
     assert len(objects) > 0
