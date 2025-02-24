@@ -29,10 +29,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         for layer1_obj in objects:
             table = layer1_obj.catalog_object.layer1_table()
 
-            self._logger.info("Saving data to layer 1", table=table, pgc=layer1_obj.pgc)
+            self._logger.info(
+                "Saving data to layer 1",
+                table=table,
+                object_id=layer1_obj.object_id,
+                catalog=layer1_obj.catalog_object.catalog(),
+            )
 
             data = layer1_obj.catalog_object.layer1_data()
-            data["pgc"] = layer1_obj.pgc
             data["object_id"] = layer1_obj.object_id
 
             columns = list(data.keys())

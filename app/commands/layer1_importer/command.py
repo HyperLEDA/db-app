@@ -47,22 +47,19 @@ class Layer1ImporterCommand(commands.Command):
                 if isinstance(obj.processing_result, model.CIResultObjectNew):
                     new_objects_num += 1
 
-            pgc_list: list[int] = []
-
             with self.common_repository.with_tx():
-                if new_objects_num > 0:
-                    pgc_list = self.common_repository.generate_pgc(new_objects_num)
-
                 layer1_objects = []
 
                 for obj in data:
                     pgc = None
                     if isinstance(obj.processing_result, model.CIResultObjectNew):
-                        pgc = pgc_list.pop()
+                        pgc = None
                     elif isinstance(obj.processing_result, model.CIResultObjectExisting):
                         pgc = obj.processing_result.pgc
                     else:
                         continue
+
+                    layer1_objects.append(model.Layer1CatalogObject(pgc, obj.object_id, model.PGCCatalogObject(pgc)))
 
                     for catalog_obj in obj.data:
                         layer1_objects.append(model.Layer1CatalogObject(pgc, obj.object_id, catalog_obj))

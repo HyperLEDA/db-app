@@ -5,8 +5,8 @@ COMMENT ON SCHEMA cz IS 'Heliocentric Redshift catalog';
 
 CREATE TABLE cz.data (
   object_id text REFERENCES rawdata.objects (id)
-, cz real NOT NULL,
-, e_cz real,
+, cz real NOT NULL
+, e_cz real
 , modification_time timestamp without time zone NOT NULL DEFAULT now()
 , PRIMARY KEY (object_id)
 );

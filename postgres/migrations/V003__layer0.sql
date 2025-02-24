@@ -71,7 +71,7 @@ CREATE TRIGGER update_modification_dt
 EXECUTE PROCEDURE rawdata.update_modification_dt();
 
 CREATE TABLE rawdata.crossmatch (
-  object_id text NOT NULL REFERENCES rawdata.objects(id) PRIMARY KEY
+  object_id text PRIMARY KEY REFERENCES rawdata.objects (id)
 , status rawdata.crossmatch_status NOT NULL DEFAULT 'unprocessed'
 , metadata json
 );

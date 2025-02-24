@@ -26,6 +26,7 @@ from app.data.model.layer0 import (
 )
 from app.data.model.layer1 import Layer1CatalogObject
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.pgc import PGCCatalogObject
 from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
@@ -51,6 +52,7 @@ __all__ = [
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "RedshiftCatalogObject",
+    "PGCCatalogObject",
     "get_catalog_object_type",
     "new_catalog_object",
 ]
