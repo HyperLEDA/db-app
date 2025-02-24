@@ -1,10 +1,12 @@
 import datetime
+import json
 from typing import Any
 
 import structlog
 
 from app.data import model
 from app.data.repositories.layer2 import filters as repofilters
+from app.data.repositories.layer2 import params
 from app.lib import containers
 from app.lib.storage import postgres
 
@@ -21,7 +23,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self._storage = storage
 
     def get_last_update_time(self) -> datetime.datetime:
-        return self._storage.query_one("SELECT dt FROM layer2.last_update").get("dt")
+        return self._storage.query_one("SELECT dt FROM layer2.last_update")["dt"]
 
     def update_last_update_time(self, dt: datetime.datetime):
         self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
@@ -47,11 +49,33 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def _construct_batch_query(
         self,
         catalogs: list[model.RawCatalog],
-        filters: dict[str, repofilters.Filter],
+        search_types: dict[str, repofilters.Filter],
+        search_params: dict[str, params.SearchParams],
         limit: int,
         offset: int,
     ) -> tuple[str, list[Any]]:
-        columns = ["pgc"]
+        query = """
+            WITH search_params AS (
+                SELECT * FROM (
+                    VALUES 
+                        {values}
+                ) AS t(object_id, search_type, params)
+            ) 
+            SELECT sp.object_id, pgc, {columns}
+            FROM search_params sp
+            CROSS JOIN {joined_tables}
+            WHERE {conditions}
+            LIMIT %s OFFSET %s
+        """
+
+        values_lines = []
+        params = []
+
+        for object_id, sparams in search_params.items():
+            values_lines.append("(%s, %s, %s::jsonb)")
+            params.extend([object_id, sparams.name(), json.dumps(sparams.get_params())])
+
+        columns = []
         table_names = []
 
         for catalog in catalogs:
@@ -69,39 +93,30 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
         )
 
-        params = []
-        queries = []
+        condition_statements = []
 
-        for object_id, object_filter in filters.items():
-            conditions = ""
-            if len(filters) != 0:
-                conditions = "WHERE " + object_filter.get_query()
+        for search_type, search_filter in search_types.items():
+            condition_statements.append(f"(sp.search_type = '{search_type}' AND {search_filter.get_query()})")
+            params.extend(search_filter.get_params())
 
-            params.extend(object_filter.get_params() + [limit, offset])
+        params.extend([limit, offset])
 
-            curr_columns = [f"'{object_id}' AS object_id"] + columns
-            query = f"SELECT {', '.join(curr_columns)} FROM {joined_tables} {conditions} LIMIT %s OFFSET %s"
-
-            queries.append(f"({query})")
-
-        return " UNION ALL ".join(queries), params
+        return query.format(
+            values=",".join(values_lines),
+            columns=",".join(columns),
+            joined_tables=joined_tables,
+            conditions=" OR ".join(condition_statements),
+        ), params
 
     def query_batch(
         self,
         catalogs: list[model.RawCatalog],
-        filters: dict[str, repofilters.Filter],
+        search_types: dict[str, repofilters.Filter],
+        search_params: dict[str, params.SearchParams],
         limit: int,
         offset: int,
     ) -> dict[str, list[model.Layer2Object]]:
-        """
-        Queries data from the `catalogs`. `filters` is a mapping of ID to a list of filters.
-        The ID is not processed in any way and is used only as a key for the output data.
-
-        The objects are queried independently and are not joined in any way.
-
-        Offset and limit are applied individually to each object.
-        """
-        query, params = self._construct_batch_query(catalogs, filters, limit, offset)
+        query, params = self._construct_batch_query(catalogs, search_types, search_params, limit, offset)
 
         objects = self._storage.query(query, params=params)
 
@@ -148,8 +163,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self,
         catalogs: list[model.RawCatalog],
         filters: repofilters.Filter,
+        search_params: params.SearchParams,
         limit: int,
         offset: int,
     ) -> list[model.Layer2Object]:
-        res = self.query_batch(catalogs, {"obj": filters}, limit, offset)
+        res = self.query_batch(catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset)
         return res["obj"]

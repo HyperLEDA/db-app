@@ -18,20 +18,27 @@ def query_objects(
     objects: list[model.Layer0Object],
     crossmatchers: list[interface.Crossmatcher],
 ) -> dict[str, dict[str, set[int]]]:
-    object_filters = {}
+    search_types = {}
+
+    for cm in crossmatchers:
+        search_types[cm.name()] = cm.get_filter()
+
+    search_params = {}
 
     for obj in objects:
         for cm in crossmatchers:
-            filter_ = cm.get_filter(obj)
+            key = BatchKey(obj.object_id, cm.name())
+            params = cm.get_search_params(obj)
+            if params is None:
+                continue
 
-            if filter_ is not None:
-                key = BatchKey(obj.object_id, cm.name())
-                object_filters[str(key)] = filter_
+            search_params[str(key)] = params
 
     flat_result = layer2_repo.query_batch(
         [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
-        object_filters,
-        limit=100,
+        search_types,
+        search_params,
+        limit=len(objects) * 10,  # TODO: iterate over the results
         offset=0,
     )
 

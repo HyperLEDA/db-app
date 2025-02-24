@@ -51,30 +51,30 @@ class DesignationEqualsFilter(Filter):
 
 
 class DesignationCloseFilter(Filter):
-    def __init__(self, designation: str, distance: int):
-        self._designation = designation
+    def __init__(self, distance: int):
         self._distance = distance
 
     def get_query(self):
-        return "levenshtein_less_equal(designation.design, %s::text, %s) < %s"
+        return "levenshtein_less_equal(layer2.designation.design, sp.params->>'design', %s) < %s"
 
     def get_params(self):
-        return [self._designation, self._distance, self._distance]
+        return [self._distance, self._distance]
 
 
 class ICRSCoordinatesInRadiusFilter(Filter):
-    def __init__(self, ra: float, dec: float, radius: float):
-        self._ra = ra
-        self._dec = dec
+    def __init__(self, radius: float):
         self._radius = radius
 
     def get_query(self):
         return """
-        ST_Distance(ST_MakePoint(%s, %s-180), ST_MakePoint(icrs.dec, icrs.ra-180)) < %s
+        ST_Distance(
+            ST_MakePoint((sp.params->>'dec')::float, (params->>'ra')::float-180), 
+            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180)
+        ) < %s
         """
 
     def get_params(self):
-        return [self._dec, self._ra, self._radius]
+        return [self._radius]
 
 
 class RedshiftCloseFilter(Filter):

@@ -1,21 +1,11 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any
 
 import pandas
 from astropy import units as u
 
 from app.data.model import interface
 from app.lib.storage import enums
-
-
-@dataclass
-class Layer0OldObject:
-    object_id: str
-    status: enums.ObjectCrossmatchStatus
-    metadata: dict[str, Any]
-    data: list[interface.CatalogObject]
-    pgc: int | None = None
 
 
 @dataclass
