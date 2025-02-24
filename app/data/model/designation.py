@@ -39,6 +39,10 @@ class DesignationCatalogObject(interface.CatalogObject):
     def layer1_table(cls) -> str:
         return "designation.data"
 
+    @classmethod
+    def layer1_keys(cls) -> list[str]:
+        return ["design"]
+
     def layer1_data(self) -> dict[str, Any]:
         return {"design": self.designation}
 

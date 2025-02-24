@@ -31,34 +31,33 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 if not table_objs:
                     continue
 
-                self._logger.info(
-                    "Saving data to layer 1",
-                    table=table,
-                    object_count=len(table_objs),
-                )
+                columns = ["object_id"]
+                columns.extend(table_objs[0].catalog_object.layer1_keys())
 
-                # Get columns from first object
-                data = table_objs[0].catalog_object.layer1_data()
-                data["object_id"] = table_objs[0].object_id
-                columns = list(data.keys())
-
-                # Collect all values
-                all_values = []
+                params = []
+                values = []
                 for obj in table_objs:
                     data = obj.catalog_object.layer1_data()
                     data["object_id"] = obj.object_id
-                    all_values.extend([data[column] for column in columns])
+
+                    params.extend([data[column] for column in columns])
+                    values.append(",".join(["%s"] * len(columns)))
 
                 on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
-                placeholders = ",".join([f"({','.join(['%s'] * len(columns))})" for _ in table_objs])
 
                 query = f"""
                 INSERT INTO {table} ({", ".join(columns)}) 
-                VALUES {placeholders}
+                VALUES {", ".join([f"({value})" for value in values])}
                 ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
                 """
 
-                self._storage.exec(query, params=all_values)
+                self._storage.exec(query, params=params)
+
+                self._logger.debug(
+                    "Saved data to layer 1",
+                    table=table,
+                    object_count=len(table_objs),
+                )
 
     def get_new_objects(self, dt: datetime.datetime) -> list[model.Layer1CatalogObject]:
         """
