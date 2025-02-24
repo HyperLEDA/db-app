@@ -16,7 +16,7 @@ class Layer1ImportTask(interface.Task):
         self.log = structlog.get_logger()
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "layer1-import"
 
     def prepare(self, config: interface.Config):

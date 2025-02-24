@@ -5,7 +5,6 @@ import click
 from app.commands.adminapi import AdminAPICommand
 from app.commands.dataapi import DataAPICommand
 from app.commands.generate_spec import GenerateSpecCommand
-from app.commands.importer import ImporterCommand
 from app.commands.runtask import RunTaskCommand
 from app.lib import commands
 
@@ -37,18 +36,6 @@ def adminapi(config: str):
 )
 def dataapi(config: str):
     commands.run(DataAPICommand(config))
-
-
-@cli.command(short_help=ImporterCommand.help())
-@click.option(
-    "-c",
-    "--config",
-    type=str,
-    default=lambda: os.environ.get("CONFIG", ""),
-    help="Path to configuration file",
-)
-def importer(config: str):
-    commands.run(ImporterCommand(config))
 
 
 @cli.command(short_help=RunTaskCommand.help())

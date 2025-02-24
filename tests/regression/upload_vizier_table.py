@@ -4,9 +4,7 @@ import hyperleda
 import hyperleda_scripts
 import requests
 
-from app.commands.importer.command import ImporterCommand
-from app.commands.layer1_importer.command import Layer1ImporterCommand
-from app.commands.processor.command import ProcessorCommand
+from app.commands.runtask import RunTaskCommand
 from app.lib import commands
 from tests import lib
 
@@ -42,7 +40,13 @@ def patch_table(client: hyperleda.HyperLedaClient, table_id: int):
 
 @lib.test_logging_decorator(__file__)
 def start_processing(table_id: int):
-    commands.run(ProcessorCommand("configs/dev/processor.yaml", table_id=table_id, batch_size=200, workers=8))
+    commands.run(
+        RunTaskCommand(
+            "process",
+            "configs/dev/tasks.yaml",
+            input_data={"table_id": table_id, "batch_size": 200, "workers": 8},
+        ),
+    )
 
 
 @lib.test_logging_decorator(__file__)
@@ -56,12 +60,23 @@ def check_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dict[str
 
 @lib.test_logging_decorator(__file__)
 def layer1_import(table_id: int):
-    commands.run(Layer1ImporterCommand("configs/dev/importer.yaml", table_id=table_id, batch_size=50))
+    commands.run(
+        RunTaskCommand(
+            "layer1-import",
+            "configs/dev/tasks.yaml",
+            input_data={"table_id": table_id, "batch_size": 50},
+        ),
+    )
 
 
 @lib.test_logging_decorator(__file__)
 def layer2_import():
-    commands.run(ImporterCommand("configs/dev/importer.yaml"))
+    commands.run(
+        RunTaskCommand(
+            "layer2-import",
+            "configs/dev/tasks.yaml",
+        ),
+    )
 
 
 @lib.test_logging_decorator(__file__)

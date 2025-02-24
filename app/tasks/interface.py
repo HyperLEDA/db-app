@@ -26,7 +26,7 @@ class Task(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def name(cls):
+    def name(cls) -> str:
         pass
 
     @abc.abstractmethod

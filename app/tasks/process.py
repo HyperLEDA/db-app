@@ -19,7 +19,7 @@ class ProcessTask(interface.Task):
         self.log = structlog.get_logger()
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "process"
 
     def prepare(self, config: interface.Config):

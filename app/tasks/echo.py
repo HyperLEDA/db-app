@@ -11,7 +11,7 @@ class EchoTask(interface.Task):
         self.message = message
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "echo"
 
     def prepare(self, config: interface.Config):

@@ -6,7 +6,7 @@ from parameterized import parameterized
 
 import app.commands.adminapi.config as adminapi_config
 import app.commands.dataapi.config as dataapi_config
-import app.commands.importer.config as importer_config
+import app.commands.runtask.config as runtask_config
 
 REQUIREMENTS_PATH = Path("requirements.txt")
 MINIMAL_PYTHON_VERSION = (3, 10)
@@ -40,8 +40,8 @@ class TestEnvironment(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ("configs/dev/importer.yaml"),
+            ("configs/dev/tasks.yaml"),
         ]
     )
-    def test_parse_importer_config(self, path):
-        _ = importer_config.parse_config(path)
+    def test_parse_runtask_config(self, path):
+        _ = runtask_config.parse_config(path)
