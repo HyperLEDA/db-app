@@ -1,6 +1,6 @@
 {
   "paths": {
-    "/api/v1/admin/table/data": {
+    "/admin/api/v1/table/data": {
       "post": {
         "summary": "Add new raw data to the table",
         "description": "Inserts new data to the table.\n\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.\n",
@@ -40,7 +40,7 @@
         }
       }
     },
-    "/api/v1/admin/source": {
+    "/admin/api/v1/source": {
       "post": {
         "summary": "New source entry",
         "description": "Creates new source entry in the database for internal communication and unpublished articles.",
@@ -80,7 +80,7 @@
         }
       }
     },
-    "/api/v1/admin/table": {
+    "/admin/api/v1/table": {
       "post": {
         "summary": "Get or create schema for the table.",
         "description": "Creates new schema for the table which can later be used to upload data.\n\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.\n",
@@ -169,7 +169,7 @@
         }
       }
     },
-    "/api/v1/admin/table/validation": {
+    "/admin/api/v1/table/validation": {
       "get": {
         "summary": "Validate table schema",
         "description": "Validates the schema of the table, including column units and UCDs.\n\nReturns code 200 even if there are validation errors.\n",
@@ -206,7 +206,7 @@
         }
       }
     },
-    "/api/v1/admin/task": {
+    "/admin/api/v1/task": {
       "get": {
         "summary": "Get information about the task",
         "description": "Retrieves information about the task using its id.",
@@ -248,7 +248,7 @@
         }
       }
     },
-    "/api/v1/login": {
+    "/admin/api/v1/login": {
       "post": {
         "summary": "Login user with username and password",
         "description": "Gives user credentials for authentication in handlers",
@@ -283,7 +283,7 @@
         }
       }
     },
-    "/api/v1/table/status/stats": {
+    "/admin/api/v1/table/status/stats": {
       "get": {
         "summary": "Get statistics on table processing",
         "description": "Accesses the current status of the processing of a given table.\nReturns the distribution of objects by processing status.\n\nIf there are no objects with the given status, it will not be present in the response.\n",
