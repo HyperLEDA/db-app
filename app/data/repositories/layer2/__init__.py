@@ -7,10 +7,11 @@ from app.data.repositories.layer2.filters import (
     PGCOneOfFilter,
     RedshiftCloseFilter,
 )
-from app.data.repositories.layer2.repository import Layer2Repository
+from app.data.repositories.layer2.repository import Layer2Repository, SearchParams
 
 __all__ = [
     "Layer2Repository",
+    "SearchParams",
     "Filter",
     "ICRSCoordinatesInRadiusFilter",
     "RedshiftCloseFilter",

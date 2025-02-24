@@ -18,7 +18,6 @@ from app.data.model.layer0 import (
     ColumnDescription,
     Layer0CreationResponse,
     Layer0Object,
-    Layer0OldObject,
     Layer0ProcessedObject,
     Layer0RawData,
     Layer0TableMeta,
@@ -29,7 +28,6 @@ from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
-    "Layer0OldObject",
     "Layer0Object",
     "Layer0ProcessedObject",
     "Layer0RawData",

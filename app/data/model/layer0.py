@@ -10,15 +10,6 @@ from app.lib.storage import enums
 
 
 @dataclass
-class Layer0OldObject:
-    object_id: str
-    status: enums.ObjectCrossmatchStatus
-    metadata: dict[str, Any]
-    data: list[interface.CatalogObject]
-    pgc: int | None = None
-
-
-@dataclass
 class Layer0RawData:
     table_id: int
     data: pandas.DataFrame

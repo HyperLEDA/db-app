@@ -1,4 +1,5 @@
 import datetime
+import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -120,7 +121,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         for object_id, sparams in search_params.items():
             values_lines.append("(%s, %s, %s::jsonb)")
-            params.extend([object_id, sparams.name, sparams.payload])
+            params.extend([object_id, sparams.name, json.dumps(sparams.payload)])
 
         columns = []
         table_names = []
@@ -143,7 +144,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         condition_statements = []
 
         for search_type, search_filter in search_types.items():
-            condition_statements.append(f"sp.search_type = '{search_type}' AND {search_filter.get_query()}")
+            condition_statements.append(f"(sp.search_type = '{search_type}' AND {search_filter.get_query()})")
             params.extend(search_filter.get_params())
 
         params.extend([limit, offset])
