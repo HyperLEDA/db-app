@@ -51,6 +51,10 @@ class ICRSCatalogObject(interface.CatalogObject):
         return "icrs.data"
 
     @classmethod
+    def layer1_keys(cls) -> list[str]:
+        return ["ra", "e_ra", "dec", "e_dec"]
+
+    @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
         return cls(ra=data["ra"], e_ra=data["e_ra"], dec=data["dec"], e_dec=data["e_dec"])
 

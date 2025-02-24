@@ -3,14 +3,6 @@
 CREATE SCHEMA IF NOT EXISTS common;
 COMMENT ON SCHEMA common IS 'Common Leda tables';
 
-CREATE TABLE common.pgc (
-  id	serial PRIMARY KEY
-);
-
-COMMENT ON TABLE common.pgc IS 'The list of Principal Galaxy Catalog (PGC) numbers used as the primary identifier for objects in the database.' ;
-COMMENT ON COLUMN common.pgc.id IS 'Main ID of the object.' ;
-
-
 CREATE TABLE common.bib (
   id	serial	PRIMARY KEY
 , code	text	UNIQUE

@@ -34,6 +34,11 @@ class CatalogObject(abc.ABC):
     def layer1_table(cls) -> str:
         pass
 
+    @classmethod
+    @abc.abstractmethod
+    def layer1_keys(cls) -> list[str]:
+        pass
+
     @abc.abstractmethod
     def layer1_data(self) -> dict[str, Any]:
         pass

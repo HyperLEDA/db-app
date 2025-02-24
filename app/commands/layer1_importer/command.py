@@ -29,7 +29,6 @@ class Layer1ImporterCommand(commands.Command):
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
 
-        self.common_repository = repositories.CommonRepository(self.pg_storage, log)
         self.layer0_repository = repositories.Layer0Repository(self.pg_storage, log)
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, log)
 
@@ -42,30 +41,27 @@ class Layer1ImporterCommand(commands.Command):
             lambda data: len(data) == 0,
             self.table_id,
         ):
-            new_objects_num = 0
-            for obj in data:
-                if isinstance(obj.processing_result, model.CIResultObjectNew):
-                    new_objects_num += 1
+            with self.layer0_repository.with_tx():
+                pgcs: dict[str, int | None] = {}
 
-            pgc_list: list[int] = []
+                for obj in data:
+                    if isinstance(obj.processing_result, model.CIResultObjectNew):
+                        pgcs[obj.object_id] = None
+                    elif isinstance(obj.processing_result, model.CIResultObjectExisting):
+                        pgcs[obj.object_id] = obj.processing_result.pgc
+                    else:
+                        continue
 
-            with self.common_repository.with_tx():
-                if new_objects_num > 0:
-                    pgc_list = self.common_repository.generate_pgc(new_objects_num)
+                self.layer0_repository.upsert_pgc(pgcs)
 
                 layer1_objects = []
 
                 for obj in data:
-                    pgc = None
-                    if isinstance(obj.processing_result, model.CIResultObjectNew):
-                        pgc = pgc_list.pop()
-                    elif isinstance(obj.processing_result, model.CIResultObjectExisting):
-                        pgc = obj.processing_result.pgc
-                    else:
+                    if obj.object_id not in pgcs:
                         continue
 
                     for catalog_obj in obj.data:
-                        layer1_objects.append(model.Layer1CatalogObject(pgc, obj.object_id, catalog_obj))
+                        layer1_objects.append(model.Layer1Observation(obj.object_id, catalog_obj))
 
                 self.layer1_repository.save_data(layer1_objects)
 

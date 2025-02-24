@@ -23,6 +23,10 @@ class RedshiftCatalogObject(interface.CatalogObject):
     def layer1_table(cls) -> str:
         return "cz.data"
 
+    @classmethod
+    def layer1_keys(cls) -> list[str]:
+        return ["cz", "e_cz"]
+
     def layer1_data(self) -> dict[str, Any]:
         return {"cz": self.cz, "e_cz": self.e_cz}
 

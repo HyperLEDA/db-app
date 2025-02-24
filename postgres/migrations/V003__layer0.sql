@@ -43,13 +43,10 @@ COMMENT ON COLUMN rawdata.tables.table_name IS 'Rawdata table name' ;
 COMMENT ON COLUMN rawdata.tables.datatype IS 'Types of the data (regular,reprocessing,preliminary,compilation)' ;
 COMMENT ON COLUMN rawdata.tables.status IS 'Data processing status' ;
 
------------------------------------------------------------
--------- Processed objects table --------------------------
-
 CREATE TYPE rawdata.crossmatch_status AS ENUM ('unprocessed', 'new', 'existing', 'collided');
 
 CREATE TABLE rawdata.objects (
-  id text NOT NULL PRIMARY KEY
+  id text PRIMARY KEY
 , table_id int NOT NULL REFERENCES rawdata.tables(id)
 , data json
 , modification_dt timestamp DEFAULT NOW()
@@ -71,7 +68,22 @@ CREATE TRIGGER update_modification_dt
 EXECUTE PROCEDURE rawdata.update_modification_dt();
 
 CREATE TABLE rawdata.crossmatch (
-  object_id text NOT NULL REFERENCES rawdata.objects(id) PRIMARY KEY
+  object_id text PRIMARY KEY REFERENCES rawdata.objects(id)
 , status rawdata.crossmatch_status NOT NULL DEFAULT 'unprocessed'
 , metadata json
+);
+
+CREATE OR REPLACE FUNCTION rawdata.next_pgc() RETURNS integer AS $$
+DECLARE
+  next_id integer;
+BEGIN
+  SELECT MAX(id) + 1 INTO next_id FROM rawdata.pgc;
+  RETURN COALESCE(next_id, 1);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TABLE rawdata.pgc (
+  object_id text REFERENCES rawdata.objects (id)
+, id integer NOT NULL DEFAULT rawdata.next_pgc()
+, PRIMARY KEY (object_id)
 );

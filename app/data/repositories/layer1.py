@@ -3,6 +3,7 @@ import datetime
 import structlog
 
 from app.data import model
+from app.lib import containers
 from app.lib.storage import postgres
 
 catalogs = [
@@ -17,55 +18,67 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[model.Layer1CatalogObject]) -> None:
+    def save_data(self, objects: list[model.Layer1Observation]) -> None:
         """
         For each object, saves it to corresponding catalog in the storage.
-        Object has no knowledge of the table name of the catalog it belongs to.
 
-        `objects` is a list since it is more efficient to save multiple objects in one insert into catalog.
-        For now, objects are saved one by one but the `list` allows for future optimizations.
+        The insertion is done efficiently - for a single table there will be only one query.
         """
+        table_objects = containers.group_by(objects, lambda obj: obj.catalog_object.layer1_table())
 
-        for layer1_obj in objects:
-            table = layer1_obj.catalog_object.layer1_table()
+        with self.with_tx():
+            for table, table_objs in table_objects.items():
+                if not table_objs:
+                    continue
 
-            self._logger.info("Saving data to layer 1", table=table, pgc=layer1_obj.pgc)
+                columns = ["object_id"]
+                columns.extend(table_objs[0].catalog_object.layer1_keys())
 
-            data = layer1_obj.catalog_object.layer1_data()
-            data["pgc"] = layer1_obj.pgc
-            data["object_id"] = layer1_obj.object_id
+                params = []
+                values = []
+                for obj in table_objs:
+                    data = obj.catalog_object.layer1_data()
+                    data["object_id"] = obj.object_id
 
-            columns = list(data.keys())
-            values = [data[column] for column in columns]
+                    params.extend([data[column] for column in columns])
+                    values.append(",".join(["%s"] * len(columns)))
 
-            on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
+                on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
 
-            query = f"""
-            INSERT INTO {table} ({", ".join(columns)}) 
-            VALUES ({",".join(["%s"] * len(columns))})
-            ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
-            """
+                query = f"""
+                INSERT INTO {table} ({", ".join(columns)}) 
+                VALUES {", ".join([f"({value})" for value in values])}
+                ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
+                """
 
-            self._storage.exec(query, params=values)
+                self._storage.exec(query, params=params)
 
-    def get_new_objects(self, dt: datetime.datetime) -> list[model.Layer1CatalogObject]:
+                self._logger.debug(
+                    "Saved data to layer 1",
+                    table=table,
+                    object_count=len(table_objs),
+                )
+
+    def get_new_observations(self, dt: datetime.datetime) -> list[model.Layer1PGCObservation]:
         """
         Returns all objects that were modified since `dt`.
 
         TODO: make the selection in batches instead of everything at once.
         """
 
-        objects: list[model.Layer1CatalogObject] = []
+        objects: list[model.Layer1PGCObservation] = []
 
         for catalog in catalogs:
             object_cls = model.get_catalog_object_type(catalog)
 
             query = f"""
             SELECT * 
-            FROM {object_cls.layer1_table()}
-            WHERE pgc IN (
-                SELECT DISTINCT pgc
-                FROM {object_cls.layer1_table()}
+            FROM {object_cls.layer1_table()} AS l1
+            JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
+            WHERE id IN (
+                SELECT DISTINCT id
+                FROM {object_cls.layer1_table()} AS l1
+                JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
                 WHERE modification_time > %s
             )
             """
@@ -73,9 +86,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             rows = self._storage.query(query, params=[dt])
             for row in rows:
                 object_id = row.pop("object_id")
-                pgc = int(row.pop("pgc"))
+                pgc = int(row.pop("id"))
                 catalog_object = object_cls.from_layer1(row)
 
-                objects.append(model.Layer1CatalogObject(pgc, object_id, catalog_object))
+                objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
 
         return objects

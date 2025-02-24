@@ -21,9 +21,9 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_icrs(self):
-        objects: list[model.Layer1CatalogObject] = [
-            model.Layer1CatalogObject(1, "111", model.ICRSCatalogObject(pgc=1, ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
-            model.Layer1CatalogObject(2, "112", model.ICRSCatalogObject(pgc=1, ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
+        objects: list[model.Layer1Observation] = [
+            model.Layer1Observation("111", model.ICRSCatalogObject(pgc=1, ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
+            model.Layer1Observation("112", model.ICRSCatalogObject(pgc=1, ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
@@ -44,8 +44,6 @@ class Layer1RepositoryTest(unittest.TestCase):
             table_resp.table_id,
             [model.Layer0Object("111", []), model.Layer0Object("112", [])],
         )
-        self.common_repo.upsert_pgc([1, 2])
-
         self.layer1_repo.save_data(objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
