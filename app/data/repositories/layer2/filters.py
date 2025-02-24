@@ -70,7 +70,7 @@ class ICRSCoordinatesInRadiusFilter(Filter):
 
     def get_query(self):
         return """
-        ST_Distance(ST_MakePoint(%s, %s-180), ST_MakePoint(icrs.dec, icrs.ra-180)) < %s
+        ST_DWithin(ST_MakePoint(%s, %s-180), ST_MakePoint(icrs.dec, icrs.ra-180), %s)
         """
 
     def get_params(self):

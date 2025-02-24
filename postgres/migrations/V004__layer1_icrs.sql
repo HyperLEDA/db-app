@@ -18,7 +18,7 @@ CREATE TABLE icrs.data (
   )
 );
 
-CREATE INDEX ON icrs.data (ra, dec);
+CREATE INDEX ON icrs.data USING GIST (ST_MakePoint(dec, ra-180));
 
 COMMENT ON TABLE icrs.data IS 'Collection of the object positions in the International Celestial Reference System (ICRS)';
 COMMENT ON COLUMN icrs.data.object_id IS 'ID of the object in original table';
