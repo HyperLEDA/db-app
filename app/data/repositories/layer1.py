@@ -18,7 +18,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[model.Layer1CatalogObject]) -> None:
+    def save_data(self, objects: list[model.Layer1Observation]) -> None:
         """
         For each object, saves it to corresponding catalog in the storage.
 
@@ -59,24 +59,26 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                     object_count=len(table_objs),
                 )
 
-    def get_new_objects(self, dt: datetime.datetime) -> list[model.Layer1CatalogObject]:
+    def get_new_observations(self, dt: datetime.datetime) -> list[model.Layer1PGCObservation]:
         """
         Returns all objects that were modified since `dt`.
 
         TODO: make the selection in batches instead of everything at once.
         """
 
-        objects: list[model.Layer1CatalogObject] = []
+        objects: list[model.Layer1PGCObservation] = []
 
         for catalog in catalogs:
             object_cls = model.get_catalog_object_type(catalog)
 
             query = f"""
             SELECT * 
-            FROM {object_cls.layer1_table()}
-            WHERE pgc IN (
-                SELECT DISTINCT pgc
-                FROM {object_cls.layer1_table()}
+            FROM {object_cls.layer1_table()} AS l1
+            JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
+            WHERE id IN (
+                SELECT DISTINCT id
+                FROM {object_cls.layer1_table()} AS l1
+                JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
                 WHERE modification_time > %s
             )
             """
@@ -84,9 +86,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             rows = self._storage.query(query, params=[dt])
             for row in rows:
                 object_id = row.pop("object_id")
-                pgc = int(row.pop("pgc"))
+                pgc = int(row.pop("id"))
                 catalog_object = object_cls.from_layer1(row)
 
-                objects.append(model.Layer1CatalogObject(pgc, object_id, catalog_object))
+                objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
 
         return objects

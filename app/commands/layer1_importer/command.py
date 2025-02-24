@@ -61,7 +61,7 @@ class Layer1ImporterCommand(commands.Command):
                         continue
 
                     for catalog_obj in obj.data:
-                        layer1_objects.append(model.Layer1CatalogObject(None, obj.object_id, catalog_obj))
+                        layer1_objects.append(model.Layer1Observation(obj.object_id, catalog_obj))
 
                 self.layer1_repository.save_data(layer1_objects)
 

@@ -24,7 +24,7 @@ from app.data.model.layer0 import (
     Layer0TableMeta,
     TableStatistics,
 )
-from app.data.model.layer1 import Layer1CatalogObject
+from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
@@ -41,7 +41,8 @@ __all__ = [
     "CIResultObjectCollision",
     "CIResultObjectExisting",
     "CIResultObjectNew",
-    "Layer1CatalogObject",
+    "Layer1Observation",
+    "Layer1PGCObservation",
     "Layer2CatalogObject",
     "Layer2Object",
     "RawCatalog",
