@@ -164,3 +164,23 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         query += ",".join(values)
 
         self._storage.exec(query, params=params)
+
+    def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
+        values = []
+        params = []
+
+        for object_id, pgc in pgcs.items():
+            params.append(object_id)
+            if pgc is None:
+                values.append("(%s, DEFAULT)")
+            else:
+                values.append("(%s, %s)")
+                params.append(pgc)
+
+        self._storage.exec(
+            f"""
+            INSERT INTO rawdata.pgc (object_id, id) VALUES {",".join(values)}
+            ON CONFLICT (object_id) DO UPDATE SET id = EXCLUDED.id
+            """,
+            params=params,
+        )

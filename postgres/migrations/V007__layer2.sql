@@ -3,10 +3,7 @@ CREATE SCHEMA IF NOT EXISTS layer2;
 
 CREATE TABLE layer2.last_update (dt timestamp NOT NULL);
 
-INSERT INTO
-    layer2.last_update (dt)
-VALUES
-    (to_timestamp(0));
+INSERT INTO layer2.last_update (dt) VALUES (to_timestamp(0));
 
 CREATE TABLE layer2.designation(
     pgc integer PRIMARY KEY,

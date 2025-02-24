@@ -4,8 +4,7 @@ CREATE SCHEMA IF NOT EXISTS icrs;
 COMMENT ON SCHEMA icrs IS 'Catalog of positions in the International Celestial Reference System';
 
 CREATE TABLE icrs.data (
-  pgc integer NOT NULL REFERENCES common.pgc (id) ON DELETE restrict ON UPDATE cascade,
-  object_id text UNIQUE NOT NULL REFERENCES rawdata.objects (id) ON DELETE restrict ON UPDATE cascade,
+  object_id text PRIMARY KEY REFERENCES rawdata.objects (id),
   ra double precision NOT NULL,
   dec double precision NOT NULL,
   e_ra real NOT NULL,
@@ -20,10 +19,8 @@ CREATE TABLE icrs.data (
 );
 
 CREATE INDEX ON icrs.data (ra, dec);
-CREATE INDEX ON icrs.data (pgc);
 
 COMMENT ON TABLE icrs.data IS 'Collection of the object positions in the International Celestial Reference System (ICRS)';
-COMMENT ON COLUMN icrs.data.pgc IS 'PGC number of the object';
 COMMENT ON COLUMN icrs.data.object_id IS 'ID of the object in original table';
 COMMENT ON COLUMN icrs.data.ra IS 'Right Ascension (ICRS) in degrees';
 COMMENT ON COLUMN icrs.data.dec IS 'Declination (ICRS) in degrees';
