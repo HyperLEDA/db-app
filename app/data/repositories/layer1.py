@@ -3,6 +3,7 @@ import datetime
 import structlog
 
 from app.data import model
+from app.lib import containers
 from app.lib.storage import postgres
 
 catalogs = [
@@ -20,37 +21,44 @@ class Layer1Repository(postgres.TransactionalPGRepository):
     def save_data(self, objects: list[model.Layer1CatalogObject]) -> None:
         """
         For each object, saves it to corresponding catalog in the storage.
-        Object has no knowledge of the table name of the catalog it belongs to.
 
-        `objects` is a list since it is more efficient to save multiple objects in one insert into catalog.
-        For now, objects are saved one by one but the `list` allows for future optimizations.
+        The insertion is done efficiently - for a single table there will be only one query.
         """
+        table_objects = containers.group_by(objects, lambda obj: obj.catalog_object.layer1_table())
 
-        for layer1_obj in objects:
-            table = layer1_obj.catalog_object.layer1_table()
+        with self.with_tx():
+            for table, table_objs in table_objects.items():
+                if not table_objs:
+                    continue
 
-            self._logger.info(
-                "Saving data to layer 1",
-                table=table,
-                object_id=layer1_obj.object_id,
-                catalog=layer1_obj.catalog_object.catalog(),
-            )
+                self._logger.info(
+                    "Saving data to layer 1",
+                    table=table,
+                    object_count=len(table_objs),
+                )
 
-            data = layer1_obj.catalog_object.layer1_data()
-            data["object_id"] = layer1_obj.object_id
+                # Get columns from first object
+                data = table_objs[0].catalog_object.layer1_data()
+                data["object_id"] = table_objs[0].object_id
+                columns = list(data.keys())
 
-            columns = list(data.keys())
-            values = [data[column] for column in columns]
+                # Collect all values
+                all_values = []
+                for obj in table_objs:
+                    data = obj.catalog_object.layer1_data()
+                    data["object_id"] = obj.object_id
+                    all_values.extend([data[column] for column in columns])
 
-            on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
+                on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
+                placeholders = ",".join([f"({','.join(['%s'] * len(columns))})" for _ in table_objs])
 
-            query = f"""
-            INSERT INTO {table} ({", ".join(columns)}) 
-            VALUES ({",".join(["%s"] * len(columns))})
-            ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
-            """
+                query = f"""
+                INSERT INTO {table} ({", ".join(columns)}) 
+                VALUES {placeholders}
+                ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
+                """
 
-            self._storage.exec(query, params=values)
+                self._storage.exec(query, params=all_values)
 
     def get_new_objects(self, dt: datetime.datetime) -> list[model.Layer1CatalogObject]:
         """
