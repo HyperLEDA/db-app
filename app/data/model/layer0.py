@@ -1,6 +1,5 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any
 
 import pandas
 from astropy import units as u

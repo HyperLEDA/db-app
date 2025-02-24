@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from app.data import model, repositories
-from app.data.repositories import layer2
 from app.domain.processing import interface
 
 
@@ -33,9 +32,9 @@ def query_objects(
             if params is None:
                 continue
 
-            search_params[str(key)] = layer2.SearchParams(cm.name(), params)
+            search_params[str(key)] = params
 
-    flat_result = layer2_repo.query_batch2(
+    flat_result = layer2_repo.query_batch(
         [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
         search_types,
         search_params,

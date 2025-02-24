@@ -1,5 +1,5 @@
 import abc
-from typing import Any, final
+from typing import final
 
 from app.data import model
 from app.data.repositories import layer2
@@ -29,7 +29,7 @@ class Crossmatcher(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def get_search_params(obj: model.Layer0Object) -> dict[str, Any] | None:
+    def get_search_params(obj: model.Layer0Object) -> layer2.SearchParams | None:
         """
         Obtains parameters that will be used in search filters.
         If the objects does not have relevan parameters (i.e. does not have coordinates),
@@ -56,10 +56,10 @@ class DesignationCrossmatcher(Crossmatcher):
         return "designation"
 
     @staticmethod
-    def get_search_params(obj: model.Layer0Object) -> dict[str, Any] | None:
+    def get_search_params(obj: model.Layer0Object) -> layer2.SearchParams | None:
         for catalog_obj in obj.data:
             if isinstance(catalog_obj, model.DesignationCatalogObject):
-                return {"design": catalog_obj.designation}
+                return layer2.DesignationSearchParams(catalog_obj.designation)
 
         return None
 
@@ -77,10 +77,10 @@ class ICRSCrossmatcher(Crossmatcher):
         return "icrs"
 
     @staticmethod
-    def get_search_params(obj: model.Layer0Object) -> dict[str, Any] | None:
+    def get_search_params(obj: model.Layer0Object) -> layer2.SearchParams | None:
         for catalog_obj in obj.data:
             if isinstance(catalog_obj, model.ICRSCatalogObject):
-                return {"ra": catalog_obj.ra, "dec": catalog_obj.dec}
+                return layer2.ICRSSearchParams(catalog_obj.ra, catalog_obj.dec)
 
         return None
 
