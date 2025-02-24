@@ -1,4 +1,22 @@
 import abc
+from dataclasses import dataclass
+
+from marshmallow import Schema, fields, post_load
+
+from app.lib.storage import postgres
+
+
+@dataclass
+class Config:
+    storage: postgres.PgStorageConfig
+
+
+class ConfigSchema(Schema):
+    storage = fields.Nested(postgres.PgStorageConfigSchema(), required=True)
+
+    @post_load
+    def make(self, data, **kwargs):
+        return Config(**data)
 
 
 class Task(abc.ABC):
@@ -12,7 +30,7 @@ class Task(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def prepare(self, config_path: str):
+    def prepare(self, config: Config):
         pass
 
     @abc.abstractmethod

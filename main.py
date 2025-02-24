@@ -8,7 +8,7 @@ from app.commands.generate_spec import GenerateSpecCommand
 from app.commands.importer import ImporterCommand
 from app.commands.layer1_importer.command import Layer1ImporterCommand
 from app.commands.processor import ProcessorCommand
-from app.commands.runtask.command import RunTaskCommand
+from app.commands.runtask import RunTaskCommand
 from app.lib import commands
 
 

@@ -14,8 +14,8 @@ class EchoTask(interface.Task):
     def name(cls):
         return "echo"
 
-    def prepare(self, config_path: str):
-        structlog.get_logger().info("Preparing")
+    def prepare(self, config: interface.Config):
+        structlog.get_logger().info("Preparing", dbname=config.storage.dbname)
 
     def run(self):
         structlog.get_logger().info("Running", message=self.message)

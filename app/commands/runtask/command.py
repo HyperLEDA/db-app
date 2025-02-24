@@ -3,13 +3,12 @@ from pathlib import Path
 from typing import final
 
 from app import tasks
+from app.commands.runtask import config
 from app.lib import commands
 
 
 @final
 class RunTaskCommand(commands.Command):
-    "Lol"
-
     def __init__(self, task_name: str, config_path: str, input_data_path: str | None) -> None:
         self.task_name = task_name
         self.config_path = config_path
@@ -24,13 +23,15 @@ class RunTaskCommand(commands.Command):
         """
 
     def prepare(self):
+        cfg = config.parse_config(self.config_path)
+
         input_data = {}
 
         if self.input_data_path is not None:
             input_data = json.loads(Path(self.input_data_path).read_text())
 
         self.task = tasks.get_task(self.task_name, input_data)
-        self.task.prepare(self.config_path)
+        self.task.prepare(cfg)
 
     def run(self):
         self.task.run()
