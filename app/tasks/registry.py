@@ -1,8 +1,8 @@
 from typing import Any
 
-from app.tasks import echo, interface, layer1_import
+from app.tasks import echo, interface, layer1_import, process
 
-tasks = [echo.EchoTask, layer1_import.Layer1Import]
+tasks = [echo.EchoTask, layer1_import.Layer1ImportTask, process.ProcessTask]
 
 
 def list_tasks() -> list[str]:
