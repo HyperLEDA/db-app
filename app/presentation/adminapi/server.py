@@ -25,7 +25,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.POST,
-                    "/api/v1/admin/table/data",
+                    "/admin/api/v1/table/data",
                     add_data.AddDataRequestSchema,
                     add_data.AddDataResponseSchema,
                 ),
@@ -35,7 +35,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.POST,
-                    "/api/v1/admin/source",
+                    "/admin/api/v1/source",
                     create_source.CreateSourceRequestSchema,
                     create_source.CreateSourceResponseSchema,
                 ),
@@ -45,7 +45,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.POST,
-                    "/api/v1/admin/table",
+                    "/admin/api/v1/table",
                     create_table.CreateTableRequestSchema,
                     create_table.CreateTableResponseSchema,
                 ),
@@ -55,7 +55,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.GET,
-                    "/api/v1/admin/table/validation",
+                    "/admin/api/v1/table/validation",
                     get_api_v1_table_validation.GetTableValidationRequestSchema,
                     get_api_v1_table_validation.GetTableValidationResponseSchema,
                 ),
@@ -65,7 +65,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.PATCH,
-                    "/api/v1/admin/table",
+                    "/admin/api/v1/table",
                     patch_api_v1_table.PatchTableRequestSchema,
                     patch_api_v1_table.PatchTableResponseSchema,
                 ),
@@ -75,7 +75,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.GET,
-                    "/api/v1/admin/task",
+                    "/admin/api/v1/task",
                     get_task_info.GetTaskInfoRequestSchema,
                     get_task_info.GetTaskInfoResponseSchema,
                 ),
@@ -85,7 +85,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.POST,
-                    "/api/v1/login",
+                    "/admin/api/v1/login",
                     login.LoginRequestSchema,
                     login.LoginResponseSchema,
                 ),
@@ -95,7 +95,7 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.GET,
-                    "/api/v1/table/status/stats",
+                    "/admin/api/v1/table/status/stats",
                     table_status_stats.TableStatusStatsRequestSchema,
                     table_status_stats.TableStatusStatsResponseSchema,
                 ),

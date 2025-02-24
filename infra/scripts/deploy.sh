@@ -1,7 +1,7 @@
 HOST=$HOST
 BACKEND_USER=$BACKEND_USER
 
-cd ../../
+cd ../
 scp infra/docker-compose.yaml $BACKEND_USER@$HOST:~/hyperleda/docker-compose.yaml
 ssh $BACKEND_USER@$HOST "rm -rf ~/hyperleda/configs"
 scp -r infra/configs/ $BACKEND_USER@$HOST:~/hyperleda/configs

@@ -45,7 +45,7 @@ class AdminAPICommand(commands.Command):
 
         middlewares = []
         if cfg.auth_enabled:
-            middlewares.append(server.get_auth_middleware("/api/v1/admin", authenticator))
+            middlewares.append(server.get_auth_middleware("/admin/api/v1/", authenticator))
 
         self.app = presentation.Server(actions, cfg.server, middlewares=middlewares)
 

@@ -24,7 +24,7 @@ class TestEnvironment(unittest.TestCase):
     @parameterized.expand(
         [
             ("configs/dev/adminapi.yaml"),
-            ("configs/prod/adminapi.yaml"),
+            ("configs/test/adminapi.yaml"),
         ]
     )
     def test_parse_adminapi_config(self, path):
@@ -33,6 +33,7 @@ class TestEnvironment(unittest.TestCase):
     @parameterized.expand(
         [
             ("configs/dev/dataapi.yaml"),
+            ("configs/test/dataapi.yaml"),
         ]
     )
     def test_parse_dataapi_config(self, path):
