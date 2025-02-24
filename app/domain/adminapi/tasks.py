@@ -1,13 +1,5 @@
-from collections.abc import Callable
-from typing import Any
-
 from app.data import repositories
-from app.domain import tasks
 from app.presentation import adminapi
-
-TASK_REGISTRY: dict[str, tuple[Callable, Any]] = {
-    "echo": (tasks.echo_task, tasks.EchoTaskParams),
-}
 
 
 class TaskManager:

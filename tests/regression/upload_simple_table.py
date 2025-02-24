@@ -6,8 +6,7 @@ import uuid
 import hyperleda
 import pandas
 
-from app.commands.layer1_importer.command import Layer1ImporterCommand
-from app.commands.processor.command import ProcessorCommand
+from app.commands.runtask import RunTaskCommand
 from app.lib import commands
 from tests import lib
 
@@ -63,7 +62,13 @@ def upload_data(client: hyperleda.HyperLedaClient, table_id: int):
 
 @lib.test_logging_decorator(__file__)
 def start_processing(table_id: int):
-    commands.run(ProcessorCommand("configs/dev/processor.yaml", table_id=table_id, batch_size=200, workers=8))
+    commands.run(
+        RunTaskCommand(
+            "process",
+            "configs/dev/tasks.yaml",
+            input_data={"table_id": table_id, "batch_size": 200, "workers": 8},
+        ),
+    )
 
 
 @lib.test_logging_decorator(__file__)
@@ -77,7 +82,13 @@ def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dic
 
 @lib.test_logging_decorator(__file__)
 def layer1_import(client: hyperleda.HyperLedaClient, table_id: int):
-    commands.run(Layer1ImporterCommand("configs/dev/importer.yaml", table_id=table_id, batch_size=50))
+    commands.run(
+        RunTaskCommand(
+            "layer1-import",
+            "configs/dev/tasks.yaml",
+            input_data={"table_id": table_id, "batch_size": 50},
+        ),
+    )
 
 
 def run():

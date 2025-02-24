@@ -2,39 +2,33 @@ from typing import final
 
 import structlog
 
-from app.commands.layer1_importer import config
 from app.data import model, repositories
-from app.lib import commands, containers
+from app.lib import containers
 from app.lib.storage import postgres
-
-log: structlog.stdlib.BoundLogger = structlog.get_logger()
+from app.tasks import interface
 
 
 @final
-class Layer1ImporterCommand(commands.Command):
-    """
-    Imports objects from layer 0 to layer 1.
-    Only the objects that have `new` or `existing` status are imported.
-    For `existing` objects, the PGC is taken from the metadata.
-    """
-
-    def __init__(self, config_path: str, table_id: int, batch_size: int) -> None:
-        self.config_path = config_path
+class Layer1ImportTask(interface.Task):
+    def __init__(self, table_id: int, batch_size: int) -> None:
         self.table_id = table_id
         self.batch_size = batch_size
+        self.log = structlog.get_logger()
 
-    def prepare(self):
-        self.config = config.parse_config(self.config_path)
+    @classmethod
+    def name(cls) -> str:
+        return "layer1-import"
 
-        self.pg_storage = postgres.PgStorage(self.config.storage, log)
+    def prepare(self, config: interface.Config):
+        self.pg_storage = postgres.PgStorage(config.storage, self.log)
         self.pg_storage.connect()
 
-        self.layer0_repository = repositories.Layer0Repository(self.pg_storage, log)
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, log)
+        self.layer0_repository = repositories.Layer0Repository(self.pg_storage, self.log)
+        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
 
     def run(self):
         ctx = {"table_id": self.table_id}
-        log.info("Starting import of objects", **ctx)
+        self.log.info("Starting import of objects", **ctx)
 
         for offset, data in containers.read_batches(
             self.layer0_repository.get_processed_objects,
@@ -65,7 +59,7 @@ class Layer1ImporterCommand(commands.Command):
 
                 self.layer1_repository.save_data(layer1_objects)
 
-            log.info("Processed batch", done=offset, **ctx)
+            self.log.info("Processed batch", done=offset, **ctx)
 
     def cleanup(self):
         self.pg_storage.disconnect()

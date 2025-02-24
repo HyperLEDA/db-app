@@ -3,35 +3,33 @@ from typing import final
 
 import structlog
 
-from app.commands.importer import config
 from app.data import model, repositories
-from app.lib import commands, containers
+from app.lib import containers
 from app.lib.storage import postgres
-
-log: structlog.stdlib.BoundLogger = structlog.get_logger()
+from app.tasks import interface
 
 
 @final
-class ImporterCommand(commands.Command):
-    """
-    Performs the transfer of the objects from Layer 1 to Layer 2. This transfer mostly
-    consists of aggregating the objects and saving them into the relevant catalogs.
-    """
+class Layer2ImportTask(interface.Task):
+    def __init__(self) -> None:
+        self.log = structlog.get_logger()
 
-    def __init__(self, config_path: str) -> None:
-        self.config_path = config_path
+    @classmethod
+    def name(cls) -> str:
+        return "layer2-import"
 
-    def prepare(self):
-        self.config = config.parse_config(self.config_path)
-
-        self.pg_storage = postgres.PgStorage(self.config.storage, log)
+    def prepare(self, config: interface.Config):
+        self.pg_storage = postgres.PgStorage(config.storage, self.log)
         self.pg_storage.connect()
 
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, log)
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, log)
+        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
+        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self):
         last_update_dt = self.layer2_repository.get_last_update_time()
+
+        self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
+
         new_objects = self.layer1_repository.get_new_observations(last_update_dt)
 
         objects_by_catalog = containers.group_by(
@@ -51,6 +49,8 @@ class ImporterCommand(commands.Command):
         with self.layer2_repository.with_tx():
             self.layer2_repository.save_data(aggregated_objects)
             self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
+
+            self.log.info("Layer 2 import completed", count=len(aggregated_objects), last_update=last_update_dt.ctime())
 
     def cleanup(self):
         self.pg_storage.disconnect()
