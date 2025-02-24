@@ -1,6 +1,7 @@
 server:
   host: 0.0.0.0
   port: 8080
+  swagger_ui_path: /api/admin/docs
 
 auth_enabled: false
 
