@@ -59,11 +59,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                     object_count=len(table_objs),
                 )
 
-    def get_new_observations(self, dt: datetime.datetime) -> list[model.Layer1PGCObservation]:
+    def get_new_observations(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.Layer1PGCObservation]:
         """
         Returns all objects that were modified since `dt`.
+        `limit` and `offset` are applied to number of selected PGC numbers, not the final number of objects.
+        As such, this function will return around
+        `(number_of_catalogs) * limit * (average_number_of_observations_per_PGC)` objects, not `limit`.
 
-        TODO: make the selection in batches instead of everything at once.
+        This makes the function safe for aggregation - for each returned PGC all of its objects will be returned.
         """
 
         objects: list[model.Layer1PGCObservation] = []
@@ -80,10 +83,13 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 FROM {object_cls.layer1_table()} AS l1
                 JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
                 WHERE modification_time > %s
+                ORDER BY id
+                LIMIT %s
+                OFFSET %s
             )
             """
 
-            rows = self._storage.query(query, params=[dt])
+            rows = self._storage.query(query, params=[dt, limit, offset])
             for row in rows:
                 object_id = row.pop("object_id")
                 pgc = int(row.pop("id"))
