@@ -15,6 +15,8 @@ class AddDataRequestSchema(schema.RequestSchema):
             Actual data to append. 
             Keys in this dictionary must be a subset of the columns in the table. 
             If not specified, column will be set to NULL.
+
+            NaN and NULL are considered to be the same thing.
         """,
         example=[
             {"name": "M 33", "ra": 1.5641, "dec": 30.6602},

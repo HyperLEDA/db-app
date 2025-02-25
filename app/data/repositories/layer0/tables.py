@@ -1,6 +1,7 @@
 import datetime
 import json
 
+import numpy as np
 import pandas
 import structlog
 from astropy import units as u
@@ -83,29 +84,28 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if table_name is None:
             raise DatabaseError(f"unable to fetch table with id {data.table_id}")
 
-        params = []
-        objects = []
         fields = data.data.columns
 
+        values = []
+        params = []
+
         for row in data.data.to_dict(orient="records"):
-            obj = {}
             for field in fields:
                 value = row[field]
+                if type(value) in (int, float) and np.isnan(value):
+                    value = None
+
                 params.append(value)
-                obj[field] = "%s"
 
-            objects.append(obj)
+            values.append(f"({','.join(['%s'] * len(fields))})")
 
-        self._storage.exec(
-            template.render_query(
-                template.INSERT_RAW_DATA,
-                schema=RAWDATA_SCHEMA,
-                table=table_name,
-                fields=fields,
-                objects=objects,
-            ),
-            params=params,
-        )
+        query = f"""
+        INSERT INTO rawdata."{table_name}" ({",".join(fields)})
+        VALUES {",".join(values)}
+        ON CONFLICT DO NOTHING
+        """
+
+        self._storage.exec(query, params=params)
 
     def fetch_raw_data(
         self,

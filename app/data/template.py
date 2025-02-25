@@ -53,17 +53,6 @@ VALUES (%s, %s, %s)
 RETURNING id
 """
 
-INSERT_RAW_DATA = """
-INSERT INTO 
-    {{ schema }}."{{ table }}" 
-    ({% for field_name in fields %}"{{ field_name }}"{% if not loop.last %},{% endif %}{% endfor %})
-    VALUES{% for object in objects %}
-    ({% for field_name in fields %}
-        {{ object[field_name] }}{% if not loop.last %},{% endif %}{% endfor %}){% if not loop.last %},{% endif %}
-    {% endfor %}
-ON CONFLICT DO NOTHING
-"""
-
 INSERT_TMP_RAW_DATA = """
 INSERT INTO 
     {{ table }} 
