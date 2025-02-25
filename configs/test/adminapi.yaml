@@ -6,14 +6,14 @@ server:
 auth_enabled: false
 
 storage:
-  endpoint: 172.17.0.1
-  port: 6432
+  endpoint: hyperledadb
+  port: 5432
   dbname: hyperleda
   user: hyperleda
   password: password
 
 queue:
-  endpoint: 172.17.0.1
+  endpoint: redis
   port: 6379
   queue_name: default
 

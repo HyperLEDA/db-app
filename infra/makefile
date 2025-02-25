@@ -1,5 +1,5 @@
 deploy:
-	set -a && . .env.local && set +a && ./scripts/deploy.sh
+	set -a && . .env.local && set +a && uv run scripts.py deploy
 
 restart:
 	set -a && . .env.local && set +a && ./scripts/restart.sh

@@ -33,9 +33,9 @@ CREATE TABLE common.fovdim (
 , description	text	NOT NULL
 ) ;
 
-COMMENT ON TABLE common.fovdim IS 'The dimentions of the spectral field of view' ;
-COMMENT ON COLUMN common.fovdim.id IS 'Number of dimentions' ;
-COMMENT ON COLUMN common.fovdim.description IS 'Description of the FoV dimentions' ;
+COMMENT ON TABLE common.fovdim IS 'The dimensions of the spectral field of view' ;
+COMMENT ON COLUMN common.fovdim.id IS 'Number of dimensions' ;
+COMMENT ON COLUMN common.fovdim.description IS 'Description of the FoV dimensions' ;
 
 INSERT INTO common.fovdim VALUES 
   ( 0, 'Fiber spectroscopy (single dish in case of the radio observations)' )
@@ -57,7 +57,7 @@ COMMENT ON COLUMN common.magsys.id IS 'Magnitude system ID' ;
 COMMENT ON COLUMN common.magsys.description IS 'Description of the magnitude system' ;
 
 INSERT INTO common.magsys VALUES
-  ( 'Vega', 'The Vega magnitude system uses the Vega as the standard star with an apparent magnitude of zero, regardeless of the wavelength filter. The spectrum of Vega used to define this system is a composite spectrum of empirical and synthetic spectra (Bohlin & Gilliland, 2004AJ....127.3508B). m(Vega) = -2.5*log10(F/FVega), where F is flux of an object, and FVega is the calibrated spectrum of Vega.' )
+  ( 'Vega', 'The Vega magnitude system uses the Vega as the standard star with an apparent magnitude of zero, regardless of the wavelength filter. The spectrum of Vega used to define this system is a composite spectrum of empirical and synthetic spectra (Bohlin & Gilliland, 2004AJ....127.3508B). m(Vega) = -2.5*log10(F/FVega), where F is flux of an object, and FVega is the calibrated spectrum of Vega.' )
 , ( 'AB', 'The AB magnitude system uses flat reference spectrum in frequency space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic AB magnitude is defined as m(AB) = 8.9 -2.5*log10(Fv[Jy]) = -48.6 -2.5*log10(Fv[erg s^−1 cm^−2 Hz^−1]), where Fv is the spectral flux density.' )
 , ( 'ST', 'The ST magnitude system uses flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^−1 cm^−2 Angstrom^−1]), where Flambda is the spectral flux density.' )
 ;
