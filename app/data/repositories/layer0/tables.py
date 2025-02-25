@@ -99,6 +99,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
             values.append(f"({','.join(['%s'] * len(fields))})")
 
+        fields = [f'"{field}"' for field in fields]
+
         query = f"""
         INSERT INTO rawdata."{table_name}" ({",".join(fields)})
         VALUES {",".join(values)}
