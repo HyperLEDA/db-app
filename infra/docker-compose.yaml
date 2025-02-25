@@ -1,4 +1,47 @@
 services:
+  hyperledadb:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: "hyperleda"
+      POSTGRES_USER: "hyperleda"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
+      timeout: 5s
+      interval: 5s
+      retries: 5
+
+  migrate:
+    build: 
+      dockerfile: postgres/dockerfile
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    entrypoint:
+      /bin/sh -c "cd database/postgres && pgmigrate -c \"postgresql://hyperledadb:5432/hyperleda?user=hyperleda&password=$${POSTGRES_PASSWORD}\" -t latest migrate"
+    volumes:
+      - .:/database
+    depends_on:
+      hyperledadb:
+        condition: service_healthy
+
+  wait-for-migrate:
+    image: busybox
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
+
+  redis:
+    image: redis:7
+    ports:
+       - "6379:6379"
+    restart: unless-stopped
+
   adminapi:
     image: ghcr.io/hyperleda/hyperleda:latest
     entrypoint: ["uv", "run", "main.py", "adminapi"]
@@ -13,6 +56,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    depends_on:
+      - wait-for-migrate
+      - redis
     logging:
       driver: local
 
@@ -30,6 +76,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    depends_on:
+      - wait-for-migrate
     logging:
       driver: local
 
