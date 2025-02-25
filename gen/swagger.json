@@ -342,7 +342,7 @@
           },
           "data": {
             "type": "array",
-            "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n        ",
+            "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n\n            NaN and NULL are considered to be the same thing.\n        ",
             "example": [
               {
                 "name": "M 33",
