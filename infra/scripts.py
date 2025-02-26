@@ -3,6 +3,8 @@ from pathlib import Path
 
 import click
 
+REMOTE_BASE_PATH = "~/hyperleda/"
+
 
 @click.group()
 def cli():
@@ -27,12 +29,11 @@ def run_cmd(cmd: str):
     help="User to deploy as",
     default=lambda: os.environ.get("BACKEND_USER", ""),
 )
-def deploy(host: str, user: str):
+def copy_files(host: str, user: str):
     if host == "" or user == "":
         print("Please provide host and user")
         return
 
-    remote_base_path = "~/hyperleda/"
     paths_to_copy = {
         "infra/docker-compose.yaml": "docker-compose.yaml",
         "postgres/": "",
@@ -43,19 +44,42 @@ def deploy(host: str, user: str):
 
     os.chdir(Path(__file__).parent.parent)
 
-    run_cmd(f"ssh {user}@{host} -T 'mkdir -p {remote_base_path}'")
+    run_cmd(f"ssh {user}@{host} -T 'mkdir -p {REMOTE_BASE_PATH}'")
 
     for src, dst in paths_to_copy.items():
         if Path(src).is_dir():
-            cmd = f"scp -r {src} {user}@{host}:{remote_base_path}{dst}"
+            cmd = f"scp -r {src} {user}@{host}:{REMOTE_BASE_PATH}{dst}"
         else:
-            cmd = f"scp {src} {user}@{host}:{remote_base_path}{dst}"
+            cmd = f"scp {src} {user}@{host}:{REMOTE_BASE_PATH}{dst}"
 
         run_cmd(cmd)
 
     run_cmd(f'echo `git rev-parse --short HEAD` | ssh {user}@{host} -T "cat > ~/hyperleda/version.txt"')
     run_cmd(
-        f"ssh {user}@{host} -T 'cd {remote_base_path} && set -a && . .env.local && set +a  && docker compose up -d'"
+        f"ssh {user}@{host} -T 'cd {REMOTE_BASE_PATH} && set -a && . .env.local && set +a  && docker compose up -d'"
+    )
+
+
+@cli.command()
+@click.option(
+    "--host",
+    "-h",
+    help="Host to deploy to",
+    default=lambda: os.environ.get("BACKEND_HOST", ""),
+)
+@click.option(
+    "--user",
+    "-u",
+    help="User to deploy as",
+    default=lambda: os.environ.get("BACKEND_USER", ""),
+)
+def deploy(host: str, user: str):
+    if host == "" or user == "":
+        print("Please provide host and user")
+        return
+
+    run_cmd(
+        f"ssh {user}@{host} -T 'cd {REMOTE_BASE_PATH} && set -a && . .env.local && set +a  && docker compose up -d'"
     )
 
 
