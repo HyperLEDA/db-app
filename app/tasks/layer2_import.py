@@ -11,8 +11,10 @@ from app.tasks import interface
 
 @final
 class Layer2ImportTask(interface.Task):
-    def __init__(self) -> None:
+    def __init__(self, batch_size: int = 500, initial_offset: int = 0) -> None:
         self.log = structlog.get_logger()
+        self.batch_size = batch_size
+        self.initial_offset = initial_offset
 
     @classmethod
     def name(cls) -> str:
@@ -30,27 +32,34 @@ class Layer2ImportTask(interface.Task):
 
         self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
 
-        new_objects = self.layer1_repository.get_new_observations(last_update_dt)
+        for offset, new_objects in containers.read_batches(
+            self.layer1_repository.get_new_observations,
+            lambda data: len(data) == 0,
+            last_update_dt,
+            batch_size=self.batch_size,
+            initial_offset=self.initial_offset,
+        ):
+            self.log.info("Processing batch", done=offset, batch_size=len(new_objects))
 
-        objects_by_catalog = containers.group_by(
-            new_objects, key_func=lambda obj: obj.observation.catalog_object.catalog()
-        )
-        aggregated_objects: list[model.Layer2CatalogObject] = []
+            objects_by_catalog = containers.group_by(
+                new_objects, key_func=lambda obj: obj.observation.catalog_object.catalog()
+            )
+            aggregated_objects: list[model.Layer2CatalogObject] = []
 
-        for catalog, objects in objects_by_catalog.items():
-            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
+            for catalog, objects in objects_by_catalog.items():
+                objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
 
-            for pgc, objects in objects_by_pgc.items():
-                catalog_objects = [obj.observation.catalog_object for obj in objects]
-                aggregated_objects.append(
-                    model.Layer2CatalogObject(pgc, model.get_catalog_object_type(catalog).aggregate(catalog_objects))
-                )
-
-        with self.layer2_repository.with_tx():
+                for pgc, objects in objects_by_pgc.items():
+                    catalog_objects = [obj.observation.catalog_object for obj in objects]
+                    aggregated_objects.append(
+                        model.Layer2CatalogObject(
+                            pgc, model.get_catalog_object_type(catalog).aggregate(catalog_objects)
+                        )
+                    )
             self.layer2_repository.save_data(aggregated_objects)
-            self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
 
-            self.log.info("Layer 2 import completed", count=len(aggregated_objects), last_update=last_update_dt.ctime())
+        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
+        self.log.info("Layer 2 import completed", last_update=last_update_dt.ctime())
 
     def cleanup(self):
         self.pg_storage.disconnect()

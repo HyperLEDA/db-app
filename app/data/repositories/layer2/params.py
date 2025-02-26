@@ -43,7 +43,7 @@ class CombinedSearchParams(SearchParams):
         self._params = params
 
     def name(self) -> str:
-        return "_".join([p.name() for p in self._params])
+        return "_".join([p.name() for p in self._params]) or "combined"
 
     def get_params(self) -> dict[str, Any]:
         res = {}
