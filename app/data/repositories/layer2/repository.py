@@ -168,4 +168,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         offset: int,
     ) -> list[model.Layer2Object]:
         res = self.query_batch(catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset)
+
+        if "obj" not in res:
+            return []
+
         return res["obj"]

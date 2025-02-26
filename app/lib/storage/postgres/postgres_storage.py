@@ -125,7 +125,10 @@ class PgStorage:
         cursor = self._connection.cursor()
         cursor.execute(query, params)
 
-        return cursor.fetchall()
+        result = cursor.fetchall()
+        log.debug("SQL result", num_rows=len(result))
+
+        return result
 
     def query_one(self, query: str, *, params: list[Any] | None = None) -> rows.DictRow:
         result = self.query(query, params=params)
