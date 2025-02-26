@@ -29,7 +29,7 @@ class Layer0TableMeta:
     table_name: str
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
-    datatype: enums.DataType
+    datatype: enums.DataType = enums.DataType.REGULAR
     modification_dt: datetime.datetime | None = None
     description: str | None = None
 
