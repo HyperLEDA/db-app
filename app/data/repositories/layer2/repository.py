@@ -29,22 +29,38 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
 
     def save_data(self, objects: list[model.Layer2CatalogObject]):
+        objects_by_table: dict[str, list[model.Layer2CatalogObject]] = {}
         for obj in objects:
-            # TODO: batch inserts grouped by table
             table = obj.catalog_object.layer2_table()
+            if table not in objects_by_table:
+                objects_by_table[table] = []
+            objects_by_table[table].append(obj)
 
-            data = obj.catalog_object.layer2_data()
-            data["pgc"] = obj.pgc
-            columns = list(data.keys())
-            values = [data[column] for column in columns]
+        for table, table_objects in objects_by_table.items():
+            if len(table_objects) == 0:
+                continue
+
+            columns = table_objects[0].catalog_object.layer2_keys() + ["pgc"]
+
+            params = []
+            for obj in table_objects:
+                data = obj.catalog_object.layer2_data()
+                data["pgc"] = obj.pgc
+
+                params.extend([data.get(column, None) for column in columns])
+
+            placeholders = f"({','.join(['%s'] * len(columns))})"
+
+            value_groups = ",".join([placeholders] * len(table_objects))
+            on_conflict_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
 
             query = f"""
-            INSERT INTO {table} ({", ".join(columns)}) 
-            VALUES ({",".join(["%s"] * len(columns))})
-            ON CONFLICT (pgc) DO UPDATE SET {", ".join([f"{column} = EXCLUDED.{column}" for column in columns])}
+            INSERT INTO {table} ({", ".join(columns)})
+            VALUES {value_groups}
+            ON CONFLICT (pgc) DO UPDATE SET {on_conflict_statement}
             """
 
-            self._storage.exec(query, params=values)
+            self._storage.exec(query, params=params)
 
     def _construct_batch_query(
         self,
