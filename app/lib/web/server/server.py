@@ -57,6 +57,7 @@ class WebServer:
     ) -> None:
         default_middlewares = [
             middleware.exception_middleware,
+            middleware.cors_middleware,
         ]
 
         middlewares = middlewares or []

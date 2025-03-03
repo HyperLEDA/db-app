@@ -55,9 +55,8 @@ def copy_files(host: str, user: str):
         run_cmd(cmd)
 
     run_cmd(f'echo `git rev-parse --short HEAD` | ssh {user}@{host} -T "cat > ~/hyperleda/version.txt"')
-    run_cmd(
-        f"ssh {user}@{host} -T 'cd {REMOTE_BASE_PATH} && set -a && . .env.local && set +a  && docker compose up -d'"
-    )
+    run_cmd(f"ssh {user}@{host} -T 'cd {REMOTE_BASE_PATH} && docker compose pull'")
+    run_cmd(f"ssh {user}@{host} -T 'cd {REMOTE_BASE_PATH} && set -a && . .env.local && set +a && docker compose up -d'")
 
 
 @cli.command()
