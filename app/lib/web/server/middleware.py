@@ -1,3 +1,4 @@
+import http
 from collections.abc import Awaitable, Callable
 
 import structlog
@@ -56,3 +57,27 @@ def get_auth_middleware(
         return await handler(request)
 
     return auth_middleware
+
+
+@web.middleware
+async def cors_middleware(
+    request: web.Request, handler: Callable[[web.Request], Awaitable[web.StreamResponse]]
+) -> web.StreamResponse:
+    if request.method == http.HTTPMethod.OPTIONS:
+        resp = web.Response(text="OK")
+    else:
+        resp = await handler(request)
+
+    allowed_methods = [
+        http.HTTPMethod.GET,
+        http.HTTPMethod.POST,
+        http.HTTPMethod.PUT,
+        http.HTTPMethod.DELETE,
+        http.HTTPMethod.OPTIONS,
+    ]
+
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = ",".join(allowed_methods)
+    "GET,POST,PUT,DELETE,OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    return resp
