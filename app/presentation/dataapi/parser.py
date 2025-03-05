@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 # Use https://regex101.com/ to explain this regex
 function_call_pattern = r'([a-zA-Z0-9-]+):((?:[^:\s"]+)|(?:"[^"]+"))'
+operator_pattern = r"([a-z-]+)\s+"
 
 
 class OperatorName(enum.Enum):
@@ -41,7 +42,7 @@ class RParenToken:
 Token = OperatorToken | FunctionToken | LParenToken | RParenToken
 
 
-def parse_function_call(s: str) -> tuple[FunctionName, str] | None:
+def parse_function_call(s: str) -> tuple[FunctionToken, int] | None:
     match = re.match(function_call_pattern, s)
     if match is None:
         return None
@@ -52,6 +53,8 @@ def parse_function_call(s: str) -> tuple[FunctionName, str] | None:
 
     function_name_str, parameter = groups
     function_name = None
+
+    chars_consumed = len(function_name_str) + 1 + len(parameter)
 
     if function_name_str == "pos":
         function_name = FunctionName.POS
@@ -64,7 +67,24 @@ def parse_function_call(s: str) -> tuple[FunctionName, str] | None:
 
     parameter = parameter.strip('"')
 
-    return function_name, parameter
+    return FunctionToken(function_name, parameter), chars_consumed
+
+
+def parse_operator(s: str) -> tuple[OperatorToken, int] | None:
+    match = re.match(operator_pattern, s)
+    if match is None:
+        return None
+
+    operator_str = match.group(1)
+    chars_consumed = match.end()
+
+    if operator_str == "and":
+        return OperatorToken(OperatorName.AND), chars_consumed
+
+    if operator_str == "or":
+        return OperatorToken(OperatorName.OR), 2
+
+    raise RuntimeError(f"Unknown operator: {operator_str}")
 
 
 def tokenize(s: str) -> list[Token]:
@@ -86,20 +106,18 @@ def tokenize(s: str) -> list[Token]:
             i += 1
             continue
 
-        if s[i:].startswith("and "):
-            tokens.append(OperatorToken(OperatorName.AND))
-            i += 1
-            continue
-
-        if s[i:].startswith("or "):
-            tokens.append(OperatorToken(OperatorName.OR))
-            i += 1
+        parsed_operator = parse_operator(s)
+        if parsed_operator is not None:
+            token, offset = parsed_operator
+            tokens.append(token)
+            i += offset
             continue
 
         parsed_func = parse_function_call(s[i:])
         if parsed_func is not None:
-            func_name, params = parsed_func
-            tokens.append(FunctionToken(func_name, params))
+            token, offset = parsed_func
+            tokens.append(token)
+            i += offset
             continue
 
         raise RuntimeError(f"Invalid syntax at position {i}: {s[i:]}")
