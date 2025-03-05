@@ -2,7 +2,7 @@ import unittest
 
 from parameterized import param, parameterized
 
-from app.presentation.dataapi.parser import (
+from app.domain.dataapi.tokenizer import (
     FunctionName,
     FunctionToken,
     LParenToken,
