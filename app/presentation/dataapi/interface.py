@@ -25,6 +25,8 @@ class QuerySimpleResponse:
 @dataclass
 class QueryRequest:
     q: str
+    page_size: int = 10
+    page: int = 0
 
 
 @dataclass
