@@ -5,10 +5,13 @@ from parameterized import param, parameterized
 from app.presentation.dataapi.parser import (
     FunctionName,
     FunctionToken,
+    LParenToken,
     OperatorName,
     OperatorToken,
+    RParenToken,
     parse_function_call,
     parse_operator,
+    tokenize,
 )
 
 
@@ -81,3 +84,52 @@ class ParserTest(unittest.TestCase):
             _ = parse_operator(s)
 
         self.assertIn(err_substr, str(err.exception))
+
+
+class TokenizerTest(unittest.TestCase):
+    @parameterized.expand(
+        [
+            param("name:M33", [FunctionToken(FunctionName.NAME, "M33")]),
+            param("(name:M33)", [LParenToken(), FunctionToken(FunctionName.NAME, "M33"), RParenToken()]),
+            param(
+                "and (name:M33)",
+                [
+                    OperatorToken(OperatorName.AND),
+                    LParenToken(),
+                    FunctionToken(FunctionName.NAME, "M33"),
+                    RParenToken(),
+                ],
+            ),
+            param(
+                "(name:M33) or (pgc:123456)",
+                [
+                    LParenToken(),
+                    FunctionToken(FunctionName.NAME, "M33"),
+                    RParenToken(),
+                    OperatorToken(OperatorName.OR),
+                    LParenToken(),
+                    FunctionToken(FunctionName.PGC, "123456"),
+                    RParenToken(),
+                ],
+            ),
+            param(
+                "((name:M33) or (pgc:123456)) and name:M44",
+                [
+                    LParenToken(),
+                    LParenToken(),
+                    FunctionToken(FunctionName.NAME, "M33"),
+                    RParenToken(),
+                    OperatorToken(OperatorName.OR),
+                    LParenToken(),
+                    FunctionToken(FunctionName.PGC, "123456"),
+                    RParenToken(),
+                    RParenToken(),
+                    OperatorToken(OperatorName.AND),
+                    FunctionToken(FunctionName.NAME, "M44"),
+                ],
+            ),
+        ]
+    )
+    def test_happy(self, s, expected):
+        actual = tokenize(s)
+        self.assertEqual(actual, expected)

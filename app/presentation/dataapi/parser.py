@@ -3,8 +3,8 @@ import re
 from dataclasses import dataclass
 
 # Use https://regex101.com/ to explain this regex
-function_call_pattern = r'([a-zA-Z0-9-]+):((?:[^:\s"]+)|(?:"[^"]+"))'
-operator_pattern = r"([a-z-]+)\s+"
+function_call_pattern = r'^([a-z0-9-]+):((?:[a-zA-Z0-9_]+)|(?:"[^"]+"))'
+operator_pattern = r"^([a-z-]+)\s+"
 
 
 class OperatorName(enum.Enum):
@@ -54,7 +54,7 @@ def parse_function_call(s: str) -> tuple[FunctionToken, int] | None:
     function_name_str, parameter = groups
     function_name = None
 
-    chars_consumed = len(function_name_str) + 1 + len(parameter)
+    chars_consumed = match.end()
 
     if function_name_str == "pos":
         function_name = FunctionName.POS
@@ -106,7 +106,7 @@ def tokenize(s: str) -> list[Token]:
             i += 1
             continue
 
-        parsed_operator = parse_operator(s)
+        parsed_operator = parse_operator(s[i:])
         if parsed_operator is not None:
             token, offset = parsed_operator
             tokens.append(token)
