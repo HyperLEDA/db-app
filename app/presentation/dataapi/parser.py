@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 
 # Use https://regex101.com/ to explain this regex
-function_call_pattern = r'^([a-z0-9-]+):((?:[a-zA-Z0-9_]+)|(?:"[^"]+"))'
+function_call_pattern = r'^([a-z0-9-]+):((?:[a-zA-Z0-9_+.]+)|(?:"[^"]+"))'
 operator_pattern = r"^([a-z-]+)\s+"
 
 
