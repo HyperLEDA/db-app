@@ -74,6 +74,21 @@ class InfixToPostfixTest(unittest.TestCase):
             ),
         ]
     )
-    def test_table(self, name, input_tokens, expected):
+    def test_happy(self, name, input_tokens, expected):
         actual = parser.infix_to_postfix(input_tokens)
         self.assertEqual(actual, expected)
+
+    @parameterized.expand(
+        [
+            param(
+                "mismatched paren",
+                [tokenizer.LParenToken(), tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M33")],
+                "Mismatched parentheses",
+            ),
+        ]
+    )
+    def test_fails(self, name, input_tokens, expected_err):
+        with self.assertRaises(RuntimeError) as err:
+            _ = parser.infix_to_postfix(input_tokens)
+
+        self.assertIn(expected_err, str(err.exception))
