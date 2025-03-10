@@ -16,22 +16,12 @@ class OrNode:
 
 
 @dataclass
-class NameCloseNode:
-    name: str
+class FunctionNode:
+    function: tokenizer.FunctionName
+    value: str
 
 
-@dataclass
-class PGCNode:
-    pgc: int
-
-
-@dataclass
-class ICRSCoordinatesInRadiusNode:
-    ra: float
-    dec: float
-
-
-Node = AndNode | OrNode | NameCloseNode | PGCNode | ICRSCoordinatesInRadiusNode
+Node = AndNode | OrNode | FunctionNode
 
 PRECEDENCE = {
     tokenizer.OperatorName.AND: 1,
@@ -84,3 +74,21 @@ def infix_to_postfix(tokens: list[tokenizer.Token]) -> list[tokenizer.Token]:
         output.append(last_item)
 
     return output
+
+
+def solve_postfix(tokens: list[tokenizer.Token]) -> Node:
+    stack: list[Node] = []
+
+    for token in tokens:
+        if isinstance(token, tokenizer.FunctionToken):
+            stack.append(FunctionNode(token.name, token.value))
+        elif isinstance(token, tokenizer.OperatorToken):
+            right = stack.pop()
+            left = stack.pop()
+
+            if token.name == tokenizer.OperatorName.AND:
+                stack.append(AndNode(left, right))
+            elif token.name == tokenizer.OperatorName.OR:
+                stack.append(OrNode(left, right))
+
+    return stack[0]

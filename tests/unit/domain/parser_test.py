@@ -92,3 +92,47 @@ class InfixToPostfixTest(unittest.TestCase):
             _ = parser.infix_to_postfix(input_tokens)
 
         self.assertIn(expected_err, str(err.exception))
+
+
+class SolvePostfixTest(unittest.TestCase):
+    @parameterized.expand(
+        [
+            param(
+                "single function",
+                [tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M33")],
+                parser.FunctionNode(tokenizer.FunctionName.NAME, "M33"),
+            ),
+            param(
+                "single operator",
+                [
+                    tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M33"),
+                    tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M34"),
+                    tokenizer.OperatorToken(tokenizer.OperatorName.AND),
+                ],
+                parser.AndNode(
+                    left=parser.FunctionNode(tokenizer.FunctionName.NAME, "M33"),
+                    right=parser.FunctionNode(tokenizer.FunctionName.NAME, "M34"),
+                ),
+            ),
+            param(
+                "multiple operators",
+                [
+                    tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M33"),
+                    tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M34"),
+                    tokenizer.OperatorToken(tokenizer.OperatorName.AND),
+                    tokenizer.FunctionToken(tokenizer.FunctionName.NAME, "M35"),
+                    tokenizer.OperatorToken(tokenizer.OperatorName.OR),
+                ],
+                parser.OrNode(
+                    left=parser.AndNode(
+                        left=parser.FunctionNode(tokenizer.FunctionName.NAME, "M33"),
+                        right=parser.FunctionNode(tokenizer.FunctionName.NAME, "M34"),
+                    ),
+                    right=parser.FunctionNode(tokenizer.FunctionName.NAME, "M35"),
+                ),
+            ),
+        ]
+    )
+    def test_happy(self, name, input_tokens, expected):
+        actual = parser.solve_postfix(input_tokens)
+        self.assertEqual(actual, expected)
