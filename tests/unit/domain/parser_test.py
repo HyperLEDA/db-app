@@ -2,7 +2,7 @@ import unittest
 
 from parameterized import param, parameterized
 
-from app.domain.dataapi import parser, tokenizer
+from app.domain.expressions import parser, tokenizer
 
 
 class InfixToPostfixTest(unittest.TestCase):

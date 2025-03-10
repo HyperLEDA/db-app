@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.domain.dataapi import tokenizer
+from app.domain.expressions import tokenizer
 
 
 @dataclass
@@ -92,3 +92,9 @@ def solve_postfix(tokens: list[tokenizer.Token]) -> Node:
                 stack.append(OrNode(left, right))
 
     return stack[0]
+
+
+def parse_expression(s: str) -> Node:
+    tokens = tokenizer.tokenize(s)
+    postfix_tokens = infix_to_postfix(tokens)
+    return solve_postfix(postfix_tokens)
