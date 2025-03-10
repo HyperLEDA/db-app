@@ -1,5 +1,7 @@
 from app.presentation.dataapi.interface import (
     Actions,
+    QueryRequest,
+    QueryResponse,
     QuerySimpleRequest,
     QuerySimpleResponse,
 )
@@ -10,6 +12,8 @@ __all__ = [
     "Actions",
     "QuerySimpleRequest",
     "QuerySimpleResponse",
+    "QueryRequest",
+    "QueryResponse",
     "PGCObject",
     "Server",
 ]

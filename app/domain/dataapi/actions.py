@@ -46,3 +46,6 @@ class Actions(dataapi.Actions):
             response_objects.append(dataapi.PGCObject(obj.pgc, catalog_data))
 
         return dataapi.QuerySimpleResponse(response_objects)
+
+    def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
+        return dataapi.QueryResponse([])

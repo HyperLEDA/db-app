@@ -22,7 +22,23 @@ class QuerySimpleResponse:
     objects: list[model.PGCObject]
 
 
+@dataclass
+class QueryRequest:
+    q: str
+    page_size: int = 10
+    page: int = 0
+
+
+@dataclass
+class QueryResponse:
+    objects: list[model.PGCObject]
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def query_simple(self, query: QuerySimpleRequest) -> QuerySimpleResponse:
+        pass
+
+    @abc.abstractmethod
+    def query(self, query: QueryRequest) -> QueryResponse:
         pass
