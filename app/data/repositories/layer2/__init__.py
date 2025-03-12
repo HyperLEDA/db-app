@@ -4,6 +4,7 @@ from app.data.repositories.layer2.filters import (
     DesignationEqualsFilter,
     Filter,
     ICRSCoordinatesInRadiusFilter,
+    OrFilter,
     PGCOneOfFilter,
     RedshiftCloseFilter,
 )
@@ -28,4 +29,5 @@ __all__ = [
     "DesignationCloseFilter",
     "PGCOneOfFilter",
     "AndFilter",
+    "OrFilter",
 ]
