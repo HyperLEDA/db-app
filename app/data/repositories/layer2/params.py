@@ -1,6 +1,8 @@
 import abc
 from typing import Any, final
 
+from astropy import coordinates as coords
+
 
 class SearchParams(abc.ABC):
     @abc.abstractmethod
@@ -17,7 +19,11 @@ class ICRSSearchParams(SearchParams):
     def name(self) -> str:
         return "icrs"
 
-    def __init__(self, ra: float, dec: float):
+    def __init__(self, ra: float | None = None, dec: float | None = None, coords: coords.SkyCoord | None = None):
+        if coords is not None:
+            ra = coords.ra.deg
+            dec = coords.dec.deg
+
         self._ra = ra
         self._dec = dec
 

@@ -1,6 +1,10 @@
 import abc
 from typing import Any
 
+import astropy
+import astropy.units
+import astropy.units.quantity
+
 
 class Filter(abc.ABC):
     @abc.abstractmethod
@@ -39,6 +43,20 @@ class AndFilter(Filter):
         return params
 
 
+class OrFilter(Filter):
+    def __init__(self, filters: list[Filter]):
+        self._filters = filters
+
+    def get_query(self):
+        return " OR ".join([f"({f.get_query()})" for f in self._filters])
+
+    def get_params(self):
+        params = []
+        for f in self._filters:
+            params.extend(f.get_params())
+        return params
+
+
 class DesignationEqualsFilter(Filter):
     def __init__(self, designation: str):
         self._designation = designation
@@ -62,7 +80,10 @@ class DesignationCloseFilter(Filter):
 
 
 class ICRSCoordinatesInRadiusFilter(Filter):
-    def __init__(self, radius: float):
+    def __init__(self, radius: float | astropy.units.quantity.Quantity):
+        if isinstance(radius, astropy.units.quantity.Quantity):
+            radius = radius.to(astropy.units.deg).value
+
         self._radius = radius
 
     def get_query(self):
