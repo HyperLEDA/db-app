@@ -1,5 +1,4 @@
 import atexit
-import os
 import pathlib
 
 import psycopg
@@ -68,7 +67,8 @@ class TestPostgresStorage:
 
     def _run_migrations(self, migrations_dir: str):
         connection = psycopg.connect(self.config.get_dsn(), autocommit=True)
-        migrations = os.listdir(migrations_dir)
+
+        migrations = list(pathlib.Path(migrations_dir).iterdir())
         migrations.sort()
         cur = connection.cursor()
 
