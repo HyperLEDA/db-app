@@ -19,7 +19,8 @@ def upload_vizier_table() -> tuple[int, str]:
         bib_author="Flesch, E.",
         bib_year="2015",
         bib_title="A catalogue of integrated H I fluxes",
-        log_level="warn",
+        log_level="debug",
+        endpoint=hyperleda.DEFAULT_ENDPOINT,
     )
     return table_id, table_name
 
