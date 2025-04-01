@@ -55,7 +55,7 @@ class TableUploadManager:
         return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
 
     def validate_table(self, r: adminapi.GetTableValidationRequest) -> adminapi.GetTableValidationResponse:
-        table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
+        table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
 
         validation_result = validate_columns(table_metadata.column_descriptions)
 

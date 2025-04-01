@@ -6,7 +6,7 @@ from app.presentation.adminapi import interface
 
 
 class GetTableValidationRequestSchema(schema.RequestSchema):
-    table_id = fields.Int(required=True, description="ID of the table")
+    table_name = fields.Str(required=True, description="Name of the table")
 
     class Meta:
         model = interface.GetTableValidationRequest
