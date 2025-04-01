@@ -55,9 +55,9 @@ class TableValidationTest(unittest.TestCase):
         ]
     )
     def test_validation(self, name: str, columns: list[model.ColumnDescription], expected_len: int):
-        request = presentation.GetTableValidationRequest(42)
+        request = presentation.GetTableValidationRequest("test_table")
 
-        self.layer0_repo.fetch_metadata.return_value = mock.MagicMock(column_descriptions=columns)
+        self.layer0_repo.fetch_metadata_by_name.return_value = mock.MagicMock(column_descriptions=columns)
 
         response = self.manager.validate_table(request)
 

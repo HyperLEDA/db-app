@@ -156,11 +156,24 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
         row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
         table_name = row.get("table_name")
-        modification_dt: datetime.datetime = row.get("modification_dt")
+        modification_dt: datetime.datetime | None = row.get("modification_dt")
 
         if table_name is None:
             raise DatabaseError(f"unable to fetch table with id {table_id}")
 
+        return self._fetch_metadata_by_name(table_name, modification_dt)
+
+    def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
+        row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        if row is None:
+            raise DatabaseError(f"unable to fetch table with name {table_name}")
+
+        modification_dt: datetime.datetime | None = row.get("modification_dt")
+        return self._fetch_metadata_by_name(table_name, modification_dt)
+
+    def _fetch_metadata_by_name(
+        self, table_name: str, modification_dt: datetime.datetime | None
+    ) -> model.Layer0TableMeta:
         column_descriptions = self._storage.query(
             "SELECT column_name, param FROM meta.column_info WHERE schema_name=%s AND table_name=%s",
             params=[RAWDATA_SCHEMA, table_name],

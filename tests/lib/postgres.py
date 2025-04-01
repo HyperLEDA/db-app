@@ -1,5 +1,4 @@
 import atexit
-import os
 import pathlib
 
 import psycopg
@@ -68,12 +67,13 @@ class TestPostgresStorage:
 
     def _run_migrations(self, migrations_dir: str):
         connection = psycopg.connect(self.config.get_dsn(), autocommit=True)
-        migrations = os.listdir(migrations_dir)
+
+        migrations = list(pathlib.Path(migrations_dir).iterdir())
         migrations.sort()
         cur = connection.cursor()
 
         for migration_filename in migrations:
-            data = pathlib.Path(migrations_dir, migration_filename).read_text()
+            data = pathlib.Path(migration_filename).read_text()
             # ignore placeholders in migrations
             data = data.replace("%", "%%")
             logger.info(f"running {migration_filename} migration")

@@ -10,21 +10,24 @@ from tests import lib
 
 
 @lib.test_logging_decorator(__file__)
-def upload_vizier_table() -> int:
-    return hyperleda_scripts.vizier_command(
+def upload_vizier_table() -> tuple[int, str]:
+    table_name = f"vizier_{str(uuid.uuid4())}"
+    table_id = hyperleda_scripts.vizier_command(
         "III/258",
         "III/258/fbs",
-        hyperleda_table_name=f"vizier_{str(uuid.uuid4())}",
+        hyperleda_table_name=table_name,
         bib_author="Flesch, E.",
         bib_year="2015",
         bib_title="A catalogue of integrated H I fluxes",
-        log_level="warn",
+        log_level="debug",
+        endpoint=hyperleda.DEFAULT_ENDPOINT,
     )
+    return table_id, table_name
 
 
 @lib.test_logging_decorator(__file__)
-def check_table_validation(client: hyperleda.HyperLedaClient, table_id: int) -> list[hyperleda.TableValidation]:
-    return client.validate_table(table_id).validations or []
+def check_table_validation(client: hyperleda.HyperLedaClient, table_name: str) -> list[hyperleda.TableValidation]:
+    return client.validate_table(table_name).validations or []
 
 
 @lib.test_logging_decorator(__file__)
@@ -87,14 +90,14 @@ def query_objects() -> list[dict]:
 
 def run():
     client = hyperleda.HyperLedaClient()
-    table_id = upload_vizier_table()
+    table_id, table_name = upload_vizier_table()
 
-    validations = check_table_validation(client, table_id)
+    validations = check_table_validation(client, table_name)
     assert len(validations) != 0
 
     patch_table(client, table_id)
 
-    validations = check_table_validation(client, table_id)
+    validations = check_table_validation(client, table_name)
     assert len(validations) == 0
 
     start_processing(table_id)

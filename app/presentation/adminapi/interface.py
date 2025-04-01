@@ -58,7 +58,7 @@ class AddDataResponse:
 
 @dataclass
 class GetTableValidationRequest:
-    table_id: int
+    table_name: str
 
 
 @dataclass

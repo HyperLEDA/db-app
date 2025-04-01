@@ -44,7 +44,7 @@ class CreateTableTest(unittest.TestCase):
             )
         )
 
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest(response.id))
+        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
 
         self.assertTrue(created)
         self.assertEqual(len(validation_result.validations), 0)
@@ -70,7 +70,7 @@ class CreateTableTest(unittest.TestCase):
 
         self.assertTrue(created)
 
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest(response.id))
+        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
         self.assertEqual(len(validation_result.validations), 3)
 
         self.upload_manager.patch_table(
@@ -83,5 +83,5 @@ class CreateTableTest(unittest.TestCase):
             ),
         )
 
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest(response.id))
+        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
         self.assertEqual(len(validation_result.validations), 1)
