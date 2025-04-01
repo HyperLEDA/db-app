@@ -73,7 +73,7 @@ class TestPostgresStorage:
         cur = connection.cursor()
 
         for migration_filename in migrations:
-            data = pathlib.Path(migrations_dir, migration_filename).read_text()
+            data = pathlib.Path(migration_filename).read_text()
             # ignore placeholders in migrations
             data = data.replace("%", "%%")
             logger.info(f"running {migration_filename} migration")
