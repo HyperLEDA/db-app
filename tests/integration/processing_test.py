@@ -22,11 +22,12 @@ class MarkObjectsTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def _get_table(self) -> int:
+    def _get_table(self) -> tuple[int, str]:
+        table_name = "test_table"
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
             model.Layer0TableMeta(
-                "test_table",
+                table_name,
                 [
                     model.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
                     model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.deg),
@@ -49,10 +50,10 @@ class MarkObjectsTest(unittest.TestCase):
 
         self.layer0_repo.insert_raw_data(model.Layer0RawData(table_resp.table_id, data))
 
-        return table_resp.table_id
+        return table_resp.table_id, table_name
 
     def test_multiple_batches(self):
-        table_id = self._get_table()
+        table_id, table_name = self._get_table()
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
@@ -63,7 +64,7 @@ class MarkObjectsTest(unittest.TestCase):
         self.assertEqual(len(actual), 1)
 
     def test_number_of_objects_divisible_by_batch_size(self):
-        table_id = self._get_table()
+        table_id, table_name = self._get_table()
 
         processing.mark_objects(self.layer0_repo, table_id, 3)
 
@@ -74,7 +75,7 @@ class MarkObjectsTest(unittest.TestCase):
         self.assertEqual(len(actual), 3)
 
     def test_table_patched_after_processing(self):
-        table_id = self._get_table()
+        table_id, table_name = self._get_table()
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
@@ -82,7 +83,7 @@ class MarkObjectsTest(unittest.TestCase):
         obj_before = before[0]
 
         self.layer0_repo.update_column_metadata(
-            table_id,
+            table_name,
             model.ColumnDescription("redshift", "float", ucd="src.redshift"),
         )
 
@@ -94,7 +95,7 @@ class MarkObjectsTest(unittest.TestCase):
         self.assertGreater(len(obj_after.data), len(obj_before.data))
 
     def test_table_didnt_change_since_last_upload(self):
-        table_id = self._get_table()
+        table_id, table_name = self._get_table()
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
         modification_dt = datetime.datetime.now(tz=datetime.UTC)

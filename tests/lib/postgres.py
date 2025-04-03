@@ -24,13 +24,17 @@ class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
         self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
-        self.container = pgcontainer.PostgresContainer(
-            "postgis/postgis:17-3.5-alpine@sha256:f63cf3c8acfd305a5b33d34b2667509b53465924999fe2ec276166080c16319b",
-            port=5432,
-            user="hyperleda",
-            password="password",
-            dbname="hyperleda",
-        ).with_bind_ports(5432, self.port)
+        try:
+            self.container = pgcontainer.PostgresContainer(
+                "postgis/postgis:17-3.5-alpine@sha256:f63cf3c8acfd305a5b33d34b2667509b53465924999fe2ec276166080c16319b",
+                port=5432,
+                user="hyperleda",
+                password="password",
+                dbname="hyperleda",
+            ).with_bind_ports(5432, self.port)
+        except Exception as e:
+            raise RuntimeError("Failed to start postgres container. Did you forget to start Docker daemon?") from e
+
         self.config = postgres.PgStorageConfig(
             endpoint="localhost",
             port=self.port,

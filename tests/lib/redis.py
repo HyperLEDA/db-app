@@ -22,7 +22,11 @@ class TestRedisStorage:
     def __init__(self) -> None:
         self.port = web.find_free_port()
         log.info("Initializing redis container", port=self.port)
-        self.container = rediscontainer.RedisContainer("redis:7").with_bind_ports(6379, self.port)
+        try:
+            self.container = rediscontainer.RedisContainer("redis:7").with_bind_ports(6379, self.port)
+        except Exception as e:
+            raise RuntimeError("Failed to start redis container. Did you forget to start Docker daemon?") from e
+
         self.config = redis.QueueConfig(endpoint="localhost", port=self.port, queue_name="test_queue")
         self.storage = redis.RedisQueue(self.config, log)
 

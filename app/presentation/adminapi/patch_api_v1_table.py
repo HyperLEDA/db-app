@@ -39,7 +39,7 @@ class PatchTableActionSchema(one_of_schema.OneOfSchema):
 
 
 class PatchTableRequestSchema(schema.RequestSchema):
-    table_id = fields.Int(required=True, description="ID of the table")
+    table_name = fields.Str(required=True, description="Name of the table")
     actions = fields.List(
         fields.Nested(PatchTableActionSchema),
         required=True,

@@ -31,9 +31,9 @@ def check_table_validation(client: hyperleda.HyperLedaClient, table_name: str) -
 
 
 @lib.test_logging_decorator(__file__)
-def patch_table(client: hyperleda.HyperLedaClient, table_id: int):
+def patch_table(client: hyperleda.HyperLedaClient, table_name: str):
     client.patch_table_schema(
-        table_id,
+        table_name,
         [
             {"type": "change_unit", "column": "RAJ2000", "unit": "hourangle"},
             {"type": "change_unit", "column": "DEJ2000", "unit": "deg"},
@@ -95,7 +95,7 @@ def run():
     validations = check_table_validation(client, table_name)
     assert len(validations) != 0
 
-    patch_table(client, table_id)
+    patch_table(client, table_name)
 
     validations = check_table_validation(client, table_name)
     assert len(validations) == 0
