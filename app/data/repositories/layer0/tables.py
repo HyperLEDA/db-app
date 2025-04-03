@@ -63,7 +63,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 )
 
             for column_descr in data.column_descriptions:
-                self.update_column_metadata(table_id, column_descr)
+                self.update_column_metadata(data.table_name, column_descr)
 
         return model.Layer0CreationResponse(table_id, True)
 
@@ -213,8 +213,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             table_metadata["param"].get("description"),
         )
 
-    def update_column_metadata(self, table_id: int, column_description: model.ColumnDescription) -> None:
-        table_name = self._get_table_name(table_id)
+    def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
+        table_id, _ = self._get_table_id(table_name)
 
         column_params = {
             "description": column_description.description,

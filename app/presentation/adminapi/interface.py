@@ -86,7 +86,7 @@ class PatchTableActionTypeChangeUnit:
 
 @dataclass
 class PatchTableRequest:
-    table_id: int
+    table_name: str
     actions: list[PatchTableActionTypeChangeUCD | PatchTableActionTypeChangeUnit]
 
 

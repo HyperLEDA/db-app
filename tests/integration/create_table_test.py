@@ -53,10 +53,11 @@ class CreateTableTest(unittest.TestCase):
         source_code = self.source_manager.create_source(
             presentation.CreateSourceRequest("title", ["author"], 2022)
         ).code
+        table_name = "table_name"
 
         response, created = self.upload_manager.create_table(
             presentation.CreateTableRequest(
-                "table_name",
+                table_name,
                 [
                     presentation.ColumnDescription("name", "text"),
                     presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra"),
@@ -75,7 +76,7 @@ class CreateTableTest(unittest.TestCase):
 
         self.upload_manager.patch_table(
             presentation.PatchTableRequest(
-                response.id,
+                table_name,
                 [
                     presentation.PatchTableActionTypeChangeUCD("name", "meta.id"),
                     presentation.PatchTableActionTypeChangeUnit("ra", "hourangle"),

@@ -62,7 +62,7 @@ class TableUploadManager:
         return adminapi.GetTableValidationResponse(validations=validation_result)
 
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
-        table_metadata = self.layer0_repo.fetch_metadata(r.table_id)
+        table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
 
         with self.layer0_repo.with_tx():
@@ -71,12 +71,12 @@ class TableUploadManager:
                     column_metadata = columns_by_id[action.column]
                     column_metadata.ucd = action.ucd
 
-                    self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+                    self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
                 elif isinstance(action, adminapi.PatchTableActionTypeChangeUnit):
                     column_metadata = columns_by_id[action.column]
                     column_metadata.unit = units.Unit(action.unit)
 
-                    self.layer0_repo.update_column_metadata(r.table_id, column_metadata)
+                    self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
                 else:
                     raise RuntimeError(f"unknown action type: {action}")
 

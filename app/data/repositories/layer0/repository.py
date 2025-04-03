@@ -36,8 +36,8 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata_by_name(table_name)
 
-    def update_column_metadata(self, table_id: int, column_description: model.ColumnDescription) -> None:
-        return self.table_repo.update_column_metadata(table_id, column_description)
+    def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
+        return self.table_repo.update_column_metadata(table_name, column_description)
 
     def upsert_objects(self, table_id: int, objects: list[model.Layer0Object]) -> None:
         return self.objects_repo.upsert_objects(table_id, objects)
