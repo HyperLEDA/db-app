@@ -4,33 +4,69 @@
 
 Если не сделано, установить базовое окружение можно при помощи [этой инструкции](../dev/environment.ru.md).
 
-## Скачивание из загрузка таблицы из Vizier
+## Скачивание и загрузка таблицы из Vizier
 
 1. Загрузить набор скриптов для leda:
-
-   ```bash
-   git clone https://github.com/HyperLEDA/scripts.git
-   cd scripts
-   ```
+    ```bash
+    git clone https://github.com/HyperLEDA/scripts.git
+    cd scripts
+    ```
 
 2. Установить зависимости скриптов:
-
-   ```bash
-   uv sync
-   ```
+    ```bash
+    uv sync
+    ```
 
 3. Запустить загрузку:
+    ```bash
+    uv run hyperleda_scripts/cli.py vizier download -c <catalog_name> -t <table_name>
+    ```
 
-   ```bash
-   uv run hyperleda_scripts/cli.py vizier download -c <catalog_name> -t <table_name>
-   ```
+    `catalog_name` и `table_name` - имена каталога и таблицы из Vizier, которые хочется загрузить. Например, для каталога [Siena Galaxy Atlas](https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/ApJS/269/3/sga2020&-out.max=50&-out.form=HTML%20Table&-out.add=_r&-out.add=_RAJ,_DEJ&-sort=_r&-oc.form=sexa) команда будет выглядеть вот так:
 
-   `catalog_name` и `table_name` - имена каталога и таблицы из Vizier, которые хочется загрузить. Например, для каталога [Siena Galaxy Atlas](https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/ApJS/269/3/sga2020&-out.max=50&-out.form=HTML%20Table&-out.add=_r&-out.add=_RAJ,_DEJ&-sort=_r&-oc.form=sexa) команда будет выглядеть вот так:
+    ```bash
+    uv run hyperleda_scripts/cli.py vizier download -c J/ApJS/269/3 -t J/ApJS/269/3/sga2020
+    ```
 
-   ```bash
-   uv run hyperleda_scripts/cli.py vizier download -c J/ApJS/269/3 -t J/ApJS/269/3/sga2020
-   ```
+    Во время загрузки будет выведена строка с `table_name` - сгенерированным названием загружаемой таблицы. Его стоит записать, так как оно понадобится для дальнейшей обработки.
 
 4. Ждать, пока загрузка кончится. Она состоит из двух шагов: скачивание таблицы из Vizier и загрузка этой таблицы в HyperLeda. Если на моменте загрузки в HyperLeda загрузка оборвётся, файл из Vizier останется и скачивать его заново не придётся.
 
-   По итогам этого шага таблица будет загружена на уровень 0 БД.
+    По итогам этого шага таблица будет загружена на уровень 0 БД.
+
+## Разметка столбцов таблицы
+
+Чтобы обработчик в дальнейшем понимал, какой столбец отвечает за какую физическую величину, нужно указать это. 
+Обработчик пытается это сделать сам по информации о UCD (https://www.ivoa.net/documents/latest/UCD.html) или названиях столбцов, которые загружаются из Vizier. 
+Тем не менее, это не всегда выходит сделать полностью корректно (например, в Vizier нет каких-то UCD).
+В этом случае можно помочь обработчику, а так же проверить, что он действительно смог обнаружить все нужные к загрузке столбцы.
+
+Все операции тут будут происходить в веб-интерфейсе, открывающем доступ к методам API администраторского интерфейса базы данных напрямую. Найти этот интерфейс можно [тут](http://89.169.133.242/admin/api/docs).
+
+1. Проверить валидацию таблицы поможет метод `/admin/api/v1/table/validation`. В него передаётся один аргумент - `table_name`, полученным из загрузки таблицы выше. В ответ будет выведен список ошибок, полученных в результате поиска колонок по каждой физической величине. Например:
+    ```json
+    {
+        "data": {
+            "validations": [
+                {
+                    "validator": "ICRS",
+                    "message": "Column RAJ2000 (for RAJ2000) does not have a valid angular unit"
+                }
+            ]
+        }
+    }
+    ```
+
+    Здесь `"validator": "ICRS"` значит, что ошибка получена при попытке получения колонки для каталога координат.
+
+    Ошибка `Column RAJ2000 (for RAJ2000) does not have a valid angular unit` означает, что у колонки для прямого восхождения единицы измерения - не радианы, и не градусы. Такое может быть, если, например, в метаданных вообще не указаны единицы измерения. 
+
+    Если все колонки были успешно найдены, ответ метода будет иметь вид
+
+    ```json
+    {
+        "data": {
+            "validations": []
+        }
+    }
+    ```
