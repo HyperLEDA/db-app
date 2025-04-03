@@ -581,9 +581,9 @@
       "PatchTableRequestSchema": {
         "type": "object",
         "properties": {
-          "table_id": {
-            "type": "integer",
-            "description": "ID of the table"
+          "table_name": {
+            "type": "string",
+            "description": "Name of the table"
           },
           "actions": {
             "type": "array",
@@ -595,7 +595,7 @@
         },
         "required": [
           "actions",
-          "table_id"
+          "table_name"
         ]
       },
       "PatchTableResponseSchema": {
