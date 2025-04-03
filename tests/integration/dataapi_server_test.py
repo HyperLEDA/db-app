@@ -1,6 +1,8 @@
 import os
+import pathlib
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from concurrent import futures
@@ -27,6 +29,13 @@ class DataAPIServerTest(unittest.TestCase):
         cls.pg_storage = pg_thread.result()
         cls.server_port = port_thread.result()
 
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.stdout_path = pathlib.Path(cls.temp_dir) / "stdout.log"
+        cls.stderr_path = pathlib.Path(cls.temp_dir) / "stderr.log"
+
+        cls.stdout_file = cls.stdout_path.open("w")
+        cls.stderr_file = cls.stderr_path.open("w")
+
         os.environ["SERVER_PORT"] = str(cls.server_port)
         os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
 
@@ -40,16 +49,24 @@ class DataAPIServerTest(unittest.TestCase):
                 "-c",
                 "configs/dev/dataapi.yaml",
             ],
-            stdout=sys.stderr,
-            stderr=sys.stderr,
+            stdout=cls.stdout_file,
+            stderr=cls.stderr_file,
         )
         # give process some time to set up properly
         time.sleep(2)
+
+        if cls.process.poll() is not None and cls.process.returncode != 0:
+            raise RuntimeError(f"""Process failed to start.
+STDOUT: {cls.stdout_path}
+STDERR: {cls.stderr_path}""")
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.process.kill()
         cls.process.wait()
+
+        cls.stdout_file.close()
+        cls.stderr_file.close()
 
     def test_startup(self):
         response = requests.get(f"http://localhost:{self.server_port}/ping", timeout=2)
