@@ -1,5 +1,9 @@
+import io
+
 import astropy.units as u
+import numpy as np
 from astropy import coordinates as coords
+from astropy.io import fits
 
 from app.data import model, repositories
 from app.data.repositories import layer2
@@ -59,6 +63,92 @@ class Actions(dataapi.Actions):
         )
 
         return dataapi.QueryResponse(objects_to_response(objects))
+
+    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
+        filters = []
+        search_params = []
+
+        if query.pgcs is not None:
+            filters.append(layer2.PGCOneOfFilter(query.pgcs))
+
+        if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
+            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
+            search_params.append(layer2.ICRSSearchParams(query.ra, query.dec))
+
+        if query.name is not None:
+            filters.append(layer2.DesignationCloseFilter(3))
+            search_params.append(layer2.DesignationSearchParams(query.name))
+
+        if (query.cz is not None) and (query.cz_err_percent is not None):
+            filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
+
+        # Query all objects without pagination
+        objects = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            layer2.AndFilter(filters),
+            layer2.CombinedSearchParams(search_params),
+            1000000,  # Large number instead of None
+            0,  # First page
+        )
+
+        # Extract data from Layer2Objects
+        pgcs = []
+        ras = []
+        decs = []
+        czs = []
+        names = []
+
+        for obj in objects:
+            pgcs.append(obj.pgc)
+
+            # Find ICRS data
+            icrs_data = next((c for c in obj.data if isinstance(c, model.ICRSCatalogObject)), None)
+            if icrs_data:
+                ras.append(icrs_data.ra)
+                decs.append(icrs_data.dec)
+            else:
+                ras.append(0.0)
+                decs.append(0.0)
+
+            # Find redshift data
+            redshift_data = next((c for c in obj.data if isinstance(c, model.RedshiftCatalogObject)), None)
+            if redshift_data:
+                czs.append(redshift_data.cz)
+            else:
+                czs.append(0.0)
+
+            # Find designation data
+            designation_data = next((c for c in obj.data if isinstance(c, model.DesignationCatalogObject)), None)
+            if designation_data:
+                names.append(designation_data.designation)
+            else:
+                names.append("")
+
+        # Convert objects to FITS format
+        hdu = fits.BinTableHDU.from_columns(
+            [
+                fits.Column(name="PGC", format="J", array=np.array(pgcs)),
+                fits.Column(name="RA", format="D", array=np.array(ras)),
+                fits.Column(name="DEC", format="D", array=np.array(decs)),
+                fits.Column(name="REDSHIFT", format="D", array=np.array(czs)),
+                fits.Column(name="NAME", format="A32", array=np.array(names)),
+            ]
+        )
+
+        # Create primary HDU with metadata
+        primary_hdu = fits.PrimaryHDU()
+        primary_hdu.header["QUERY_RA"] = query.ra if query.ra is not None else 0.0
+        primary_hdu.header["QUERY_DEC"] = query.dec if query.dec is not None else 0.0
+        primary_hdu.header["QUERY_RAD"] = query.radius if query.radius is not None else 0.0
+        primary_hdu.header["QUERY_NAME"] = query.name if query.name is not None else ""
+        primary_hdu.header["QUERY_CZ"] = query.cz if query.cz is not None else 0.0
+        primary_hdu.header["QUERY_CZERR"] = query.cz_err_percent if query.cz_err_percent is not None else 0.0
+
+        # Create HDU list and write to bytes
+        hdul = fits.HDUList([primary_hdu, hdu])
+        with io.BytesIO() as f:
+            hdul.writeto(f)
+            return f.getvalue()
 
 
 def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCObject]:

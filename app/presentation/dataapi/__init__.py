@@ -1,5 +1,6 @@
 from app.presentation.dataapi.interface import (
     Actions,
+    FITSRequest,
     QueryRequest,
     QueryResponse,
     QuerySimpleRequest,
@@ -16,4 +17,5 @@ __all__ = [
     "QueryResponse",
     "PGCObject",
     "Server",
+    "FITSRequest",
 ]
