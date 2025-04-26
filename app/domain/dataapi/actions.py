@@ -21,7 +21,9 @@ class Actions(dataapi.Actions):
     def __init__(self, layer2_repo: repositories.Layer2Repository) -> None:
         self.layer2_repo = layer2_repo
 
-    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+    def _build_filters_and_params(
+        self, query: dataapi.QuerySimpleRequest | dataapi.FITSRequest
+    ) -> tuple[layer2.Filter, layer2.SearchParams]:
         filters = []
         search_params = []
 
@@ -39,59 +41,11 @@ class Actions(dataapi.Actions):
         if (query.cz is not None) and (query.cz_err_percent is not None):
             filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            layer2.AndFilter(filters),
-            layer2.CombinedSearchParams(search_params),
-            query.page_size,
-            query.page,
-        )
+        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params)
 
-        return dataapi.QuerySimpleResponse(objects_to_response(objects))
-
-    def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
-        expression = expressions.parse_expression(query.q)
-
-        filters, search_params = expression_to_filter(expression)
-
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
-        )
-
-        return dataapi.QueryResponse(objects_to_response(objects))
-
-    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
-        filters = []
-        search_params = []
-
-        if query.pgcs is not None:
-            filters.append(layer2.PGCOneOfFilter(query.pgcs))
-
-        if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
-            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(layer2.ICRSSearchParams(query.ra, query.dec))
-
-        if query.name is not None:
-            filters.append(layer2.DesignationCloseFilter(3))
-            search_params.append(layer2.DesignationSearchParams(query.name))
-
-        if (query.cz is not None) and (query.cz_err_percent is not None):
-            filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
-
-        # Query all objects without pagination
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            layer2.AndFilter(filters),
-            layer2.CombinedSearchParams(search_params),
-            1000000,  # Large number instead of None
-            0,  # First page
-        )
-
-        # Extract data from Layer2Objects
+    def _extract_object_data(
+        self, objects: list[model.Layer2Object]
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         pgcs = []
         ras = []
         decs = []
@@ -124,11 +78,16 @@ class Actions(dataapi.Actions):
             else:
                 names.append("")
 
-        pgcs_array = np.array(pgcs, dtype=np.int32)
-        ras_array = np.array(ras, dtype=np.float64)
-        decs_array = np.array(decs, dtype=np.float64)
-        czs_array = np.array(czs, dtype=np.float64)
-        names_array = np.array(names, dtype="S32")
+        return (
+            np.array(pgcs, dtype=np.int32),
+            np.array(ras, dtype=np.float64),
+            np.array(decs, dtype=np.float64),
+            np.array(czs, dtype=np.float64),
+            np.array(names, dtype="S32"),
+        )
+
+    def _create_fits_hdul(self, query: dataapi.FITSRequest, objects: list[model.Layer2Object]) -> fits.HDUList:
+        pgcs_array, ras_array, decs_array, czs_array, names_array = self._extract_object_data(objects)
 
         hdu = fits.BinTableHDU.from_columns(
             [
@@ -140,7 +99,6 @@ class Actions(dataapi.Actions):
             ]
         )
 
-        # Create primary HDU with metadata
         primary_hdu = fits.PrimaryHDU()
         primary_hdu.header["QUERY_RA"] = query.ra if query.ra is not None else 0.0
         primary_hdu.header["QUERY_DEC"] = query.dec if query.dec is not None else 0.0
@@ -149,8 +107,49 @@ class Actions(dataapi.Actions):
         primary_hdu.header["QUERY_CZ"] = query.cz if query.cz is not None else 0.0
         primary_hdu.header["QUERY_CZERR"] = query.cz_err_percent if query.cz_err_percent is not None else 0.0
 
-        # Create HDU list and write to bytes
-        hdul = fits.HDUList([primary_hdu, hdu])
+        return fits.HDUList([primary_hdu, hdu])
+
+    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+        filters, search_params = self._build_filters_and_params(query)
+
+        objects = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            filters,
+            search_params,
+            query.page_size,
+            query.page,
+        )
+
+        return dataapi.QuerySimpleResponse(objects_to_response(objects))
+
+    def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
+        expression = expressions.parse_expression(query.q)
+        filters, search_params = expression_to_filter(expression)
+
+        objects = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            filters,
+            search_params,
+            query.page_size,
+            query.page,
+        )
+
+        return dataapi.QueryResponse(objects_to_response(objects))
+
+    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
+        filters, search_params = self._build_filters_and_params(query)
+
+        # Query all objects without pagination
+        objects = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            filters,
+            search_params,
+            1000000,  # Large number instead of None
+            0,  # First page
+        )
+
+        hdul = self._create_fits_hdul(query, objects)
+
         with io.BytesIO() as f:
             hdul.writeto(f)
             return f.getvalue()
