@@ -50,7 +50,9 @@ class Actions(dataapi.Actions):
             query.page,
         )
 
-        return dataapi.QuerySimpleResponse(objects_to_response(objects))
+        responder = responders.JSONResponder()
+        pgc_objects = responder.build_response(objects)
+        return dataapi.QuerySimpleResponse(pgc_objects)
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         expression = expressions.parse_expression(query.q)
@@ -64,7 +66,9 @@ class Actions(dataapi.Actions):
             query.page,
         )
 
-        return dataapi.QueryResponse(objects_to_response(objects))
+        responder = responders.JSONResponder()
+        pgc_objects = responder.build_response(objects)
+        return dataapi.QueryResponse(pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         filters, search_params = self._build_filters_and_params(query)
@@ -79,15 +83,6 @@ class Actions(dataapi.Actions):
 
         responder = responders.FITSResponder()
         return responder.build_response(objects)
-
-
-def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCObject]:
-    response_objects = []
-    for obj in objects:
-        catalog_data = {o.catalog().value: o.layer2_data() for o in obj.data}
-        response_objects.append(dataapi.PGCObject(obj.pgc, catalog_data))
-
-    return response_objects
 
 
 def parse_coordinates(coord_str: str) -> coords.SkyCoord:

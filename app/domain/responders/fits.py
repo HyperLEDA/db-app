@@ -82,7 +82,8 @@ def _create_fits_hdul(objects: list[model.Layer2Object]) -> fits.HDUList:
 
     hdu = fits.BinTableHDU.from_columns(columns)
 
-    return fits.HDUList([hdu])
+    primary_hdu = fits.PrimaryHDU()
+    return fits.HDUList([primary_hdu, hdu])
 
 
 class FITSResponder(interface.ObjectResponder):

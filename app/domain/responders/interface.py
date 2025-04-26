@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from app.data import model
 
@@ -9,5 +10,5 @@ class ObjectResponder(ABC):
     """
 
     @abstractmethod
-    def build_response(self, objects: list[model.Layer2Object]) -> bytes:
+    def build_response(self, objects: list[model.Layer2Object]) -> Any:
         pass
