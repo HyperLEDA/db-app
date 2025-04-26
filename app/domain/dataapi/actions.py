@@ -124,14 +124,19 @@ class Actions(dataapi.Actions):
             else:
                 names.append("")
 
-        # Convert objects to FITS format
+        pgcs_array = np.array(pgcs, dtype=np.int32)
+        ras_array = np.array(ras, dtype=np.float64)
+        decs_array = np.array(decs, dtype=np.float64)
+        czs_array = np.array(czs, dtype=np.float64)
+        names_array = np.array(names, dtype="S32")
+
         hdu = fits.BinTableHDU.from_columns(
             [
-                fits.Column(name="PGC", format="J", array=np.array(pgcs)),
-                fits.Column(name="RA", format="D", array=np.array(ras)),
-                fits.Column(name="DEC", format="D", array=np.array(decs)),
-                fits.Column(name="REDSHIFT", format="D", array=np.array(czs)),
-                fits.Column(name="NAME", format="A32", array=np.array(names)),
+                fits.Column(name="PGC", format="J", array=pgcs_array),
+                fits.Column(name="RA", format="D", array=ras_array),
+                fits.Column(name="DEC", format="D", array=decs_array),
+                fits.Column(name="REDSHIFT", format="D", array=czs_array),
+                fits.Column(name="NAME", format="A32", array=names_array),
             ]
         )
 

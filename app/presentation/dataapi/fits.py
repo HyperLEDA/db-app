@@ -1,7 +1,7 @@
 from aiohttp import web
 from marshmallow import ValidationError, fields
 
-from app.lib.web import schema
+from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
 from app.presentation.dataapi import interface
 
@@ -27,7 +27,7 @@ class FITSRequestSchema(schema.RequestSchema):
         model = interface.FITSRequest
 
 
-async def fits_handler(actions: interface.Actions, r: web.Request) -> web.Response:
+async def fits_handler(actions: interface.Actions, r: web.Request) -> responses.BinaryResponse:
     """---
     summary: Query data about objects and return as FITS file
     description: |
@@ -54,8 +54,8 @@ async def fits_handler(actions: interface.Actions, r: web.Request) -> web.Respon
 
     fits_data = actions.query_fits(request)
 
-    return web.Response(
-        body=fits_data,
+    return responses.BinaryResponse(
+        fits_data,
         content_type="application/fits",
         headers={"Content-Disposition": 'attachment; filename="query_result.fits"'},
     )

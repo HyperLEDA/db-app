@@ -1,7 +1,7 @@
 import http
 
 from app.lib.web import server
-from app.presentation.dataapi import interface, query, query_simple
+from app.presentation.dataapi import fits, interface, query, query_simple
 
 
 class Server(server.WebServer):
@@ -28,6 +28,16 @@ class Server(server.WebServer):
                     query.QueryResponseSchema,
                 ),
                 query.query_handler,
+            ),
+            server.ActionRoute(
+                actions,
+                server.RouteInfo(
+                    http.HTTPMethod.GET,
+                    "/api/v1/query/fits",
+                    fits.FITSRequestSchema,
+                    None,
+                ),
+                fits.fits_handler,
             ),
         ]
 

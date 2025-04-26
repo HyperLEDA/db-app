@@ -54,7 +54,7 @@ class RouteInfo:
     method: http.HTTPMethod
     endpoint: str
     request_schema: type[marshmallow.Schema]
-    response_schema: type[marshmallow.Schema]
+    response_schema: type[marshmallow.Schema] | None
 
 
 def datetime_handler(obj: Any):
@@ -76,7 +76,7 @@ class ActionRoute[Actions](Route):
         self,
         actions: Actions,
         info: RouteInfo,
-        func: Callable[[Actions, web.Request], Awaitable[responses.APIOkResponse]],
+        func: Callable[[Actions, web.Request], Awaitable[responses.APIOkResponse | responses.BinaryResponse]],
     ) -> None:
         self.actions = actions
         self.info = info
@@ -86,7 +86,7 @@ class ActionRoute[Actions](Route):
         return self.info.request_schema
 
     def response_schema(self) -> type[marshmallow.Schema]:
-        return self.info.response_schema
+        return self.info.response_schema or marshmallow.Schema
 
     def method(self) -> str:
         return self.info.method.value
@@ -98,6 +98,14 @@ class ActionRoute[Actions](Route):
         @wraps(self.func)
         async def inner(request: web.Request) -> web.Response:
             response = await self.func(self.actions, request)
+
+            if isinstance(response, responses.BinaryResponse):
+                return web.Response(
+                    body=response.data,
+                    content_type=response.content_type,
+                    status=response.status,
+                    headers=response.headers,
+                )
 
             return web.json_response(
                 {"data": dataclasses.asdict(response.data)},
