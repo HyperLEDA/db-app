@@ -32,7 +32,7 @@ class AndFilter(Filter):
         self._filters = filters
 
     def get_query(self):
-        return " AND ".join([f"({f.get_query()})" for f in self._filters])
+        return " AND ".join([f"({f.get_query()})" for f in self._filters]) or "1=1"
 
     def get_params(self):
         params = []
@@ -48,7 +48,7 @@ class OrFilter(Filter):
         self._filters = filters
 
     def get_query(self):
-        return " OR ".join([f"({f.get_query()})" for f in self._filters])
+        return " OR ".join([f"({f.get_query()})" for f in self._filters]) or "1=1"
 
     def get_params(self):
         params = []

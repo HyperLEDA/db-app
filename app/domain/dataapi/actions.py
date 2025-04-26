@@ -47,6 +47,9 @@ class Actions(dataapi.Actions):
         data_dict = {}
 
         for obj in objects:
+            if "PGC" not in data_dict:
+                data_dict["PGC"] = []
+
             for catalog_obj in obj.data:
                 catalog_name = catalog_obj.catalog().value
                 catalog_data = catalog_obj.layer2_data()
@@ -64,7 +67,7 @@ class Actions(dataapi.Actions):
             for field in data_dict:
                 data_dict[field].append(None)
 
-            data_dict["PGC"] = obj.pgc
+            data_dict["PGC"][-1] = obj.pgc
 
             for catalog_obj in obj.data:
                 catalog_name = catalog_obj.catalog().value

@@ -24,7 +24,7 @@ class FITSRequestSchema(schema.RequestSchema):
     cz_err_percent = fields.Float(description="Acceptable deviation of the redshift value in percent")
     page_size = fields.Integer(
         description="Number of objects per page",
-        validate=validate.OneOf([10, 25, 50, 100]),
+        validate=validate.OneOf([10, 25, 50, 100, 1000, 10000, 100000]),
         load_default=25,
     )
     page = fields.Integer(description="Page number", load_default=0)
