@@ -1,3 +1,5 @@
+import datetime
+
 from aiohttp import web
 from marshmallow import ValidationError, fields, validate
 
@@ -60,8 +62,9 @@ async def fits_handler(actions: interface.Actions, r: web.Request) -> responses.
 
     fits_data = actions.query_fits(request)
 
+    filename = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     return responses.BinaryResponse(
         fits_data,
         content_type="application/fits",
-        headers={"Content-Disposition": 'attachment; filename="query_result.fits"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}.fits"'},
     )
