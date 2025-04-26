@@ -49,7 +49,7 @@ class TransformationO1UseCase:
         cross_identification_function: Callable[
             [
                 Layer2Repository,
-                model.Layer0OldObject,
+                model.Layer0Object,
                 CrossIdSimultaneousDataProvider,
                 CrossIdentificationUserParam,
             ],

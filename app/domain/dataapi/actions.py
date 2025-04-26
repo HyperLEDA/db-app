@@ -3,7 +3,7 @@ from astropy import coordinates as coords
 
 from app.data import model, repositories
 from app.data.repositories import layer2
-from app.domain import expressions
+from app.domain import expressions, responders
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -17,7 +17,9 @@ class Actions(dataapi.Actions):
     def __init__(self, layer2_repo: repositories.Layer2Repository) -> None:
         self.layer2_repo = layer2_repo
 
-    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+    def _build_filters_and_params(
+        self, query: dataapi.QuerySimpleRequest | dataapi.FITSRequest
+    ) -> tuple[layer2.Filter, layer2.SearchParams]:
         filters = []
         search_params = []
 
@@ -35,19 +37,25 @@ class Actions(dataapi.Actions):
         if (query.cz is not None) and (query.cz_err_percent is not None):
             filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
+        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params)
+
+    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+        filters, search_params = self._build_filters_and_params(query)
+
         objects = self.layer2_repo.query(
             ENABLED_CATALOGS,
-            layer2.AndFilter(filters),
-            layer2.CombinedSearchParams(search_params),
+            filters,
+            search_params,
             query.page_size,
             query.page,
         )
 
-        return dataapi.QuerySimpleResponse(objects_to_response(objects))
+        responder = responders.JSONResponder()
+        pgc_objects = responder.build_response(objects)
+        return dataapi.QuerySimpleResponse(pgc_objects)
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         expression = expressions.parse_expression(query.q)
-
         filters, search_params = expression_to_filter(expression)
 
         objects = self.layer2_repo.query(
@@ -58,16 +66,23 @@ class Actions(dataapi.Actions):
             query.page,
         )
 
-        return dataapi.QueryResponse(objects_to_response(objects))
+        responder = responders.JSONResponder()
+        pgc_objects = responder.build_response(objects)
+        return dataapi.QueryResponse(pgc_objects)
 
+    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
+        filters, search_params = self._build_filters_and_params(query)
 
-def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCObject]:
-    response_objects = []
-    for obj in objects:
-        catalog_data = {o.catalog().value: o.layer2_data() for o in obj.data}
-        response_objects.append(dataapi.PGCObject(obj.pgc, catalog_data))
+        objects = self.layer2_repo.query(
+            ENABLED_CATALOGS,
+            filters,
+            search_params,
+            query.page_size,
+            query.page,
+        )
 
-    return response_objects
+        responder = responders.FITSResponder()
+        return responder.build_response(objects)
 
 
 def parse_coordinates(coord_str: str) -> coords.SkyCoord:
