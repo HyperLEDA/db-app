@@ -427,6 +427,7 @@
               "char",
               "short",
               "int",
+              "long",
               "integer",
               "smallint",
               "float",
