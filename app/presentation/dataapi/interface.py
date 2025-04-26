@@ -43,6 +43,8 @@ class FITSRequest:
     name: str | None = None
     cz: float | None = None
     cz_err_percent: float | None = None
+    page_size: int = 25
+    page: int = 0
 
 
 class Actions(abc.ABC):

@@ -1,5 +1,5 @@
 from aiohttp import web
-from marshmallow import ValidationError, fields
+from marshmallow import ValidationError, fields, validate
 
 from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
@@ -22,6 +22,12 @@ class FITSRequestSchema(schema.RequestSchema):
     name = fields.String(description="Name of the object")
     cz = fields.Float(description="Redshift value")
     cz_err_percent = fields.Float(description="Acceptable deviation of the redshift value in percent")
+    page_size = fields.Integer(
+        description="Number of objects per page",
+        validate=validate.OneOf([10, 25, 50, 100]),
+        load_default=25,
+    )
+    page = fields.Integer(description="Page number", load_default=0)
 
     class Meta:
         model = interface.FITSRequest
