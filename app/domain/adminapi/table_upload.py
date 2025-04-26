@@ -181,7 +181,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
             except ValueError:
                 raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
 
-        if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=True):
+        if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=False):
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
 
         result.append(

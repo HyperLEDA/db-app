@@ -14,6 +14,7 @@ type_map = {
     "char": TYPE_TEXT,
     "short": TYPE_INTEGER,
     "int": TYPE_INTEGER,
+    "long": TYPE_INTEGER,
     "integer": TYPE_INTEGER,
     "smallint": TYPE_INTEGER,
     "float": TYPE_DOUBLE_PRECISION,

@@ -97,7 +97,7 @@ AS $$
   DECLARE
     str_comment text := param::text ;
   BEGIN
-    EXECUTE concat('COMMENT ON COLUMN ', schema_name, '.', table_name, '.', column_name, ' IS ''', str_comment, '''');
+    EXECUTE format('COMMENT ON COLUMN %I.%I.%I IS %L', schema_name, table_name, column_name, str_comment);
   END ;
 $$  LANGUAGE plpgsql COST 100 VOLATILE STRICT PARALLEL UNSAFE
 ;
@@ -119,9 +119,9 @@ AS $$
       and c.relname=table_name
     ;
 
-    CASE WHEN TabType='r' THEN EXECUTE concat('COMMENT ON TABLE ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
-         WHEN TabType='v' THEN EXECUTE concat('COMMENT ON VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
-         WHEN TabType='m' THEN EXECUTE concat('COMMENT ON MATERIALIZED VIEW ', schema_name, '.', table_name, ' IS ''', str_comment, '''');
+    CASE WHEN TabType='r' THEN EXECUTE format('COMMENT ON TABLE %I.%I IS %L', schema_name, table_name, str_comment);
+         WHEN TabType='v' THEN EXECUTE format('COMMENT ON VIEW %I.%I IS %L', schema_name, table_name, str_comment);
+         WHEN TabType='m' THEN EXECUTE format('COMMENT ON MATERIALIZED VIEW %I.%I IS %L', schema_name, table_name, str_comment);
     ELSE
     END CASE;
   END ;

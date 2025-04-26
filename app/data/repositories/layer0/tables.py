@@ -54,12 +54,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
             if data.description is not None:
                 self._storage.exec(
-                    template.render_query(
-                        template.ADD_TABLE_COMMENT,
-                        schema=RAWDATA_SCHEMA,
-                        table_name=data.table_name,
-                        params=json.dumps({"description": data.description}),
-                    ),
+                    "SELECT meta.setparams(%s, %s, %s::json)",
+                    params=[RAWDATA_SCHEMA, data.table_name, json.dumps({"description": data.description})],
                 )
 
             for column_descr in data.column_descriptions:
@@ -227,17 +223,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if column_description.ucd is not None:
             column_params["ucd"] = column_description.ucd
 
-        query = template.render_query(
-            template.ADD_COLUMN_COMMENT,
-            schema="rawdata",
-            table_name=table_name,
-            column_name=column_description.name,
-            params=json.dumps(column_params),
-        )
         modification_query = "UPDATE rawdata.tables SET modification_dt = now() WHERE id = %s"
 
         with self.with_tx():
-            self._storage.exec(query)
+            self._storage.exec(
+                "SELECT meta.setparams(%s, %s, %s, %s::json)",
+                params=[RAWDATA_SCHEMA, table_name, column_description.name, json.dumps(column_params)],
+            )
             self._storage.exec(modification_query, params=[table_id])
 
     def _get_table_id(self, table_name: str) -> tuple[int, bool]:
