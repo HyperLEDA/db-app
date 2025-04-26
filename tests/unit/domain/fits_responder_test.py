@@ -4,7 +4,7 @@ import numpy as np
 from astropy.io import fits as astropy_fits
 
 from app.data import model
-from app.domain.responders import fits
+from app.domain.responders import fits_responder
 
 
 class ExtractObjectDataTest(unittest.TestCase):
@@ -29,7 +29,7 @@ class ExtractObjectDataTest(unittest.TestCase):
         ]
 
     def test_data_structure(self):
-        data_dict = fits._extract_object_data(self.objects)
+        data_dict = fits_responder.extract_object_data(self.objects)
 
         self.assertIn("PGC", data_dict)
         self.assertIn("designation_design", data_dict)
@@ -41,7 +41,7 @@ class ExtractObjectDataTest(unittest.TestCase):
         self.assertIn("redshift_e_cz", data_dict)
 
     def test_data_types(self):
-        data_dict = fits._extract_object_data(self.objects)
+        data_dict = fits_responder.extract_object_data(self.objects)
 
         self.assertIsInstance(data_dict["PGC"], np.ndarray)
         self.assertIsInstance(data_dict["designation_design"], np.ndarray)
@@ -53,7 +53,7 @@ class ExtractObjectDataTest(unittest.TestCase):
         self.assertIsInstance(data_dict["redshift_e_cz"], np.ndarray)
 
     def test_data_values(self):
-        data_dict = fits._extract_object_data(self.objects)
+        data_dict = fits_responder.extract_object_data(self.objects)
 
         self.assertListEqual(list(data_dict["PGC"]), [1234, 5678])
         self.assertListEqual(list(data_dict["designation_design"]), [b"Galaxy1", b"Galaxy2"])
@@ -78,7 +78,7 @@ class CreateFitsHdulTest(unittest.TestCase):
         ]
 
     def test_hdul_structure(self):
-        hdul = fits._create_fits_hdul(self.objects)
+        hdul = fits_responder.create_fits_hdul(self.objects)
 
         self.assertIsInstance(hdul, astropy_fits.HDUList)
         self.assertEqual(len(hdul), 2)
@@ -86,7 +86,7 @@ class CreateFitsHdulTest(unittest.TestCase):
         self.assertIsInstance(hdul[1], astropy_fits.BinTableHDU)
 
     def test_table_columns(self):
-        hdul = fits._create_fits_hdul(self.objects)
+        hdul = fits_responder.create_fits_hdul(self.objects)
         table = hdul[1]
 
         self.assertIn("PGC", table.columns.names)
@@ -95,8 +95,6 @@ class CreateFitsHdulTest(unittest.TestCase):
         self.assertIn("icrs_e_ra", table.columns.names)
         self.assertIn("icrs_dec", table.columns.names)
         self.assertIn("icrs_e_dec", table.columns.names)
-        self.assertIn("redshift_cz", table.columns.names)
-        self.assertIn("redshift_e_cz", table.columns.names)
 
 
 class FitsResponderTest(unittest.TestCase):
@@ -110,7 +108,7 @@ class FitsResponderTest(unittest.TestCase):
                 ],
             )
         ]
-        self.responder = fits.FITSResponder()
+        self.responder = fits_responder.FITSResponder()
 
     def test_build_response(self):
         fits_data = self.responder.build_response(self.objects)

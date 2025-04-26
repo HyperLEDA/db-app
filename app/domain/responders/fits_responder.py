@@ -7,7 +7,7 @@ from app.data import model
 from app.domain.responders import interface
 
 
-def _extract_object_data(objects: list[model.Layer2Object]) -> dict[str, np.ndarray]:
+def extract_object_data(objects: list[model.Layer2Object]) -> dict[str, np.ndarray]:
     data_dict = {}
 
     for obj in objects:
@@ -61,8 +61,8 @@ def _extract_object_data(objects: list[model.Layer2Object]) -> dict[str, np.ndar
     return data_dict
 
 
-def _create_fits_hdul(objects: list[model.Layer2Object]) -> fits.HDUList:
-    data_dict = _extract_object_data(objects)
+def create_fits_hdul(objects: list[model.Layer2Object]) -> fits.HDUList:
+    data_dict = extract_object_data(objects)
 
     columns = []
     for field, array in data_dict.items():
@@ -88,7 +88,7 @@ def _create_fits_hdul(objects: list[model.Layer2Object]) -> fits.HDUList:
 
 class FITSResponder(interface.ObjectResponder):
     def build_response(self, objects: list[model.Layer2Object]) -> bytes:
-        hdul = _create_fits_hdul(objects)
+        hdul = create_fits_hdul(objects)
 
         with io.BytesIO() as f:
             hdul.writeto(f)
