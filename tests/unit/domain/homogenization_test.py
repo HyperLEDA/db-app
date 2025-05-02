@@ -5,8 +5,7 @@ from astropy import units as u
 from parameterized import param, parameterized
 
 from app.data import model, repositories
-from app.domain.homogenization import apply, filters
-from app.domain.homogenization import model as homogenization_model
+from app.domain import homogenization
 
 
 class HomogenizationTest(unittest.TestCase):
@@ -34,23 +33,27 @@ class HomogenizationTest(unittest.TestCase):
 
     def test_simple_homogenization(self):
         rules = [
-            homogenization_model.Rule(
-                catalog="icrs", parameter="ra", key="coords", filters=filters.UCDFilter("pos.eq.ra"), priority=1
+            homogenization.Rule(
+                catalog="icrs", parameter="ra", key="coords", filters=homogenization.UCDFilter("pos.eq.ra"), priority=1
             ),
-            homogenization_model.Rule(
-                catalog="icrs", parameter="dec", key="coords", filters=filters.UCDFilter("pos.eq.dec"), priority=1
+            homogenization.Rule(
+                catalog="icrs",
+                parameter="dec",
+                key="coords",
+                filters=homogenization.UCDFilter("pos.eq.dec"),
+                priority=1,
             ),
-            homogenization_model.Rule(
+            homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=filters.UCDFilter("meta.id"),
+                filters=homogenization.UCDFilter("meta.id"),
                 priority=1,
             ),
         ]
 
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
+        h = homogenization.get_homogenization(rules, [], self.table_meta)
+        result = h.apply(self.data)
 
         self.assertEqual(len(result), 2)
 
@@ -70,20 +73,24 @@ class HomogenizationTest(unittest.TestCase):
 
     def test_priority_rules(self):
         rules = [
-            homogenization_model.Rule(
-                catalog="designation", parameter="design", key="name", filters=filters.UCDFilter("meta.id"), priority=1
-            ),
-            homogenization_model.Rule(
+            homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=filters.ColumnNameFilter("secondary_name"),
+                filters=homogenization.UCDFilter("meta.id"),
+                priority=1,
+            ),
+            homogenization.Rule(
+                catalog="designation",
+                parameter="design",
+                key="name",
+                filters=homogenization.ColumnNameFilter("secondary_name"),
                 priority=2,
             ),
         ]
 
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
+        h = homogenization.get_homogenization(rules, [], self.table_meta)
+        result = h.apply(self.data)
 
         self.assertEqual(len(result), 2)
         self.assertEqual(len(result[0].data), 1)
@@ -93,24 +100,24 @@ class HomogenizationTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            param(filters.UCDFilter("meta.id"), filters.TableNameFilter("test_table"), [1, 1]),
-            param(filters.UCDFilter("meta.id"), filters.ColumnNameFilter("name"), [1, 1]),
-            param(filters.UCDFilter("meta.id"), filters.ColumnNameFilter("fake_name"), [0, 0]),
+            param(homogenization.UCDFilter("meta.id"), homogenization.TableNameFilter("test_table"), [1, 1]),
+            param(homogenization.UCDFilter("meta.id"), homogenization.ColumnNameFilter("name"), [1, 1]),
+            param(homogenization.UCDFilter("meta.id"), homogenization.ColumnNameFilter("fake_name"), [0, 0]),
         ]
     )
     def test_filter_combination(self, filter1, filter2, expected_lens):
         rules = [
-            homogenization_model.Rule(
+            homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=filters.AndFilter([filter1, filter2]),
+                filters=homogenization.AndFilter([filter1, filter2]),
                 priority=1,
             )
         ]
 
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
+        h = homogenization.get_homogenization(rules, [], self.table_meta)
+        result = h.apply(self.data)
 
         self.assertEqual(len(result), 2)
         self.assertEqual(len(result[0].data), expected_lens[0])
@@ -118,20 +125,24 @@ class HomogenizationTest(unittest.TestCase):
 
     def test_keys(self):
         rules = [
-            homogenization_model.Rule(
-                catalog="designation", parameter="design", key="name", filters=filters.UCDFilter("meta.id"), priority=1
+            homogenization.Rule(
+                catalog="designation",
+                parameter="design",
+                key="name",
+                filters=homogenization.UCDFilter("meta.id"),
+                priority=1,
             ),
-            homogenization_model.Rule(
+            homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name2",
-                filters=filters.ColumnNameFilter("secondary_name"),
+                filters=homogenization.ColumnNameFilter("secondary_name"),
                 priority=1,
             ),
         ]
 
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
+        h = homogenization.get_homogenization(rules, [], self.table_meta)
+        result = h.apply(self.data)
 
         self.assertEqual(len(result), 2)
         self.assertEqual(len(result[0].data), 2)
