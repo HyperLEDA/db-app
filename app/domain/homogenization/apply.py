@@ -23,21 +23,34 @@ class Homogenization:
         result: list[data_model.Layer0Object] = []
 
         for _, row in data.iterrows():
-            catalog_objects: dict[tuple[str, str], dict[str, Any]] = {}
+            priority_params: dict[tuple[str, str], dict[str, tuple[Any, int]]] = {}
             for column_name in row.index:
                 if column_name not in self.rules_by_column:
                     continue
 
                 rules = self.rules_by_column[column_name]
-                value = row[column_name]
 
                 for rule in rules:
                     key = (rule.catalog, rule.key)
 
-                    if key not in catalog_objects:
-                        catalog_objects[key] = {}
+                    if key not in priority_params:
+                        priority_params[key] = {}
 
-                    catalog_objects[key][rule.parameter] = value
+                    if (
+                        rule.parameter not in priority_params[key]
+                        or rule.priority > priority_params[key][rule.parameter][1]
+                    ):
+                        priority_params[key][rule.parameter] = (row[column_name], rule.priority)
+
+            catalog_objects: dict[tuple[str, str], dict[str, Any]] = {}
+
+            for key, params in priority_params.items():
+                constructor_params = {}
+
+                for param, (value, _) in params.items():
+                    constructor_params[param] = value
+
+                catalog_objects[key] = constructor_params
 
             for key in catalog_objects:
                 if key not in self.params_by_catalog:
@@ -88,9 +101,7 @@ def get_homogenization(
         for rule in rules:
             key = (rule.catalog, rule.parameter, rule.key)
 
-            if rule.column_filters.apply(table_meta, column) and (
-                key not in column_rules or rule.priority > column_rules[key].priority
-            ):
+            if rule.column_filters.apply(table_meta, column):
                 column_rules[key] = rule
 
         if len(column_rules) == 0:
