@@ -16,6 +16,8 @@ from app.data.model.layer0 import (
     CIResultObjectExisting,
     CIResultObjectNew,
     ColumnDescription,
+    HomogenizationParams,
+    HomogenizationRule,
     Layer0CreationResponse,
     Layer0Object,
     Layer0ProcessedObject,
@@ -52,4 +54,6 @@ __all__ = [
     "RedshiftCatalogObject",
     "get_catalog_object_type",
     "new_catalog_object",
+    "HomogenizationRule",
+    "HomogenizationParams",
 ]

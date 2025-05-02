@@ -56,4 +56,4 @@ class ICRSConverter(interface.QuantityConverter):
         ra = coords.ra.deg
         dec = coords.dec.deg
 
-        return model.ICRSCatalogObject(ra, 0.01, dec, 0.01)
+        return model.ICRSCatalogObject(ra=ra, e_ra=0.01, dec=dec, e_dec=0.01)

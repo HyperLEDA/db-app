@@ -77,3 +77,20 @@ class TableStatistics:
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int
+
+
+@dataclass
+class HomogenizationRule:
+    catalog: str
+    parameter: str
+    key: str
+    filters: dict[str, str]
+    priority: int
+    enrichment: dict[str, str]
+
+
+@dataclass
+class HomogenizationParams:
+    catalog: str
+    key: str
+    params: dict[str, str]

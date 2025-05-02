@@ -23,7 +23,7 @@ class CrossmatchTest(unittest.TestCase):
                 model.Layer0Object(
                     "1212",
                     [
-                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.ICRSCatalogObject(ra=12, e_ra=0.1, dec=34, e_dec=0.1),
                         model.DesignationCatalogObject("M33"),
                     ],
                 )
@@ -35,7 +35,7 @@ class CrossmatchTest(unittest.TestCase):
 
     def test_icrs_hit_designation_ambiguity(self):
         layer2_objects = [
-            model.Layer2CatalogObject(123, model.ICRSCatalogObject(12, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(123, model.ICRSCatalogObject(ra=12, e_ra=0.1, dec=34.001, e_dec=0.1)),
             model.Layer2CatalogObject(123, model.DesignationCatalogObject("M33")),
             model.Layer2CatalogObject(456, model.DesignationCatalogObject("M34")),
         ]
@@ -48,7 +48,7 @@ class CrossmatchTest(unittest.TestCase):
                 model.Layer0Object(
                     "1212",
                     [
-                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.ICRSCatalogObject(ra=12, e_ra=0.1, dec=34, e_dec=0.1),
                         model.DesignationCatalogObject("M33"),
                     ],
                 )
@@ -60,9 +60,9 @@ class CrossmatchTest(unittest.TestCase):
 
     def test_both_ambiguous(self):
         layer2_objects = [
-            model.Layer2CatalogObject(123, model.ICRSCatalogObject(12, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(123, model.ICRSCatalogObject(ra=12, e_ra=0.1, dec=34.001, e_dec=0.1)),
             model.Layer2CatalogObject(123, model.DesignationCatalogObject("M33")),
-            model.Layer2CatalogObject(456, model.ICRSCatalogObject(12.001, 0.1, 34.001, 0.1)),
+            model.Layer2CatalogObject(456, model.ICRSCatalogObject(ra=12.001, e_ra=0.1, dec=34.001, e_dec=0.1)),
             model.Layer2CatalogObject(456, model.DesignationCatalogObject("M34")),
         ]
 
@@ -74,7 +74,7 @@ class CrossmatchTest(unittest.TestCase):
                 model.Layer0Object(
                     "1212",
                     [
-                        model.ICRSCatalogObject(12, 0.1, 34, 0.1),
+                        model.ICRSCatalogObject(ra=12, e_ra=0.1, dec=34, e_dec=0.1),
                         model.DesignationCatalogObject("M33"),
                     ],
                 )

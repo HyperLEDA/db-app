@@ -5,10 +5,10 @@ from app.data.model import interface
 
 @final
 class ICRSCatalogObject(interface.CatalogObject):
-    def __init__(self, ra: float, e_ra: float, dec: float, e_dec: float, **kwargs) -> None:
+    def __init__(self, ra: float, dec: float, e_ra: float | None = None, e_dec: float | None = None, **kwargs) -> None:
         self.ra = ra
-        self.e_ra = e_ra
         self.dec = dec
+        self.e_ra = e_ra
         self.e_dec = e_dec
 
     def __eq__(self, value: object) -> bool:
@@ -24,16 +24,16 @@ class ICRSCatalogObject(interface.CatalogObject):
         Errors are computed as the mean of all errors.
         """
         ras = [obj.ra for obj in objects]
-        e_ras = [obj.e_ra for obj in objects]
+        e_ras = [obj.e_ra for obj in objects if obj.e_ra is not None]
         decs = [obj.dec for obj in objects]
-        e_decs = [obj.e_dec for obj in objects]
+        e_decs = [obj.e_dec for obj in objects if obj.e_dec is not None]
 
         ra = sum(ras) / len(ras)
-        e_ra = sum(e_ras) / len(e_ras)
+        e_ra = sum(e_ras) / len(e_ras) if e_ras else None
         dec = sum(decs) / len(decs)
-        e_dec = sum(e_decs) / len(e_decs)
+        e_dec = sum(e_decs) / len(e_decs) if e_decs else None
 
-        return cls(ra, e_ra, dec, e_dec)
+        return cls(ra, dec, e_ra, e_dec)
 
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
@@ -41,8 +41,8 @@ class ICRSCatalogObject(interface.CatalogObject):
     def layer1_data(self) -> dict[str, Any]:
         return {
             "ra": self.ra,
-            "e_ra": self.e_ra,
             "dec": self.dec,
+            "e_ra": self.e_ra,
             "e_dec": self.e_dec,
         }
 
@@ -69,8 +69,8 @@ class ICRSCatalogObject(interface.CatalogObject):
     def layer2_data(self) -> dict[str, Any]:
         return {
             "ra": self.ra,
-            "e_ra": self.e_ra,
             "dec": self.dec,
+            "e_ra": self.e_ra,
             "e_dec": self.e_dec,
         }
 

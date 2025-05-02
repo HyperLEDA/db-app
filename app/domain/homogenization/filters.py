@@ -1,0 +1,46 @@
+from abc import ABC, abstractmethod
+from typing import final
+
+from app.data import model
+
+
+class Filter(ABC):
+    @abstractmethod
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        pass
+
+
+@final
+class UCDFilter(Filter):
+    def __init__(self, ucd: str):
+        self.ucd = ucd
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return column.ucd == self.ucd
+
+
+@final
+class TableNameFilter(Filter):
+    def __init__(self, table_name: str):
+        self.table_name = table_name
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return table.table_name == self.table_name
+
+
+@final
+class ColumnNameFilter(Filter):
+    def __init__(self, column_name: str):
+        self.column_name = column_name
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return column.name == self.column_name
+
+
+@final
+class AndFilter(Filter):
+    def __init__(self, filters: list[Filter]):
+        self.filters = filters
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return all(f.apply(table, column) for f in self.filters)
