@@ -115,3 +115,28 @@ class HomogenizationTest(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(len(result[0].data), expected_lens[0])
         self.assertEqual(len(result[1].data), expected_lens[1])
+
+    def test_keys(self):
+        rules = [
+            homogenization_model.Rule(
+                catalog="designation", parameter="design", key="name", filters=filters.UCDFilter("meta.id"), priority=1
+            ),
+            homogenization_model.Rule(
+                catalog="designation",
+                parameter="design",
+                key="name2",
+                filters=filters.ColumnNameFilter("secondary_name"),
+                priority=1,
+            ),
+        ]
+
+        homogenization = apply.get_homogenization(rules, [], self.table_meta)
+        result = homogenization.apply(self.data)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result[0].data), 2)
+        self.assertEqual(len(result[1].data), 2)
+        self.assertEqual(result[0].data[0], model.DesignationCatalogObject(design="obj1"))
+        self.assertEqual(result[0].data[1], model.DesignationCatalogObject(design="obj1_s"))
+        self.assertEqual(result[1].data[0], model.DesignationCatalogObject(design="obj2"))
+        self.assertEqual(result[1].data[1], model.DesignationCatalogObject(design="obj2_s"))
