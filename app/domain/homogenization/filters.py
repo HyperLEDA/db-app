@@ -36,6 +36,7 @@ class ColumnNameFilter(Filter):
     def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
         return column.name == self.column_name
 
+
 @final
 class AndFilter(Filter):
     def __init__(self, filters: list[Filter]):

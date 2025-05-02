@@ -16,8 +16,8 @@ class Homogenization:
         self.rules_by_column = rules_by_column
         self.params_by_catalog = params_by_catalog
 
-    def apply(self, data: pandas.DataFrame) -> list[data_model.CatalogObject]:
-        result: list[data_model.CatalogObject] = []
+    def apply(self, data: pandas.DataFrame) -> list[data_model.Layer0Object]:
+        result: list[data_model.Layer0Object] = []
 
         for _, row in data.iterrows():
             catalog_objects: dict[tuple[str, str], dict[str, Any]] = {}
@@ -37,6 +37,9 @@ class Homogenization:
                     catalog_objects[key][rule.parameter] = value
 
             for key in catalog_objects:
+                if key not in self.params_by_catalog:
+                    continue
+
                 catalog_objects[key].update(self.params_by_catalog[key])
 
             obj = data_model.Layer0Object(row[repositories.INTERNAL_ID_COLUMN_NAME], [])
@@ -46,6 +49,8 @@ class Homogenization:
 
                 catalog_obj = catalog_type(**data_dict)
                 obj.data.append(catalog_obj)
+
+            result.append(obj)
 
         return result
 

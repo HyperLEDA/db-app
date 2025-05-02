@@ -73,4 +73,6 @@ class CoordinateConverterTest(unittest.TestCase):
         expected = coordinates.ICRS(10 * u.hour, dec=22 * u.deg)
 
         actual = converter.apply(data)
-        self.assertEqual(actual, model.ICRSCatalogObject(expected.ra.deg, 0.01, expected.dec.deg, 0.01))
+        self.assertEqual(
+            actual, model.ICRSCatalogObject(ra=expected.ra.deg, e_ra=0.01, dec=expected.dec.deg, e_dec=0.01)
+        )

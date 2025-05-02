@@ -22,8 +22,8 @@ class Layer1RepositoryTest(unittest.TestCase):
 
     def test_icrs(self):
         objects: list[model.Layer1Observation] = [
-            model.Layer1Observation("111", model.ICRSCatalogObject(pgc=1, ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
-            model.Layer1Observation("112", model.ICRSCatalogObject(pgc=1, ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
+            model.Layer1Observation("111", model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
+            model.Layer1Observation("112", model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
