@@ -34,20 +34,27 @@ class HomogenizationTest(unittest.TestCase):
     def test_simple_homogenization(self):
         rules = [
             homogenization.Rule(
-                catalog="icrs", parameter="ra", key="coords", filters=homogenization.UCDFilter("pos.eq.ra"), priority=1
+                catalog="icrs",
+                parameter="ra",
+                key="coords",
+                column_filters=homogenization.UCDColumnFilter("pos.eq.ra"),
+                table_filters=homogenization.AndTableFilter([]),
+                priority=1,
             ),
             homogenization.Rule(
                 catalog="icrs",
                 parameter="dec",
                 key="coords",
-                filters=homogenization.UCDFilter("pos.eq.dec"),
+                column_filters=homogenization.UCDColumnFilter("pos.eq.dec"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
             ),
             homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=homogenization.UCDFilter("meta.id"),
+                column_filters=homogenization.UCDColumnFilter("meta.id"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
             ),
         ]
@@ -77,14 +84,16 @@ class HomogenizationTest(unittest.TestCase):
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=homogenization.UCDFilter("meta.id"),
+                column_filters=homogenization.UCDColumnFilter("meta.id"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
             ),
             homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=homogenization.ColumnNameFilter("secondary_name"),
+                column_filters=homogenization.ColumnNameColumnFilter("secondary_name"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=2,
             ),
         ]
@@ -100,9 +109,11 @@ class HomogenizationTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            param(homogenization.UCDFilter("meta.id"), homogenization.TableNameFilter("test_table"), [1, 1]),
-            param(homogenization.UCDFilter("meta.id"), homogenization.ColumnNameFilter("name"), [1, 1]),
-            param(homogenization.UCDFilter("meta.id"), homogenization.ColumnNameFilter("fake_name"), [0, 0]),
+            param(homogenization.UCDColumnFilter("meta.id"), homogenization.TableNameFilter("test_table"), [1, 1]),
+            param(homogenization.UCDColumnFilter("meta.id"), homogenization.ColumnNameColumnFilter("name"), [1, 1]),
+            param(
+                homogenization.UCDColumnFilter("meta.id"), homogenization.ColumnNameColumnFilter("fake_name"), [0, 0]
+            ),
         ]
     )
     def test_filter_combination(self, filter1, filter2, expected_lens):
@@ -111,7 +122,8 @@ class HomogenizationTest(unittest.TestCase):
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=homogenization.AndFilter([filter1, filter2]),
+                column_filters=homogenization.AndColumnFilter([filter1, filter2]),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
             )
         ]
@@ -129,15 +141,25 @@ class HomogenizationTest(unittest.TestCase):
                 catalog="designation",
                 parameter="design",
                 key="name",
-                filters=homogenization.UCDFilter("meta.id"),
+                column_filters=homogenization.UCDColumnFilter("meta.id"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
             ),
             homogenization.Rule(
                 catalog="designation",
                 parameter="design",
                 key="name2",
-                filters=homogenization.ColumnNameFilter("secondary_name"),
+                column_filters=homogenization.ColumnNameColumnFilter("secondary_name"),
+                table_filters=homogenization.AndTableFilter([]),
                 priority=1,
+            ),
+            homogenization.Rule(
+                catalog="designation",
+                parameter="design",
+                key="name3",
+                column_filters=homogenization.ColumnNameColumnFilter("secondary_name"),
+                table_filters=homogenization.TableNameFilter("test_table_fake"),
+                priority=3,
             ),
         ]
 

@@ -21,6 +21,9 @@ adminapi-dev:
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml
 
+default-rules:
+	PGPASSWORD=password psql -h localhost -p 6432 --dbname hyperleda -U hyperleda -c "\copy layer0.homogenization_rules (id, catalog, parameter, key, column_filters, table_filters, priority, enrichment) FROM 'tests/assets/default_rules.csv' WITH ( FORMAT csv, HEADER true, QUOTE '\"', DELIMITER ',');"
+
 start-db:
 	docker-compose up -d
 

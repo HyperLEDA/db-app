@@ -1,10 +1,13 @@
 from typing import Any
 
 import pandas
+import structlog
 
 from app.data import model as data_model
 from app.data import repositories
 from app.domain.homogenization import model
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class Homogenization:
@@ -47,7 +50,17 @@ class Homogenization:
             for (catalog, _), data_dict in catalog_objects.items():
                 catalog_type = data_model.get_catalog_object_type(data_model.RawCatalog(catalog))
 
-                catalog_obj = catalog_type(**data_dict)
+                try:
+                    catalog_obj = catalog_type(**data_dict)
+                except Exception as e:
+                    logger.error(
+                        "Error creating catalog object",
+                        object_id=row[repositories.INTERNAL_ID_COLUMN_NAME],
+                        error=e,
+                        data_dict=data_dict,
+                    )
+                    continue
+
                 obj.data.append(catalog_obj)
 
             result.append(obj)
@@ -61,14 +74,21 @@ def get_homogenization(
     table_meta: data_model.Layer0TableMeta,
 ) -> Homogenization:
     rules_by_column: dict[str, list[model.Rule]] = {}
+    rules = []
+
+    for rule in homogenization_rules:
+        key = (rule.catalog, rule.parameter, rule.key)
+
+        if rule.table_filters.apply(table_meta):
+            rules.append(rule)
 
     for column in table_meta.column_descriptions:
         column_rules: dict[tuple[str, str, str], model.Rule] = {}
 
-        for rule in homogenization_rules:
+        for rule in rules:
             key = (rule.catalog, rule.parameter, rule.key)
 
-            if rule.filters.apply(table_meta, column) and (
+            if rule.column_filters.apply(table_meta, column) and (
                 key not in column_rules or rule.priority > column_rules[key].priority
             ):
                 column_rules[key] = rule

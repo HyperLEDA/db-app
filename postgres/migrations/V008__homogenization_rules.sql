@@ -6,7 +6,8 @@ CREATE TABLE layer0.homogenization_rules (
     catalog text NOT NULL,
     parameter text NOT NULL,
     key text,
-    filters jsonb NOT NULL,
+    column_filters jsonb NOT NULL,
+    table_filters jsonb NOT NULL,
     priority int NOT NULL,
     enrichment jsonb
 );

@@ -37,4 +37,4 @@ class RedshiftConverter(interface.QuantityConverter):
         else:
             z = raw_z * self.unit
 
-        return model.RedshiftCatalogObject(z.value, 0.1)
+        return model.RedshiftCatalogObject(cz=z.value, e_cz=0.1)

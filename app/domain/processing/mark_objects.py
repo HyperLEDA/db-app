@@ -21,15 +21,20 @@ def get_homogenization(
 
 
 def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
-    filters = []
+    column_filters = []
+    table_filters = []
 
-    for f, value in rule.filters.items():
+    for f, value in rule.column_filters.items():
         if f == "ucd":
-            filters.append(homogenization.UCDFilter(value))
+            column_filters.append(homogenization.UCDColumnFilter(value))
         elif f == "column_name":
-            filters.append(homogenization.ColumnNameFilter(value))
-        elif f == "table_name":
-            filters.append(homogenization.TableNameFilter(value))
+            column_filters.append(homogenization.ColumnNameColumnFilter(value))
+        else:
+            raise ValueError(f"Unknown filter: {f}")
+
+    for f, value in rule.table_filters.items():
+        if f == "table_name":
+            table_filters.append(homogenization.TableNameFilter(value))
         else:
             raise ValueError(f"Unknown filter: {f}")
 
@@ -37,7 +42,8 @@ def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
         rule.catalog,
         rule.parameter,
         rule.key,
-        homogenization.AndFilter(filters),
+        homogenization.AndColumnFilter(column_filters),
+        homogenization.AndTableFilter(table_filters),
         rule.priority,
     )
 
@@ -46,16 +52,22 @@ def new_params(params: model.HomogenizationParams) -> homogenization.Params:
     return homogenization.Params(params.catalog, params.key, params.params)
 
 
-def mark_objects(layer0_repo: repositories.Layer0Repository, table_id: int, batch_size: int) -> None:
+def mark_objects(
+    layer0_repo: repositories.Layer0Repository,
+    table_id: int,
+    batch_size: int,
+    cache_enabled: bool = False,
+) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)
 
     h = get_homogenization(layer0_repo, meta)
 
-    # the first condition is needed in case the uploading process was interrupted
+    # the second condition is needed in case the uploading process was interrupted
     # TODO: in this case the algorithm should determine the last uploaded row and start from there
     if (
-        table_stats.total_rows == table_stats.total_original_rows
+        cache_enabled
+        and table_stats.total_rows == table_stats.total_original_rows
         and meta.modification_dt is not None
         and table_stats.last_modified_dt is not None
         and meta.modification_dt < table_stats.last_modified_dt
