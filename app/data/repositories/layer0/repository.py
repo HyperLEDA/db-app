@@ -1,7 +1,7 @@
 import structlog
 
 from app.data import model
-from app.data.repositories.layer0 import objects, tables
+from app.data.repositories.layer0 import homogenization, objects, tables
 from app.lib.storage import postgres
 
 
@@ -12,6 +12,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         self.table_repo = tables.Layer0TableRepository(storage)
         self.objects_repo = objects.Layer0ObjectRepository(storage)
+        self.homogenization_repo = homogenization.Layer0HomogenizationRepository(storage)
 
     def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         return self.table_repo.create_table(data)
@@ -59,3 +60,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         return self.objects_repo.upsert_pgc(pgcs)
+
+    def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
+        return self.homogenization_repo.get_homogenization_rules()
+
+    def get_homogenization_params(self) -> list[model.HomogenizationParams]:
+        return self.homogenization_repo.get_homogenization_params()
