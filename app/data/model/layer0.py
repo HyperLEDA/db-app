@@ -83,9 +83,9 @@ class TableStatistics:
 class HomogenizationRule:
     catalog: str
     parameter: str
-    key: str
+    key: str | None
     filters: dict[str, str]
-    priority: int
+    priority: int | None
     enrichment: dict[str, str]
 
 

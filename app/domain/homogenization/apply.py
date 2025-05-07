@@ -23,7 +23,7 @@ class Homogenization:
         result: list[data_model.Layer0Object] = []
 
         for _, row in data.iterrows():
-            priority_params: dict[tuple[str, str], dict[str, tuple[Any, int]]] = {}
+            priority_params: dict[tuple[data_model.RawCatalog, str], dict[str, tuple[Any, int]]] = {}
             for column_name in row.index:
                 if column_name not in self.rules_by_column:
                     continue
@@ -42,7 +42,7 @@ class Homogenization:
                     ):
                         priority_params[key][rule.parameter] = (row[column_name], rule.priority)
 
-            catalog_objects: dict[tuple[str, str], dict[str, Any]] = {}
+            catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
 
             for key, params in priority_params.items():
                 constructor_params = {}
@@ -76,7 +76,8 @@ class Homogenization:
 
                 obj.data.append(catalog_obj)
 
-            result.append(obj)
+            if len(obj.data) > 0:
+                result.append(obj)
 
         return result
 
@@ -89,12 +90,12 @@ def get_homogenization(
     rules_by_column: dict[str, list[model.Rule]] = {}
 
     for column in table_meta.column_descriptions:
-        rules: dict[tuple[str, str, str], model.Rule] = {}
+        rules: dict[tuple[data_model.RawCatalog, str, str], model.Rule] = {}
 
         for rule in homogenization_rules:
             key = (rule.catalog, rule.parameter, rule.key)
 
-            if rule.column_filters.apply(table_meta, column):
+            if rule.filter.apply(table_meta, column):
                 rules[key] = rule
 
         if len(rules) == 0:
@@ -103,7 +104,7 @@ def get_homogenization(
         if rules:
             rules_by_column[column.name] = list(rules.values())
 
-    params_by_catalog: dict[tuple[str, str], dict[str, Any]] = {}
+    params_by_catalog: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
 
     for param in homogenization_params:
         key = (param.catalog, param.key)
@@ -112,5 +113,8 @@ def get_homogenization(
             params_by_catalog[key] = {}
 
         params_by_catalog[key].update(param.params)
+
+    if len(rules_by_column) == 0:
+        raise ValueError("No rules satisfy any of the table columns")
 
     return Homogenization(rules_by_column, params_by_catalog)
