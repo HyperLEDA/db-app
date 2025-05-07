@@ -97,6 +97,26 @@ class TableUploadManager:
 
         return adminapi.AddDataResponse()
 
+    def create_homogenization_rules(
+        self, r: adminapi.CreateHomogenizationRulesRequest
+    ) -> adminapi.CreateHomogenizationRulesResponse:
+        rules = []
+
+        for rule in r.rules:
+            rules.append(
+                model.HomogenizationRule(
+                    catalog=rule.catalog,
+                    parameter=rule.parameter,
+                    filters=rule.filters,
+                    enrichment=rule.enrichment or {},
+                    key=rule.key,
+                )
+            )
+
+        self.layer0_repo.add_homogenization_rules(rules)
+
+        return adminapi.CreateHomogenizationRulesResponse()
+
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:

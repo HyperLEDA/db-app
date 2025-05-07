@@ -152,6 +152,25 @@ class LoginResponse:
     token: str
 
 
+@dataclass
+class HomogenizationRule:
+    catalog: str
+    parameter: str
+    key: str | None
+    filters: dict[str, str]
+    enrichment: dict[str, str] | None = None
+
+
+@dataclass
+class CreateHomogenizationRulesRequest:
+    rules: list[HomogenizationRule]
+
+
+@dataclass
+class CreateHomogenizationRulesResponse:
+    pass
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -183,4 +202,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def login(self, request: LoginRequest) -> LoginResponse:
+        pass
+
+    @abc.abstractmethod
+    def create_homogenization_rules(
+        self, request: CreateHomogenizationRulesRequest
+    ) -> CreateHomogenizationRulesResponse:
         pass
