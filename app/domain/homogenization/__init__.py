@@ -4,6 +4,7 @@ from app.domain.homogenization.filters import (
     ColumnNameColumnFilter,
     TableNameColumnFilter,
     UCDColumnFilter,
+    parse_filters,
 )
 from app.domain.homogenization.model import Params, Rule
 
@@ -16,4 +17,5 @@ __all__ = [
     "TableNameColumnFilter",
     "Params",
     "Rule",
+    "parse_filters",
 ]

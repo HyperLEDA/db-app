@@ -10,6 +10,22 @@ class ColumnFilter(ABC):
         pass
 
 
+def parse_filters(filters: dict[str, str]) -> ColumnFilter:
+    parsed_filters = []
+
+    for f, value in filters.items():
+        if f == "ucd":
+            parsed_filters.append(UCDColumnFilter(value))
+        elif f == "column_name":
+            parsed_filters.append(ColumnNameColumnFilter(value))
+        elif f == "table_name":
+            parsed_filters.append(TableNameColumnFilter(value))
+        else:
+            raise ValueError(f"Unknown filter: {f}")
+
+    return AndColumnFilter(parsed_filters)
+
+
 @final
 class UCDColumnFilter(ColumnFilter):
     def __init__(self, ucd: str):

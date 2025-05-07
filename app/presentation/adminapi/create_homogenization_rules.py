@@ -2,9 +2,17 @@ from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, post_load, validate
 
 from app.data import model
+from app.domain import homogenization
 from app.lib.web import responses, schema
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
+
+
+def filter_validator(filters: dict[str, str]):
+    try:
+        homogenization.parse_filters(filters)
+    except ValueError as e:
+        raise ValidationError(str(e)) from e
 
 
 class HomogenizationRuleSchema(Schema):
@@ -19,8 +27,13 @@ class HomogenizationRuleSchema(Schema):
         required=True,
         description="Filters that determine which column will be used as a parameter for the catalog.",
         example={"ucd": "pos.eq.ra"},
+        validate=filter_validator,
     )
-    enrichment = fields.Dict(required=False, description="Additional information about the column, such as units.")
+    enrichment = fields.Dict(
+        required=False,
+        description="Additional information about the column, such as units.",
+        example={},
+    )
 
     @post_load
     def post_load(self, data, **kwargs) -> model.HomogenizationRule:

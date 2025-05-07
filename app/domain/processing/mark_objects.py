@@ -21,22 +21,10 @@ def get_homogenization(
 
 
 def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
-    filters = []
-
-    for f, value in rule.filters.items():
-        if f == "ucd":
-            filters.append(homogenization.UCDColumnFilter(value))
-        elif f == "column_name":
-            filters.append(homogenization.ColumnNameColumnFilter(value))
-        elif f == "table_name":
-            filters.append(homogenization.TableNameColumnFilter(value))
-        else:
-            raise ValueError(f"Unknown filter: {f}")
-
     return homogenization.Rule(
         model.RawCatalog(rule.catalog),
         rule.parameter,
-        homogenization.AndColumnFilter(filters),
+        homogenization.parse_filters(rule.filters),
         rule.key or "",
         rule.priority or 2**32,
     )
