@@ -1,14 +1,10 @@
 from app.domain.homogenization.apply import Homogenization, get_homogenization
-from app.domain.homogenization.column_filters import (
+from app.domain.homogenization.filters import (
     AndColumnFilter,
     ColumnNameColumnFilter,
     UCDColumnFilter,
 )
 from app.domain.homogenization.model import Params, Rule
-from app.domain.homogenization.table_filters import (
-    AndTableFilter,
-    TableNameFilter,
-)
 
 __all__ = [
     "get_homogenization",
@@ -16,8 +12,6 @@ __all__ = [
     "AndColumnFilter",
     "ColumnNameColumnFilter",
     "UCDColumnFilter",
-    "AndTableFilter",
-    "TableNameFilter",
     "Params",
     "Rule",
 ]

@@ -87,28 +87,21 @@ def get_homogenization(
     table_meta: data_model.Layer0TableMeta,
 ) -> Homogenization:
     rules_by_column: dict[str, list[model.Rule]] = {}
-    rules = []
-
-    for rule in homogenization_rules:
-        key = (rule.catalog, rule.parameter, rule.key)
-
-        if rule.table_filters.apply(table_meta):
-            rules.append(rule)
 
     for column in table_meta.column_descriptions:
-        column_rules: dict[tuple[str, str, str], model.Rule] = {}
+        rules: dict[tuple[str, str, str], model.Rule] = {}
 
-        for rule in rules:
+        for rule in homogenization_rules:
             key = (rule.catalog, rule.parameter, rule.key)
 
             if rule.column_filters.apply(table_meta, column):
-                column_rules[key] = rule
+                rules[key] = rule
 
-        if len(column_rules) == 0:
+        if len(rules) == 0:
             continue
 
-        if column_rules:
-            rules_by_column[column.name] = list(column_rules.values())
+        if rules:
+            rules_by_column[column.name] = list(rules.values())
 
     params_by_catalog: dict[tuple[str, str], dict[str, Any]] = {}
 

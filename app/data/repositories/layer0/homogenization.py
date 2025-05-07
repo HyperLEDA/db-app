@@ -6,7 +6,7 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
     def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
         rows = self._storage.query(
             """
-            SELECT catalog, parameter, key, column_filters, table_filters, priority, enrichment
+            SELECT catalog, parameter, key, filters, priority, enrichment
             FROM layer0.homogenization_rules
             """
         )
@@ -16,8 +16,7 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
                 row["catalog"],
                 row["parameter"],
                 row["key"],
-                row["column_filters"],
-                row["table_filters"],
+                row["filters"],
                 row["priority"],
                 row["enrichment"],
             )

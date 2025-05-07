@@ -84,8 +84,7 @@ class HomogenizationRule:
     catalog: str
     parameter: str
     key: str
-    column_filters: dict[str, str]
-    table_filters: dict[str, str]
+    filters: dict[str, str]
     priority: int
     enrichment: dict[str, str]
 

@@ -20,6 +20,15 @@ class UCDColumnFilter(ColumnFilter):
 
 
 @final
+class TableNameColumnFilter(ColumnFilter):
+    def __init__(self, table_name: str):
+        self.table_name = table_name
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return table.table_name == self.table_name
+
+
+@final
 class ColumnNameColumnFilter(ColumnFilter):
     def __init__(self, column_name: str):
         self.column_name = column_name

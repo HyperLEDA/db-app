@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.homogenization import column_filters, table_filters
+from app.domain.homogenization import filters
 
 
 @dataclass
@@ -9,8 +9,7 @@ class Rule:
     catalog: str
     parameter: str
     key: str
-    column_filters: column_filters.ColumnFilter
-    table_filters: table_filters.TableFilter
+    column_filters: filters.ColumnFilter
     priority: int
 
 
