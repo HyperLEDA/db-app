@@ -28,7 +28,7 @@ def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
             filters.append(homogenization.UCDColumnFilter(value))
         elif f == "column_name":
             filters.append(homogenization.ColumnNameColumnFilter(value))
-        if f == "table_name":
+        elif f == "table_name":
             filters.append(homogenization.TableNameColumnFilter(value))
         else:
             raise ValueError(f"Unknown filter: {f}")
@@ -43,14 +43,14 @@ def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
 
 
 def new_params(params: model.HomogenizationParams) -> homogenization.Params:
-    return homogenization.Params(params.catalog, params.key, params.params)
+    return homogenization.Params(model.RawCatalog(params.catalog), params.key, params.params)
 
 
 def mark_objects(
     layer0_repo: repositories.Layer0Repository,
     table_id: int,
     batch_size: int,
-    cache_enabled: bool = False,
+    cache_enabled: bool = True,
 ) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)

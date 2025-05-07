@@ -66,3 +66,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def get_homogenization_params(self) -> list[model.HomogenizationParams]:
         return self.homogenization_repo.get_homogenization_params()
+
+    def add_homogenization_rules(self, rules: list[model.HomogenizationRule]) -> None:
+        return self.homogenization_repo.add_homogenization_rules(rules)
