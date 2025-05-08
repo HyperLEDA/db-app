@@ -14,6 +14,28 @@ random.seed(time.time())
 
 
 @lib.test_logging_decorator(__file__)
+def create_homogenization_rules(client: hyperleda.HyperLedaClient):
+    client.create_homogenization_rules(
+        rules=[
+            hyperleda.Catalog(
+                name=hyperleda.Name.icrs,
+                key="position",
+                parameters={
+                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra;meta.main"}),
+                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec;meta.main"}),
+                },
+            ),
+            hyperleda.Catalog(
+                name=hyperleda.Name.designation,
+                parameters={
+                    "design": hyperleda.Parameter(filters={"ucd": "meta.id"}),
+                },
+            ),
+        ]
+    )
+
+
+@lib.test_logging_decorator(__file__)
 def create_bibliography(client: hyperleda.HyperLedaClient) -> str:
     return client.create_internal_source(
         authors=["Doe, J."],
@@ -97,6 +119,7 @@ def run():
     api_url = f"http://{api_host}:{api_port}"
 
     client = hyperleda.HyperLedaClient(api_url)
+    create_homogenization_rules(client)
 
     code = create_bibliography(client)
     table_id = create_table(client, code)

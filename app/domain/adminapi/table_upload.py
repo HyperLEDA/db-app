@@ -132,7 +132,8 @@ class TableUploadManager:
 
         with self.layer0_repo.with_tx():
             self.layer0_repo.add_homogenization_rules(rules)
-            self.layer0_repo.add_homogenization_params(params)
+            if len(params) > 0:
+                self.layer0_repo.add_homogenization_params(params)
 
         return adminapi.CreateHomogenizationRulesResponse()
 

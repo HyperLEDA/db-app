@@ -33,7 +33,14 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
             """
         )
 
-        return [model.HomogenizationParams(row["catalog"], row["key"], row["params"]) for row in rows]
+        return [
+            model.HomogenizationParams(
+                row["catalog"],
+                row["params"],
+                row["key"],
+            )
+            for row in rows
+        ]
 
     def add_homogenization_rules(self, rules: list[model.HomogenizationRule]) -> None:
         query = """

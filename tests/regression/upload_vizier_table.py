@@ -10,6 +10,34 @@ from tests import lib
 
 
 @lib.test_logging_decorator(__file__)
+def create_homogenization_rule(client: hyperleda.HyperLedaClient):
+    client.create_homogenization_rules(
+        rules=[
+            hyperleda.Catalog(
+                name=hyperleda.Name.icrs,
+                key="position",
+                parameters={
+                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra;meta.main"}),
+                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec;meta.main"}),
+                },
+            ),
+            hyperleda.Catalog(
+                name=hyperleda.Name.designation,
+                parameters={
+                    "design": hyperleda.Parameter(filters={"ucd": "meta.id"}),
+                },
+            ),
+            hyperleda.Catalog(
+                name=hyperleda.Name.redshift,
+                parameters={
+                    "z": hyperleda.Parameter(filters={"ucd": "src.redshift"}),
+                },
+            ),
+        ]
+    )
+
+
+@lib.test_logging_decorator(__file__)
 def upload_vizier_table() -> tuple[int, str]:
     table_name = f"vizier_{str(uuid.uuid4())}"
     table_id = hyperleda_scripts.vizier_command(
@@ -91,6 +119,7 @@ def query_objects() -> list[dict]:
 def run():
     client = hyperleda.HyperLedaClient()
     table_id, table_name = upload_vizier_table()
+    create_homogenization_rule(client)
 
     validations = check_table_validation(client, table_name)
     assert len(validations) != 0
