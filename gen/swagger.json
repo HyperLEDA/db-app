@@ -382,7 +382,7 @@
           },
           "data": {
             "type": "array",
-            "description": "\n            Actual data to append. \n            Keys in this dictionary must be a subset of the columns in the table. \n            If not specified, column will be set to NULL.\n\n            NaN and NULL are considered to be the same thing.\n        ",
+            "description": "Actual data to append. \n                Keys in this dictionary must be a subset of the columns in the table. \n                If not specified, column will be set to NULL.\n\n                NaN and NULL are considered to be the same thing.",
             "example": [
               {
                 "name": "M 33",
@@ -696,12 +696,10 @@
         "type": "object",
         "properties": {
           "username": {
-            "type": "string",
-            "description": "Username"
+            "type": "string"
           },
           "password": {
-            "type": "string",
-            "description": "Password"
+            "type": "string"
           }
         },
         "required": [
@@ -777,6 +775,7 @@
           "parameters": {
             "type": "object",
             "description": "Map of parameter names to their configurations",
+            "example": {},
             "additionalProperties": {
               "$ref": "#/components/schemas/Parameter"
             }
