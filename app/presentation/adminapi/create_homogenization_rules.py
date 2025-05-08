@@ -1,5 +1,5 @@
 from aiohttp import web
-from marshmallow import Schema, ValidationError, fields, post_load, validate
+from marshmallow import Schema, ValidationError, fields, validate
 
 from app.data import model
 from app.domain import homogenization
@@ -15,14 +15,7 @@ def filter_validator(filters: dict[str, str]):
         raise ValidationError(str(e)) from e
 
 
-class HomogenizationRuleSchema(Schema):
-    catalog = fields.Str(required=True, validate=validate.OneOf([cat.value for cat in model.RawCatalog]))
-    parameter = fields.Str(
-        required=True,
-        description="Parameter name for the catalog. See the documentation for the catalog.",
-        example="ra",
-    )
-    key = fields.Str(required=False)
+class ParameterSchema(schema.RequestSchema):
     filters = fields.Dict(
         required=True,
         description="Filters that determine which column will be used as a parameter for the catalog.",
@@ -35,13 +28,31 @@ class HomogenizationRuleSchema(Schema):
         example={},
     )
 
-    @post_load
-    def post_load(self, data, **kwargs) -> model.HomogenizationRule:
-        return model.HomogenizationRule(**data)
+    class Meta:
+        model = interface.HomogenizationParameter
+
+
+class CatalogSchema(schema.RequestSchema):
+    name = fields.Str(required=True, validate=validate.OneOf([cat.value for cat in model.RawCatalog]))
+    parameters = fields.Dict(
+        required=True,
+        description="Map of parameter names to their configurations",
+        keys=fields.Str(),
+        values=fields.Nested(ParameterSchema),
+    )
+    key = fields.Str(required=False)
+    additional_params = fields.Dict(
+        required=False,
+        description="Additional parameters for the catalog",
+        example={},
+    )
+
+    class Meta:
+        model = interface.HomogenizationCatalog
 
 
 class CreateHomogenizationRulesRequestSchema(schema.RequestSchema):
-    rules = fields.List(fields.Nested(HomogenizationRuleSchema), required=True)
+    catalogs = fields.List(fields.Nested(CatalogSchema), required=True)
 
     class Meta:
         model = interface.CreateHomogenizationRulesRequest

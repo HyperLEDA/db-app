@@ -5,7 +5,7 @@ CREATE TABLE layer0.homogenization_rules (
     id SERIAL PRIMARY KEY,
     catalog text NOT NULL,
     parameter text NOT NULL,
-    key text,
+    key text NOT NULL,
     filters jsonb NOT NULL,
     priority int,
     enrichment jsonb
@@ -13,7 +13,7 @@ CREATE TABLE layer0.homogenization_rules (
 
 CREATE TABLE layer0.homogenization_params (
     catalog text NOT NULL,
-    key text NOT NULL,
+    key text,
     params jsonb NOT NULL,
     PRIMARY KEY (catalog, key)
 );

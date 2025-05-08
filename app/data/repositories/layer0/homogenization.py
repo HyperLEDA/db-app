@@ -55,3 +55,18 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
             values.append("(%s, %s, %s, %s, %s, %s)")
 
         self._storage.exec(query + ", ".join(values), params=params)
+
+    def add_homogenization_params(self, params: list[model.HomogenizationParams]) -> None:
+        query = """
+        INSERT INTO layer0.homogenization_params (catalog, key, params) VALUES"""
+
+        query_params = []
+        values = []
+
+        for param in params:
+            query_params.extend([param.catalog, param.key, json.dumps(param.params)])
+            values.append("(%s, %s, %s)")
+
+        query = query + ", ".join(values) + " ON CONFLICT (catalog, key) DO UPDATE SET params = EXCLUDED.params"
+
+        self._storage.exec(query, params=query_params)

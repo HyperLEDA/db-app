@@ -240,7 +240,12 @@ class HomogenizationTest(unittest.TestCase):
                     homogenization.Params(
                         catalog=model.RawCatalog.ICRS,
                         key="pos",
-                        params={"e_ra": 0.1, "e_dec": 0.1},
+                        params={"e_ra": 0.1},
+                    ),
+                    homogenization.Params(
+                        catalog=model.RawCatalog.ICRS,
+                        key="pos",
+                        params={"e_dec": 0.1},
                     ),
                 ],
                 expected_objects=[

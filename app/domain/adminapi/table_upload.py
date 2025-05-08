@@ -101,19 +101,38 @@ class TableUploadManager:
         self, r: adminapi.CreateHomogenizationRulesRequest
     ) -> adminapi.CreateHomogenizationRulesResponse:
         rules = []
+        params = []
 
-        for rule in r.rules:
-            rules.append(
-                model.HomogenizationRule(
-                    catalog=rule.catalog,
-                    parameter=rule.parameter,
-                    filters=rule.filters,
-                    enrichment=rule.enrichment or {},
-                    key=rule.key,
+        for rule in r.catalogs:
+            for parameter, config in rule.parameters.items():
+                rules.append(
+                    model.HomogenizationRule(
+                        catalog=rule.name,
+                        parameter=parameter,
+                        filters=config.filters,
+                        enrichment=config.enrichment or {},
+                        key=rule.key or "",
+                    )
+                )
+
+            if rule.additional_params is None:
+                continue
+
+            curr_params = {}
+            for param, value in rule.additional_params.items():
+                curr_params[param] = value
+
+            params.append(
+                model.HomogenizationParams(
+                    catalog=rule.name,
+                    key=rule.key or "",
+                    params=curr_params,
                 )
             )
 
-        self.layer0_repo.add_homogenization_rules(rules)
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.add_homogenization_rules(rules)
+            self.layer0_repo.add_homogenization_params(params)
 
         return adminapi.CreateHomogenizationRulesResponse()
 

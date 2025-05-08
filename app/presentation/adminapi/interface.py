@@ -153,17 +153,22 @@ class LoginResponse:
 
 
 @dataclass
-class HomogenizationRule:
-    catalog: str
-    parameter: str
-    key: str | None
+class HomogenizationParameter:
     filters: dict[str, str]
     enrichment: dict[str, str] | None = None
 
 
 @dataclass
+class HomogenizationCatalog:
+    name: str
+    parameters: dict[str, HomogenizationParameter]
+    key: str | None = None
+    additional_params: dict[str, Any] | None = None
+
+
+@dataclass
 class CreateHomogenizationRulesRequest:
-    rules: list[HomogenizationRule]
+    catalogs: list[HomogenizationCatalog]
 
 
 @dataclass
