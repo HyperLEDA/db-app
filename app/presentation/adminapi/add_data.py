@@ -1,31 +1,34 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class AddDataRequestSchema(schema.RequestSchema):
-    table_id = fields.Int(required=True, description="ID of the table to add data to")
+class AddDataRequestSchema(GenericSchema[interface.AddDataRequest]):
+    table_id = fields.Integer(
+        required=True,
+        metadata={
+            "description": "ID of the table to add data to",
+        },
+    )
     data = fields.List(
         fields.Dict(fields.Str),
         required=True,
-        description="""
-            Actual data to append. 
-            Keys in this dictionary must be a subset of the columns in the table. 
-            If not specified, column will be set to NULL.
+        metadata={
+            "description": """Actual data to append. 
+                Keys in this dictionary must be a subset of the columns in the table. 
+                If not specified, column will be set to NULL.
 
-            NaN and NULL are considered to be the same thing.
-        """,
-        example=[
-            {"name": "M 33", "ra": 1.5641, "dec": 30.6602},
-            {"name": "M 31", "ra": 0.7123, "dec": 41.2690},
-        ],
+                NaN and NULL are considered to be the same thing.""",
+            "example": [
+                {"name": "M 33", "ra": 1.5641, "dec": 30.6602},
+                {"name": "M 31", "ra": 0.7123, "dec": 41.2690},
+            ],
+        },
     )
-
-    class Meta:
-        model = interface.AddDataRequest
 
 
 class AddDataResponseSchema(Schema):

@@ -2,8 +2,9 @@ import datetime
 
 from aiohttp import web
 from marshmallow import ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.dataapi import interface
 
@@ -16,23 +17,20 @@ class DelimitedListField(fields.List):
             raise ValidationError(f"{attr} is not a delimited list it has a non string value {value}.") from e
 
 
-class FITSRequestSchema(schema.RequestSchema):
-    pgcs = DelimitedListField(fields.Integer(description="List of PGC numbers"))
-    ra = fields.Float(description="Right ascension of the center of the search area in degrees")
-    dec = fields.Float(description="Declination of the center of the search area in degrees")
-    radius = fields.Float(description="Radius of the search area in degrees")
-    name = fields.String(description="Name of the object")
-    cz = fields.Float(description="Redshift value")
-    cz_err_percent = fields.Float(description="Acceptable deviation of the redshift value in percent")
+class FITSRequestSchema(GenericSchema[interface.FITSRequest]):
+    pgcs = DelimitedListField(fields.Integer(metadata={"description": "List of PGC numbers"}))
+    ra = fields.Float(metadata={"description": "Right ascension of the center of the search area in degrees"})
+    dec = fields.Float(metadata={"description": "Declination of the center of the search area in degrees"})
+    radius = fields.Float(metadata={"description": "Radius of the search area in degrees"})
+    name = fields.String(metadata={"description": "Name of the object"})
+    cz = fields.Float(metadata={"description": "Redshift value"})
+    cz_err_percent = fields.Float(metadata={"description": "Acceptable deviation of the redshift value in percent"})
     page_size = fields.Integer(
-        description="Number of objects per page",
+        metadata={"description": "Number of objects per page"},
         validate=validate.OneOf([10, 25, 50, 100, 1000, 10000, 100000]),
         load_default=25,
     )
-    page = fields.Integer(description="Page number", load_default=0)
-
-    class Meta:
-        model = interface.FITSRequest
+    page = fields.Integer(metadata={"description": "Page number"}, load_default=0)
 
 
 async def fits_handler(actions: interface.Actions, r: web.Request) -> responses.BinaryResponse:

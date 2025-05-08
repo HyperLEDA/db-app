@@ -1,22 +1,20 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.dataapi import interface, model
 
 
-class QueryRequestSchema(schema.RequestSchema):
-    q = fields.String(description="Query string")
+class QueryRequestSchema(GenericSchema[interface.QueryRequest]):
+    q = fields.String(metadata={"description": "Query string"})
     page_size = fields.Integer(
-        description="Number of objects per page",
+        metadata={"description": "Number of objects per page"},
         validate=validate.OneOf([10, 25, 50, 100]),
         load_default=25,
     )
-    page = fields.Integer(description="Page number", load_default=0)
-
-    class Meta:
-        model = interface.QueryRequest
+    page = fields.Integer(metadata={"description": "Page number"}, load_default=0)
 
 
 class QueryResponseSchema(Schema):

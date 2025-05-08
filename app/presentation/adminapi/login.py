@@ -1,22 +1,22 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class LoginRequestSchema(schema.RequestSchema):
-    username = fields.Str(required=True, description="Username")
-    password = fields.Str(required=True, description="Password")
-
-    class Meta:
-        model = interface.LoginRequest
+class LoginRequestSchema(GenericSchema[interface.LoginRequest]):
+    username = fields.Str(required=True)
+    password = fields.Str(required=True)
 
 
 class LoginResponseSchema(Schema):
     token = fields.Str(
-        description="Token used to authenticate user in handlers that require a specific role to access",
+        metadata={
+            "description": "Token used to authenticate user in handlers that require a specific role to access",
+        },
     )
 
 

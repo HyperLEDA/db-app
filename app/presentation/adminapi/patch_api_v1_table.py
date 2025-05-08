@@ -1,25 +1,20 @@
 from aiohttp import web
 from marshmallow import Schema, fields
+from marshmallow_generic import GenericSchema
 from marshmallow_oneofschema import one_of_schema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.presentation.adminapi import interface
 
 
-class PatchTableActionTypeChangeUCDSchema(schema.RequestSchema):
-    column = fields.Str(required=True, description="Name of the column")
-    ucd = fields.Str(required=True, description="New UCD value")
-
-    class Meta:
-        model = interface.PatchTableActionTypeChangeUCD
+class PatchTableActionTypeChangeUCDSchema(GenericSchema[interface.PatchTableActionTypeChangeUCD]):
+    column = fields.Str(required=True, metadata={"description": "Name of the column"})
+    ucd = fields.Str(required=True, metadata={"description": "New UCD value"})
 
 
-class PatchTableActionTypeChangeUnitSchema(schema.RequestSchema):
-    column = fields.Str(required=True, description="Name of the column")
-    unit = fields.Str(required=True, description="New unit value")
-
-    class Meta:
-        model = interface.PatchTableActionTypeChangeUnit
+class PatchTableActionTypeChangeUnitSchema(GenericSchema[interface.PatchTableActionTypeChangeUnit]):
+    column = fields.Str(required=True, metadata={"description": "Name of the column"})
+    unit = fields.Str(required=True, metadata={"description": "New unit value"})
 
 
 class PatchTableActionSchema(one_of_schema.OneOfSchema):
@@ -38,16 +33,13 @@ class PatchTableActionSchema(one_of_schema.OneOfSchema):
         raise Exception(f"Unknown object type: {obj.__class__.__name__}")
 
 
-class PatchTableRequestSchema(schema.RequestSchema):
-    table_name = fields.Str(required=True, description="Name of the table")
+class PatchTableRequestSchema(GenericSchema[interface.PatchTableRequest]):
+    table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
     actions = fields.List(
         fields.Nested(PatchTableActionSchema),
         required=True,
-        description="List of actions to perform",
+        metadata={"description": "List of actions to perform"},
     )
-
-    class Meta:
-        model = interface.PatchTableRequest
 
 
 class PatchTableResponseSchema(Schema):

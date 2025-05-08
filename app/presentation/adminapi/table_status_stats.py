@@ -1,17 +1,15 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
 from app.lib.storage import enums
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class TableStatusStatsRequestSchema(schema.RequestSchema):
-    table_id = fields.Integer(required=True, description="Identifier of the table")
-
-    class Meta:
-        model = interface.TableStatusStatsRequest
+class TableStatusStatsRequestSchema(GenericSchema[interface.TableStatusStatsRequest]):
+    table_id = fields.Integer(required=True, metadata={"description": "Identifier of the table"})
 
 
 class TableStatusStatsResponseSchema(Schema):

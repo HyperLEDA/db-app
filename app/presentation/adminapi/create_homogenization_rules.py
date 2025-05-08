@@ -1,9 +1,10 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
 from app.data import model
 from app.domain import homogenization
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
@@ -15,47 +16,47 @@ def filter_validator(filters: dict[str, str]):
         raise ValidationError(str(e)) from e
 
 
-class ParameterSchema(schema.RequestSchema):
+class ParameterSchema(GenericSchema[interface.HomogenizationParameter]):
     filters = fields.Dict(
         required=True,
-        description="Filters that determine which column will be used as a parameter for the catalog.",
-        example={"ucd": "pos.eq.ra"},
+        metadata={
+            "description": "Filters that determine which column will be used as a parameter for the catalog.",
+            "example": {"ucd": "pos.eq.ra"},
+        },
         validate=filter_validator,
     )
     enrichment = fields.Dict(
         required=False,
-        description="Additional information about the column, such as units.",
-        example={},
+        metadata={
+            "description": "Additional information about the column, such as units.",
+            "example": {},
+        },
     )
 
-    class Meta:
-        model = interface.HomogenizationParameter
 
-
-class CatalogSchema(schema.RequestSchema):
+class CatalogSchema(GenericSchema[interface.HomogenizationCatalog]):
     name = fields.Str(required=True, validate=validate.OneOf([cat.value for cat in model.RawCatalog]))
     parameters = fields.Dict(
         required=True,
-        description="Map of parameter names to their configurations",
+        metadata={
+            "description": "Map of parameter names to their configurations",
+            "example": {},
+        },
         keys=fields.Str(),
         values=fields.Nested(ParameterSchema),
     )
     key = fields.Str(required=False)
     additional_params = fields.Dict(
         required=False,
-        description="Additional parameters for the catalog",
-        example={},
+        metadata={
+            "description": "Additional parameters for the catalog",
+            "example": {},
+        },
     )
 
-    class Meta:
-        model = interface.HomogenizationCatalog
 
-
-class CreateHomogenizationRulesRequestSchema(schema.RequestSchema):
+class CreateHomogenizationRulesRequestSchema(GenericSchema[interface.CreateHomogenizationRulesRequest]):
     catalogs = fields.List(fields.Nested(CatalogSchema), required=True)
-
-    class Meta:
-        model = interface.CreateHomogenizationRulesRequest
 
 
 class CreateHomogenizationRulesResponseSchema(Schema):
