@@ -1,12 +1,13 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class AddDataRequestSchema(schema.RequestSchema):
+class AddDataRequestSchema(GenericSchema[interface.AddDataRequest]):
     table_id = fields.Integer(
         required=True,
         metadata={
@@ -28,9 +29,6 @@ class AddDataRequestSchema(schema.RequestSchema):
             ],
         },
     )
-
-    class Meta:
-        model = interface.AddDataRequest
 
 
 class AddDataResponseSchema(Schema):

@@ -2,8 +2,9 @@ import datetime
 
 from aiohttp import web
 from marshmallow import ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.dataapi import interface
 
@@ -16,7 +17,7 @@ class DelimitedListField(fields.List):
             raise ValidationError(f"{attr} is not a delimited list it has a non string value {value}.") from e
 
 
-class FITSRequestSchema(schema.RequestSchema):
+class FITSRequestSchema(GenericSchema[interface.FITSRequest]):
     pgcs = DelimitedListField(fields.Integer(metadata={"description": "List of PGC numbers"}))
     ra = fields.Float(metadata={"description": "Right ascension of the center of the search area in degrees"})
     dec = fields.Float(metadata={"description": "Declination of the center of the search area in degrees"})
@@ -30,9 +31,6 @@ class FITSRequestSchema(schema.RequestSchema):
         load_default=25,
     )
     page = fields.Integer(metadata={"description": "Page number"}, load_default=0)
-
-    class Meta:
-        model = interface.FITSRequest
 
 
 async def fits_handler(actions: interface.Actions, r: web.Request) -> responses.BinaryResponse:

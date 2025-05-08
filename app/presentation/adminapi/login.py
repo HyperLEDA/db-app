@@ -1,17 +1,15 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class LoginRequestSchema(schema.RequestSchema):
+class LoginRequestSchema(GenericSchema[interface.LoginRequest]):
     username = fields.Str(required=True)
     password = fields.Str(required=True)
-
-    class Meta:
-        model = interface.LoginRequest
 
 
 class LoginResponseSchema(Schema):

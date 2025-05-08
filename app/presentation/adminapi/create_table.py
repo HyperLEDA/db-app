@@ -1,13 +1,14 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
 from app.lib.storage import enums, mapping
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class ColumnDescriptionSchema(schema.RequestSchema):
+class ColumnDescriptionSchema(GenericSchema[interface.ColumnDescription]):
     name = fields.Str(
         required=True,
         metadata={"description": "Name of the column. Should not equal `hyperleda_internal_id`."},
@@ -34,11 +35,8 @@ class ColumnDescriptionSchema(schema.RequestSchema):
         metadata={"description": "Human-readable description of the column"},
     )
 
-    class Meta:
-        model = interface.ColumnDescription
 
-
-class CreateTableRequestSchema(schema.RequestSchema):
+class CreateTableRequestSchema(GenericSchema[interface.CreateTableRequest]):
     table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
     columns = fields.List(
         fields.Nested(ColumnDescriptionSchema),
@@ -70,9 +68,6 @@ class CreateTableRequestSchema(schema.RequestSchema):
         load_default="",
         metadata={"description": "Human-readable description of the table"},
     )
-
-    class Meta:
-        model = interface.CreateTableRequest
 
 
 class CreateTableResponseSchema(Schema):

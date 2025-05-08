@@ -1,15 +1,13 @@
 from aiohttp import web
 from marshmallow import Schema, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.presentation.adminapi import interface
 
 
-class GetTableValidationRequestSchema(schema.RequestSchema):
+class GetTableValidationRequestSchema(GenericSchema[interface.GetTableValidationRequest]):
     table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
-
-    class Meta:
-        model = interface.GetTableValidationRequest
 
 
 class TableValidation(Schema):

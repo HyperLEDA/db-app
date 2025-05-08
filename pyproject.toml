@@ -23,6 +23,7 @@ dependencies = [
     "rq>=2.1.0",
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
+    "marshmallow-generic>=1.0.1",
 ]
 
 [project.optional-dependencies]
@@ -99,6 +100,7 @@ ignore_missing_imports = true
 [tool.uv.sources]
 hyperleda-scripts = { git = "https://github.com/HyperLEDA/scripts.git" }
 hyperleda = { git = "https://github.com/HyperLEDA/client.git" }
+marshmallow-generic = { git = "https://github.com/Kraysent/marshmallow-generic.git" }
 
 [dependency-groups]
 dev = [

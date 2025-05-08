@@ -1,16 +1,14 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-class GetTaskInfoRequestSchema(schema.RequestSchema):
+class GetTaskInfoRequestSchema(GenericSchema[interface.GetTaskInfoRequest]):
     task_id = fields.Int(required=True, metadata={"description": "ID of the task"})
-
-    class Meta:
-        model = interface.GetTaskInfoRequest
 
 
 class GetTaskInfoResponseSchema(Schema):

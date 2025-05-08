@@ -1,7 +1,8 @@
 from aiohttp import web
 from marshmallow import Schema, ValidationError, fields, validate
+from marshmallow_generic import GenericSchema
 
-from app.lib.web import responses, schema
+from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.dataapi import interface, model
 
@@ -14,7 +15,7 @@ class DelimitedListField(fields.List):
             raise ValidationError(f"{attr} is not a delimited list it has a non string value {value}.") from e
 
 
-class QuerySimpleRequestSchema(schema.RequestSchema):
+class QuerySimpleRequestSchema(GenericSchema[interface.QuerySimpleRequest]):
     pgcs = DelimitedListField(fields.Integer(metadata={"description": "List of PGC numbers"}))
     ra = fields.Float(metadata={"description": "Right ascension of the center of the search area in degrees"})
     dec = fields.Float(metadata={"description": "Declination of the center of the search area in degrees"})
@@ -28,9 +29,6 @@ class QuerySimpleRequestSchema(schema.RequestSchema):
         metadata={"description": "Number of objects per page"},
     )
     page = fields.Integer(load_default=0, metadata={"description": "Page number"})
-
-    class Meta:
-        model = interface.QuerySimpleRequest
 
 
 class QuerySimpleResponseSchema(Schema):
