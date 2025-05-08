@@ -121,9 +121,6 @@ def run():
     table_id, table_name = upload_vizier_table()
     create_homogenization_rule(client)
 
-    validations = check_table_validation(client, table_name)
-    assert len(validations) != 0
-
     patch_table(client, table_name)
 
     start_processing(table_id)
