@@ -15,6 +15,13 @@ class DesignationCatalogObject(interface.CatalogObject):
         return self.designation == value.designation
 
     @classmethod
+    def from_custom(cls, design: str) -> Self:
+        return cls(design)
+
+    def layer0_data(self) -> dict[str, Any]:
+        return {"design": self.designation}
+
+    @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
         """
         Aggregate designation is selected as the most common designation among all objects.

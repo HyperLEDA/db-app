@@ -30,6 +30,10 @@ start-db:
 stop-db:
 	docker-compose down
 
+restart-db:
+	make stop-db
+	make start-db
+
 docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \

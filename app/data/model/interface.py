@@ -1,6 +1,15 @@
 import abc
 import enum
+from dataclasses import dataclass
 from typing import Any, Self
+
+from astropy import units as u
+
+
+@dataclass
+class MeasuredValue:
+    value: Any
+    unit: u.Unit
 
 
 class RawCatalog(enum.Enum):
@@ -27,6 +36,15 @@ class CatalogObject(abc.ABC):
 
     @abc.abstractmethod
     def catalog(self) -> RawCatalog:
+        pass
+
+    @abc.abstractmethod
+    def layer0_data(self) -> dict[str, Any]:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def from_custom(cls, **kwargs) -> Self:
         pass
 
     @classmethod

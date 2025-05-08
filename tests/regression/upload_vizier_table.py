@@ -20,11 +20,15 @@ def create_homogenization_rule(client: hyperleda.HyperLedaClient):
                     "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra;meta.main"}),
                     "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec;meta.main"}),
                 },
+                additional_params={
+                    "e_ra": 0.1,
+                    "e_dec": 0.1,
+                },
             ),
             hyperleda.Catalog(
                 name=hyperleda.Name.designation,
                 parameters={
-                    "design": hyperleda.Parameter(filters={"ucd": "meta.id"}),
+                    "design": hyperleda.Parameter(filters={"ucd": "meta.id;meta.main"}),
                 },
             ),
             hyperleda.Catalog(
@@ -32,6 +36,9 @@ def create_homogenization_rule(client: hyperleda.HyperLedaClient):
                 parameters={
                     "z": hyperleda.Parameter(filters={"ucd": "src.redshift"}),
                 },
+                additional_params={
+                    "e_z": 0.1
+                }
             ),
         ]
     )

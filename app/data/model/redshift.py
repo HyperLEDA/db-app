@@ -10,12 +10,20 @@ from app.data.model import interface
 class RedshiftCatalogObject(interface.CatalogObject):
     def __init__(
         self,
-        z: float | None = None,
-        e_z: float | None = None,
-        cz: float | None = None,
+        cz: float,
         e_cz: float | None = None,
-        **kwargs,
     ) -> None:
+        self.cz = cz
+        self.e_cz = e_cz
+
+    @classmethod
+    def from_custom(
+        cls,
+        cz: interface.MeasuredValue | None = None,
+        z: float | None = None,
+        e_cz: float | None = None,
+        e_z: float | None = None,
+    ) -> Self:
         if z is not None and not np.isnan(z):
             cz = z * astropy.constants.c.to("m/s").value
             e_cz = e_z * astropy.constants.c.to("m/s").value if e_z is not None else None
@@ -23,8 +31,10 @@ class RedshiftCatalogObject(interface.CatalogObject):
         if cz is None:
             raise ValueError("neither z nor cz is specified")
 
-        self.cz = cz
-        self.e_cz = e_cz
+        return cls(cz, e_cz)
+
+    def layer0_data(self) -> dict[str, Any]:
+        return {"cz": self.cz, "e_cz": self.e_cz}
 
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:

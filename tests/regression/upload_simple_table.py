@@ -21,8 +21,12 @@ def create_homogenization_rules(client: hyperleda.HyperLedaClient):
                 name=hyperleda.Name.icrs,
                 key="position",
                 parameters={
-                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra;meta.main"}),
-                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec;meta.main"}),
+                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra"}),
+                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec"}),
+                },
+                additional_params={
+                    "e_ra": 0.1,
+                    "e_dec": 0.1,
                 },
             ),
             hyperleda.Catalog(

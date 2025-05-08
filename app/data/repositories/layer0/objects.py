@@ -40,7 +40,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         return [
             model.Layer0Object(
                 row["id"],
-                json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
+                json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
             )
             for row in rows
         ]
@@ -75,7 +75,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             objects.append(
                 model.Layer0ProcessedObject(
                     row["id"],
-                    json.loads(json.dumps(row["data"]), cls=model.CatalogObjectDecoder),
+                    json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
                     ci_result,
                 )
             )

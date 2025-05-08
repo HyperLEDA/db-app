@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 import pandas
@@ -9,15 +10,19 @@ from app.domain.homogenization import model
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
+Enricher = Callable[[Any], Any]
+
 
 class Homogenization:
     def __init__(
         self,
         rules_by_column: dict[str, list[model.Rule]],
         params_by_catalog: dict[tuple[str, str], dict[str, Any]],
+        enricher_by_column: dict[str, Enricher],
     ):
         self.rules_by_column = rules_by_column
         self.params_by_catalog = params_by_catalog
+        self.enricher_by_column = enricher_by_column
 
     def apply(self, data: pandas.DataFrame) -> list[data_model.Layer0Object]:
         result: list[data_model.Layer0Object] = []
@@ -40,7 +45,11 @@ class Homogenization:
                         rule.parameter not in priority_params[key]
                         or rule.priority > priority_params[key][rule.parameter][1]
                     ):
-                        priority_params[key][rule.parameter] = (row[column_name], rule.priority)
+                        value = row[column_name]
+                        if column_name in self.enricher_by_column:
+                            value = self.enricher_by_column[column_name](value)
+
+                        priority_params[key][rule.parameter] = (value, rule.priority)
 
             catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
 
@@ -64,7 +73,7 @@ class Homogenization:
                 catalog_type = data_model.get_catalog_object_type(data_model.RawCatalog(catalog))
 
                 try:
-                    catalog_obj = catalog_type(**data_dict)
+                    catalog_obj = catalog_type.from_custom(**data_dict)
                 except Exception as e:
                     logger.error(
                         "Error creating catalog object",
@@ -88,6 +97,7 @@ def get_homogenization(
     table_meta: data_model.Layer0TableMeta,
 ) -> Homogenization:
     rules_by_column: dict[str, list[model.Rule]] = {}
+    enricher_by_column: dict[str, Enricher] = {}
 
     for column in table_meta.column_descriptions:
         rules: dict[tuple[data_model.RawCatalog, str, str], model.Rule] = {}
@@ -103,6 +113,8 @@ def get_homogenization(
 
         if rules:
             rules_by_column[column.name] = list(rules.values())
+            if column.unit is not None:
+                enricher_by_column[column.name] = lambda v, u=column.unit: data_model.MeasuredValue(v, u)
 
     params_by_catalog: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
 
@@ -117,4 +129,4 @@ def get_homogenization(
     if len(rules_by_column) == 0:
         raise ValueError("No rules satisfy any of the table columns")
 
-    return Homogenization(rules_by_column, params_by_catalog)
+    return Homogenization(rules_by_column, params_by_catalog, enricher_by_column)

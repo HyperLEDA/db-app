@@ -8,13 +8,13 @@ class CatalogObjectEncoder(json.JSONEncoder):
         if not isinstance(obj, interface.CatalogObject):
             return json.JSONEncoder.default(self, obj)
 
-        data = obj.layer1_data()
+        data = obj.layer0_data()
         data["catalog"] = obj.catalog().value
 
         return data
 
 
-class CatalogObjectDecoder(json.JSONDecoder):
+class Layer0CatalogObjectDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, **kwargs)
 
