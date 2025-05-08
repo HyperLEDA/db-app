@@ -42,5 +42,5 @@ async def get_table_validation_handler(actions: interface.Actions, r: web.Reques
                         properties:
                             data: GetTableValidationResponseSchema
     """
-    request = GetTableValidationRequestSchema().load(r.rel_url.query)
-    return responses.APIOkResponse(actions.get_table_validation(request))
+
+    raise NotImplementedError

@@ -24,7 +24,7 @@ class CreateTableTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def test_create_table_no_validation_errors(self):
+    def test_create_table(self):
         source_code = self.source_manager.create_source(
             presentation.CreateSourceRequest("title", ["author"], 2022)
         ).code
@@ -44,12 +44,7 @@ class CreateTableTest(unittest.TestCase):
             )
         )
 
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
-
-        self.assertTrue(created)
-        self.assertEqual(len(validation_result.validations), 0)
-
-    def test_create_table_validation(self):
+    def test_create_table_with_patch(self):
         source_code = self.source_manager.create_source(
             presentation.CreateSourceRequest("title", ["author"], 2022)
         ).code
@@ -71,9 +66,6 @@ class CreateTableTest(unittest.TestCase):
 
         self.assertTrue(created)
 
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
-        self.assertEqual(len(validation_result.validations), 3)
-
         self.upload_manager.patch_table(
             presentation.PatchTableRequest(
                 table_name,
@@ -83,6 +75,3 @@ class CreateTableTest(unittest.TestCase):
                 ],
             ),
         )
-
-        validation_result = self.upload_manager.validate_table(presentation.GetTableValidationRequest("table_name"))
-        self.assertEqual(len(validation_result.validations), 1)

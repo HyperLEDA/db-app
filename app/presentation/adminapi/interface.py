@@ -186,10 +186,6 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_table_validation(self, request: GetTableValidationRequest) -> GetTableValidationResponse:
-        pass
-
-    @abc.abstractmethod
     def patch_table(self, request: PatchTableRequest) -> PatchTableResponse:
         pass
 
