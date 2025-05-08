@@ -324,6 +324,46 @@
           }
         }
       }
+    },
+    "/admin/api/v1/homogenization/rules": {
+      "post": {
+        "summary": "New homogenization rules",
+        "description": "Creates new homogenization rules in the database.",
+        "security": [
+          {
+            "TokenAuth": []
+          }
+        ],
+        "tags": [
+          "homogenization"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHomogenizationRulesRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Homogenization rules were successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreateHomogenizationRulesResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "info": {
@@ -700,6 +740,79 @@
             }
           }
         }
+      },
+      "Parameter": {
+        "type": "object",
+        "properties": {
+          "filters": {
+            "type": "object",
+            "description": "Filters that determine which column will be used as a parameter for the catalog.",
+            "example": {
+              "ucd": "pos.eq.ra"
+            },
+            "additionalProperties": {}
+          },
+          "enrichment": {
+            "type": "object",
+            "description": "Additional information about the column, such as units.",
+            "example": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "filters"
+        ]
+      },
+      "Catalog": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "icrs",
+              "designation",
+              "redshift"
+            ]
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Map of parameter names to their configurations",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Parameter"
+            }
+          },
+          "key": {
+            "type": "string"
+          },
+          "additional_params": {
+            "type": "object",
+            "description": "Additional parameters for the catalog",
+            "example": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "name",
+          "parameters"
+        ]
+      },
+      "CreateHomogenizationRulesRequestSchema": {
+        "type": "object",
+        "properties": {
+          "catalogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Catalog"
+            }
+          }
+        },
+        "required": [
+          "catalogs"
+        ]
+      },
+      "CreateHomogenizationRulesResponseSchema": {
+        "type": "object",
+        "properties": {}
       }
     },
     "securitySchemes": {

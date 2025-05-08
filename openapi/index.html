@@ -609,6 +609,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#homogenization" class="md-nav__link">
+    <span class="md-ellipsis">
+      homogenization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="homogenization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-adminapiv1homogenizationrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /admin/api/v1/homogenization/rules
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#schemas" class="md-nav__link">
     <span class="md-ellipsis">
       Schemas
@@ -637,9 +661,36 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      Catalog
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#columndescription" class="md-nav__link">
     <span class="md-ellipsis">
       ColumnDescription
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createhomogenizationrulesrequestschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreateHomogenizationRulesRequestSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createhomogenizationrulesresponseschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreateHomogenizationRulesResponseSchema
     </span>
   </a>
   
@@ -730,6 +781,15 @@
   <a href="#loginresponseschema" class="md-nav__link">
     <span class="md-ellipsis">
       LoginResponseSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter
     </span>
   </a>
   
@@ -1198,6 +1258,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#homogenization" class="md-nav__link">
+    <span class="md-ellipsis">
+      homogenization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="homogenization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-adminapiv1homogenizationrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /admin/api/v1/homogenization/rules
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#schemas" class="md-nav__link">
     <span class="md-ellipsis">
       Schemas
@@ -1226,9 +1310,36 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      Catalog
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#columndescription" class="md-nav__link">
     <span class="md-ellipsis">
       ColumnDescription
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createhomogenizationrulesrequestschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreateHomogenizationRulesRequestSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createhomogenizationrulesresponseschema" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreateHomogenizationRulesResponseSchema
     </span>
   </a>
   
@@ -1319,6 +1430,15 @@
   <a href="#loginresponseschema" class="md-nav__link">
     <span class="md-ellipsis">
       LoginResponseSchema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter
     </span>
   </a>
   
@@ -2210,6 +2330,103 @@ unpublished articles.</p>
 </div>
 </div>
 </div>
+<h2 id="homogenization"><span class="api-tag">homogenization</span><a class="headerlink" href="#homogenization" title="Permanent link">#</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="post-adminapiv1homogenizationrules"><span class="http-post">POST</span> /admin/api/v1/homogenization/rules<a class="headerlink" href="#post-adminapiv1homogenizationrules" title="Permanent link">#</a></h3>
+<p>New homogenization rules</p>
+<details class="note">
+<summary>Description</summary>
+<p>Creates new homogenization rules in the database.</p>
+</details>
+<p><strong>Input parameters</strong></p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>TokenAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td>JWT Bearer token</td>
+        </tr>
+    </tbody>
+</table>
+<p class="request-body-title"><strong>Request body</strong></p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="15:1"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">    </span><span class="nt">&quot;catalogs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;icrs&quot;</span><span class="p">,</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">            </span><span class="nt">&quot;parameters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">            </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="w">            </span><span class="nt">&quot;additional_params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the request body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="p">{</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="w">        </span><span class="nt">&quot;catalogs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="w">                </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/Catalog&quot;</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-29-10"><a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-29-11"><a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-29-12"><a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a><span class="w">        </span><span class="s2">&quot;catalogs&quot;</span>
+</span><span id="__span-29-13"><a id="__codelineno-29-13" name="__codelineno-29-13" href="#__codelineno-29-13"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-29-14"><a id="__codelineno-29-14" name="__codelineno-29-14" href="#__codelineno-29-14"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="16:1"><input checked="checked" id="__tabbed_16_1" name="__tabbed_16" type="radio" /><div class="tabbed-labels"><label for="__tabbed_16_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="p">{</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the response body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/CreateHomogenizationRulesResponseSchema&quot;</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
 <hr />
 <h2 id="schemas">Schemas<a class="headerlink" href="#schemas" title="Permanent link">#</a></h2>
 <h3 id="adddatarequestschema">AddDataRequestSchema<a class="headerlink" href="#adddatarequestschema" title="Permanent link">#</a></h3>
@@ -2233,6 +2450,34 @@ unpublished articles.</p>
 </table>
 
 <h3 id="adddataresponseschema">AddDataResponseSchema<a class="headerlink" href="#adddataresponseschema" title="Permanent link">#</a></h3>
+<h3 id="catalog">Catalog<a class="headerlink" href="#catalog" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>additional_params</code></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><code>key</code></td>
+            <td><span class="string-type">string</span></td>
+        </tr>
+        <tr>
+            <td><code>name</code></td>
+            <td><span class="string-type">string</span></td>
+        </tr>
+        <tr>
+            <td><code>parameters</code></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
 <h3 id="columndescription">ColumnDescription<a class="headerlink" href="#columndescription" title="Permanent link">#</a></h3>
 <table>
     <thead>
@@ -2265,6 +2510,23 @@ unpublished articles.</p>
     </tbody>
 </table>
 
+<h3 id="createhomogenizationrulesrequestschema">CreateHomogenizationRulesRequestSchema<a class="headerlink" href="#createhomogenizationrulesrequestschema" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>catalogs</code></td>
+            <td>Array&lt;<a href="#catalog" class="ref-link">Catalog</a>&gt;</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="createhomogenizationrulesresponseschema">CreateHomogenizationRulesResponseSchema<a class="headerlink" href="#createhomogenizationrulesresponseschema" title="Permanent link">#</a></h3>
 <h3 id="createsourcerequestschema">CreateSourceRequestSchema<a class="headerlink" href="#createsourcerequestschema" title="Permanent link">#</a></h3>
 <table>
     <thead>
@@ -2473,6 +2735,26 @@ unpublished articles.</p>
         <tr>
             <td><code>token</code></td>
             <td><span class="string-type">string</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="parameter">Parameter<a class="headerlink" href="#parameter" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>enrichment</code></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><code>filters</code></td>
+            <td><em>Example: </em><code>{'ucd': 'pos.eq.ra'}</code></td>
         </tr>
     </tbody>
 </table>
