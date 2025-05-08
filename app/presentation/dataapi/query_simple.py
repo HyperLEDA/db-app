@@ -15,19 +15,19 @@ class DelimitedListField(fields.List):
 
 
 class QuerySimpleRequestSchema(schema.RequestSchema):
-    pgcs = DelimitedListField(fields.Integer(description="List of PGC numbers"))
-    ra = fields.Float(description="Right ascension of the center of the search area in degrees")
-    dec = fields.Float(description="Declination of the center of the search area in degrees")
-    radius = fields.Float(description="Radius of the search area in degrees")
-    name = fields.String(description="Name of the object")
-    cz = fields.Float(description="Redshift value")
-    cz_err_percent = fields.Float(description="Acceptable deviation of the redshift value in percent")
+    pgcs = DelimitedListField(fields.Integer(metadata={"description": "List of PGC numbers"}))
+    ra = fields.Float(metadata={"description": "Right ascension of the center of the search area in degrees"})
+    dec = fields.Float(metadata={"description": "Declination of the center of the search area in degrees"})
+    radius = fields.Float(metadata={"description": "Radius of the search area in degrees"})
+    name = fields.String(metadata={"description": "Name of the object"})
+    cz = fields.Float(metadata={"description": "Redshift value"})
+    cz_err_percent = fields.Float(metadata={"description": "Acceptable deviation of the redshift value in percent"})
     page_size = fields.Integer(
-        description="Number of objects per page",
         validate=validate.OneOf([10, 25, 50, 100]),
         load_default=25,
+        metadata={"description": "Number of objects per page"},
     )
-    page = fields.Integer(description="Page number", load_default=0)
+    page = fields.Integer(load_default=0, metadata={"description": "Page number"})
 
     class Meta:
         model = interface.QuerySimpleRequest

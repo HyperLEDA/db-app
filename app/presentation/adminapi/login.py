@@ -7,8 +7,8 @@ from app.presentation.adminapi import interface
 
 
 class LoginRequestSchema(schema.RequestSchema):
-    username = fields.Str(required=True, description="Username")
-    password = fields.Str(required=True, description="Password")
+    username = fields.Str(required=True)
+    password = fields.Str(required=True)
 
     class Meta:
         model = interface.LoginRequest
@@ -16,7 +16,9 @@ class LoginRequestSchema(schema.RequestSchema):
 
 class LoginResponseSchema(Schema):
     token = fields.Str(
-        description="Token used to authenticate user in handlers that require a specific role to access",
+        metadata={
+            "description": "Token used to authenticate user in handlers that require a specific role to access",
+        },
     )
 
 

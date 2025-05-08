@@ -8,7 +8,7 @@ from app.presentation.adminapi import interface
 
 
 class TableStatusStatsRequestSchema(schema.RequestSchema):
-    table_id = fields.Integer(required=True, description="Identifier of the table")
+    table_id = fields.Integer(required=True, metadata={"description": "Identifier of the table"})
 
     class Meta:
         model = interface.TableStatusStatsRequest

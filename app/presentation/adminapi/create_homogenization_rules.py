@@ -18,14 +18,18 @@ def filter_validator(filters: dict[str, str]):
 class ParameterSchema(schema.RequestSchema):
     filters = fields.Dict(
         required=True,
-        description="Filters that determine which column will be used as a parameter for the catalog.",
-        example={"ucd": "pos.eq.ra"},
+        metadata={
+            "description": "Filters that determine which column will be used as a parameter for the catalog.",
+            "example": {"ucd": "pos.eq.ra"},
+        },
         validate=filter_validator,
     )
     enrichment = fields.Dict(
         required=False,
-        description="Additional information about the column, such as units.",
-        example={},
+        metadata={
+            "description": "Additional information about the column, such as units.",
+            "example": {},
+        },
     )
 
     class Meta:
@@ -36,15 +40,20 @@ class CatalogSchema(schema.RequestSchema):
     name = fields.Str(required=True, validate=validate.OneOf([cat.value for cat in model.RawCatalog]))
     parameters = fields.Dict(
         required=True,
-        description="Map of parameter names to their configurations",
+        metadata={
+            "description": "Map of parameter names to their configurations",
+            "example": {},
+        },
         keys=fields.Str(),
         values=fields.Nested(ParameterSchema),
     )
     key = fields.Str(required=False)
     additional_params = fields.Dict(
         required=False,
-        description="Additional parameters for the catalog",
-        example={},
+        metadata={
+            "description": "Additional parameters for the catalog",
+            "example": {},
+        },
     )
 
     class Meta:

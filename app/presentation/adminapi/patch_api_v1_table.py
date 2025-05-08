@@ -7,16 +7,16 @@ from app.presentation.adminapi import interface
 
 
 class PatchTableActionTypeChangeUCDSchema(schema.RequestSchema):
-    column = fields.Str(required=True, description="Name of the column")
-    ucd = fields.Str(required=True, description="New UCD value")
+    column = fields.Str(required=True, metadata={"description": "Name of the column"})
+    ucd = fields.Str(required=True, metadata={"description": "New UCD value"})
 
     class Meta:
         model = interface.PatchTableActionTypeChangeUCD
 
 
 class PatchTableActionTypeChangeUnitSchema(schema.RequestSchema):
-    column = fields.Str(required=True, description="Name of the column")
-    unit = fields.Str(required=True, description="New unit value")
+    column = fields.Str(required=True, metadata={"description": "Name of the column"})
+    unit = fields.Str(required=True, metadata={"description": "New unit value"})
 
     class Meta:
         model = interface.PatchTableActionTypeChangeUnit
@@ -39,11 +39,11 @@ class PatchTableActionSchema(one_of_schema.OneOfSchema):
 
 
 class PatchTableRequestSchema(schema.RequestSchema):
-    table_name = fields.Str(required=True, description="Name of the table")
+    table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
     actions = fields.List(
         fields.Nested(PatchTableActionSchema),
         required=True,
-        description="List of actions to perform",
+        metadata={"description": "List of actions to perform"},
     )
 
     class Meta:

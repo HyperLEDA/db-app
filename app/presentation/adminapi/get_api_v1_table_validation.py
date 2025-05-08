@@ -6,19 +6,19 @@ from app.presentation.adminapi import interface
 
 
 class GetTableValidationRequestSchema(schema.RequestSchema):
-    table_name = fields.Str(required=True, description="Name of the table")
+    table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
 
     class Meta:
         model = interface.GetTableValidationRequest
 
 
 class TableValidation(Schema):
-    message = fields.Str(description="Error message")
-    validator = fields.Str(description="Type of the rule that was not satisfied")
+    message = fields.Str(metadata={"description": "Error message"})
+    validator = fields.Str(metadata={"description": "Type of the rule that was not satisfied"})
 
 
 class GetTableValidationResponseSchema(Schema):
-    validations = fields.List(fields.Nested(TableValidation), description="List of validation errors")
+    validations = fields.List(fields.Nested(TableValidation), metadata={"description": "List of validation errors"})
 
 
 async def get_table_validation_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:

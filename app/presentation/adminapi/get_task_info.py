@@ -7,20 +7,20 @@ from app.presentation.adminapi import interface
 
 
 class GetTaskInfoRequestSchema(schema.RequestSchema):
-    task_id = fields.Int(required=True, description="ID of the task")
+    task_id = fields.Int(required=True, metadata={"description": "ID of the task"})
 
     class Meta:
         model = interface.GetTaskInfoRequest
 
 
 class GetTaskInfoResponseSchema(Schema):
-    id = fields.Int(description="ID of the task")
-    task_name = fields.Str(description="Name of the task from task registry")
-    status = fields.Str(description="Task status")
-    payload = fields.Dict(keys=fields.Str(), description="Payload to the task")
-    start_time = fields.DateTime(format="iso", description="Time when task started")
-    end_time = fields.DateTime(format="iso", description="Time when task ended")
-    message = fields.Dict(keys=fields.Str(), description="Message associated with the task status")
+    id = fields.Int(metadata={"description": "ID of the task"})
+    task_name = fields.Str(metadata={"description": "Name of the task from task registry"})
+    status = fields.Str(metadata={"description": "Task status"})
+    payload = fields.Dict(keys=fields.Str(), metadata={"description": "Payload to the task"})
+    start_time = fields.DateTime(format="iso", metadata={"description": "Time when task started"})
+    end_time = fields.DateTime(format="iso", metadata={"description": "Time when task ended"})
+    message = fields.Dict(keys=fields.Str(), metadata={"description": "Message associated with the task status"})
 
 
 async def get_task_info_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
