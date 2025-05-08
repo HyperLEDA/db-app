@@ -5,8 +5,7 @@ from astropy import units as u
 from parameterized import param, parameterized
 
 from app.data import model, repositories
-from app.domain.homogenization import apply, filters
-from app.domain.homogenization import model as homogenization_model
+from app.domain import homogenization
 
 
 class HomogenizationTest(unittest.TestCase):
@@ -18,6 +17,7 @@ class HomogenizationTest(unittest.TestCase):
                 model.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
                 model.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
                 model.ColumnDescription(name="secondary_name", data_type="text"),
+                model.ColumnDescription(name="redshift", data_type="float"),
             ],
             bibliography_id=1,
         )
@@ -28,115 +28,258 @@ class HomogenizationTest(unittest.TestCase):
                 "dec": [30.0, 40.0],
                 "name": ["obj1", "obj2"],
                 "secondary_name": ["obj1_s", "obj2_s"],
+                "redshift": [0.1, 0.2],
                 repositories.INTERNAL_ID_COLUMN_NAME: ["id1", "id2"],
             }
         )
 
-    def test_simple_homogenization(self):
-        rules = [
-            homogenization_model.Rule(
-                catalog="icrs", parameter="ra", key="coords", filters=filters.UCDFilter("pos.eq.ra"), priority=1
-            ),
-            homogenization_model.Rule(
-                catalog="icrs", parameter="dec", key="coords", filters=filters.UCDFilter("pos.eq.dec"), priority=1
-            ),
-            homogenization_model.Rule(
-                catalog="designation",
-                parameter="design",
-                key="name",
-                filters=filters.UCDFilter("meta.id"),
-                priority=1,
-            ),
-        ]
-
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
-
-        self.assertEqual(len(result), 2)
-
-        obj1 = result[0]
-        self.assertEqual(obj1.object_id, "id1")
-        self.assertEqual(len(obj1.data), 2)
-
-        self.assertEqual(obj1.data[0], model.ICRSCatalogObject(ra=10.0, dec=30.0))
-        self.assertEqual(obj1.data[1], model.DesignationCatalogObject(design="obj1"))
-
-        obj2 = result[1]
-        self.assertEqual(obj2.object_id, "id2")
-        self.assertEqual(len(obj2.data), 2)
-
-        self.assertEqual(obj2.data[0], model.ICRSCatalogObject(ra=20.0, dec=40.0))
-        self.assertEqual(obj2.data[1], model.DesignationCatalogObject(design="obj2"))
-
-    def test_priority_rules(self):
-        rules = [
-            homogenization_model.Rule(
-                catalog="designation", parameter="design", key="name", filters=filters.UCDFilter("meta.id"), priority=1
-            ),
-            homogenization_model.Rule(
-                catalog="designation",
-                parameter="design",
-                key="name",
-                filters=filters.ColumnNameFilter("secondary_name"),
-                priority=2,
-            ),
-        ]
-
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
-
-        self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0].data), 1)
-        self.assertEqual(len(result[1].data), 1)
-        self.assertEqual(result[0].data[0], model.DesignationCatalogObject(design="obj1_s"))
-        self.assertEqual(result[1].data[0], model.DesignationCatalogObject(design="obj2_s"))
-
     @parameterized.expand(
         [
-            param(filters.UCDFilter("meta.id"), filters.TableNameFilter("test_table"), [1, 1]),
-            param(filters.UCDFilter("meta.id"), filters.ColumnNameFilter("name"), [1, 1]),
-            param(filters.UCDFilter("meta.id"), filters.ColumnNameFilter("fake_name"), [0, 0]),
+            param(
+                "simple fill",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="ra",
+                        filter=homogenization.UCDColumnFilter("pos.eq.ra"),
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="dec",
+                        filter=homogenization.UCDColumnFilter("pos.eq.dec"),
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[model.ICRSCatalogObject(ra=10.0, dec=30.0)],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[model.ICRSCatalogObject(ra=20.0, dec=40.0)],
+                    ),
+                ],
+            ),
+            param(
+                "priority fill",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.UCDColumnFilter("meta.id"),
+                        priority=1,
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.ColumnNameColumnFilter("secondary_name"),
+                        priority=2,
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[model.DesignationCatalogObject(design="obj1_s")],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[model.DesignationCatalogObject(design="obj2_s")],
+                    ),
+                ],
+            ),
+            param(
+                "priority fill but non-passing filter",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.UCDColumnFilter("meta.id"),
+                        priority=1,
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.AndColumnFilter(
+                            [
+                                homogenization.ColumnNameColumnFilter("secondary_name"),
+                                homogenization.TableNameColumnFilter("fake_name"),
+                            ]
+                        ),
+                        priority=2,
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[model.DesignationCatalogObject(design="obj1")],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[model.DesignationCatalogObject(design="obj2")],
+                    ),
+                ],
+            ),
+            # param(
+            #     "two rules with same priority",
+            #     rules=[
+            #         homogenization.Rule(
+            #             catalog=model.RawCatalog.DESIGNATION,
+            #             parameter="design",
+            #             filter=homogenization.UCDColumnFilter("meta.id"),
+            #         ),
+            #         homogenization.Rule(
+            #             catalog=model.RawCatalog.DESIGNATION,
+            #             parameter="design",
+            #             filter=homogenization.ColumnNameColumnFilter("name"),
+            #         ),
+            #     ],
+            #     err_substr="Multiple rules with same priority",
+            # ),
+            param(
+                "no rules satisfy any of the table columns",
+                rules=[],
+                err_substr="No rules satisfy any of the table columns",
+            ),
+            param(
+                "not enough rules for the catalog object",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="ra",
+                        filter=homogenization.UCDColumnFilter("pos.eq.ra"),
+                    ),
+                ],
+                expected_objects=[],
+            ),
+            param(
+                "two catalogs",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="ra",
+                        filter=homogenization.UCDColumnFilter("pos.eq.ra"),
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="dec",
+                        filter=homogenization.UCDColumnFilter("pos.eq.dec"),
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.UCDColumnFilter("meta.id"),
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[
+                            model.ICRSCatalogObject(ra=10.0, dec=30.0),
+                            model.DesignationCatalogObject(design="obj1"),
+                        ],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[
+                            model.ICRSCatalogObject(ra=20.0, dec=40.0),
+                            model.DesignationCatalogObject(design="obj2"),
+                        ],
+                    ),
+                ],
+            ),
+            param(
+                "two different keys",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.UCDColumnFilter("meta.id"),
+                        key="key1",
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.ColumnNameColumnFilter("secondary_name"),
+                        key="key2",
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[
+                            model.DesignationCatalogObject(design="obj1"),
+                            model.DesignationCatalogObject(design="obj1_s"),
+                        ],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[
+                            model.DesignationCatalogObject(design="obj2"),
+                            model.DesignationCatalogObject(design="obj2_s"),
+                        ],
+                    ),
+                ],
+            ),
+            param(
+                "additional params",
+                rules=[
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="ra",
+                        filter=homogenization.UCDColumnFilter("pos.eq.ra"),
+                        key="pos",
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="dec",
+                        filter=homogenization.UCDColumnFilter("pos.eq.dec"),
+                        key="pos",
+                    ),
+                ],
+                params=[
+                    homogenization.Params(
+                        catalog=model.RawCatalog.ICRS,
+                        key="pos",
+                        params={"e_ra": 0.1},
+                    ),
+                    homogenization.Params(
+                        catalog=model.RawCatalog.ICRS,
+                        key="pos",
+                        params={"e_dec": 0.1},
+                    ),
+                ],
+                expected_objects=[
+                    model.Layer0Object(
+                        object_id="id1",
+                        data=[
+                            model.ICRSCatalogObject(ra=10.0, dec=30.0, e_ra=0.1, e_dec=0.1),
+                        ],
+                    ),
+                    model.Layer0Object(
+                        object_id="id2",
+                        data=[
+                            model.ICRSCatalogObject(ra=20.0, dec=40.0, e_ra=0.1, e_dec=0.1),
+                        ],
+                    ),
+                ],
+            ),
         ]
     )
-    def test_filter_combination(self, filter1, filter2, expected_lens):
-        rules = [
-            homogenization_model.Rule(
-                catalog="designation",
-                parameter="design",
-                key="name",
-                filters=filters.AndFilter([filter1, filter2]),
-                priority=1,
-            )
-        ]
+    def test_table(
+        self,
+        name: str,
+        rules: list[homogenization.Rule],
+        params: list[homogenization.Params] | None = None,
+        expected_objects: list[model.Layer0Object] | None = None,
+        err_substr: str | None = None,
+    ):
+        if err_substr is not None:
+            with self.assertRaises(Exception) as cm:
+                homogenization.get_homogenization(rules, params or [], self.table_meta)
+            self.assertIn(err_substr, str(cm.exception))
+        else:
+            h = homogenization.get_homogenization(rules, params or [], self.table_meta)
+            objects = h.apply(self.data)
 
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
-
-        self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0].data), expected_lens[0])
-        self.assertEqual(len(result[1].data), expected_lens[1])
-
-    def test_keys(self):
-        rules = [
-            homogenization_model.Rule(
-                catalog="designation", parameter="design", key="name", filters=filters.UCDFilter("meta.id"), priority=1
-            ),
-            homogenization_model.Rule(
-                catalog="designation",
-                parameter="design",
-                key="name2",
-                filters=filters.ColumnNameFilter("secondary_name"),
-                priority=1,
-            ),
-        ]
-
-        homogenization = apply.get_homogenization(rules, [], self.table_meta)
-        result = homogenization.apply(self.data)
-
-        self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0].data), 2)
-        self.assertEqual(len(result[1].data), 2)
-        self.assertEqual(result[0].data[0], model.DesignationCatalogObject(design="obj1"))
-        self.assertEqual(result[0].data[1], model.DesignationCatalogObject(design="obj1_s"))
-        self.assertEqual(result[1].data[0], model.DesignationCatalogObject(design="obj2"))
-        self.assertEqual(result[1].data[1], model.DesignationCatalogObject(design="obj2_s"))
+        if expected_objects is not None:
+            self.assertEqual(objects, expected_objects)

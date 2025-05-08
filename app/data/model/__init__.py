@@ -1,15 +1,12 @@
 from app.data.model.designation import DesignationCatalogObject
 from app.data.model.helpers import (
-    CatalogObjectDecoder,
     CatalogObjectEncoder,
+    Layer0CatalogObjectDecoder,
     get_catalog_object_type,
     new_catalog_object,
 )
 from app.data.model.icrs import ICRSCatalogObject
-from app.data.model.interface import (
-    CatalogObject,
-    RawCatalog,
-)
+from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog
 from app.data.model.layer0 import (
     CIResult,
     CIResultObjectCollision,
@@ -48,7 +45,7 @@ __all__ = [
     "RawCatalog",
     "CatalogObject",
     "CatalogObjectEncoder",
-    "CatalogObjectDecoder",
+    "Layer0CatalogObjectDecoder",
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "RedshiftCatalogObject",
@@ -56,4 +53,5 @@ __all__ = [
     "new_catalog_object",
     "HomogenizationRule",
     "HomogenizationParams",
+    "MeasuredValue",
 ]

@@ -1,15 +1,45 @@
 from typing import Any, Self, final
 
+from astropy import coordinates
+
 from app.data.model import interface
 
 
 @final
 class ICRSCatalogObject(interface.CatalogObject):
-    def __init__(self, ra: float, dec: float, e_ra: float | None = None, e_dec: float | None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        ra: float | None = None,
+        dec: float | None = None,
+        e_ra: float | None = None,
+        e_dec: float | None = None,
+    ) -> None:
         self.ra = ra
         self.dec = dec
         self.e_ra = e_ra
         self.e_dec = e_dec
+
+    @classmethod
+    def from_custom(
+        cls,
+        ra: interface.MeasuredValue,
+        dec: interface.MeasuredValue,
+        e_ra: float | None = None,
+        e_dec: float | None = None,
+    ) -> Self:
+        ra_angle = coordinates.Angle(ra.value, ra.unit)
+        dec_angle = coordinates.Angle(dec.value, dec.unit)
+        coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
+
+        return cls(coords.ra.deg, coords.dec.deg, e_ra, e_dec)
+
+    def layer0_data(self) -> dict[str, Any]:
+        return {
+            "ra": self.ra,
+            "dec": self.dec,
+            "e_ra": self.e_ra,
+            "e_dec": self.e_dec,
+        }
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):

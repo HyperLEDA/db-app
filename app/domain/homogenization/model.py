@@ -1,20 +1,21 @@
 from dataclasses import dataclass
 from typing import Any
 
+from app.data import model
 from app.domain.homogenization import filters
 
 
 @dataclass
 class Rule:
-    catalog: str
+    catalog: model.RawCatalog
     parameter: str
-    key: str
-    filters: filters.Filter
-    priority: int
+    filter: filters.ColumnFilter
+    key: str = ""
+    priority: int = 2**32
 
 
 @dataclass
 class Params:
-    catalog: str
+    catalog: model.RawCatalog
     key: str
     params: dict[str, Any]

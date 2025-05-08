@@ -21,11 +21,18 @@ adminapi-dev:
 dataapi:
 	uv run main.py dataapi -c configs/dev/dataapi.yaml
 
+default-rules:
+	PGPASSWORD=password psql -h localhost -p 6432 --dbname hyperleda -U hyperleda -c "\copy layer0.homogenization_rules FROM 'tests/assets/default_rules.csv' WITH ( FORMAT csv, HEADER true, QUOTE '\"', DELIMITER ',');"
+
 start-db:
 	docker-compose up -d
 
 stop-db:
 	docker-compose down
+
+restart-db:
+	make stop-db
+	make start-db
 
 docs:
 	uv run main.py generate-spec -o docs/gen/swagger.json

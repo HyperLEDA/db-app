@@ -1,5 +1,6 @@
 import atexit
 import pathlib
+import sys
 
 import psycopg
 import structlog
@@ -20,8 +21,42 @@ def exit_handler():
         _test_storage.stop()
 
 
+def debug_enabled() -> bool:
+    try:
+        if sys.gettrace() is not None:
+            return True
+    except AttributeError:
+        pass
+
+    try:
+        if sys.monitoring.get_tool(sys.monitoring.DEBUGGER_ID) is not None:
+            return True
+    except AttributeError:
+        pass
+
+    return False
+
+
 class TestPostgresStorage:
     def __init__(self, migrations_dir: str) -> None:
+        self.need_new_container = not debug_enabled()
+
+        if self.need_new_container:
+            self.config = self._init_new_container()
+        else:
+            self.config = postgres.PgStorageConfig(
+                endpoint="localhost",
+                port=6432,
+                user="hyperleda",
+                password="password",
+                dbname="hyperleda",
+            )
+
+        self.storage = postgres.PgStorage(self.config, logger)
+
+        self.migrations_dir = migrations_dir
+
+    def _init_new_container(self) -> postgres.PgStorageConfig:
         self.port = web.find_free_port()
         logger.info("Initializing postgres container", port=self.port)
         try:
@@ -35,16 +70,13 @@ class TestPostgresStorage:
         except Exception as e:
             raise RuntimeError("Failed to start postgres container. Did you forget to start Docker daemon?") from e
 
-        self.config = postgres.PgStorageConfig(
+        return postgres.PgStorageConfig(
             endpoint="localhost",
             port=self.port,
             user="hyperleda",
             password="password",
             dbname="hyperleda",
         )
-
-        self.storage = postgres.PgStorage(self.config, logger)
-        self.migrations_dir = migrations_dir
 
     @staticmethod
     def get() -> "TestPostgresStorage":
@@ -86,6 +118,9 @@ class TestPostgresStorage:
         connection.close()
 
     def clear(self):
+        if not self.need_new_container:
+            return
+
         self.storage.exec("TRUNCATE common.bib CASCADE")
         self.storage.exec("TRUNCATE rawdata.tables CASCADE")
         tables = self.storage.query("""
@@ -107,10 +142,12 @@ class TestPostgresStorage:
         return self.storage
 
     def start(self):
-        self.container.start()
-        self._run_migrations(self.migrations_dir)
+        if self.need_new_container:
+            self.container.start()
+            self._run_migrations(self.migrations_dir)
         self.storage.connect()
 
     def stop(self):
         self.storage.disconnect()
-        self.container.stop()
+        if self.need_new_container:
+            self.container.stop()

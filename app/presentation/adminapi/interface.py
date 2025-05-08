@@ -152,6 +152,30 @@ class LoginResponse:
     token: str
 
 
+@dataclass
+class HomogenizationParameter:
+    filters: dict[str, str]
+    enrichment: dict[str, str] | None = None
+
+
+@dataclass
+class HomogenizationCatalog:
+    name: str
+    parameters: dict[str, HomogenizationParameter]
+    key: str | None = None
+    additional_params: dict[str, Any] | None = None
+
+
+@dataclass
+class CreateHomogenizationRulesRequest:
+    catalogs: list[HomogenizationCatalog]
+
+
+@dataclass
+class CreateHomogenizationRulesResponse:
+    pass
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -159,10 +183,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
-        pass
-
-    @abc.abstractmethod
-    def get_table_validation(self, request: GetTableValidationRequest) -> GetTableValidationResponse:
         pass
 
     @abc.abstractmethod
@@ -183,4 +203,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def login(self, request: LoginRequest) -> LoginResponse:
+        pass
+
+    @abc.abstractmethod
+    def create_homogenization_rules(
+        self, request: CreateHomogenizationRulesRequest
+    ) -> CreateHomogenizationRulesResponse:
         pass

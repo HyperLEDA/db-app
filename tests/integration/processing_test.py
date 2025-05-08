@@ -19,6 +19,14 @@ class MarkObjectsTest(unittest.TestCase):
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
+        cls.layer0_repo.add_homogenization_rules(
+            [
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "ra", {"ucd": "pos.eq.ra"}),
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "dec", {"ucd": "pos.eq.dec"}),
+                model.HomogenizationRule(model.RawCatalog.REDSHIFT.value, "z", {"ucd": "src.redshift"}),
+            ]
+        )
+
     def tearDown(self):
         self.pg_storage.clear()
 

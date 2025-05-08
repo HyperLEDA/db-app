@@ -11,7 +11,6 @@ from astropy import units
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
-from app.domain import converters
 from app.lib import clients
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import RuleValidationError
@@ -54,13 +53,6 @@ class TableUploadManager:
 
         return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
 
-    def validate_table(self, r: adminapi.GetTableValidationRequest) -> adminapi.GetTableValidationResponse:
-        table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
-
-        validation_result = validate_columns(table_metadata.column_descriptions)
-
-        return adminapi.GetTableValidationResponse(validations=validation_result)
-
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
@@ -97,6 +89,46 @@ class TableUploadManager:
 
         return adminapi.AddDataResponse()
 
+    def create_homogenization_rules(
+        self, r: adminapi.CreateHomogenizationRulesRequest
+    ) -> adminapi.CreateHomogenizationRulesResponse:
+        rules = []
+        params = []
+
+        for rule in r.catalogs:
+            for parameter, config in rule.parameters.items():
+                rules.append(
+                    model.HomogenizationRule(
+                        catalog=rule.name,
+                        parameter=parameter,
+                        filters=config.filters,
+                        enrichment=config.enrichment or {},
+                        key=rule.key or "",
+                    )
+                )
+
+            if rule.additional_params is None:
+                continue
+
+            curr_params = {}
+            for param, value in rule.additional_params.items():
+                curr_params[param] = value
+
+            params.append(
+                model.HomogenizationParams(
+                    catalog=rule.name,
+                    key=rule.key or "",
+                    params=curr_params,
+                )
+            )
+
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.add_homogenization_rules(rules)
+            if len(params) > 0:
+                self.layer0_repo.add_homogenization_params(params)
+
+        return adminapi.CreateHomogenizationRulesResponse()
+
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:
@@ -119,23 +151,6 @@ def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
 
 def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
-
-
-def validate_columns(columns: list[model.ColumnDescription]) -> list[adminapi.TableValidation]:
-    convs = [
-        converters.NameConverter(),
-        converters.ICRSConverter(),
-        converters.RedshiftConverter(),
-    ]
-
-    validations = []
-    for converter in convs:
-        try:
-            converter.parse_columns(columns)
-        except converters.ConverterError as e:
-            validations.append(adminapi.TableValidation(message=str(e), validator=converter.name()))
-
-    return validations
 
 
 def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:

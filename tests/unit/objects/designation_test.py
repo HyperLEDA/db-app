@@ -1,6 +1,6 @@
 import unittest
 
-from app.domain.converters.name import generalize_name
+from app.data.model.designation import generalize_name
 
 
 class GeneralizeNameTest(unittest.TestCase):

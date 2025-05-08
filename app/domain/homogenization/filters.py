@@ -4,14 +4,30 @@ from typing import final
 from app.data import model
 
 
-class Filter(ABC):
+class ColumnFilter(ABC):
     @abstractmethod
     def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
         pass
 
 
+def parse_filters(filters: dict[str, str]) -> ColumnFilter:
+    parsed_filters = []
+
+    for f, value in filters.items():
+        if f == "ucd":
+            parsed_filters.append(UCDColumnFilter(value))
+        elif f == "column_name":
+            parsed_filters.append(ColumnNameColumnFilter(value))
+        elif f == "table_name":
+            parsed_filters.append(TableNameColumnFilter(value))
+        else:
+            raise ValueError(f"Unknown filter: {f}")
+
+    return AndColumnFilter(parsed_filters)
+
+
 @final
-class UCDFilter(Filter):
+class UCDColumnFilter(ColumnFilter):
     def __init__(self, ucd: str):
         self.ucd = ucd
 
@@ -20,7 +36,7 @@ class UCDFilter(Filter):
 
 
 @final
-class TableNameFilter(Filter):
+class TableNameColumnFilter(ColumnFilter):
     def __init__(self, table_name: str):
         self.table_name = table_name
 
@@ -29,7 +45,7 @@ class TableNameFilter(Filter):
 
 
 @final
-class ColumnNameFilter(Filter):
+class ColumnNameColumnFilter(ColumnFilter):
     def __init__(self, column_name: str):
         self.column_name = column_name
 
@@ -38,8 +54,8 @@ class ColumnNameFilter(Filter):
 
 
 @final
-class AndFilter(Filter):
-    def __init__(self, filters: list[Filter]):
+class AndColumnFilter(ColumnFilter):
+    def __init__(self, filters: list[ColumnFilter]):
         self.filters = filters
 
     def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:

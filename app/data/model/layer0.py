@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas
 from astropy import units as u
@@ -83,14 +83,14 @@ class TableStatistics:
 class HomogenizationRule:
     catalog: str
     parameter: str
-    key: str
     filters: dict[str, str]
-    priority: int
-    enrichment: dict[str, str]
+    key: str = ""
+    priority: int | None = None
+    enrichment: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class HomogenizationParams:
     catalog: str
-    key: str
     params: dict[str, str]
+    key: str = ""
