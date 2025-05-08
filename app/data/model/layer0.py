@@ -84,7 +84,7 @@ class HomogenizationRule:
     catalog: str
     parameter: str
     filters: dict[str, str]
-    key: str  = ""
+    key: str = ""
     priority: int | None = None
     enrichment: dict[str, str] = field(default_factory=dict)
 

@@ -36,9 +36,7 @@ def create_homogenization_rule(client: hyperleda.HyperLedaClient):
                 parameters={
                     "z": hyperleda.Parameter(filters={"ucd": "src.redshift"}),
                 },
-                additional_params={
-                    "e_z": 0.1
-                }
+                additional_params={"e_z": 0.1},
             ),
         ]
     )
