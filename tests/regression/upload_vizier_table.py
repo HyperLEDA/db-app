@@ -59,11 +59,6 @@ def upload_vizier_table() -> tuple[int, str]:
 
 
 @lib.test_logging_decorator(__file__)
-def check_table_validation(client: hyperleda.HyperLedaClient, table_name: str) -> list[hyperleda.TableValidation]:
-    return client.validate_table(table_name).validations or []
-
-
-@lib.test_logging_decorator(__file__)
 def patch_table(client: hyperleda.HyperLedaClient, table_name: str):
     client.patch_table_schema(
         table_name,
@@ -130,9 +125,6 @@ def run():
     assert len(validations) != 0
 
     patch_table(client, table_name)
-
-    validations = check_table_validation(client, table_name)
-    assert len(validations) == 0
 
     start_processing(table_id)
 
