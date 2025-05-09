@@ -14,15 +14,16 @@ random.seed(time.time())
 
 
 @lib.test_logging_decorator(__file__)
-def create_homogenization_rules(client: hyperleda.HyperLedaClient):
-    client.create_homogenization_rules(
+def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
+    client.create_marking(
+        table_name=table_name,
         rules=[
             hyperleda.Catalog(
                 name=hyperleda.Name.icrs,
                 key="position",
                 parameters={
-                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra"}),
-                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec"}),
+                    "ra": hyperleda.Parameter(column_name="ra"),
+                    "dec": hyperleda.Parameter(column_name="dec"),
                 },
                 additional_params={
                     "e_ra": 0.1,
@@ -32,10 +33,10 @@ def create_homogenization_rules(client: hyperleda.HyperLedaClient):
             hyperleda.Catalog(
                 name=hyperleda.Name.designation,
                 parameters={
-                    "design": hyperleda.Parameter(filters={"ucd": "meta.id"}),
+                    "design": hyperleda.Parameter(column_name="name"),
                 },
             ),
-        ]
+        ],
     )
 
 
@@ -49,10 +50,12 @@ def create_bibliography(client: hyperleda.HyperLedaClient) -> str:
 
 
 @lib.test_logging_decorator(__file__)
-def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> int:
+def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> tuple[int, str]:
+    table_name = f"test_{str(uuid.uuid4())}"
+
     return client.create_table(
         hyperleda.CreateTableRequestSchema(
-            f"test_{str(uuid.uuid4())}",
+            table_name,
             [
                 hyperleda.ColumnDescription("name", hyperleda.DataType.str, ucd="meta.id"),
                 hyperleda.ColumnDescription("ra", hyperleda.DataType.float, "hourangle", "pos.eq.ra"),
@@ -61,7 +64,7 @@ def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> int:
             ],
             bib_id,
         )
-    )
+    ), table_name
 
 
 @lib.test_logging_decorator(__file__)
@@ -123,12 +126,11 @@ def run():
     api_url = f"http://{api_host}:{api_port}"
 
     client = hyperleda.HyperLedaClient(api_url)
-    create_homogenization_rules(client)
-
     code = create_bibliography(client)
-    table_id = create_table(client, code)
-
+    table_id, table_name = create_table(client, code)
     upload_data(client, table_id)
+
+    create_marking(client, table_name)
     start_processing(table_id)
 
     statuses_data = get_object_statuses(client, table_id)

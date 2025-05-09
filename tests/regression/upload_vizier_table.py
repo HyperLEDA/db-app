@@ -10,15 +10,16 @@ from tests import lib
 
 
 @lib.test_logging_decorator(__file__)
-def create_homogenization_rule(client: hyperleda.HyperLedaClient):
-    client.create_homogenization_rules(
+def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
+    client.create_marking(
+        table_name=table_name,
         rules=[
             hyperleda.Catalog(
                 name=hyperleda.Name.icrs,
                 key="position",
                 parameters={
-                    "ra": hyperleda.Parameter(filters={"ucd": "pos.eq.ra;meta.main"}),
-                    "dec": hyperleda.Parameter(filters={"ucd": "pos.eq.dec;meta.main"}),
+                    "ra": hyperleda.Parameter(column_name="RAJ2000"),
+                    "dec": hyperleda.Parameter(column_name="DEJ2000"),
                 },
                 additional_params={
                     "e_ra": 0.1,
@@ -28,17 +29,17 @@ def create_homogenization_rule(client: hyperleda.HyperLedaClient):
             hyperleda.Catalog(
                 name=hyperleda.Name.designation,
                 parameters={
-                    "design": hyperleda.Parameter(filters={"ucd": "meta.id;meta.main"}),
+                    "design": hyperleda.Parameter(column_name="FBS"),
                 },
             ),
             hyperleda.Catalog(
                 name=hyperleda.Name.redshift,
                 parameters={
-                    "z": hyperleda.Parameter(filters={"ucd": "src.redshift"}),
+                    "z": hyperleda.Parameter(column_name="z"),
                 },
                 additional_params={"e_z": 0.1},
             ),
-        ]
+        ],
     )
 
 
@@ -119,7 +120,7 @@ def query_objects() -> list[dict]:
 def run():
     client = hyperleda.HyperLedaClient()
     table_id, table_name = upload_vizier_table()
-    create_homogenization_rule(client)
+    create_marking(client, table_name)
 
     patch_table(client, table_name)
 
