@@ -22,9 +22,9 @@ theme:
 
 nav:
   - Главная: index.md
-  - Документация API: openapi.md
   - Документация администратора:
       - administrator/index.md
+      - API: administrator/openapi.md
       - Загрузка таблиц из Vizier: administrator/vizier.md
       - Разметка данных: administrator/marking.md
       - Описание каталогов: administrator/catalogs.md
