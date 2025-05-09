@@ -325,23 +325,23 @@
         }
       }
     },
-    "/admin/api/v1/homogenization/rules": {
+    "/admin/api/v1/marking": {
       "post": {
-        "summary": "New homogenization rules",
-        "description": "Creates new homogenization rules in the database.",
+        "summary": "New marking rules for the table",
+        "description": "Creates new marking rules to map the columns in the table to catalog parameters.",
         "security": [
           {
             "TokenAuth": []
           }
         ],
         "tags": [
-          "homogenization"
+          "table"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateHomogenizationRulesRequestSchema"
+                "$ref": "#/components/schemas/CreateMarkingRequestSchema"
               }
             }
           }
@@ -355,7 +355,7 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/CreateHomogenizationRulesResponseSchema"
+                      "$ref": "#/components/schemas/CreateMarkingResponseSchema"
                     }
                   }
                 }
@@ -742,13 +742,10 @@
       "Parameter": {
         "type": "object",
         "properties": {
-          "filters": {
-            "type": "object",
-            "description": "Filters that determine which column will be used as a parameter for the catalog.",
-            "example": {
-              "ucd": "pos.eq.ra"
-            },
-            "additionalProperties": {}
+          "column_name": {
+            "type": "string",
+            "description": "Column that this parameter will be mapped to.",
+            "example": "ra"
           },
           "enrichment": {
             "type": "object",
@@ -758,7 +755,7 @@
           }
         },
         "required": [
-          "filters"
+          "column_name"
         ]
       },
       "Catalog": {
@@ -774,6 +771,7 @@
           },
           "parameters": {
             "type": "object",
+            "minLength": 1,
             "description": "Map of parameter names to their configurations",
             "example": {},
             "additionalProperties": {
@@ -795,21 +793,27 @@
           "parameters"
         ]
       },
-      "CreateHomogenizationRulesRequestSchema": {
+      "CreateMarkingRequestSchema": {
         "type": "object",
         "properties": {
+          "table_name": {
+            "type": "string",
+            "description": "Table to which apply the marking rules to."
+          },
           "catalogs": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "$ref": "#/components/schemas/Catalog"
             }
           }
         },
         "required": [
-          "catalogs"
+          "catalogs",
+          "table_name"
         ]
       },
-      "CreateHomogenizationRulesResponseSchema": {
+      "CreateMarkingResponseSchema": {
         "type": "object",
         "properties": {}
       }
