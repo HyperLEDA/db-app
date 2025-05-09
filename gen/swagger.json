@@ -328,7 +328,7 @@
     "/admin/api/v1/marking": {
       "post": {
         "summary": "New marking rules for the table",
-        "description": "Creates new marking rules to map the columns in the table to catalog parameters.",
+        "description": "Creates new marking rules to map the columns in the table to catalog parameters. For a given table a marking\nwould consist of the mapping between catalog parameters and the columns from the original table.\n\nFor example, if one wants to create a marking for a column `object_name` that designates the name of an object,\nthey should create a catalog entry similar to the following:\n```json\n{\n    \"name\": \"designation\",\n    \"parameters\": {\n        \"design\": {\n            \"column_name\": \"object_name\"\n        }\n    }\n}\n```\n\nHere, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`\nvalues are actual names of the columns under question. **For now, only one column per parameter is supported.**\n\nIt is possible to create several catalog entries for a single object, for example - is there are two columns\nthat represent a name of an object. In that case we might want to upload both names to the database so it is\neasier to cross-identify and search these objects later. Another use case might be if there are several columns\nthat represent photometric information in different filters. In that case one might want to create one entry\nfor each of the magnitude columns.\n\nIn that case you can specify several entries into `rules` list with different values of `key`. For example:\n\n```json\n{\n    \"table_name\": \"my_table\",\n    \"rules\": [\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"object_name\"\n                }\n            },\n            \"key\": \"primary_name\"\n        },\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"secondary_object_name\"\n                }\n            },\n            \"key\": \"secondary_name\"\n        }\n    ]\n}\n```\n\nThe result of this would be two entries into the `designation` catalog for each object in the original table.\n\nThis handler also supports additional parameters that are not present in the original table. For example, a\ntable might not have a separate column for astrometric errors but from other sources you know that its error is\n0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the\n`additional_parameters` field for each catalog:\n\n```json\n{\n    \"name\": \"icrs\",\n    \"parameters\": {\n        \"ra\": {\n            \"column_name\": \"RAJ2000\"\n        },\n        \"dec\": {\n            \"column_name\": \"DEJ2000\"\n        }\n    },\n    \"additional_parameters\": {\n        \"e_ra\": 0.1,\n        \"e_dec\": 0.5\n    }\n}\n```\n",
         "security": [
           {
             "TokenAuth": []
@@ -773,7 +773,14 @@
             "type": "object",
             "minLength": 1,
             "description": "Map of parameter names to their configurations",
-            "example": {},
+            "example": {
+              "ra": {
+                "column_name": "ra"
+              },
+              "dec": {
+                "column_name": "dec"
+              }
+            },
             "additionalProperties": {
               "$ref": "#/components/schemas/Parameter"
             }
@@ -784,7 +791,10 @@
           "additional_params": {
             "type": "object",
             "description": "Additional parameters for the catalog",
-            "example": {},
+            "example": {
+              "e_ra": 0.1,
+              "e_dec": 0.2
+            },
             "additionalProperties": {}
           }
         },
