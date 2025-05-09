@@ -3,27 +3,18 @@ from marshmallow import Schema, ValidationError, fields, validate
 from marshmallow_generic import GenericSchema
 
 from app.data import model
-from app.domain import homogenization
 from app.lib.web import responses
 from app.lib.web.errors import RuleValidationError
 from app.presentation.adminapi import interface
 
 
-def filter_validator(filters: dict[str, str]):
-    try:
-        homogenization.parse_filters(filters)
-    except ValueError as e:
-        raise ValidationError(str(e)) from e
-
-
-class ParameterSchema(GenericSchema[interface.HomogenizationParameter]):
-    filters = fields.Dict(
+class ParameterSchema(GenericSchema[interface.ParameterToMark]):
+    column_name = fields.String(
         required=True,
         metadata={
-            "description": "Filters that determine which column will be used as a parameter for the catalog.",
-            "example": {"ucd": "pos.eq.ra"},
+            "description": "Column that this parameter will be mapped to.",
+            "example": "ra",
         },
-        validate=filter_validator,
     )
     enrichment = fields.Dict(
         required=False,
@@ -34,7 +25,7 @@ class ParameterSchema(GenericSchema[interface.HomogenizationParameter]):
     )
 
 
-class CatalogSchema(GenericSchema[interface.HomogenizationCatalog]):
+class CatalogSchema(GenericSchema[interface.CatalogToMark]):
     name = fields.Str(required=True, validate=validate.OneOf([cat.value for cat in model.RawCatalog]))
     parameters = fields.Dict(
         required=True,
@@ -42,10 +33,10 @@ class CatalogSchema(GenericSchema[interface.HomogenizationCatalog]):
             "description": "Map of parameter names to their configurations",
             "example": {},
         },
-        keys=fields.Str(),
+        keys=fields.String(),
         values=fields.Nested(ParameterSchema),
     )
-    key = fields.Str(required=False)
+    key = fields.String(required=False)
     additional_params = fields.Dict(
         required=False,
         metadata={
@@ -55,25 +46,26 @@ class CatalogSchema(GenericSchema[interface.HomogenizationCatalog]):
     )
 
 
-class CreateHomogenizationRulesRequestSchema(GenericSchema[interface.CreateHomogenizationRulesRequest]):
+class CreateMarkingRequestSchema(GenericSchema[interface.CreateMarkingRequest]):
+    table_name = fields.String(required=True, metadata={"description": "Table to which apply the marking rules to."})
     catalogs = fields.List(fields.Nested(CatalogSchema), required=True)
 
 
-class CreateHomogenizationRulesResponseSchema(Schema):
+class CreateMarkingResponseSchema(Schema):
     pass
 
 
-async def create_homogenization_rules_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
+async def create_marking_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     """---
-    summary: New homogenization rules
-    description: Creates new homogenization rules in the database.
+    summary: New marking rules for the table
+    description: Creates new marking rules to map the columns in the table to catalog parameters.
     security:
         - TokenAuth: []
-    tags: [homogenization]
+    tags: [table]
     requestBody:
         content:
             application/json:
-                schema: CreateHomogenizationRulesRequestSchema
+                schema: CreateMarkingRequestSchema
     responses:
         200:
             description: Homogenization rules were successfully created
@@ -82,12 +74,12 @@ async def create_homogenization_rules_handler(actions: interface.Actions, r: web
                     schema:
                         type: object
                         properties:
-                            data: CreateHomogenizationRulesResponseSchema
+                            data: CreateMarkingResponseSchema
     """
     request_dict = await r.json()
     try:
-        request = CreateHomogenizationRulesRequestSchema().load(request_dict)
+        request = CreateMarkingRequestSchema().load(request_dict)
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.create_homogenization_rules(request))
+    return responses.APIOkResponse(actions.create_marking(request))

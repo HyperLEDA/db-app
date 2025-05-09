@@ -89,19 +89,22 @@ class TableUploadManager:
 
         return adminapi.AddDataResponse()
 
-    def create_homogenization_rules(
-        self, r: adminapi.CreateHomogenizationRulesRequest
-    ) -> adminapi.CreateHomogenizationRulesResponse:
+    def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
         rules = []
         params = []
 
         for rule in r.catalogs:
             for parameter, config in rule.parameters.items():
+                filters = {
+                    "table_name": r.table_name,
+                    "column_name": config.column_name,
+                }
+
                 rules.append(
                     model.HomogenizationRule(
                         catalog=rule.name,
                         parameter=parameter,
-                        filters=config.filters,
+                        filters=filters,
                         enrichment=config.enrichment or {},
                         key=rule.key or "",
                     )
@@ -127,7 +130,7 @@ class TableUploadManager:
             if len(params) > 0:
                 self.layer0_repo.add_homogenization_params(params)
 
-        return adminapi.CreateHomogenizationRulesResponse()
+        return adminapi.CreateMarkingResponse()
 
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
