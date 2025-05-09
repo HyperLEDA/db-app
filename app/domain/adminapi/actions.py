@@ -47,7 +47,5 @@ class Actions(adminapi.Actions):
     def table_status_stats(self, r: adminapi.TableStatusStatsRequest) -> adminapi.TableStatusStatsResponse:
         return self.table_transfer_manager.table_status_stats(r)
 
-    def create_homogenization_rules(
-        self, r: adminapi.CreateHomogenizationRulesRequest
-    ) -> adminapi.CreateHomogenizationRulesResponse:
-        return self.table_upload_manager.create_homogenization_rules(r)
+    def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
+        return self.table_upload_manager.create_marking(r)

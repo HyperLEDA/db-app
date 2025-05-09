@@ -3,7 +3,7 @@ import http
 from app.lib.web import server
 from app.presentation.adminapi import (
     add_data,
-    create_homogenization_rules,
+    create_marking,
     create_source,
     create_table,
     get_api_v1_table_validation,
@@ -106,10 +106,10 @@ class Server(server.WebServer):
                 actions,
                 server.RouteInfo(
                     http.HTTPMethod.POST,
-                    "/admin/api/v1/homogenization/rules",
-                    create_homogenization_rules.CreateHomogenizationRulesRequestSchema,
-                    create_homogenization_rules.CreateHomogenizationRulesResponseSchema,
+                    "/admin/api/v1/marking",
+                    create_marking.CreateMarkingRequestSchema,
+                    create_marking.CreateMarkingResponseSchema,
                 ),
-                create_homogenization_rules.create_homogenization_rules_handler,
+                create_marking.create_marking_handler,
             ),
         ]

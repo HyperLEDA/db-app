@@ -153,26 +153,27 @@ class LoginResponse:
 
 
 @dataclass
-class HomogenizationParameter:
-    filters: dict[str, str]
+class ParameterToMark:
+    column_name: str
     enrichment: dict[str, str] | None = None
 
 
 @dataclass
-class HomogenizationCatalog:
+class CatalogToMark:
     name: str
-    parameters: dict[str, HomogenizationParameter]
+    parameters: dict[str, ParameterToMark]
     key: str | None = None
     additional_params: dict[str, Any] | None = None
 
 
 @dataclass
-class CreateHomogenizationRulesRequest:
-    catalogs: list[HomogenizationCatalog]
+class CreateMarkingRequest:
+    table_name: str
+    catalogs: list[CatalogToMark]
 
 
 @dataclass
-class CreateHomogenizationRulesResponse:
+class CreateMarkingResponse:
     pass
 
 
@@ -206,7 +207,5 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def create_homogenization_rules(
-        self, request: CreateHomogenizationRulesRequest
-    ) -> CreateHomogenizationRulesResponse:
+    def create_marking(self, request: CreateMarkingRequest) -> CreateMarkingResponse:
         pass

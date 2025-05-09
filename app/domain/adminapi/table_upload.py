@@ -13,7 +13,7 @@ from astroquery import nasa_ads as ads
 from app.data import model, repositories
 from app.lib import clients
 from app.lib.storage import enums, mapping
-from app.lib.web.errors import RuleValidationError
+from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
@@ -89,19 +89,35 @@ class TableUploadManager:
 
         return adminapi.AddDataResponse()
 
-    def create_homogenization_rules(
-        self, r: adminapi.CreateHomogenizationRulesRequest
-    ) -> adminapi.CreateHomogenizationRulesResponse:
+    def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
         rules = []
         params = []
 
+        try:
+            meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
+        except RuntimeError as e:
+            raise NotFoundError("table", r.table_name) from e
+
+        columns = set()
+
+        for col in meta.column_descriptions:
+            columns.add(col.name)
+
         for rule in r.catalogs:
             for parameter, config in rule.parameters.items():
+                if config.column_name not in columns:
+                    raise NotFoundError("column", config.column_name, f"table '{r.table_name}'")
+
+                filters = {
+                    "table_name": r.table_name,
+                    "column_name": config.column_name,
+                }
+
                 rules.append(
                     model.HomogenizationRule(
                         catalog=rule.name,
                         parameter=parameter,
-                        filters=config.filters,
+                        filters=filters,
                         enrichment=config.enrichment or {},
                         key=rule.key or "",
                     )
@@ -127,7 +143,7 @@ class TableUploadManager:
             if len(params) > 0:
                 self.layer0_repo.add_homogenization_params(params)
 
-        return adminapi.CreateHomogenizationRulesResponse()
+        return adminapi.CreateMarkingResponse()
 
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
