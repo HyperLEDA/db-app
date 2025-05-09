@@ -89,8 +89,12 @@ class NotFoundError(APIError):
     Entity was not found.
     """
 
-    def __init__(self, message: str):
-        self.msg = message
+    def __init__(self, entity_name: str, entity: str, where: str | None = None):
+        msg = f"{entity_name} '{entity}' was not found"
+        if where is not None:
+            msg += f" in {where}"
+
+        self.msg = msg
 
     def data(self) -> tuple[str, int, str]:
         return (NOT_FOUND_ERROR, 404, self.msg)

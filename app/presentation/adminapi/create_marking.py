@@ -35,6 +35,7 @@ class CatalogSchema(GenericSchema[interface.CatalogToMark]):
         },
         keys=fields.String(),
         values=fields.Nested(ParameterSchema),
+        validate=validate.Length(1),
     )
     key = fields.String(required=False)
     additional_params = fields.Dict(
@@ -48,7 +49,7 @@ class CatalogSchema(GenericSchema[interface.CatalogToMark]):
 
 class CreateMarkingRequestSchema(GenericSchema[interface.CreateMarkingRequest]):
     table_name = fields.String(required=True, metadata={"description": "Table to which apply the marking rules to."})
-    catalogs = fields.List(fields.Nested(CatalogSchema), required=True)
+    catalogs = fields.List(fields.Nested(CatalogSchema), required=True, validate=validate.Length(1))
 
 
 class CreateMarkingResponseSchema(Schema):
