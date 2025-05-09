@@ -22,12 +22,12 @@ theme:
 
 nav:
   - Главная: index.md
-  - Загрузка данных:
-      - Загрузка новой таблицы из Vizier: upload/vizier.ru.md
-      - upload/index.ru.md
-      - Создание схемы таблицы: upload/create_table.ru.md
-      - Загрузка данных в таблицу: upload/upload_data.ru.md
   - Документация API: openapi.md
+  - Документация администратора:
+      - administrator/index.md
+      - Загрузка таблиц из Vizier: administrator/vizier.md
+      - Разметка данных: administrator/marking.md
+      - Описание каталогов: administrator/catalogs.md
   - Документация разработчика:
       - Установка окружения: dev/environment.ru.md
       - Внесение изменений: dev/change.ru.md
@@ -59,3 +59,4 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - admonition
