@@ -1,9 +1,16 @@
-"id","catalog","parameter","key","filters","priority","enrichment"
-3,icrs,ra,coords,"{""ucd"": ""pos.eq.ra""}",1,"{}"
-4,icrs,dec,coords,"{""ucd"": ""pos.eq.dec""}",1,"{}"
-1,icrs,ra,coords,"{""ucd"": ""pos.eq.ra;meta.main""}",2,"{}"
-2,icrs,dec,coords,"{""ucd"": ""pos.eq.dec;meta.main""}",2,"{}"
-5,designation,design,designation,"{""ucd"": ""meta.id""}",1,"{}"
-6,designation,design,designation,"{""ucd"": ""meta.id;meta.main""}",2,"{}"
-7,redshift,z,redshift,"{""ucd"": ""src.redshift""}",1,"{}"
-8,designation,design,designation,"{""table_name"": ""J_ApJS_269_3_J_ApJS_269_3_sga2020"", ""column_name"": ""Name""}",3,"{}"
+"catalog","parameter","key","filters","priority"
+icrs,ra,"","{""ucd"": ""pos.eq.ra""}",1
+icrs,dec,"","{""ucd"": ""pos.eq.dec""}",1
+icrs,ra,"","{""ucd"": ""pos.eq.ra;meta.main""}",2
+icrs,dec,"","{""ucd"": ""pos.eq.dec;meta.main""}",2
+icrs,dec,"","{""ucd"": ""pos.eq.dec;meta.main;stat.mean""}",3
+icrs,ra,"","{""ucd"": ""pos.eq.ra;meta.main;stat.mean""}",3
+designation,design,"","{""ucd"": ""meta.id""}",1
+designation,design,"","{""ucd"": ""meta.id"", ""datatype_oneof"": [""text""]}",2
+designation,design,"","{""ucd"": ""meta.id;meta.main""}",3
+designation,design,"","{""ucd"": ""meta.id;meta.main"", ""datatype_oneof"": [""text""]}",4
+redshift,z,"","{""ucd"": ""src.redshift""}",1
+redshift,cz,"","{""ucd"": ""phys.veloc""}",1
+redshift,cz,"","{""ucd"": ""phys.veloc;meta.main""}",2
+redshift,cz,"","{""ucd"": ""phys.veloc;meta.main;stat.mean""}",3
+redshift,e_cz,"","{""ucd"": ""stat.error;phys.veloc""}",1

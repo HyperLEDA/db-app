@@ -39,6 +39,7 @@ def mark_objects(
     table_id: int,
     batch_size: int,
     cache_enabled: bool = True,
+    initial_offset: int = 195500,
 ) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)
@@ -62,6 +63,8 @@ def mark_objects(
         lambda data: len(data.data) == 0,
         table_id,
         batch_size=batch_size,
+        initial_offset=initial_offset,
+        order_column=repositories.INTERNAL_ID_COLUMN_NAME,
     ):
         objects = h.apply(data.data)
         layer0_repo.upsert_objects(table_id, objects)
