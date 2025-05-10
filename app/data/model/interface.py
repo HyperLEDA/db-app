@@ -3,6 +3,7 @@ import enum
 from dataclasses import dataclass
 from typing import Any, Self
 
+import numpy as np
 from astropy import units as u
 
 
@@ -10,6 +11,13 @@ from astropy import units as u
 class MeasuredValue:
     value: Any
     unit: u.Unit
+
+
+def is_nan(v: MeasuredValue | None | float) -> bool:
+    if isinstance(v, float):
+        return np.isnan(v)
+
+    return v is None or np.isnan(v.value)
 
 
 class RawCatalog(enum.Enum):

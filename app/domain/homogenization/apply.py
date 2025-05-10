@@ -75,7 +75,7 @@ class Homogenization:
                 try:
                     catalog_obj = catalog_type.from_custom(**data_dict)
                 except Exception as e:
-                    logger.error(
+                    logger.warning(
                         "Error creating catalog object",
                         object_id=row[repositories.INTERNAL_ID_COLUMN_NAME],
                         error=e,

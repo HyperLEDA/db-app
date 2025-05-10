@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final
+from typing import Any, final
 
 from app.data import model
 
@@ -10,7 +10,7 @@ class ColumnFilter(ABC):
         pass
 
 
-def parse_filters(filters: dict[str, str]) -> ColumnFilter:
+def parse_filters(filters: dict[str, Any]) -> ColumnFilter:
     parsed_filters = []
 
     for f, value in filters.items():
@@ -20,6 +20,8 @@ def parse_filters(filters: dict[str, str]) -> ColumnFilter:
             parsed_filters.append(ColumnNameColumnFilter(value))
         elif f == "table_name":
             parsed_filters.append(TableNameColumnFilter(value))
+        elif f == "datatype_oneof":
+            parsed_filters.append(DataTypeOneOfFilter(value))
         else:
             raise ValueError(f"Unknown filter: {f}")
 
@@ -33,6 +35,15 @@ class UCDColumnFilter(ColumnFilter):
 
     def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
         return column.ucd == self.ucd
+
+
+@final
+class DataTypeOneOfFilter(ColumnFilter):
+    def __init__(self, datatypes: list[str]) -> None:
+        self.datatypes = datatypes
+
+    def apply(self, table: model.Layer0TableMeta, column: model.ColumnDescription) -> bool:
+        return column.data_type in self.datatypes
 
 
 @final

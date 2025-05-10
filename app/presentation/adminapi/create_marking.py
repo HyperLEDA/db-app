@@ -118,7 +118,7 @@ async def create_marking_handler(actions: interface.Actions, r: web.Request) -> 
         This handler also supports additional parameters that are not present in the original table. For example, a
         table might not have a separate column for astrometric errors but from other sources you know that its error is
         0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the
-        `additional_parameters` field for each catalog:
+        `additional_params` field for each catalog:
 
         ```json
         {
@@ -131,7 +131,7 @@ async def create_marking_handler(actions: interface.Actions, r: web.Request) -> 
                     "column_name": "DEJ2000"
                 }
             },
-            "additional_parameters": {
+            "additional_params": {
                 "e_ra": 0.1,
                 "e_dec": 0.5
             }

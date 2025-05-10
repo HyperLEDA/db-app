@@ -1,7 +1,6 @@
 from typing import Any, Self, final
 
 import astropy.constants
-import numpy as np
 
 from app.data.model import interface
 
@@ -21,17 +20,24 @@ class RedshiftCatalogObject(interface.CatalogObject):
         cls,
         cz: interface.MeasuredValue | None = None,
         z: float | None = None,
-        e_cz: float | None = None,
+        e_cz: interface.MeasuredValue | None = None,
         e_z: float | None = None,
     ) -> Self:
-        if z is not None and not np.isnan(z):
-            cz = z * astropy.constants.c.to("m/s").value
-            e_cz = e_z * astropy.constants.c.to("m/s").value if e_z is not None else None
-
-        if cz is None:
+        if not interface.is_nan(cz):
+            data_cz = (cz.value * cz.unit).to("m/s").value
+        elif not interface.is_nan(z):
+            data_cz = (z * astropy.constants.c).to("m/s").value
+        else:
             raise ValueError("neither z nor cz is specified")
 
-        return cls(cz, e_cz)
+        if not interface.is_nan(e_cz):
+            data_e_cz = (e_cz.value * e_cz.unit).to("m/s").value
+        elif not interface.is_nan(e_z):
+            data_e_cz = (e_z * astropy.constants.c).to("m/s").value
+        else:
+            raise ValueError("neither e_z nor e_cz is specified")
+
+        return cls(data_cz, data_e_cz)
 
     def layer0_data(self) -> dict[str, Any]:
         return {"cz": self.cz, "e_cz": self.e_cz}
