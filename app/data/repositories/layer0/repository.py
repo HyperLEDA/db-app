@@ -23,13 +23,13 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def fetch_raw_data(
         self,
         table_id: int,
+        offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
-        offset: int = 0,
         limit: int | None = None,
     ) -> model.Layer0RawData:
-        return self.table_repo.fetch_raw_data(table_id, columns, order_column, order_direction, offset, limit)
+        return self.table_repo.fetch_raw_data(table_id, offset, columns, order_column, order_direction, limit)
 
     def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata(table_id)
