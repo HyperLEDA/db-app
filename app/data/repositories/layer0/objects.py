@@ -45,18 +45,22 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             for row in rows
         ]
 
-    def get_processed_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0ProcessedObject]:
-        rows = self._storage.query(
-            """
-            SELECT o.id, o.data, c.status, c.metadata
+    def get_processed_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0ProcessedObject]:
+        params = []
+        query = """SELECT o.id, o.data, c.status, c.metadata
             FROM rawdata.objects AS o
             JOIN rawdata.crossmatch AS c ON o.id = c.object_id
-            WHERE o.table_id = %s
-            ORDER BY o.id
-            LIMIT %s OFFSET %s
-            """,
-            params=[table_id, limit, offset],
-        )
+            WHERE o.table_id = %s\n"""
+        params.append(table_id)
+
+        if offset is not None:
+            query += "AND o.id > %s\n"
+            params.append(offset)
+
+        query += "ORDER BY o.id LIMIT %s"
+        params.append(limit)
+
+        rows = self._storage.query(query, params=params)
 
         objects = []
 

@@ -49,7 +49,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
         return self.objects_repo.get_objects(table_id, limit, offset)
 
-    def get_processed_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0ProcessedObject]:
+    def get_processed_objects(
+        self, table_id: int, limit: int, offset: str | None = None
+    ) -> list[model.Layer0ProcessedObject]:
         return self.objects_repo.get_processed_objects(table_id, limit, offset)
 
     def erase_crossmatch_results(self, table_id: int) -> None:

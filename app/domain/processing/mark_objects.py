@@ -77,7 +77,7 @@ def mark_objects(
 
         log.info(
             "Processed batch",
-            offset=offset,
+            last_object=offset,
             updated_count=len(objects),
-            very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.02f}%",
+            very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
         )

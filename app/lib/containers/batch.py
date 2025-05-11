@@ -10,7 +10,7 @@ def read_batches[OutputType: Any, OffsetType: Any](
     *args,
     batch_size: int = 500,
     **kwargs,
-) -> Iterator[tuple[int, OutputType]]:
+) -> Iterator[tuple[OffsetType, OutputType]]:
     """
     Iteratively calls `func` and yields the current offset and the return value of `func`.
     `*args` and `**kwargs` are used as additional arguments to the function.

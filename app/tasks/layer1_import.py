@@ -1,3 +1,4 @@
+import uuid
 from typing import final
 
 import structlog
@@ -33,6 +34,8 @@ class Layer1ImportTask(interface.Task):
         for offset, data in containers.read_batches(
             self.layer0_repository.get_processed_objects,
             lambda data: len(data) == 0,
+            None,
+            lambda d, _: d[-1].object_id,
             self.table_id,
         ):
             with self.layer0_repository.with_tx():
@@ -59,7 +62,16 @@ class Layer1ImportTask(interface.Task):
 
                 self.layer1_repository.save_data(layer1_objects)
 
-            self.log.info("Processed batch", done=offset, **ctx)
+            last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
+            max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
+
+            self.log.info(
+                "Processed batch",
+                last_object=offset,
+                updated=len(layer1_objects),
+                very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
+                **ctx,
+            )
 
     def cleanup(self):
         self.pg_storage.disconnect()
