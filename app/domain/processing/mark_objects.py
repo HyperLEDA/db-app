@@ -41,7 +41,7 @@ def mark_objects(
     table_id: int,
     batch_size: int,
     cache_enabled: bool = True,
-    initial_offset: str | None = "eb047b78-e089-c1e6-16c3-16e9404df520",
+    initial_offset: str | None = None,
 ) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)
@@ -72,7 +72,7 @@ def mark_objects(
         objects = h.apply(data.data)
         layer0_repo.upsert_objects(table_id, objects)
 
-        last_uuid = uuid.UUID(list(data.data[repositories.INTERNAL_ID_COLUMN_NAME])[-1])
+        last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
         max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
         log.info(
