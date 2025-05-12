@@ -1,5 +1,6 @@
 import datetime
 import unittest
+import uuid
 
 import pandas
 import structlog
@@ -49,7 +50,14 @@ class MarkObjectsTest(unittest.TestCase):
 
         data = pandas.DataFrame(
             {
-                repositories.INTERNAL_ID_COLUMN_NAME: ["1", "2", "3", "4", "5", "6"],
+                repositories.INTERNAL_ID_COLUMN_NAME: [
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                ],
                 "ra": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
                 "dec": [20.0, 30.0, 40.0, 50.0, 60.0, 70.0],
                 "redshift": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],

@@ -1,0 +1,1 @@
+CREATE INDEX idx_pgc_id ON rawdata.pgc (id);

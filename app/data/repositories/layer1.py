@@ -6,12 +6,6 @@ from app.data import model
 from app.lib import containers
 from app.lib.storage import postgres
 
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-]
-
 
 class Layer1Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
@@ -59,42 +53,42 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                     object_count=len(table_objs),
                 )
 
-    def get_new_observations(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.Layer1PGCObservation]:
+    def get_new_observations(
+        self, dt: datetime.datetime, limit: int, offset: int, catalog: model.RawCatalog
+    ) -> list[model.Layer1PGCObservation]:
         """
         Returns all objects that were modified since `dt`.
-        `limit` and `offset` are applied to number of selected PGC numbers, not the final number of objects.
+        `limit` is the number of PGC numbers to select, not the final number of objects.
         As such, this function will return around
-        `(number_of_catalogs) * limit * (average_number_of_observations_per_PGC)` objects, not `limit`.
+        `limit * (average_number_of_observations_per_PGC)` objects, not `limit`.
+
+        `offset` is the first PGC number from which to start selecting.
 
         This makes the function safe for aggregation - for each returned PGC all of its objects will be returned.
         """
+        object_cls = model.get_catalog_object_type(catalog)
 
-        objects: list[model.Layer1PGCObservation] = []
-
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
-
-            query = f"""
-            SELECT * 
+        query = f"""SELECT *
+        FROM {object_cls.layer1_table()} AS l1
+        JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
+        WHERE id IN (
+            SELECT DISTINCT id
             FROM {object_cls.layer1_table()} AS l1
             JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
-            WHERE id IN (
-                SELECT DISTINCT id
-                FROM {object_cls.layer1_table()} AS l1
-                JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
-                WHERE modification_time > %s
-                ORDER BY id
-                LIMIT %s
-                OFFSET %s
-            )
-            """
+            WHERE modification_time > %s AND pgc.id > %s
+            ORDER BY id
+            LIMIT %s
+        )
+        ORDER BY pgc.id ASC"""
 
-            rows = self._storage.query(query, params=[dt, limit, offset])
-            for row in rows:
-                object_id = row.pop("object_id")
-                pgc = int(row.pop("id"))
-                catalog_object = object_cls.from_layer1(row)
+        rows = self._storage.query(query, params=[dt, offset, limit])
 
-                objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
+        objects: list[model.Layer1PGCObservation] = []
+        for row in rows:
+            object_id = row.pop("object_id")
+            pgc = int(row.pop("id"))
+            catalog_object = object_cls.from_layer1(row)
+
+            objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
 
         return objects
