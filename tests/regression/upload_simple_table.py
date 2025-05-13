@@ -20,7 +20,6 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
         rules=[
             hyperleda.Catalog(
                 name=hyperleda.Name.icrs,
-                key="position",
                 parameters={
                     "ra": hyperleda.Parameter(column_name="ra"),
                     "dec": hyperleda.Parameter(column_name="dec"),
