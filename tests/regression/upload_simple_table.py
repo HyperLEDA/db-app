@@ -20,7 +20,6 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
         rules=[
             hyperleda.Catalog(
                 name=hyperleda.Name.icrs,
-                key="position",
                 parameters={
                     "ra": hyperleda.Parameter(column_name="ra"),
                     "dec": hyperleda.Parameter(column_name="dec"),
@@ -110,7 +109,7 @@ def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dic
 
 
 @lib.test_logging_decorator(__file__)
-def layer1_import(client: hyperleda.HyperLedaClient, table_id: int):
+def layer1_import(table_id: int):
     commands.run(
         RunTaskCommand(
             "layer1-import",
@@ -136,4 +135,4 @@ def run():
     statuses_data = get_object_statuses(client, table_id)
     assert statuses_data["new"] == 2
 
-    layer1_import(client, table_id)
+    layer1_import(table_id)

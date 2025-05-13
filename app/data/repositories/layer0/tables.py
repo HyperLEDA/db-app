@@ -6,7 +6,7 @@ import pandas
 import structlog
 from astropy import units as u
 
-from app.data import model, template
+from app.data import model, repositories, template
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
@@ -108,10 +108,10 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def fetch_raw_data(
         self,
         table_id: int,
+        offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
-        offset: int = 0,
         limit: int | None = None,
     ) -> model.Layer0RawData:
         """
@@ -119,7 +119,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param columns: select only given columns
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
-        :param offset: allows to retrieve rows starting from the `offset` row
+        :param offset: allows to retrieve rows starting from the `offset` object_id
         :param limit: allows to retrieve no more than `limit` rows
         :return: Layer0RawData
         """
@@ -136,11 +136,12 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         SELECT {columns_str} FROM {RAWDATA_SCHEMA}."{table_name}"\n
         """
 
+        if offset is not None:
+            query += f"WHERE {repositories.INTERNAL_ID_COLUMN_NAME} > %s\n"
+            params.append(offset)
+
         if order_column is not None:
             query += f"ORDER BY {order_column} {order_direction}\n"
-
-        query += "OFFSET %s\n"
-        params.append(offset)
 
         if limit is not None:
             query += "LIMIT %s\n"

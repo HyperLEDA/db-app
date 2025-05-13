@@ -41,6 +41,8 @@ class ProcessTask(interface.Task):
         for offset, data in containers.read_batches(
             self.layer0_repo.get_objects,
             lambda data: len(data) == 0,
+            0,
+            lambda _, offset: offset + self.batch_size,
             self.table_id,
             batch_size=self.batch_size,
         ):

@@ -1,5 +1,6 @@
 import datetime
 import unittest
+import uuid
 
 import pandas
 import structlog
@@ -26,12 +27,18 @@ class MarkObjectsTest(unittest.TestCase):
                 model.HomogenizationRule(model.RawCatalog.REDSHIFT.value, "z", {"ucd": "src.redshift"}),
             ]
         )
+        cls.layer0_repo.add_homogenization_params(
+            [
+                model.HomogenizationParams(model.RawCatalog.ICRS.value, {"e_ra": 0.1, "e_dec": 0.1}),
+                model.HomogenizationParams(model.RawCatalog.REDSHIFT.value, {"e_z": 0.1}),
+            ]
+        )
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def _get_table(self) -> tuple[int, str]:
-        table_name = "test_table"
+        table_name = f"test_table_{str(uuid.uuid4()).replace('-', '_')}"
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(
             model.Layer0TableMeta(
@@ -49,7 +56,14 @@ class MarkObjectsTest(unittest.TestCase):
 
         data = pandas.DataFrame(
             {
-                repositories.INTERNAL_ID_COLUMN_NAME: ["1", "2", "3", "4", "5", "6"],
+                repositories.INTERNAL_ID_COLUMN_NAME: [
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                ],
                 "ra": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
                 "dec": [20.0, 30.0, 40.0, 50.0, 60.0, 70.0],
                 "redshift": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],

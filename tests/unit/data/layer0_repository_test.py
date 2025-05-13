@@ -1,4 +1,5 @@
 import unittest
+import uuid
 from unittest import mock
 
 import structlog
@@ -15,18 +16,29 @@ class Layer0RepositoryTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            param("no kwargs", {}, 'SELECT * FROM rawdata."ironman" OFFSET %s'),
-            param("with columns", {"columns": ["one", "two"]}, 'SELECT one, two FROM rawdata."ironman" OFFSET %s'),
+            param("no kwargs", {}, 'SELECT * FROM rawdata."ironman"'),
+            param("with columns", {"columns": ["one", "two"]}, 'SELECT one, two FROM rawdata."ironman"'),
             param(
                 "with order by",
                 {"order_column": "one", "order_direction": "desc"},
-                'SELECT * FROM rawdata."ironman" ORDER BY one DESC OFFSET %s',
+                'SELECT * FROM rawdata."ironman" ORDER BY one DESC',
             ),
-            param("with limit", {"limit": 10}, 'SELECT * FROM rawdata."ironman" OFFSET %s LIMIT %s'),
+            param("with limit", {"limit": 10}, 'SELECT * FROM rawdata."ironman" LIMIT %s'),
+            param(
+                "with offset",
+                {"offset": uuid.uuid4()},
+                'SELECT * FROM rawdata."ironman" WHERE hyperleda_internal_id > %s',
+            ),
             param(
                 "with all",
-                {"columns": ["one", "two"], "order_column": "one", "order_direction": "desc", "limit": 10},
-                'SELECT one, two FROM rawdata."ironman" ORDER BY one DESC OFFSET %s LIMIT %s',
+                {
+                    "columns": ["one", "two"],
+                    "order_column": "one",
+                    "order_direction": "desc",
+                    "offset": uuid.uuid4(),
+                    "limit": 10,
+                },
+                'SELECT one, two FROM rawdata."ironman" WHERE hyperleda_internal_id > %s ORDER BY one DESC LIMIT %s',
             ),
         ]
     )

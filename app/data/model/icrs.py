@@ -27,8 +27,15 @@ class ICRSCatalogObject(interface.CatalogObject):
         e_ra: float | None = None,
         e_dec: float | None = None,
     ) -> Self:
-        ra_angle = coordinates.Angle(ra.value, ra.unit)
-        dec_angle = coordinates.Angle(dec.value, dec.unit)
+        if not interface.is_nan(ra) and not interface.is_nan(dec):
+            ra_angle = coordinates.Angle(ra.value, ra.unit)
+            dec_angle = coordinates.Angle(dec.value, dec.unit)
+        else:
+            raise ValueError("no ra or dec values")
+
+        if e_ra is None or e_dec is None:
+            raise ValueError("no e_ra or e_dec specified")
+
         coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
 
         return cls(coords.ra.deg, coords.dec.deg, e_ra, e_dec)

@@ -15,6 +15,8 @@ class HomogenizationTest(unittest.TestCase):
             column_descriptions=[
                 model.ColumnDescription(name="ra", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.ra"),
                 model.ColumnDescription(name="dec", data_type="float", unit=u.Unit("deg"), ucd="pos.eq.dec"),
+                model.ColumnDescription(name="e_ra", data_type="float", ucd="pos.eq.ra;stat.error"),
+                model.ColumnDescription(name="e_dec", data_type="float", ucd="pos.eq.dec;stat.error"),
                 model.ColumnDescription(name="name", data_type="text", ucd="meta.id"),
                 model.ColumnDescription(name="secondary_name", data_type="text"),
                 model.ColumnDescription(name="redshift", data_type="float"),
@@ -26,6 +28,8 @@ class HomogenizationTest(unittest.TestCase):
             {
                 "ra": [10.0, 20.0],
                 "dec": [30.0, 40.0],
+                "e_ra": [0.11, 0.12],
+                "e_dec": [0.11, 0.12],
                 "name": ["obj1", "obj2"],
                 "secondary_name": ["obj1_s", "obj2_s"],
                 "redshift": [0.1, 0.2],
@@ -39,24 +43,20 @@ class HomogenizationTest(unittest.TestCase):
                 "simple fill",
                 rules=[
                     homogenization.Rule(
-                        catalog=model.RawCatalog.ICRS,
-                        parameter="ra",
-                        filter=homogenization.UCDColumnFilter("pos.eq.ra"),
-                    ),
-                    homogenization.Rule(
-                        catalog=model.RawCatalog.ICRS,
-                        parameter="dec",
-                        filter=homogenization.UCDColumnFilter("pos.eq.dec"),
+                        catalog=model.RawCatalog.DESIGNATION,
+                        parameter="design",
+                        filter=homogenization.UCDColumnFilter("meta.id"),
+                        priority=1,
                     ),
                 ],
                 expected_objects=[
                     model.Layer0Object(
                         object_id="id1",
-                        data=[model.ICRSCatalogObject(ra=10.0, dec=30.0)],
+                        data=[model.DesignationCatalogObject(design="obj1")],
                     ),
                     model.Layer0Object(
                         object_id="id2",
-                        data=[model.ICRSCatalogObject(ra=20.0, dec=40.0)],
+                        data=[model.DesignationCatalogObject(design="obj2")],
                     ),
                 ],
             ),
@@ -165,6 +165,16 @@ class HomogenizationTest(unittest.TestCase):
                         filter=homogenization.UCDColumnFilter("pos.eq.dec"),
                     ),
                     homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="e_ra",
+                        filter=homogenization.UCDColumnFilter("pos.eq.ra;stat.error"),
+                    ),
+                    homogenization.Rule(
+                        catalog=model.RawCatalog.ICRS,
+                        parameter="e_dec",
+                        filter=homogenization.UCDColumnFilter("pos.eq.dec;stat.error"),
+                    ),
+                    homogenization.Rule(
                         catalog=model.RawCatalog.DESIGNATION,
                         parameter="design",
                         filter=homogenization.UCDColumnFilter("meta.id"),
@@ -174,14 +184,14 @@ class HomogenizationTest(unittest.TestCase):
                     model.Layer0Object(
                         object_id="id1",
                         data=[
-                            model.ICRSCatalogObject(ra=10.0, dec=30.0),
+                            model.ICRSCatalogObject(ra=10.0, dec=30.0, e_ra=0.11, e_dec=0.11),
                             model.DesignationCatalogObject(design="obj1"),
                         ],
                     ),
                     model.Layer0Object(
                         object_id="id2",
                         data=[
-                            model.ICRSCatalogObject(ra=20.0, dec=40.0),
+                            model.ICRSCatalogObject(ra=20.0, dec=40.0, e_ra=0.12, e_dec=0.12),
                             model.DesignationCatalogObject(design="obj2"),
                         ],
                     ),

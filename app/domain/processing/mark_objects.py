@@ -1,3 +1,5 @@
+import uuid
+
 import structlog
 
 from app.data import model, repositories
@@ -39,6 +41,7 @@ def mark_objects(
     table_id: int,
     batch_size: int,
     cache_enabled: bool = True,
+    initial_offset: str | None = None,
 ) -> None:
     meta = layer0_repo.fetch_metadata(table_id)
     table_stats = layer0_repo.get_table_statistics(table_id)
@@ -59,11 +62,22 @@ def mark_objects(
 
     for offset, data in containers.read_batches(
         layer0_repo.fetch_raw_data,
-        lambda data: len(data.data) == 0,
+        lambda d: len(d.data) == 0,
+        initial_offset,
+        lambda d, _: list(d.data[repositories.INTERNAL_ID_COLUMN_NAME])[-1],
         table_id,
         batch_size=batch_size,
+        order_column=repositories.INTERNAL_ID_COLUMN_NAME,
     ):
         objects = h.apply(data.data)
         layer0_repo.upsert_objects(table_id, objects)
 
-        log.info("Processed batch", offset=offset)
+        last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
+        max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
+
+        log.info(
+            "Processed batch",
+            last_object=offset,
+            updated_count=len(objects),
+            very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
+        )
