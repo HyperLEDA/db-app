@@ -28,7 +28,10 @@ class MarkObjectsTest(unittest.TestCase):
             ]
         )
         cls.layer0_repo.add_homogenization_params(
-            [model.HomogenizationParams(model.RawCatalog.REDSHIFT.value, {"e_z": 0.1})]
+            [
+                model.HomogenizationParams(model.RawCatalog.ICRS.value, {"e_ra": 0.1, "e_dec": 0.1}),
+                model.HomogenizationParams(model.RawCatalog.REDSHIFT.value, {"e_z": 0.1}),
+            ]
         )
 
     def tearDown(self):

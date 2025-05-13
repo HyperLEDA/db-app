@@ -19,10 +19,12 @@ class Homogenization:
         rules_by_column: dict[str, list[model.Rule]],
         params_by_catalog: dict[tuple[str, str], dict[str, Any]],
         enricher_by_column: dict[str, Enricher],
+        ignore_exceptions: bool = True,
     ):
         self.rules_by_column = rules_by_column
         self.params_by_catalog = params_by_catalog
         self.enricher_by_column = enricher_by_column
+        self.ignore_exceptions = ignore_exceptions
 
     def apply(self, data: pandas.DataFrame) -> list[data_model.Layer0Object]:
         result: list[data_model.Layer0Object] = []
@@ -75,6 +77,9 @@ class Homogenization:
                 try:
                     catalog_obj = catalog_type.from_custom(**data_dict)
                 except Exception as e:
+                    if not self.ignore_exceptions:
+                        raise e
+
                     logger.debug(
                         "Error creating catalog object",
                         object_id=row[repositories.INTERNAL_ID_COLUMN_NAME],
