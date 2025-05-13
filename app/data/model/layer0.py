@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass, field
+from typing import Any
 
 import pandas
 from astropy import units as u
@@ -92,5 +93,5 @@ class HomogenizationRule:
 @dataclass
 class HomogenizationParams:
     catalog: str
-    params: dict[str, str]
+    params: dict[str, Any]
     key: str = ""
