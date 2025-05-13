@@ -33,6 +33,9 @@ class ICRSCatalogObject(interface.CatalogObject):
         else:
             raise ValueError("no ra or dec values")
 
+        if e_ra is None or e_dec is None:
+            raise ValueError("no e_ra or e_dec specified")
+
         coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
 
         return cls(coords.ra.deg, coords.dec.deg, e_ra, e_dec)
