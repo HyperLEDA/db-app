@@ -190,6 +190,19 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
     return repo.create_bibliography(code, year, authors, title)
 
 
+def get_unit(u: str) -> units.Unit:
+    # astropy does not support "log" as a function on unit, so we need to explicitly change it do "dex".
+    # this might cause issues if the unit is a log-log unit or "10 * log" since we will only change the first log.
+    # however, as of writing, astropy does not support such units anyway.
+    if u.startswith("log(") and u.endswith(")"):
+        u = f"dex({u[4:-1]})"
+
+    try:
+        return units.Unit(u)
+    except ValueError:
+        raise RuleValidationError(f"unknown unit: '{u}'") from None
+
+
 def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> list[model.ColumnDescription]:
     result = [
         model.ColumnDescription(
@@ -207,10 +220,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
             raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
-            try:
-                unit = units.Unit(col.unit)
-            except ValueError:
-                raise RuleValidationError(f"unknown unit: '{col.unit}'") from None
+            unit = get_unit(col.unit)
 
         if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=False):
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
