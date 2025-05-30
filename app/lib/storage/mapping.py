@@ -6,6 +6,7 @@ TYPE_DOUBLE_PRECISION = "double precision"
 TYPE_TIMESTAMP = "timestamp without time zone"
 
 type_map = {
+    # SQL types
     "str": TYPE_TEXT,
     "string": TYPE_TEXT,
     "character varying": TYPE_TEXT,
@@ -22,6 +23,14 @@ type_map = {
     "double precision": TYPE_DOUBLE_PRECISION,
     "real": TYPE_DOUBLE_PRECISION,
     "timestamp without time zone": TYPE_TIMESTAMP,
+    # XML Schema types
+    "unsignedLong": TYPE_INTEGER,
+    "unsignedInt": TYPE_INTEGER,
+    "unsignedShort": TYPE_INTEGER,
+    "unsignedByte": TYPE_INTEGER,
+    "positiveInteger": TYPE_INTEGER,
+    # JSON Schema types
+    "number": TYPE_DOUBLE_PRECISION,
 }
 
 
@@ -29,7 +38,7 @@ def get_type(t: str) -> str:
     if t in type_map:
         return type_map[t]
 
-    raise ValueError(f"unable to cast: unknown type {t}")
+    return TYPE_TEXT
 
 
 def get_type_from_dtype(t: np.dtype) -> str:
