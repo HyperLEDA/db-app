@@ -474,7 +474,13 @@
               "double",
               "double precision",
               "real",
-              "timestamp without time zone"
+              "timestamp without time zone",
+              "unsignedLong",
+              "unsignedInt",
+              "unsignedShort",
+              "unsignedByte",
+              "positiveInteger",
+              "number"
             ],
             "description": "Type of data"
           },
