@@ -185,7 +185,9 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
 
     title = publication["title"][0]
     authors = list(publication["author"])
-    year = datetime.strptime(publication["pubdate"], "%Y-%m-00").astimezone(UTC).year
+    # for some reason ADS sends both 2016-00-00 and 2016-02-00 formats.
+    # since we do not care about the months, we only take year.
+    year = int(str(publication["pubdate"])[:4])
 
     return repo.create_bibliography(code, year, authors, title)
 
