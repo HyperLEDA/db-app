@@ -2,7 +2,6 @@ import hashlib
 import json
 import uuid
 from collections.abc import Callable
-from datetime import UTC, datetime
 
 import astropy.io.votable.ucd as ucd
 import pandas

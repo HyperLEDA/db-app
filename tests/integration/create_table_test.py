@@ -1,7 +1,6 @@
 import unittest
 
 import structlog
-from astropy import units as u
 
 from app.data import repositories
 from app.domain import adminapi as domain
@@ -34,8 +33,8 @@ class CreateTableTest(unittest.TestCase):
                 "table_name",
                 [
                     presentation.ColumnDescription("name", "text", ucd="meta.id"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.rad),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.rad),
+                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="rad"),
+                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="rad"),
                     presentation.ColumnDescription("redshift", "float", ucd="src.redshift"),
                 ],
                 source_code,
@@ -56,7 +55,7 @@ class CreateTableTest(unittest.TestCase):
                 [
                     presentation.ColumnDescription("name", "text"),
                     presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.rad),
+                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="rad"),
                 ],
                 source_code,
                 "regular",
