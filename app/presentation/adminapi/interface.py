@@ -30,6 +30,26 @@ class ColumnDescription:
     unit: str | None = None
     description: str | None = None
 
+@dataclass
+class Bibliography:
+    title: str
+    authors: list[str]
+    year: int
+    bibcode: str
+
+@dataclass
+class GetTableMetadataRequest:
+    table_name: str
+
+@dataclass
+class GetTableMetadataResponse:
+    id: int
+    description: str
+    column_info: list[ColumnDescription]
+    rows_num: int
+    meta: dict[str, Any]
+    bibliography: Bibliography
+
 
 @dataclass
 class CreateTableRequest:
