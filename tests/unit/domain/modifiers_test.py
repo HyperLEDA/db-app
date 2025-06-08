@@ -4,8 +4,9 @@ from astropy import units as u
 from numpy import testing as nptest
 from parameterized import param, parameterized
 
-from app.domain.unification.modifiers.interface import (
+from app.domain.unification.modifiers import (
     AddUnitColumnModifier,
+    ColumnModifier,
     FormatColumnModifier,
     MapColumnModifier,
 )
@@ -32,16 +33,6 @@ class ModifiersTest(unittest.TestCase):
                 input_quantity=[1, 2, 3] * u.Unit("m") / u.Unit("s"),
                 expected=[1, 2, 3] * u.Unit("km") / u.Unit("s") * u.Unit("J"),
             ),
-        ]
-    )
-    def test_add_unit_column_modifier(
-        self, name: str, modifier: AddUnitColumnModifier, input_quantity: u.Quantity, expected: u.Quantity
-    ):
-        result = modifier.apply(input_quantity)
-        nptest.assert_array_equal(result, expected)
-
-    @parameterized.expand(
-        [
             param(
                 "map string values",
                 modifier=MapColumnModifier(mapping={1: "one", 2: "two", 3: "three"}, default="unknown"),
@@ -60,16 +51,6 @@ class ModifiersTest(unittest.TestCase):
                 input_quantity=[1, 2, 4, 3] * u.Unit("km"),
                 expected=[10, 20, 0, 30],
             ),
-        ]
-    )
-    def test_map_column_modifier(
-        self, name: str, modifier: MapColumnModifier, input_quantity: u.Quantity, expected: list
-    ):
-        result = modifier.apply(input_quantity)
-        nptest.assert_array_equal(result, expected)
-
-    @parameterized.expand(
-        [
             param(
                 "format simple",
                 modifier=FormatColumnModifier("value_{:.0f}"),
@@ -84,9 +65,7 @@ class ModifiersTest(unittest.TestCase):
             ),
         ]
     )
-    def test_format_column_modifier(
-        self, name: str, modifier: FormatColumnModifier, input_quantity: u.Quantity, expected: list
-    ):
+    def test_modifiers(self, name: str, modifier: ColumnModifier, input_quantity: u.Quantity, expected: u.Quantity):
         result = modifier.apply(input_quantity)
         nptest.assert_array_equal(result, expected)
 
