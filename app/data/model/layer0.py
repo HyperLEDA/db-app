@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import pandas
@@ -33,6 +33,7 @@ class Layer0TableMeta:
     datatype: enums.DataType = enums.DataType.REGULAR
     modification_dt: datetime.datetime | None = None
     description: str | None = None
+    table_id: int | None = None
 
 
 @dataclass
@@ -87,7 +88,6 @@ class HomogenizationRule:
     filters: dict[str, str]
     key: str = ""
     priority: int | None = None
-    enrichment: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -95,3 +95,10 @@ class HomogenizationParams:
     catalog: str
     params: dict[str, Any]
     key: str = ""
+
+
+@dataclass
+class Modifier:
+    column_name: str
+    modifier_name: str
+    params: dict[str, Any]

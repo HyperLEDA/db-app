@@ -6,10 +6,15 @@ from app.domain.unification.modifiers.interface import (
     MapColumnModifier,
 )
 
+registry: dict[str, type[ColumnModifier]] = {
+    mod.name(): mod for mod in [MapColumnModifier, FormatColumnModifier, AddUnitColumnModifier]
+}
+
 __all__ = [
     "ColumnModifier",
     "MapColumnModifier",
     "FormatColumnModifier",
     "AddUnitColumnModifier",
     "Applicator",
+    "registry",
 ]

@@ -132,9 +132,10 @@ class TestPostgresStorage:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
 
         for table in self.storage.query(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'layer2'"
+            "SELECT table_schema, table_name FROM information_schema.tables "
+            "WHERE table_schema = 'layer2' OR table_schema = 'layer0'"
         ):
-            self.storage.exec(f"TRUNCATE layer2.{table['table_name']} CASCADE")
+            self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
 
         self.storage.exec("INSERT INTO layer2.last_update VALUES (to_timestamp(0))")
 

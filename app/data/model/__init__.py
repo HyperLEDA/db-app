@@ -20,6 +20,7 @@ from app.data.model.layer0 import (
     Layer0ProcessedObject,
     Layer0RawData,
     Layer0TableMeta,
+    Modifier,
     TableStatistics,
 )
 from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation
@@ -54,4 +55,5 @@ __all__ = [
     "HomogenizationRule",
     "HomogenizationParams",
     "MeasuredValue",
+    "Modifier",
 ]

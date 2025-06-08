@@ -263,6 +263,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             registry_item["datatype"],
             modification_dt,
             table_metadata["param"].get("description"),
+            table_id=registry_item["id"],
         )
 
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:

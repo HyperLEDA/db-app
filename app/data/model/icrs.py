@@ -1,6 +1,7 @@
 from typing import Any, Self, final
 
 from astropy import coordinates
+from astropy import units as u
 
 from app.data.model import interface
 
@@ -22,14 +23,14 @@ class ICRSCatalogObject(interface.CatalogObject):
     @classmethod
     def from_custom(
         cls,
-        ra: interface.MeasuredValue,
-        dec: interface.MeasuredValue,
+        ra: u.Quantity,
+        dec: u.Quantity,
         e_ra: float | None = None,
         e_dec: float | None = None,
     ) -> Self:
         if not interface.is_nan(ra) and not interface.is_nan(dec):
-            ra_angle = coordinates.Angle(ra.value, ra.unit)
-            dec_angle = coordinates.Angle(dec.value, dec.unit)
+            ra_angle = coordinates.Angle(ra)
+            dec_angle = coordinates.Angle(dec)
         else:
             raise ValueError("no ra or dec values")
 
