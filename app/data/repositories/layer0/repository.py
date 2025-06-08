@@ -1,4 +1,5 @@
 import structlog
+from astropy import table
 
 from app.data import model
 from app.data.repositories.layer0 import homogenization, objects, tables
@@ -19,6 +20,17 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def insert_raw_data(self, data: model.Layer0RawData) -> None:
         return self.table_repo.insert_raw_data(data)
+
+    def fetch_table(
+        self,
+        table_name: str,
+        offset: str | None = None,
+        columns: list[str] | None = None,
+        order_column: str | None = None,
+        order_direction: str = "asc",
+        limit: int | None = None,
+    ) -> table.Table:
+        return self.table_repo.fetch_table(table_name, offset, columns, order_column, order_direction, limit)
 
     def fetch_raw_data(
         self,
