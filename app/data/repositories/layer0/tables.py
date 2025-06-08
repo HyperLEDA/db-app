@@ -147,6 +147,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         rows = self._storage.query(query, params=params)
         df = pandas.DataFrame(rows)
         tbl = table.Table()
+        if len(df) == 0:
+            return tbl
 
         for col in meta.column_descriptions:
             values = df[col.name]

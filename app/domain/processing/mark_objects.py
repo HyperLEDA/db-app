@@ -61,15 +61,15 @@ def mark_objects(
         return
 
     for offset, data in containers.read_batches(
-        layer0_repo.fetch_raw_data,
-        lambda d: len(d.data) == 0,
+        layer0_repo.fetch_table,
+        lambda d: len(d) == 0,
         initial_offset,
-        lambda d, _: list(d.data[repositories.INTERNAL_ID_COLUMN_NAME])[-1],
-        table_id,
-        batch_size=batch_size,
+        lambda d, _: list(d[repositories.INTERNAL_ID_COLUMN_NAME])[-1],  # type: ignore
+        meta.table_name,
         order_column=repositories.INTERNAL_ID_COLUMN_NAME,
+        batch_size=batch_size,
     ):
-        objects = h.apply(data.data)
+        objects = h.apply(data.to_pandas())
         layer0_repo.upsert_objects(table_id, objects)
 
         last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
