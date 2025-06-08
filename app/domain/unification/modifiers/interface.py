@@ -1,5 +1,5 @@
 import abc
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, final
 
 import numpy as np
@@ -7,8 +7,13 @@ from astropy import units as u
 
 
 class ColumnModifier(abc.ABC):
+    @classmethod
     @abc.abstractmethod
-    def apply(self, column: u.Quantity) -> u.Quantity | np.ndarray:
+    def name(cls) -> str:
+        pass
+
+    @abc.abstractmethod
+    def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:
         pass
 
 
@@ -18,12 +23,20 @@ class AddUnitColumnModifier(ColumnModifier):
     Strips the column from its current unit and returns a column with a new unit attached.
     """
 
+    @classmethod
+    def name(cls) -> str:
+        return "add_unit"
+
     def __init__(self, unit: str) -> None:
         self.unit = u.Unit(unit)
 
-    def apply(self, column: u.Quantity) -> u.Quantity | np.ndarray:
-        unitless_column = column.to_value()
-        return unitless_column * self.unit
+    def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:
+        values = column
+
+        if isinstance(column, u.Quantity):
+            values = column.to_value()
+
+        return values * self.unit
 
 
 @final
@@ -34,12 +47,20 @@ class MapColumnModifier(ColumnModifier):
     Strips the unit from the input column and returns a dimensionless result.
     """
 
+    @classmethod
+    def name(cls) -> str:
+        return "map"
+
     def __init__(self, mapping: dict[Any, Any], default: Any) -> None:
         self.mapping = mapping
         self.default = default
 
-    def apply(self, column: u.Quantity) -> u.Quantity | np.ndarray:
-        values = column.to_value()
+    def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:
+        values = column
+
+        if isinstance(column, u.Quantity):
+            values = column.to_value()
+
         result = np.full((len(column),), self.default)
 
         for key, value in self.mapping.items():
@@ -57,6 +78,10 @@ class FormatColumnModifier(ColumnModifier):
     Strips the unit from the input column and returns a dimensionless result.
     """
 
+    @classmethod
+    def name(cls) -> str:
+        return "format"
+
     def __init__(self, pattern: str) -> None:
         try:
             # Test if the pattern is valid by formatting a dummy value
@@ -67,5 +92,10 @@ class FormatColumnModifier(ColumnModifier):
         self.pattern = pattern
         self._format_func: Callable = np.frompyfunc(lambda x: self.pattern.format(x), 1, 1)
 
-    def apply(self, column: u.Quantity) -> u.Quantity | np.ndarray:
-        return self._format_func(column.to_value())
+    def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:
+        values = column
+
+        if isinstance(column, u.Quantity):
+            values = column.to_value()
+
+        return self._format_func(values)

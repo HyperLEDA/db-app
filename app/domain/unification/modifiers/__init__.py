@@ -1,3 +1,4 @@
+from app.domain.unification.modifiers.apply import Applicator
 from app.domain.unification.modifiers.interface import (
     AddUnitColumnModifier,
     ColumnModifier,
@@ -10,4 +11,5 @@ __all__ = [
     "MapColumnModifier",
     "FormatColumnModifier",
     "AddUnitColumnModifier",
+    "Applicator",
 ]

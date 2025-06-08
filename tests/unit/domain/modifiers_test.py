@@ -1,11 +1,13 @@
 import unittest
 
+from astropy import table
 from astropy import units as u
 from numpy import testing as nptest
 from parameterized import param, parameterized
 
 from app.domain.unification.modifiers import (
     AddUnitColumnModifier,
+    Applicator,
     ColumnModifier,
     FormatColumnModifier,
     MapColumnModifier,
@@ -72,3 +74,79 @@ class ModifiersTest(unittest.TestCase):
     def test_format_column_modifier_invalid_pattern(self):
         with self.assertRaises(ValueError):
             FormatColumnModifier("too_many_{}_{}")
+
+
+class ApplicatorTest(unittest.TestCase):
+    test_table = table.Table(
+        {
+            "col1": [1, 2, 3] * u.Unit("km"),
+            "col2": ["a", "b", "c"],
+            "col3": [10.1, 20.2, 30.3],
+        }
+    )
+
+    def assert_equal_tables(self, t1: table.Table, t2: table.Table):
+        nptest.assert_array_equal(t1["col1"], t2["col1"])
+        nptest.assert_array_equal(t1["col2"], t2["col2"])
+        nptest.assert_array_equal(t1["col3"], t2["col3"])
+
+    def test_simple_table(self):
+        applicator = Applicator()
+        applicator.add_modifier("col1", AddUnitColumnModifier("m/s"))
+        applicator.add_modifier("col3", AddUnitColumnModifier("rad"))
+        applicator.add_modifier("col2", FormatColumnModifier("test_{}"))
+
+        expected = table.Table(
+            {
+                "col1": [1, 2, 3] * u.Unit("m/s"),
+                "col2": ["test_a", "test_b", "test_c"],
+                "col3": [10.1, 20.2, 30.3] * u.Unit("rad"),
+            }
+        )
+
+        actual = applicator.apply(self.test_table)
+
+        self.assert_equal_tables(actual, expected)
+
+    def test_modifier_without_corresponding_column(self):
+        applicator = Applicator()
+        applicator.add_modifier("col1", AddUnitColumnModifier("m/s"))
+        applicator.add_modifier("nonexistent_column", FormatColumnModifier("test_{}"))
+
+        expected = table.Table(
+            {
+                "col1": [1, 2, 3] * u.Unit("m/s"),
+                "col2": ["a", "b", "c"],
+                "col3": [10.1, 20.2, 30.3],
+            }
+        )
+
+        actual = applicator.apply(self.test_table)
+
+        self.assert_equal_tables(actual, expected)
+
+    def test_sequential_modifiers(self):
+        applicator = Applicator()
+        applicator.add_modifier("col2", MapColumnModifier({"a": "x", "b": "y"}, "z"))
+        applicator.add_modifier("col2", FormatColumnModifier("test_{}"))
+        applicator.add_modifier("col2", MapColumnModifier({"test_x": "1", "test_y": "2"}, "3"))
+
+        expected = table.Table(
+            {
+                "col1": [1, 2, 3] * u.Unit("km"),
+                "col2": ["1", "2", "3"],
+                "col3": [10.1, 20.2, 30.3],
+            }
+        )
+
+        actual = applicator.apply(self.test_table)
+
+        self.assert_equal_tables(actual, expected)
+
+    def test_incompatible_modifiers(self):
+        applicator = Applicator()
+        applicator.add_modifier("col1", FormatColumnModifier("test_{:.1f}"))
+        applicator.add_modifier("col1", AddUnitColumnModifier("m/s"))
+
+        with self.assertRaises(TypeError):
+            applicator.apply(self.test_table)
