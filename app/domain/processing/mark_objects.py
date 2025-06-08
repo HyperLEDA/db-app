@@ -4,6 +4,7 @@ import structlog
 
 from app.data import model, repositories
 from app.domain import homogenization
+from app.domain.unification import modifiers
 from app.lib import containers
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -36,6 +37,10 @@ def new_params(params: model.HomogenizationParams) -> homogenization.Params:
     return homogenization.Params(model.RawCatalog(params.catalog), params.key, params.params)
 
 
+def get_modificator() -> modifiers.Applicator:
+    return modifiers.Applicator()
+
+
 def mark_objects(
     layer0_repo: repositories.Layer0Repository,
     table_id: int,
@@ -47,6 +52,7 @@ def mark_objects(
     table_stats = layer0_repo.get_table_statistics(table_id)
 
     h = get_homogenization(layer0_repo, meta)
+    modificator = get_modificator()
 
     # the second condition is needed in case the uploading process was interrupted
     # TODO: in this case the algorithm should determine the last uploaded row and start from there
@@ -69,6 +75,7 @@ def mark_objects(
         order_column=repositories.INTERNAL_ID_COLUMN_NAME,
         batch_size=batch_size,
     ):
+        data = modificator.apply(data)
         objects = h.apply(data.to_pandas())
         layer0_repo.upsert_objects(table_id, objects)
 
