@@ -30,6 +30,7 @@ class ColumnDescription:
     unit: str | None = None
     description: str | None = None
 
+
 @dataclass
 class Bibliography:
     title: str
@@ -37,9 +38,11 @@ class Bibliography:
     year: int
     bibcode: str
 
+
 @dataclass
 class GetTableMetadataRequest:
     table_name: str
+
 
 @dataclass
 class GetTableMetadataResponse:
@@ -204,6 +207,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+        pass
+
+    @abc.abstractmethod
+    def get_table_metadata(self, request: GetTableMetadataRequest) -> GetTableMetadataResponse:
         pass
 
     @abc.abstractmethod
