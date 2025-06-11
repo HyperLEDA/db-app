@@ -42,7 +42,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def upsert_objects(self, table_id: int, objects: list[model.Layer0Object]) -> None:
         return self.objects_repo.upsert_objects(table_id, objects)
-    
+
     def get_table_id(self, table_name: str) -> int:
         # ВРЕМЕННО (?) надо пофиксить
         return self.table_repo._get_table_id(table_name)  # noqa: SLF001
