@@ -144,7 +144,7 @@ class TableUploadManager:
 
         return adminapi.CreateMarkingResponse()
 
-    def get_table_metadata(self, r: adminapi.GetMetadataRequest) -> adminapi.GetMetadataResponse:
+    def get_table_metadata(self, r: adminapi.GetTableMetadataRequest) -> adminapi.GetTableMetadataResponse:
         table_id = self.layer0_repo.get_table_id(r.table_name)
         meta = self.layer0_repo.fetch_metadata_by_name(table_id)
         bibliography = self.common_repo.get_bibliography(meta.bibliography_id)
