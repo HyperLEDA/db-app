@@ -49,3 +49,6 @@ class Actions(adminapi.Actions):
 
     def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
         return self.table_upload_manager.create_marking(r)
+    
+    def get_table_metadata(self, r: adminapi.GetTableMetadataRequest) -> adminapi.GetTableMetadataResponse:
+        return self.get_table_metadata(r)
