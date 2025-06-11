@@ -143,6 +143,21 @@ class TableUploadManager:
                 self.layer0_repo.add_homogenization_params(params)
 
         return adminapi.CreateMarkingResponse()
+    
+    def get_table_metadata(self, r: adminapi.GetMetadataRequest) -> adminapi.GetMetadataResponse:
+        table_id = None
+        meta = self.layer0_repo.fetch_metadata_by_name(table_id)
+        bibliography = self.common_repo.get_bibliography(meta.bibliography_id)
+        rows_num = self.layer0_repo.get_table_statistics(table_id).total_rows
+
+        return adminapi.GetMetadataResponse(
+            table_id,
+            meta.description,
+            meta.column_descriptions,
+            rows_num,
+            meta.meta,
+            bibliography,
+        )
 
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
