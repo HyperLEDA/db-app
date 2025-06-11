@@ -145,17 +145,19 @@ class TableUploadManager:
         return adminapi.CreateMarkingResponse()
     
     def get_table_metadata(self, r: adminapi.GetMetadataRequest) -> adminapi.GetMetadataResponse:
-        table_id = None
+        table_id = self.layer0_repo.get_table_id(r.table_name)
         meta = self.layer0_repo.fetch_metadata_by_name(table_id)
         bibliography = self.common_repo.get_bibliography(meta.bibliography_id)
         rows_num = self.layer0_repo.get_table_statistics(table_id).total_rows
+        metadata = {"datatype": meta.datatype,
+                    "modification_dt":meta.modification_dt}
 
         return adminapi.GetMetadataResponse(
             table_id,
             meta.description,
             meta.column_descriptions,
             rows_num,
-            meta.meta,
+            metadata,
             bibliography,
         )
 
