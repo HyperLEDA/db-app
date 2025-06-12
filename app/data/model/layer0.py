@@ -33,6 +33,7 @@ class Layer0TableMeta:
     datatype: enums.DataType = enums.DataType.REGULAR
     modification_dt: datetime.datetime | None = None
     description: str | None = None
+    table_id: int | None = None
 
 
 @dataclass
