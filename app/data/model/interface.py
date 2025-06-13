@@ -17,6 +17,9 @@ def is_nan(v: u.Quantity | None | float) -> bool:
     if isinstance(v, float):
         return np.isnan(v)
 
+    if isinstance(v, u.Quantity):
+        return np.isnan(v.value)
+
     return v is None
 
 
