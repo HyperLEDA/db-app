@@ -40,12 +40,12 @@ class Bibliography:
 
 
 @dataclass
-class GetTableMetadataRequest:
+class GetTableRequest:
     table_name: str
 
 
 @dataclass
-class GetTableMetadataResponse:
+class GetTableResponse:
     id: int
     description: str
     column_info: list[ColumnDescription]
@@ -210,7 +210,7 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_table_metadata(self, request: GetTableMetadataRequest) -> GetTableMetadataResponse:
+    def get_table_metadata(self, request: GetTableRequest) -> GetTableResponse:
         pass
 
     @abc.abstractmethod

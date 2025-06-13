@@ -15,11 +15,11 @@ class BibliographySchema(Schema):
     bibcode = fields.Str(metadata={"description": "Bibcode reference"})
 
 
-class GetTableMetadataRequestSchema(GenericSchema[interface.GetTableMetadataRequest]):
+class GetTableRequestSchema(GenericSchema[interface.GetTableRequest]):
     table_name = fields.Str(required=True, metadata={"description": "Name of the table"})
 
 
-class GetTableMetadataResponseSchema(Schema):
+class GetTableResponseSchema(Schema):
     id = fields.Int(metadata={"description": "ID of the table"})
     description = fields.Str(metadata={"description": "Table description"})
     column_info = fields.List(
@@ -30,10 +30,10 @@ class GetTableMetadataResponseSchema(Schema):
     bibliography = fields.Nested(BibliographySchema, metadata={"description": "Table bibliography"})
 
 
-async def get_table_metadata_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
+async def get_table_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
     try:
-        request = GetTableMetadataRequestSchema().load(r.rel_url.query)
+        request = GetTableRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(await actions.get_table_metadata(request))
+    return responses.APIOkResponse(actions.get_table_metadata(request))
