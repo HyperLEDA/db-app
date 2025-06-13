@@ -210,7 +210,7 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_table_metadata(self, request: GetTableRequest) -> GetTableResponse:
+    def get_table(self, request: GetTableRequest) -> GetTableResponse:
         pass
 
     @abc.abstractmethod

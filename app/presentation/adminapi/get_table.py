@@ -36,4 +36,4 @@ async def get_table_handler(actions: interface.Actions, r: web.Request) -> respo
     except ValidationError as e:
         raise RuleValidationError(str(e)) from e
 
-    return responses.APIOkResponse(actions.get_table_metadata(request))
+    return responses.APIOkResponse(actions.get_table(request))
