@@ -1,7 +1,8 @@
 import structlog
+from astropy import table
 
 from app.data import model
-from app.data.repositories.layer0 import homogenization, objects, tables
+from app.data.repositories.layer0 import homogenization, modifiers, objects, tables
 from app.lib.storage import postgres
 
 
@@ -13,12 +14,24 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         self.table_repo = tables.Layer0TableRepository(storage)
         self.objects_repo = objects.Layer0ObjectRepository(storage)
         self.homogenization_repo = homogenization.Layer0HomogenizationRepository(storage)
+        self.modifier_repo = modifiers.Layer0ModifiersRepository(storage)
 
     def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         return self.table_repo.create_table(data)
 
     def insert_raw_data(self, data: model.Layer0RawData) -> None:
         return self.table_repo.insert_raw_data(data)
+
+    def fetch_table(
+        self,
+        table_name: str,
+        offset: str | None = None,
+        columns: list[str] | None = None,
+        order_column: str | None = None,
+        order_direction: str = "asc",
+        limit: int | None = None,
+    ) -> table.Table:
+        return self.table_repo.fetch_table(table_name, offset, columns, order_column, order_direction, limit)
 
     def fetch_raw_data(
         self,
@@ -74,3 +87,17 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def add_homogenization_params(self, params: list[model.HomogenizationParams]) -> None:
         return self.homogenization_repo.add_homogenization_params(params)
+
+    def get_modifiers(self, table_name: str) -> list[model.Modifier]:
+        meta = self.fetch_metadata_by_name(table_name)
+        if meta.table_id is None:
+            raise RuntimeError(f"{table_name} has no table_id")
+
+        return self.modifier_repo.get_modifiers(meta.table_id)
+
+    def add_modifier(self, table_name: str, modifiers: list[model.Modifier]) -> None:
+        meta = self.fetch_metadata_by_name(table_name)
+        if meta.table_id is None:
+            raise RuntimeError(f"{table_name} has no table_id")
+
+        return self.modifier_repo.add_modifiers(meta.table_id, modifiers)

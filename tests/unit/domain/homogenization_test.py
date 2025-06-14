@@ -1,6 +1,6 @@
 import unittest
 
-import pandas as pd
+from astropy import table
 from astropy import units as u
 from parameterized import param, parameterized
 
@@ -9,6 +9,8 @@ from app.domain import homogenization
 
 
 class HomogenizationTest(unittest.TestCase):
+    maxDiff = None
+
     def setUp(self) -> None:
         self.table_meta = model.Layer0TableMeta(
             table_name="test_table",
@@ -24,10 +26,10 @@ class HomogenizationTest(unittest.TestCase):
             bibliography_id=1,
         )
 
-        self.data = pd.DataFrame(
+        self.data = table.Table(
             {
-                "ra": [10.0, 20.0],
-                "dec": [30.0, 40.0],
+                "ra": [10.0, 20.0] * u.Unit("deg"),
+                "dec": [30.0, 40.0] * u.Unit("deg"),
                 "e_ra": [0.11, 0.12],
                 "e_dec": [0.11, 0.12],
                 "name": ["obj1", "obj2"],

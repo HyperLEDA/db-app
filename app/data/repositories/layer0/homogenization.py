@@ -8,7 +8,7 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
     def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
         rows = self._storage.query(
             """
-            SELECT catalog, parameter, key, filters, priority, enrichment
+            SELECT catalog, parameter, key, filters, priority
             FROM layer0.homogenization_rules
             """
         )
@@ -20,7 +20,6 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
                 row["filters"] if row["filters"] else {},
                 row["key"],
                 row["priority"],
-                row["enrichment"] if row["enrichment"] else {},
             )
             for row in rows
         ]
@@ -44,7 +43,7 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
 
     def add_homogenization_rules(self, rules: list[model.HomogenizationRule]) -> None:
         query = """
-        INSERT INTO layer0.homogenization_rules (catalog, parameter, key, filters, priority, enrichment) VALUES"""
+        INSERT INTO layer0.homogenization_rules (catalog, parameter, key, filters, priority) VALUES"""
 
         params = []
         values = []
@@ -56,10 +55,9 @@ class Layer0HomogenizationRepository(postgres.TransactionalPGRepository):
                     rule.key,
                     json.dumps(rule.filters),
                     rule.priority,
-                    json.dumps(rule.enrichment) if rule.enrichment else None,
                 ]
             )
-            values.append("(%s, %s, %s, %s, %s, %s)")
+            values.append("(%s, %s, %s, %s, %s)")
 
         self._storage.exec(query + ", ".join(values), params=params)
 
