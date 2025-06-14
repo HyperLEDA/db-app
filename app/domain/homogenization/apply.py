@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from pprint import pprint
 from typing import Any
 
 import structlog
@@ -66,7 +65,7 @@ class Homogenization:
                     if not self.ignore_errors:
                         raise e
 
-                    logger.debug("Error creating catalog object", object_id=object_id, error=e, data_dict=data_dict)
+                    logger.warn("Error creating catalog object", object_id=object_id, error=e, data_dict=data_dict)
                     continue
 
                 objects[object_id].data.append(catalog_obj)
@@ -108,9 +107,6 @@ def get_homogenization(
         params_by_catalog[key].update(param.params)
 
     if len(rules_by_column) == 0:
-        pprint(homogenization_rules)
-        pprint(rules_by_column)
-        pprint(params_by_catalog)
         raise ValueError("No rules satisfy any of the table columns")
 
     priorities: dict[tuple[data_model.RawCatalog, str], dict[str, int]] = {}

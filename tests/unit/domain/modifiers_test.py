@@ -37,19 +37,40 @@ class ModifiersTest(unittest.TestCase):
             ),
             param(
                 "map string values",
-                modifier=MapColumnModifier(mapping={1: "one", 2: "two", 3: "three"}, default="unknown"),
+                modifier=MapColumnModifier(
+                    mapping=[
+                        {"from": 1, "to": "one"},
+                        {"from": 2, "to": "two"},
+                        {"from": 3, "to": "three"},
+                    ],
+                    default="unknown",
+                ),
                 input_quantity=[1, 2, 4, 3] * u.dimensionless_unscaled,
                 expected=["one", "two", "unknown", "three"],
             ),
             param(
                 "map numeric values",
-                modifier=MapColumnModifier(mapping={1: 10, 2: 20, 3: 30}, default=0),
+                modifier=MapColumnModifier(
+                    mapping=[
+                        {"from": 1, "to": 10},
+                        {"from": 2, "to": 20},
+                        {"from": 3, "to": 30},
+                    ],
+                    default=0,
+                ),
                 input_quantity=[1, 2, 4, 3] * u.dimensionless_unscaled,
                 expected=[10, 20, 0, 30],
             ),
             param(
                 "map with units",
-                modifier=MapColumnModifier(mapping={1: 10, 2: 20, 3: 30}, default=0),
+                modifier=MapColumnModifier(
+                    mapping=[
+                        {"from": 1, "to": 10},
+                        {"from": 2, "to": 20},
+                        {"from": 3, "to": 30},
+                    ],
+                    default=0,
+                ),
                 input_quantity=[1, 2, 4, 3] * u.Unit("km"),
                 expected=[10, 20, 0, 30],
             ),
@@ -127,9 +148,27 @@ class ApplicatorTest(unittest.TestCase):
 
     def test_sequential_modifiers(self):
         applicator = Applicator()
-        applicator.add_modifier("col2", MapColumnModifier({"a": "x", "b": "y"}, "z"))
+        applicator.add_modifier(
+            "col2",
+            MapColumnModifier(
+                mapping=[
+                    {"from": "a", "to": "x"},
+                    {"from": "b", "to": "y"},
+                ],
+                default="z",
+            ),
+        )
         applicator.add_modifier("col2", FormatColumnModifier("test_{}"))
-        applicator.add_modifier("col2", MapColumnModifier({"test_x": "1", "test_y": "2"}, "3"))
+        applicator.add_modifier(
+            "col2",
+            MapColumnModifier(
+                mapping=[
+                    {"from": "test_x", "to": "1"},
+                    {"from": "test_y", "to": "2"},
+                ],
+                default="3",
+            ),
+        )
 
         expected = table.Table(
             {

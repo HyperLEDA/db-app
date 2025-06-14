@@ -51,8 +51,18 @@ class MapColumnModifier(ColumnModifier):
     def name(cls) -> str:
         return "map"
 
-    def __init__(self, mapping: dict[Any, Any], default: Any) -> None:
-        self.mapping = mapping
+    def __init__(self, mapping: list[dict[str, Any]], default: Any) -> None:
+        real_mapping = {}
+
+        for curr_map in mapping:
+            if "from" not in curr_map:
+                continue
+            if "to" not in curr_map:
+                continue
+
+            real_mapping[curr_map["from"]] = curr_map["to"]
+
+        self.mapping = real_mapping
         self.default = default
 
     def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:

@@ -25,8 +25,8 @@ class ICRSCatalogObject(interface.CatalogObject):
         cls,
         ra: u.Quantity,
         dec: u.Quantity,
-        e_ra: float | None = None,
-        e_dec: float | None = None,
+        e_ra: u.Quantity | None = None,
+        e_dec: u.Quantity | None = None,
     ) -> Self:
         if not interface.is_nan(ra) and not interface.is_nan(dec):
             ra_angle = coordinates.Angle(ra)
@@ -39,7 +39,7 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
 
-        return cls(coords.ra.deg, coords.dec.deg, e_ra, e_dec)
+        return cls(coords.ra.deg, coords.dec.deg, e_ra.to(u.deg).value, e_dec.to(u.deg).value)
 
     def layer0_data(self) -> dict[str, Any]:
         return {
