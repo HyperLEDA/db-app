@@ -31,6 +31,26 @@ class GetTableResponseSchema(Schema):
 
 
 async def get_table_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
+    """---
+    summary: Retrieve table information
+    description: |
+        Fetches details about a specific table using the provided table name. 
+        The response includes the table's ID, description, columns, number of rows, 
+        metadata, and bibliography.
+    tags: [table]
+    parameters:
+    - in: query
+        schema: GetTableRequestSchema
+    responses:
+        200:
+            description: Table information successfully retrieved
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            data: GetTableResponseSchema
+    """
     try:
         request = GetTableRequestSchema().load(r.rel_url.query)
     except ValidationError as e:
