@@ -34,8 +34,8 @@ async def get_table_handler(actions: interface.Actions, r: web.Request) -> respo
     """---
     summary: Retrieve table information
     description: |
-        Fetches details about a specific table using the provided table name. 
-        The response includes the table's ID, description, columns, number of rows, 
+        Fetches details about a specific table using the provided table name.
+        The response includes the table's ID, description, columns, number of rows,
         metadata, and bibliography.
     tags: [table]
     parameters:
