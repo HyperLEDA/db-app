@@ -39,7 +39,7 @@ async def get_table_handler(actions: interface.Actions, r: web.Request) -> respo
         metadata, and bibliography.
     tags: [table]
     parameters:
-    - in: query
+      - in: query
         schema: GetTableRequestSchema
     responses:
         200:
