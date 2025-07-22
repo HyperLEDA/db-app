@@ -1,10 +1,7 @@
 import abc
 from typing import Any
 
-import astropy
-import astropy.units
-import astropy.units.quantity
-
+from astropy import units as u
 
 class Filter(abc.ABC):
     @abc.abstractmethod
@@ -80,18 +77,19 @@ class DesignationCloseFilter(Filter):
 
 
 class ICRSCoordinatesInRadiusFilter(Filter):
-    def __init__(self, radius: float | astropy.units.quantity.Quantity):
-        if isinstance(radius, astropy.units.quantity.Quantity):
-            radius = radius.to(astropy.units.deg).value
+    def __init__(self, radius: float | u.quantity.Quantity):
+        if isinstance(radius, u.quantity.Quantity):
+            radius = radius.to(u.deg).value
 
         self._radius = radius
 
     def get_query(self):
         return """
-        ST_Distance(
-            ST_MakePoint((sp.params->>'dec')::float, (params->>'ra')::float-180), 
-            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180)
-        ) < %s
+        ST_DWithin(
+            ST_MakePoint((sp.params->>'dec')::float, (sp.params->>'ra')::float-180), 
+            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180),
+            %s
+        )
         """
 
     def get_params(self):
