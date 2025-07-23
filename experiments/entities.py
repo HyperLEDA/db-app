@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
+import pandas
+
 CrossIdentificationStatus = Literal["new", "existing", "collision"]
 
 
@@ -32,18 +34,67 @@ def print_cross_identification_summary(results: dict[str, CrossIdentificationRes
 
 
 def save_cross_identification_results(
-    results: dict[str, CrossIdentificationResult], output_file: str = "cross_identification_results.csv"
+    results: dict[str, CrossIdentificationResult],
+    fast_objects: pandas.DataFrame,
+    output_file: str = "cross_identification_results.csv",
 ) -> None:
-    """Save cross-identification results to a CSV file."""
+    """Save cross-identification results to a CSV file with detailed information."""
     import csv
 
+    # Find coordinate and name columns
+    ra_column = None
+    dec_column = None
+    name_column = None
+
+    for ra_name in ["ra", "RAJ2000", "RA", "ra_deg"]:
+        if ra_name in fast_objects.columns:
+            ra_column = ra_name
+            break
+
+    for dec_name in ["dec", "DEJ2000", "DEC", "dec_deg"]:
+        if dec_name in fast_objects.columns:
+            dec_column = dec_name
+            break
+
+    for name_name in ["Name", "name", "OBJECT", "object"]:
+        if name_name in fast_objects.columns:
+            name_column = name_name
+            break
+
+    if not ra_column or not dec_column:
+        raise ValueError(f"Could not find RA/Dec columns. Available columns: {list(fast_objects.columns)}")
+
     with open(output_file, "w", newline="") as csvfile:
-        fieldnames = ["object_id", "status", "pgc_numbers"]
+        fieldnames = ["object_id", "ra", "dec", "name", "status", "pgc_numbers"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
         for obj_id, result in results.items():
+            # Extract batch index from object_id (format: "obj_<index>")
+            batch_idx = int(obj_id.split("_")[1])
+            obj = fast_objects.iloc[batch_idx]
+
+            # Get coordinates
+            ra = obj[ra_column]
+            dec = obj[dec_column]
+
+            # Get name (use empty string if not found)
+            name = obj[name_column] if name_column else ""
+
+            # Format PGC numbers
             pgc_str = ",".join(map(str, result.pgc_numbers)) if result.pgc_numbers else ""
-            writer.writerow({"object_id": obj_id, "status": result.status, "pgc_numbers": pgc_str})
+
+            writer.writerow(
+                {
+                    "object_id": obj_id,
+                    "ra": ra,
+                    "dec": dec,
+                    "name": name,
+                    "status": result.status,
+                    "pgc_numbers": pgc_str,
+                }
+            )
 
     print(f"Results saved to {output_file}")
+    print(f"Columns: {fieldnames}")
+    print(f"Total objects: {len(results)}")
