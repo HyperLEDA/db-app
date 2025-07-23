@@ -29,7 +29,7 @@ def normalize_position_error(error_arcsec: float, object_id: str = "unknown") ->
         Normalized error in degrees
     """
     if error_arcsec <= 0 or error_arcsec < 0.001:
-        default_error = 0.1
+        default_error = 1.0
         return default_error / 3600.0
     return error_arcsec / 3600.0
 
@@ -76,20 +76,19 @@ def calculate_bayes_factor(ra1: float, dec1: float, sigma1: float, ra2: float, d
     Returns:
         Bayes factor B(H,K|D)
     """
-    # Calculate angular separation
     psi = calculate_angular_distance(ra1, dec1, ra2, dec2)
 
-    # Convert to radians for calculation
     psi_rad = math.radians(psi)
     sigma1_rad = math.radians(sigma1)
     sigma2_rad = math.radians(sigma2)
 
-    # Calculate Bayes factor using the formula from the theory
-    # B = (2.0 / (sigma1^2 + sigma2^2)) * exp(-psi^2 / (2 * (sigma1^2 + sigma2^2)))
-    # Note: The formula uses radians for all calculations
-    B = (2.0 / (sigma1_rad**2 + sigma2_rad**2)) * math.exp(-(psi_rad**2) / (2 * (sigma1_rad**2 + sigma2_rad**2)))
+    w1 = 1.0 / (sigma1_rad**2)
+    w2 = 1.0 / (sigma2_rad**2)
 
-    return B
+    if w1 == 0 or w2 == 0:
+        return 0.0
+
+    return (2.0 * w1 * w2 / (w1 + w2)) * math.exp(-(psi_rad**2) * w1 * w2 / (2.0 * (w1 + w2)))
 
 
 def posterior_probability_from_bayes_factor(bayes_factor: float, prior_probability: float) -> float:
@@ -106,9 +105,7 @@ def posterior_probability_from_bayes_factor(bayes_factor: float, prior_probabili
     if bayes_factor <= 0:
         return 0.0
 
-    # Using the formula from the theory
-    P_H_D = 1.0 / (1.0 + (1.0 - prior_probability) / (bayes_factor * prior_probability))
-    return P_H_D
+    return 1.0 / (1.0 + (1.0 - prior_probability) / (bayes_factor * prior_probability))
 
 
 def bayes_factor_from_posterior_probability(posterior_probability: float, prior_probability: float) -> float:
@@ -125,9 +122,7 @@ def bayes_factor_from_posterior_probability(posterior_probability: float, prior_
     if posterior_probability <= 0 or posterior_probability >= 1:
         return 0.0
 
-    # Using the inverse formula from the theory
-    B = (posterior_probability * (1.0 - prior_probability)) / (prior_probability * (1.0 - posterior_probability))
-    return B
+    return (posterior_probability * (1.0 - prior_probability)) / (prior_probability * (1.0 - posterior_probability))
 
 
 def cross_identify_objects_bayesian(
@@ -343,22 +338,58 @@ def test_bayesian_algorithm():
     simulated_data = create_simulated_data(50)
     print(f"Created {len(simulated_data)} simulated objects")
 
-    # Test Bayes factor calculation
+    # Test Bayes factor calculation with realistic parameters
     print("\nTesting Bayes factor calculation...")
-    B = calculate_bayes_factor(0.0, 0.0, 0.001, 0.001, 0.001, 0.001)
-    print(f"Bayes factor for very close objects: {B:.2e}")
 
-    B = calculate_bayes_factor(0.0, 0.0, 0.001, 1.0, 1.0, 0.001)
-    print(f"Bayes factor for distant objects: {B:.2e}")
+    # Test case 1: Very close objects (should be high Bayes factor)
+    sigma1 = 0.1 / 3600.0  # 0.1 arcseconds in degrees
+    sigma2 = 0.1 / 3600.0  # 0.1 arcseconds in degrees
+    separation_arcsec = 0.1  # 0.1 arcseconds separation
+    separation_deg = separation_arcsec / 3600.0
 
-    # Test posterior probability calculation
-    print("\nTesting posterior probability calculation...")
-    P_H = 1e-7  # Prior probability
+    B = calculate_bayes_factor(0.0, 0.0, sigma1, separation_deg, 0.0, sigma2)
+    P_H = 1e-7
     P_H_D = posterior_probability_from_bayes_factor(B, P_H)
-    print(f"Posterior probability for distant objects: {P_H_D:.2e}")
+    print("Very close objects (0.1 arcsec separation, 0.1 arcsec errors):")
+    print(f"  Bayes factor: {B:.2e}")
+    print(f"  Posterior probability: {P_H_D:.6f}")
+    print(f"  Classification: {'existing' if P_H_D > 0.9 else 'collision' if P_H_D > 0.1 else 'new'}")
+
+    # Test case 2: Moderate separation
+    separation_arcsec = 1.0  # 1 arcsecond separation
+    separation_deg = separation_arcsec / 3600.0
+    B = calculate_bayes_factor(0.0, 0.0, sigma1, separation_deg, 0.0, sigma2)
+    P_H_D = posterior_probability_from_bayes_factor(B, P_H)
+    print("\nModerate separation (1 arcsec separation, 0.1 arcsec errors):")
+    print(f"  Bayes factor: {B:.2e}")
+    print(f"  Posterior probability: {P_H_D:.6f}")
+    print(f"  Classification: {'existing' if P_H_D > 0.9 else 'collision' if P_H_D > 0.1 else 'new'}")
+
+    # Test case 3: Large separation
+    separation_arcsec = 10.0  # 10 arcseconds separation
+    separation_deg = separation_arcsec / 3600.0
+    B = calculate_bayes_factor(0.0, 0.0, sigma1, separation_deg, 0.0, sigma2)
+    P_H_D = posterior_probability_from_bayes_factor(B, P_H)
+    print("\nLarge separation (10 arcsec separation, 0.1 arcsec errors):")
+    print(f"  Bayes factor: {B:.2e}")
+    print(f"  Posterior probability: {P_H_D:.6f}")
+    print(f"  Classification: {'existing' if P_H_D > 0.9 else 'collision' if P_H_D > 0.1 else 'new'}")
+
+    # Test case 4: Realistic errors and lenient thresholds
+    print("\nTesting with realistic errors and lenient thresholds:")
+    sigma1_realistic = 1.0 / 3600.0  # 1.0 arcseconds in degrees
+    sigma2_realistic = 1.0 / 3600.0  # 1.0 arcseconds in degrees
+
+    # Test different separations with realistic errors
+    for separation_arcsec in [1.0, 5.0, 10.0, 20.0]:
+        separation_deg = separation_arcsec / 3600.0
+        B = calculate_bayes_factor(0.0, 0.0, sigma1_realistic, separation_deg, 0.0, sigma2_realistic)
+        P_H_D = posterior_probability_from_bayes_factor(B, P_H)
+        print(f"  {separation_arcsec:2.0f} arcsec separation: B={B:.2e}, P(H|D)={P_H_D:.6f}")
+        print(f"    Classification (0.3,0.7): {'existing' if P_H_D > 0.7 else 'collision' if P_H_D > 0.3 else 'new'}")
 
     # Test with different parameters
-    print("\nTesting with different parameters...")
+    print("\nTesting with different probability thresholds...")
     test_params = [
         (0.05, 0.95, 0.01),  # Very strict
         (0.1, 0.9, 0.05),  # Moderate
@@ -372,6 +403,24 @@ def test_bayesian_algorithm():
         B_lower = bayes_factor_from_posterior_probability(lower_p, 1e-7)
         B_upper = bayes_factor_from_posterior_probability(upper_p, 1e-7)
         print(f"  Bayes factor thresholds: B_lower={B_lower:.2e}, B_upper={B_upper:.2e}")
+
+        # Show what separations would give these Bayes factors
+        if B_upper > 0:
+            # For the upper threshold, what separation gives this Bayes factor?
+            # B = (2*w1*w2/(w1+w2)) * exp(-psi^2 * w1*w2/(2*(w1+w2)))
+            # ln(B) = ln(2*w1*w2/(w1+w2)) - psi^2 * w1*w2/(2*(w1+w2))
+            # psi^2 = 2*(w1+w2)/(w1*w2) * (ln(2*w1*w2/(w1+w2)) - ln(B))
+            sigma1_rad = math.radians(sigma1)  # Convert sigma1 to radians
+            w1 = w2 = 1.0 / (sigma1_rad**2)
+            w1_rad = w1
+            w2_rad = w2
+            B_term = 2.0 * w1_rad * w2_rad / (w1_rad + w2_rad)
+            psi_squared = 2.0 * (w1_rad + w2_rad) / (w1_rad * w2_rad) * (math.log(B_term) - math.log(B_upper))
+            if psi_squared > 0:
+                psi_rad = math.sqrt(psi_squared)
+                psi_deg = math.degrees(psi_rad)
+                psi_arcsec = psi_deg * 3600.0
+                print(f"  Upper threshold separation: {psi_arcsec:.2f} arcseconds")
 
 
 def test_simulated_cross_identification():
@@ -437,6 +486,181 @@ def test_simulated_cross_identification():
     print(f"  Bayes factor: {B:.2e}")
     print(f"  Posterior probability: {P_H_D:.6f}")
     print(f"  Classification: {'existing' if P_H_D > 0.9 else 'collision' if P_H_D > 0.1 else 'new'}")
+
+
+def debug_bayesian_results(
+    fast_objects: pandas.DataFrame,
+    results: dict[str, CrossIdentificationResult],
+    layer2_repo: Layer2Repository,
+    cutoff_radius_degrees: float,
+    lower_posterior_probability: float,
+    upper_posterior_probability: float,
+    prior_probability: float = 1e-7,
+    num_samples: int = 10,
+) -> None:
+    """
+    Debug Bayesian cross-identification results by analyzing specific cases.
+
+    Args:
+        fast_objects: The input data
+        results: Cross-identification results
+        layer2_repo: Repository for database queries
+        cutoff_radius_degrees: Cutoff radius used
+        lower_posterior_probability: Lower probability threshold
+        upper_posterior_probability: Upper probability threshold
+        prior_probability: Prior probability used
+        num_samples: Number of sample objects to analyze
+    """
+    print(f"\n{'=' * 60}")
+    print("DEBUGGING BAYESIAN CROSS-IDENTIFICATION RESULTS")
+    print(f"{'=' * 60}")
+
+    # Calculate Bayes factor thresholds
+    B_lower = bayes_factor_from_posterior_probability(lower_posterior_probability, prior_probability)
+    B_upper = bayes_factor_from_posterior_probability(upper_posterior_probability, prior_probability)
+
+    print("Parameters:")
+    print(f"  Cutoff radius: {cutoff_radius_degrees:.6f}° ({cutoff_radius_degrees * 3600:.2f} arcsec)")
+    print(f"  Lower posterior probability: {lower_posterior_probability}")
+    print(f"  Upper posterior probability: {upper_posterior_probability}")
+    print(f"  Prior probability: {prior_probability:.2e}")
+    print(f"  Bayes factor thresholds: B_lower={B_lower:.2e}, B_upper={B_upper:.2e}")
+
+    # Find coordinate columns
+    ra_column = None
+    dec_column = None
+    error_column = None
+
+    for ra_name in ["ra", "RAJ2000", "RA", "ra_deg"]:
+        if ra_name in fast_objects.columns:
+            ra_column = ra_name
+            break
+
+    for dec_name in ["dec", "DEJ2000", "DEC", "dec_deg"]:
+        if dec_name in fast_objects.columns:
+            dec_column = dec_name
+            break
+
+    for error_name in ["ePos", "e_ra", "e_dec", "pos_err", "error"]:
+        if error_name in fast_objects.columns:
+            error_column = error_name
+            break
+
+    if not ra_column or not dec_column:
+        print("ERROR: Could not find coordinate columns")
+        return
+
+    # Analyze sample objects from each category
+    categories = {"new": [], "existing": [], "collision": []}
+    for obj_id, result in results.items():
+        if len(categories[result.status]) < num_samples:
+            categories[result.status].append(obj_id)
+
+    print(f"\nSample analysis ({num_samples} objects per category):")
+
+    for category, obj_ids in categories.items():
+        print(f"\n{category.upper()} objects:")
+        print("-" * 40)
+
+        for obj_id in obj_ids:
+            # Get object data
+            batch_idx = int(obj_id.split("_")[1])
+            obj = fast_objects.iloc[batch_idx]
+            ra = obj[ra_column]
+            dec = obj[dec_column]
+
+            # Get error
+            if error_column:
+                raw_error = obj[error_column]
+                sigma = normalize_position_error(raw_error, obj_id)
+            else:
+                sigma = normalize_position_error(0.1, obj_id)
+
+            print(f"\n{obj_id}: RA={ra:.6f}°, Dec={dec:.6f}°, σ={sigma * 3600:.3f} arcsec")
+
+            # Query for candidates
+            search_types: dict[str, filters.Filter] = {
+                "icrs": filters.ICRSCoordinatesInRadiusFilter(cutoff_radius_degrees)
+            }
+            search_params: dict[str, params.SearchParams] = {obj_id: params.ICRSSearchParams(ra=ra, dec=dec)}
+
+            batch_results = layer2_repo.query_batch(
+                catalogs=[model.RawCatalog.ICRS],
+                search_types=search_types,
+                search_params=search_params,
+                limit=1000,
+                offset=0,
+            )
+
+            candidates = batch_results.get(obj_id, [])
+            print(f"  Found {len(candidates)} candidates within {cutoff_radius_degrees * 3600:.1f} arcsec")
+
+            if len(candidates) > 0:
+                # Calculate Bayes factors for top candidates
+                bayes_factors = []
+                candidate_info = []
+
+                for candidate in candidates[:5]:  # Show top 5
+                    icrs_data = None
+                    for catalog_obj in candidate.data:
+                        if catalog_obj.catalog() == model.RawCatalog.ICRS:
+                            icrs_data = catalog_obj
+                            break
+
+                    if icrs_data is None:
+                        continue
+
+                        # Calculate angular distance
+                    psi = calculate_angular_distance(ra, dec, icrs_data.ra, icrs_data.dec)  # type: ignore
+
+                    # Get database error
+                    db_error = icrs_data.e_ra  # type: ignore
+                    db_sigma = normalize_position_error(db_error, f"PGC{candidate.pgc}")
+
+                    # Calculate Bayes factor
+                    B = calculate_bayes_factor(ra, dec, sigma, icrs_data.ra, icrs_data.dec, db_sigma)  # type: ignore
+                    P_H_D = posterior_probability_from_bayes_factor(B, prior_probability)
+
+                    bayes_factors.append(B)
+                    candidate_info.append(
+                        {
+                            "pgc": candidate.pgc,
+                            "distance_arcsec": psi * 3600.0,
+                            "bayes_factor": B,
+                            "posterior_prob": P_H_D,
+                            "db_error_arcsec": db_error,
+                        }
+                    )
+
+                # Sort by Bayes factor
+                candidate_info.sort(key=lambda x: x["bayes_factor"], reverse=True)
+
+                for i, info in enumerate(candidate_info):
+                    status = (
+                        "HIGH"
+                        if info["posterior_prob"] > upper_posterior_probability
+                        else "LOW"
+                        if info["posterior_prob"] < lower_posterior_probability
+                        else "MED"
+                    )
+                    print(
+                        f"  {i + 1}. PGC{info['pgc']}: {info['distance_arcsec']:.2f} arcsec, "
+                        f"B={info['bayes_factor']:.2e}, P(H|D)={info['posterior_prob']:.6f} [{status}]"
+                    )
+
+                # Show classification logic
+                high_prob = [
+                    i for i, info in enumerate(candidate_info) if info["posterior_prob"] > upper_posterior_probability
+                ]
+                low_prob = [
+                    i for i, info in enumerate(candidate_info) if info["posterior_prob"] < lower_posterior_probability
+                ]
+
+                print("  Classification logic:")
+                print(f"    High probability matches: {len(high_prob)}")
+                print(f"    Low probability matches: {len(low_prob)}")
+                print(f"    Expected: {category}")
+                print(f"    Actual: {results[obj_id].status}")
 
 
 if __name__ == "__main__":

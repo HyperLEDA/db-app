@@ -13,7 +13,9 @@ from astropy.io import fits
 from app.data.repositories import Layer2Repository
 from app.lib.storage import postgres
 from experiments.bayes import cross_identify_objects_bayesian
-from experiments.entities import print_cross_identification_summary
+from experiments.entities import print_cross_identification_summary, save_cross_identification_results
+from experiments.single_radius import cross_identify_objects
+from experiments.two_radius import cross_identify_objects_two_radius
 
 logger = structlog.get_logger()
 
@@ -78,10 +80,10 @@ def to_deg(arsec: float) -> float:
 
 
 def main():
-    search_radius_degrees = to_deg(10)
+    search_radius_degrees = to_deg(20)
 
-    inner_radius_degrees = to_deg(2)
-    outer_radius_degrees = to_deg(10)
+    inner_radius_degrees = to_deg(10)
+    outer_radius_degrees = to_deg(20)
 
     print(f"Starting cross-identification with search radius: {search_radius_degrees} degrees")
 
@@ -100,16 +102,15 @@ def main():
     layer2_repo = Layer2Repository(storage, logger)
 
     try:
-        # print("Testing single-radius algorithm...")
-        # results_single = cross_identify_objects(fast_objects, layer2_repo, search_radius_degrees)
+        print("Testing single-radius algorithm...")
+        results_single = cross_identify_objects(fast_objects, layer2_repo, search_radius_degrees)
 
-        # print("\nTesting two-radius algorithm...")
-        # results_two_radius = cross_identify_objects_two_radius(
-        #     fast_objects, layer2_repo, inner_radius_degrees, outer_radius_degrees
-        # )
+        print("\nTesting two-radius algorithm...")
+        results_two_radius = cross_identify_objects_two_radius(
+            fast_objects, layer2_repo, inner_radius_degrees, outer_radius_degrees
+        )
 
         print("\nTesting Bayesian algorithm...")
-        # Use Bayesian-specific parameters
         lower_posterior_probability = 0.1
         upper_posterior_probability = 0.9
         cutoff_radius_degrees = to_deg(100)
@@ -122,18 +123,23 @@ def main():
             cutoff_radius_degrees=cutoff_radius_degrees,
         )
 
-        # print()
-        # print("Single radius:")
-        # print_cross_identification_summary(results_single)
+        print()
+        print("Single radius:")
+        print_cross_identification_summary(results_single)
 
-        # print()
-        # print("Two-radius:")
-        # print_cross_identification_summary(results_two_radius)
+        save_cross_identification_results(results_single, fast_objects, "experiments/results/single_radius.csv")
+
+        print()
+        print("Two-radius:")
+        print_cross_identification_summary(results_two_radius)
+
+        save_cross_identification_results(results_two_radius, fast_objects, "experiments/results/two_radius.csv")
 
         print()
         print("Bayesian:")
         print_cross_identification_summary(results_bayesian)
 
+        save_cross_identification_results(results_bayesian, fast_objects, "experiments/results/bayes.csv")
     except Exception as e:
         logger.error(f"Error during cross-identification: {e}")
         raise
