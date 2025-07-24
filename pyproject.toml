@@ -24,6 +24,10 @@ dependencies = [
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
     "marshmallow-generic>=1.0.1",
+    "ipyaladin>=0.6.0",
+    "ipykernel>=6.30.0",
+    "pillow>=11.3.0",
+    "matplotlib>=3.10.3",
 ]
 
 [project.optional-dependencies]
