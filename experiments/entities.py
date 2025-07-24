@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 import pandas
+import structlog
+
+from app.data import model, repositories
+from app.lib.storage import postgres
 
 CrossIdentificationStatus = Literal["new", "existing", "collision"]
 
@@ -10,6 +14,89 @@ CrossIdentificationStatus = Literal["new", "existing", "collision"]
 class CrossIdentificationResult:
     status: CrossIdentificationStatus
     pgc_numbers: list[int] | None = None
+
+
+@dataclass
+class PGCObjectInfo:
+    pgc: int
+    ra: float | None
+    dec: float | None
+    name: str | None
+
+
+def get_pgc_objects_info(
+    pgc_numbers: list[int],
+    storage_config: postgres.PgStorageConfig,
+) -> list[PGCObjectInfo]:
+    """
+    Retrieve coordinates and names for PGC objects from the HyperLEDA database.
+
+    Args:
+        pgc_numbers: List of PGC numbers to query
+        storage_config: Database connection configuration
+
+    Returns:
+        List of PGCObjectInfo objects containing PGC, coordinates, and names
+    """
+    logger = structlog.get_logger()
+    storage = postgres.PgStorage(storage_config, logger)
+    storage.connect()
+
+    try:
+        layer2_repo = repositories.Layer2Repository(storage, logger)
+
+        # Query for ICRS coordinates and designations
+        catalogs = [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION]
+
+        # Query with a large limit to get all requested PGCs
+        layer2_objects = layer2_repo.query_pgc(
+            catalogs=catalogs,
+            pgc_numbers=pgc_numbers,
+            limit=len(pgc_numbers),
+        )
+
+        # Convert to PGCObjectInfo objects
+        pgc_info_list = []
+        for obj in layer2_objects:
+            ra = None
+            dec = None
+            name = None
+
+            # Extract coordinates from ICRS catalog
+            for catalog_obj in obj.data:
+                if isinstance(catalog_obj, model.ICRSCatalogObject):
+                    ra = catalog_obj.ra
+                    dec = catalog_obj.dec
+                elif isinstance(catalog_obj, model.DesignationCatalogObject):
+                    name = catalog_obj.designation
+
+            pgc_info_list.append(PGCObjectInfo(pgc=obj.pgc, ra=ra, dec=dec, name=name))
+
+        return pgc_info_list
+
+    finally:
+        storage.disconnect()
+
+
+def print_pgc_objects_info(pgc_numbers: list[int], storage_config: postgres.PgStorageConfig) -> None:
+    """
+    Print coordinates and names for PGC objects.
+
+    Args:
+        pgc_numbers: List of PGC numbers to query
+        storage_config: Database connection configuration
+    """
+    pgc_info_list = get_pgc_objects_info(pgc_numbers, storage_config)
+
+    print(f"\nInformation for {len(pgc_info_list)} PGC objects:")
+    print("-" * 80)
+
+    for info in pgc_info_list:
+        ra_str = f"{info.ra:.6f}" if info.ra is not None else "N/A"
+        dec_str = f"{info.dec:.6f}" if info.dec is not None else "N/A"
+        name_str = info.name if info.name else "N/A"
+
+        print(f"PGC {info.pgc:>8}: RA={ra_str:>12}, Dec={dec_str:>12}, Name='{name_str}'")
 
 
 def print_cross_identification_summary(results: dict[str, CrossIdentificationResult]) -> None:
