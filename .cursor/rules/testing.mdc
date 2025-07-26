@@ -22,3 +22,5 @@ For larger features or changes that touch multiple components, use:
 make test-all
 ```
 This command runs the complete test suite including integration tests.
+
+You can run these commands freely whenever you need to test something.
