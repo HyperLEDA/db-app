@@ -117,7 +117,6 @@ class TableUploadManager:
                         catalog=rule.name,
                         parameter=parameter,
                         filters=filters,
-                        enrichment=config.enrichment or {},
                         key=rule.key or "",
                     )
                 )
