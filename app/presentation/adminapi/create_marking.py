@@ -16,13 +16,6 @@ class ParameterSchema(GenericSchema[interface.ParameterToMark]):
             "example": "ra",
         },
     )
-    enrichment = fields.Dict(
-        required=False,
-        metadata={
-            "description": "Additional information about the column, such as units.",
-            "example": {},
-        },
-    )
 
 
 class CatalogSchema(GenericSchema[interface.CatalogToMark]):

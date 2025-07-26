@@ -13,11 +13,14 @@ class MeasuredValue:
     unit: u.Unit
 
 
-def is_nan(v: MeasuredValue | None | float) -> bool:
+def is_nan(v: u.Quantity | None | float) -> bool:
     if isinstance(v, float):
         return np.isnan(v)
 
-    return v is None or np.isnan(v.value)
+    if isinstance(v, u.Quantity):
+        return np.isnan(v.value)
+
+    return v is None
 
 
 class RawCatalog(enum.Enum):

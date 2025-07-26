@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from typing import Any
 
-import pandas
 import structlog
+from astropy import table
 
 from app.data import model as data_model
 from app.data import repositories
@@ -16,93 +16,70 @@ Enricher = Callable[[Any], Any]
 class Homogenization:
     def __init__(
         self,
-        rules_by_column: dict[str, list[model.Rule]],
-        params_by_catalog: dict[tuple[str, str], dict[str, Any]],
-        enricher_by_column: dict[str, Enricher],
-        ignore_exceptions: bool = True,
+        column_rules: dict[tuple[data_model.RawCatalog, str], dict[str, Any]],
+        params_by_catalog: dict[tuple[data_model.RawCatalog, str], dict[str, Any]],
+        ignore_errors: bool = True,
     ):
-        self.rules_by_column = rules_by_column
+        self.column_rules = column_rules
         self.params_by_catalog = params_by_catalog
-        self.enricher_by_column = enricher_by_column
-        self.ignore_exceptions = ignore_exceptions
+        self.ignore_errors = ignore_errors
 
-    def apply(self, data: pandas.DataFrame) -> list[data_model.Layer0Object]:
-        result: list[data_model.Layer0Object] = []
+    def apply(self, data: table.Table) -> list[data_model.Layer0Object]:
+        catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, table.Column]] = {}
 
-        for _, row in data.iterrows():
-            priority_params: dict[tuple[data_model.RawCatalog, str], dict[str, tuple[Any, int]]] = {}
-            for column_name in row.index:
-                if column_name not in self.rules_by_column:
-                    continue
+        for key, params in self.column_rules.items():
+            constructor_params = {}
 
-                rules = self.rules_by_column[column_name]
+            for param, col_name in params.items():
+                constructor_params[param] = data[col_name]
 
-                for rule in rules:
-                    key = (rule.catalog, rule.key)
+            catalog_objects[key] = constructor_params
 
-                    if key not in priority_params:
-                        priority_params[key] = {}
+        for key, params in self.params_by_catalog.items():
+            if key not in catalog_objects:
+                catalog_objects[key] = {}
 
-                    if (
-                        rule.parameter not in priority_params[key]
-                        or rule.priority > priority_params[key][rule.parameter][1]
-                    ):
-                        value = row[column_name]
-                        if column_name in self.enricher_by_column:
-                            value = self.enricher_by_column[column_name](value)
+            for parameter, value in params.items():
+                catalog_objects[key][parameter] = table.Column(data=[value] * len(data))  # type: ignore
 
-                        priority_params[key][rule.parameter] = (value, rule.priority)
+        objects: dict[str, data_model.Layer0Object] = {}
 
-            catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
+        for (catalog, _), params_map in catalog_objects.items():
+            ids = data[repositories.INTERNAL_ID_COLUMN_NAME]
+            catalog_type = data_model.get_catalog_object_type(data_model.RawCatalog(catalog))
 
-            for key, params in priority_params.items():
-                constructor_params = {}
+            for i in range(len(ids)):
+                object_id = str(ids[i])
+                if object_id not in objects:
+                    objects[object_id] = data_model.Layer0Object(object_id, [])
 
-                for param, (value, _) in params.items():
-                    constructor_params[param] = value
-
-                catalog_objects[key] = constructor_params
-
-            for key in catalog_objects:
-                if key not in self.params_by_catalog:
-                    continue
-
-                catalog_objects[key].update(self.params_by_catalog[key])
-
-            obj = data_model.Layer0Object(row[repositories.INTERNAL_ID_COLUMN_NAME], [])
-
-            for (catalog, _), data_dict in catalog_objects.items():
-                catalog_type = data_model.get_catalog_object_type(data_model.RawCatalog(catalog))
+                data_dict = {}
+                for key in params_map:
+                    data_dict[key] = params_map[key][i]
+                    if (unit := params_map[key].unit) is not None:
+                        data_dict[key] = data_dict[key] * unit
 
                 try:
                     catalog_obj = catalog_type.from_custom(**data_dict)
                 except Exception as e:
-                    if not self.ignore_exceptions:
+                    if not self.ignore_errors:
                         raise e
 
-                    logger.debug(
-                        "Error creating catalog object",
-                        object_id=row[repositories.INTERNAL_ID_COLUMN_NAME],
-                        error=e,
-                        data_dict=data_dict,
-                    )
+                    logger.warn("Error creating catalog object", object_id=object_id, error=e, data_dict=data_dict)
                     continue
 
-                obj.data.append(catalog_obj)
+                objects[object_id].data.append(catalog_obj)
 
-            if len(obj.data) > 0:
-                result.append(obj)
-
-        return result
+        return [obj for obj in objects.values() if len(obj.data) > 0]
 
 
 def get_homogenization(
     homogenization_rules: list[model.Rule],
     homogenization_params: list[model.Params],
     table_meta: data_model.Layer0TableMeta,
+    **kwargs,
 ) -> Homogenization:
     rules_by_column: dict[str, list[model.Rule]] = {}
-    enricher_by_column: dict[str, Enricher] = {}
 
     for column in table_meta.column_descriptions:
         rules: dict[tuple[data_model.RawCatalog, str, str], model.Rule] = {}
@@ -118,8 +95,6 @@ def get_homogenization(
 
         if rules:
             rules_by_column[column.name] = list(rules.values())
-            if column.unit is not None:
-                enricher_by_column[column.name] = lambda v, u=column.unit: data_model.MeasuredValue(v, u)
 
     params_by_catalog: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
 
@@ -134,4 +109,19 @@ def get_homogenization(
     if len(rules_by_column) == 0:
         raise ValueError("No rules satisfy any of the table columns")
 
-    return Homogenization(rules_by_column, params_by_catalog, enricher_by_column)
+    priorities: dict[tuple[data_model.RawCatalog, str], dict[str, int]] = {}
+    column_rules: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
+
+    for column_name, col_rules in rules_by_column.items():
+        for rule in col_rules:
+            key = (rule.catalog, rule.key)
+
+            if key not in priorities:
+                priorities[key] = {}
+                column_rules[key] = {}
+
+            if rule.parameter not in priorities[key] or rule.priority > priorities[key][rule.parameter]:
+                priorities[key][rule.parameter] = rule.priority
+                column_rules[key][rule.parameter] = column_name
+
+    return Homogenization(column_rules, params_by_catalog, **kwargs)
