@@ -45,8 +45,9 @@ services:
     image: ghcr.io/hyperleda/hyperleda:latest
     entrypoint: ["uv", "run", "main.py", "adminapi"]
     environment:
-      - CONFIG=configs/test/adminapi.yaml
+      - CONFIG=configs/adminapi.yaml
       - ADS_TOKEN
+      - STORAGE_PASSWORD=${POSTGRES_PASSWORD:-password}
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped
@@ -65,8 +66,9 @@ services:
     image: ghcr.io/hyperleda/hyperleda:latest
     entrypoint: ["uv", "run", "main.py", "dataapi"]
     environment:
-      - CONFIG=configs/test/dataapi.yaml
+      - CONFIG=configs/dataapi.yaml
       - SERVER_PORT=8081
+      - STORAGE_PASSWORD=${POSTGRES_PASSWORD:-password}
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped

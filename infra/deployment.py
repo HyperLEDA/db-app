@@ -1,0 +1,155 @@
+import io
+import os
+import pathlib
+from dataclasses import dataclass
+from typing import IO
+
+import structlog
+from fabric import Connection
+
+
+@dataclass
+class RemoteFile:
+    local_path: pathlib.Path | str
+    remote_path: pathlib.Path | str
+
+    def __str__(self) -> str:
+        return f"{self.local_path} --> {self.remote_path}"
+
+
+@dataclass
+class RemoteContent:
+    content: str
+    remote_path: pathlib.Path | str
+
+    def __str__(self) -> str:
+        return f'"{self.content}" --> {self.remote_path}'
+
+
+@dataclass
+class RemoteDirectory:
+    local_path: pathlib.Path | str
+    remote_path: pathlib.Path | str
+
+    def _get_filenames(self) -> list[str]:
+        filenames: list[str] = []
+
+        for _, _, fnames in os.walk(self.local_path):
+            filenames.extend(fnames)
+
+        filenames.sort()
+
+        return filenames
+
+    def __str__(self) -> str:
+        filenames = self._get_filenames()
+        if len(filenames) == 0:
+            return ""
+
+        lines = []
+        lines.append(f"{self.local_path} --> {self.remote_path}")
+
+        for filename in filenames:
+            lines.append(f"\t/{filename}")
+
+        return "\n".join(lines)
+
+    def to_files(self) -> list[RemoteFile]:
+        files: list[RemoteFile] = []
+
+        local_base = pathlib.Path(self.local_path)
+        remote_base = pathlib.Path(self.remote_path)
+        filenames = self._get_filenames()
+
+        for filename in filenames:
+            local_file = local_base / filename
+            remote_file = remote_base / filename
+            files.append(RemoteFile(local_file, remote_file))
+
+        return files
+
+
+RemoteData = RemoteFile | RemoteContent | RemoteDirectory
+
+
+@dataclass
+class RemoteSpec:
+    data: list[RemoteData]
+    root_dir: pathlib.Path
+
+    def add(self, data: RemoteData | list[RemoteData]):
+        if isinstance(data, list):
+            self.data.extend(data)
+            return
+
+        self.data.append(data)
+
+    def __str__(self) -> str:
+        lines = [
+            "------- Params -------",
+            f"Root directory: {self.root_dir}",
+            "",
+            "------- Directory structure -------",
+        ]
+
+        for entry in self.data:
+            lines.append(str(entry))
+
+        return "\n".join(lines)
+
+
+@dataclass
+class ConnectionContext:
+    host: str
+    user: str
+    private_key_filename: str
+
+
+def _run_command(
+    logger: structlog.stdlib.BoundLogger,
+    connection: Connection,
+    cmd: str,
+):
+    logger.debug("Running command", cmd=cmd)
+
+    connection.run(cmd)
+
+
+def _apply_item(
+    logger: structlog.stdlib.BoundLogger,
+    connection: Connection,
+    path_on_remote: str | pathlib.Path,
+    file_like: IO | str,
+):
+    remote_path = pathlib.Path(path_on_remote)
+
+    if isinstance(file_like, str):
+        logger.debug("Copying file", src=str(file_like), dst=str(remote_path))
+    else:
+        logger.debug("Writing file", dst=str(remote_path))
+
+    connection.put(file_like, str(remote_path))
+
+
+def apply(ctx: ConnectionContext, spec: RemoteSpec, logger: structlog.stdlib.BoundLogger):
+    connection = Connection(
+        host=ctx.host,
+        user=ctx.user,
+        connect_kwargs={"key_filename": ctx.private_key_filename},
+    )
+
+    for item in spec.data:
+        if hasattr(item, "remote_path"):
+            _run_command(logger, connection, f"mkdir -p {item.remote_path}")
+
+        if isinstance(item, RemoteFile):
+            _apply_item(logger, connection, spec.root_dir / item.remote_path, str(item.local_path))
+        elif isinstance(item, RemoteContent):
+            _apply_item(logger, connection, spec.root_dir / item.remote_path, io.StringIO(item.content))
+        elif isinstance(item, RemoteDirectory):
+            files = item.to_files()
+
+            for file in files:
+                _apply_item(logger, connection, file.remote_path, str(file.local_path))
+
+    _run_command(logger, connection, f"cd {spec.root_dir} && docker compose pull")
