@@ -34,6 +34,7 @@ class EnvParams:
         data["connection"] = deployment.ConnectionContext(**data["connection"])
 
         params = cls(**data)
+
         params.ads_token = params.ads_token or os.getenv(params._ads_token_env) or ""
         params.postgres_password = params.postgres_password or os.getenv(params._postgres_password_env) or ""
 
@@ -81,9 +82,5 @@ if __name__ == "__main__":
     spec = get_spec(params)
     print(spec)
 
-    answer = input("Apply spec? [y/n] ")
-    if answer == "y":
-        spec.apply(params.connection, logger)
-        spec.reload()
-    else:
-        print("Deploy cancelled")
+    spec.apply(params.connection, logger)
+    spec.reload()
