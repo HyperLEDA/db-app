@@ -82,7 +82,7 @@ jobs:
         
       - name: Write private key and config
         run: |
-          echo "${{ secrets.TEST_DEPLOY_CONFIG }}" >> infra/configs/test.yaml
+          echo "${{ secrets.TEST_DEPLOY_CONFIG }}" >> infra/settings/test.yaml
           echo "${{ secrets.SSH_PRIVATE_KEY }}" >> ~/.ssh/key
 
       - name: Add backend to known hosts
