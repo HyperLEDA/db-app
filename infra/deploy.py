@@ -1,5 +1,6 @@
 import pathlib
 import subprocess
+from dataclasses import dataclass
 
 import deployment
 import structlog
@@ -44,20 +45,34 @@ def get_spec(base_path: str, configs_env: str) -> deployment.RemoteSpec:
     )
 
 
-test_ctx = deployment.ConnectionContext(
-    "89.169.133.242",
-    "kraysent",
-    "/Users/kraysent/.ssh/hyperleda_rsa",
-)
+@dataclass
+class EnvParams:
+    connection: deployment.ConnectionContext
+    remote_base_path: str
+    configs_env: str
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "EnvParams":
+        import yaml
+
+        with pathlib.Path(path).open("r") as f:
+            data = yaml.safe_load(f)
+
+        data["connection"] = deployment.ConnectionContext(**data["connection"])
+
+        return cls(**data)
+
 
 if __name__ == "__main__":
     logger = structlog.get_logger()
 
-    spec = get_spec("/home/kraysent/hyperleda", "test")
+    params = EnvParams.from_yaml("infra/settings/test.yaml")
+
+    spec = get_spec(params.remote_base_path, params.configs_env)
     print(spec)
 
     answer = input("Apply spec? [y/n] ")
     if answer == "y":
-        deployment.apply(test_ctx, spec, logger)
+        spec.apply(params.connection, logger)
     else:
         print("Deploy cancelled")
