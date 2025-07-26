@@ -82,8 +82,9 @@ jobs:
         
       - name: Write private key and config
         run: |
+          mkdir infra/settings
           echo "${{ secrets.TEST_DEPLOY_CONFIG }}" >> infra/settings/test.yaml
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" >> ~/.ssh/key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" >> ~/.ssh/hyperleda_rsa
 
       - name: Add backend to known hosts
         run: |
