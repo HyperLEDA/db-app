@@ -80,13 +80,6 @@ def to_deg(arsec: float) -> float:
 
 
 def main():
-    search_radius_degrees = to_deg(20)
-
-    inner_radius_degrees = to_deg(10)
-    outer_radius_degrees = to_deg(20)
-
-    print(f"Starting cross-identification with search radius: {search_radius_degrees} degrees")
-
     fast_objects = get_objects("experiments/data/fast.fits")
     fast_objects = fast_objects.head(5000)
 
@@ -103,9 +96,12 @@ def main():
 
     try:
         print("Testing single-radius algorithm...")
+        search_radius_degrees = to_deg(20)
         results_single = cross_identify_objects(fast_objects, layer2_repo, search_radius_degrees)
 
         print("\nTesting two-radius algorithm...")
+        inner_radius_degrees = to_deg(10)
+        outer_radius_degrees = to_deg(20)
         results_two_radius = cross_identify_objects_two_radius(
             fast_objects, layer2_repo, inner_radius_degrees, outer_radius_degrees
         )
