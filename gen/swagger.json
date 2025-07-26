@@ -752,12 +752,6 @@
             "type": "string",
             "description": "Column that this parameter will be mapped to.",
             "example": "ra"
-          },
-          "enrichment": {
-            "type": "object",
-            "description": "Additional information about the column, such as units.",
-            "example": {},
-            "additionalProperties": {}
           }
         },
         "required": [
