@@ -1,6 +1,7 @@
 import os
 import pathlib
 import subprocess
+import sys
 from dataclasses import dataclass
 
 import deployment
@@ -74,7 +75,8 @@ def get_spec(params: EnvParams) -> deployment.RemoteSpec:
 if __name__ == "__main__":
     logger = structlog.get_logger()
 
-    params = EnvParams.from_yaml("infra/settings/test.yaml")
+    config = sys.argv[1]
+    params = EnvParams.from_yaml(config)
 
     spec = get_spec(params)
     print(spec)
