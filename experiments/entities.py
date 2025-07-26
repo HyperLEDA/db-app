@@ -26,7 +26,7 @@ class PGCObjectInfo:
 
 def get_pgc_objects_info(
     pgc_numbers: list[int],
-    storage_config: postgres.PgStorageConfig,
+    storage: postgres.PgStorage,
 ) -> list[PGCObjectInfo]:
     """
     Retrieve coordinates and names for PGC objects from the HyperLEDA database.
@@ -39,43 +39,37 @@ def get_pgc_objects_info(
         List of PGCObjectInfo objects containing PGC, coordinates, and names
     """
     logger = structlog.get_logger()
-    storage = postgres.PgStorage(storage_config, logger)
-    storage.connect()
 
-    try:
-        layer2_repo = repositories.Layer2Repository(storage, logger)
+    layer2_repo = repositories.Layer2Repository(storage, logger)
 
-        # Query for ICRS coordinates and designations
-        catalogs = [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION]
+    # Query for ICRS coordinates and designations
+    catalogs = [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION]
 
-        # Query with a large limit to get all requested PGCs
-        layer2_objects = layer2_repo.query_pgc(
-            catalogs=catalogs,
-            pgc_numbers=pgc_numbers,
-            limit=len(pgc_numbers),
-        )
+    # Query with a large limit to get all requested PGCs
+    layer2_objects = layer2_repo.query_pgc(
+        catalogs=catalogs,
+        pgc_numbers=pgc_numbers,
+        limit=len(pgc_numbers),
+    )
 
-        # Convert to PGCObjectInfo objects
-        pgc_info_list = []
-        for obj in layer2_objects:
-            ra = None
-            dec = None
-            name = None
+    # Convert to PGCObjectInfo objects
+    pgc_info_list = []
+    for obj in layer2_objects:
+        ra = None
+        dec = None
+        name = None
 
-            # Extract coordinates from ICRS catalog
-            for catalog_obj in obj.data:
-                if isinstance(catalog_obj, model.ICRSCatalogObject):
-                    ra = catalog_obj.ra
-                    dec = catalog_obj.dec
-                elif isinstance(catalog_obj, model.DesignationCatalogObject):
-                    name = catalog_obj.designation
+        # Extract coordinates from ICRS catalog
+        for catalog_obj in obj.data:
+            if isinstance(catalog_obj, model.ICRSCatalogObject):
+                ra = catalog_obj.ra
+                dec = catalog_obj.dec
+            elif isinstance(catalog_obj, model.DesignationCatalogObject):
+                name = catalog_obj.designation
 
-            pgc_info_list.append(PGCObjectInfo(pgc=obj.pgc, ra=ra, dec=dec, name=name))
+        pgc_info_list.append(PGCObjectInfo(pgc=obj.pgc, ra=ra, dec=dec, name=name))
 
-        return pgc_info_list
-
-    finally:
-        storage.disconnect()
+    return pgc_info_list
 
 
 def print_pgc_objects_info(pgc_numbers: list[int], storage_config: postgres.PgStorageConfig) -> None:
