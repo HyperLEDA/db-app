@@ -1,7 +1,8 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  - push
+  # workflow_dispatch:
 
 jobs:
   build:
@@ -81,10 +82,6 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.BACKEND_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy files to backend
+      - name: Copy files and restart the backend
         run: |
-          cd infra && make copy-files
-
-      - name: Restart application on backend
-        run: |
-          cd infra && make deploy
+          make deploy-test
