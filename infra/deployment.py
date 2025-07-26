@@ -1,7 +1,7 @@
 import io
 import os
 import pathlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import IO
 
 import structlog
@@ -109,6 +109,7 @@ def _apply_item(
 class RemoteSpec:
     data: list[RemoteData]
     root_dir: pathlib.Path
+    env_vars: dict[str, str] = field(default_factory=dict)
 
     def add(self, data: RemoteData | list[RemoteData]):
         if isinstance(data, list):
@@ -122,8 +123,17 @@ class RemoteSpec:
             "------- Params -------",
             f"Root directory: {self.root_dir}",
             "",
-            "------- Directory structure -------",
+            "------- Environment variables -------",
         ]
+
+        lines.extend(self.env_vars.keys())
+
+        lines.extend(
+            [
+                "",
+                "------- Directory structure -------",
+            ]
+        )
 
         for entry in self.data:
             lines.append(str(entry))
@@ -131,27 +141,39 @@ class RemoteSpec:
         return "\n".join(lines)
 
     def apply(self, ctx: ConnectionContext, logger: structlog.stdlib.BoundLogger):
-        connection = Connection(
+        self.connection = Connection(
             host=ctx.host,
             user=ctx.user,
             connect_kwargs={"key_filename": ctx.private_key_filename},
         )
+        self.logger = logger
 
         for item in self.data:
-            if hasattr(item, "remote_path"):
-                _run_command(logger, connection, f"mkdir -p {item.remote_path}")
-
             if isinstance(item, RemoteFile):
-                _apply_item(logger, connection, self.root_dir / item.remote_path, str(item.local_path))
+                path = self.root_dir / item.remote_path
+                _run_command(self.logger, self.connection, f"mkdir -p {str(path.parent)}")
+
+                _apply_item(self.logger, self.connection, path, str(item.local_path))
             elif isinstance(item, RemoteContent):
-                _apply_item(logger, connection, self.root_dir / item.remote_path, io.StringIO(item.content))
+                path = self.root_dir / item.remote_path
+                _run_command(self.logger, self.connection, f"mkdir -p {str(path.parent)}")
+
+                _apply_item(self.logger, self.connection, path, io.StringIO(item.content))
             elif isinstance(item, RemoteDirectory):
+                _run_command(self.logger, self.connection, f"mkdir -p {str(self.root_dir / item.remote_path)}")
                 files = item.to_files()
 
                 for file in files:
-                    _apply_item(logger, connection, file.remote_path, str(file.local_path))
+                    _apply_item(self.logger, self.connection, self.root_dir / file.remote_path, str(file.local_path))
 
-        _run_command(logger, connection, f"cd {self.root_dir} && docker compose pull")
+        _run_command(self.logger, self.connection, f"cd {self.root_dir} && docker compose pull")
 
     def reload(self):
-        pass
+        env_strings = []
+
+        for key, value in self.env_vars.items():
+            env_strings.append(f"{key}={value}")
+
+        env_string = " ".join(env_strings)
+
+        _run_command(self.logger, self.connection, f"cd {self.root_dir} && {env_string} docker compose up -d")

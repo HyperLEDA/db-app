@@ -1,3 +1,4 @@
+import os
 import pathlib
 import subprocess
 from dataclasses import dataclass
@@ -11,18 +12,39 @@ def get_git_version() -> str:
     return result.stdout.strip()
 
 
-def get_spec(base_path: str, configs_env: str) -> deployment.RemoteSpec:
-    remote_base_path = pathlib.Path(base_path)
+@dataclass
+class EnvParams:
+    connection: deployment.ConnectionContext
+    remote_base_path: str
+    configs_env: str
+    ads_token: str = ""
+    postgres_password: str = ""
 
+    _ads_token_env = "ADS_TOKEN"
+    _postgres_password_env = "POSTGRES_PASSWORD"
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "EnvParams":
+        import yaml
+
+        with pathlib.Path(path).open("r") as f:
+            data = yaml.safe_load(f)
+
+        data["connection"] = deployment.ConnectionContext(**data["connection"])
+
+        params = cls(**data)
+        params.ads_token = params.ads_token or os.getenv(params._ads_token_env) or ""
+        params.postgres_password = params.postgres_password or os.getenv(params._postgres_password_env) or ""
+
+        return params
+
+
+def get_spec(params: EnvParams) -> deployment.RemoteSpec:
     return deployment.RemoteSpec(
         [
             deployment.RemoteFile(
                 "infra/docker-compose.yaml",
                 "docker-compose.yaml",
-            ),
-            deployment.RemoteFile(
-                "infra/.env.remote",
-                ".env.local",
             ),
             deployment.RemoteContent(
                 get_git_version(),
@@ -37,30 +59,16 @@ def get_spec(base_path: str, configs_env: str) -> deployment.RemoteSpec:
                 "configs",
             ),
             deployment.RemoteDirectory(
-                pathlib.Path("configs") / configs_env,
+                pathlib.Path("configs") / params.configs_env,
                 "configs",
             ),
         ],
-        root_dir=remote_base_path,
+        root_dir=pathlib.Path(params.remote_base_path),
+        env_vars={
+            "ADS_TOKEN": params.ads_token,
+            "POSTGRES_PASSWORD": params.postgres_password,
+        },
     )
-
-
-@dataclass
-class EnvParams:
-    connection: deployment.ConnectionContext
-    remote_base_path: str
-    configs_env: str
-
-    @classmethod
-    def from_yaml(cls, path: str) -> "EnvParams":
-        import yaml
-
-        with pathlib.Path(path).open("r") as f:
-            data = yaml.safe_load(f)
-
-        data["connection"] = deployment.ConnectionContext(**data["connection"])
-
-        return cls(**data)
 
 
 if __name__ == "__main__":
@@ -68,11 +76,12 @@ if __name__ == "__main__":
 
     params = EnvParams.from_yaml("infra/settings/test.yaml")
 
-    spec = get_spec(params.remote_base_path, params.configs_env)
+    spec = get_spec(params)
     print(spec)
 
     answer = input("Apply spec? [y/n] ")
     if answer == "y":
         spec.apply(params.connection, logger)
+        spec.reload()
     else:
         print("Deploy cancelled")
