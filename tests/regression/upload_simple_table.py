@@ -23,10 +23,8 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
                 parameters={
                     "ra": hyperleda.Parameter(column_name="ra"),
                     "dec": hyperleda.Parameter(column_name="dec"),
-                },
-                additional_params={
-                    "e_ra": 0.1,
-                    "e_dec": 0.1,
+                    "e_ra": hyperleda.Parameter(column_name="e_ra"),
+                    "e_dec": hyperleda.Parameter(column_name="e_dec"),
                 },
             ),
             hyperleda.Catalog(
@@ -59,6 +57,8 @@ def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> tuple[int, s
                 hyperleda.ColumnDescription("name", hyperleda.DataType.str, ucd="meta.id"),
                 hyperleda.ColumnDescription("ra", hyperleda.DataType.float, "hourangle", "pos.eq.ra"),
                 hyperleda.ColumnDescription("dec", hyperleda.DataType.float, "deg", "pos.eq.dec"),
+                hyperleda.ColumnDescription("e_ra", hyperleda.DataType.float, "deg"),
+                hyperleda.ColumnDescription("e_dec", hyperleda.DataType.float, "deg"),
                 hyperleda.ColumnDescription("fuzz", hyperleda.DataType.str),
             ],
             bib_id,
@@ -74,12 +74,16 @@ def upload_data(client: hyperleda.HyperLedaClient, table_id: int):
                 "name": f"M {random.randint(1, 1000)}",
                 "ra": random.uniform(0, 360),
                 "dec": random.uniform(-90, 90),
+                "e_ra": 0.1,
+                "e_dec": 0.1,
                 "fuzz": str(uuid.uuid4()),
             },
             {
                 "name": f"M {random.randint(1, 1000)}",
                 "ra": random.uniform(0, 360),
                 "dec": random.uniform(-90, 90),
+                "e_ra": 0.2,
+                "e_dec": 0.2,
                 "fuzz": str(uuid.uuid4()),
             },
         ]
