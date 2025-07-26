@@ -154,10 +154,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             values = df[col.name]
 
             if col.unit is not None:
-                if isinstance(col.unit, u.LogUnit):
-                    values = u.Quantity(col.unit.to_physical(values), col.unit.physical_unit)
-                else:
-                    values = u.Quantity(values, col.unit)
+                try:
+                    if isinstance(col.unit, u.LogUnit):
+                        values = u.Quantity(col.unit.to_physical(values), col.unit.physical_unit)
+                    else:
+                        values = u.Quantity(values, col.unit)
+                except Exception:
+                    pass
 
             tbl[col.name] = values
 
