@@ -114,4 +114,5 @@ dev = [
     "types-pyyaml>=6.0.12.20241230",
     "types-regex>=2024.11.6.20241221",
     "hyperleda",
+    "fabric>=3.2.2",
 ]
