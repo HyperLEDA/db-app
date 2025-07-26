@@ -26,15 +26,12 @@ class MarkObjectsTest(unittest.TestCase):
     def _get_table(self) -> tuple[int, str]:
         self.layer0_repo.add_homogenization_rules(
             [
-                model.HomogenizationRule(model.RawCatalog.ICRS.value, "ra", {"ucd": "pos.eq.ra"}),
-                model.HomogenizationRule(model.RawCatalog.ICRS.value, "dec", {"ucd": "pos.eq.dec"}),
-                model.HomogenizationRule(model.RawCatalog.REDSHIFT.value, "cz", {"ucd": "src.redshift"}),
-            ]
-        )
-        self.layer0_repo.add_homogenization_params(
-            [
-                model.HomogenizationParams(model.RawCatalog.ICRS.value, {"e_ra": 0.1, "e_dec": 0.1}),
-                model.HomogenizationParams(model.RawCatalog.REDSHIFT.value, {"e_z": 0.1}),
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "ra", {"column_name": "ra"}),
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "dec", {"column_name": "dec"}),
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "e_ra", {"column_name": "e_ra"}),
+                model.HomogenizationRule(model.RawCatalog.ICRS.value, "e_dec", {"column_name": "e_dec"}),
+                model.HomogenizationRule(model.RawCatalog.REDSHIFT.value, "cz", {"column_name": "redshift"}),
+                model.HomogenizationRule(model.RawCatalog.REDSHIFT.value, "e_cz", {"column_name": "e_redshift"}),
             ]
         )
 
@@ -45,9 +42,12 @@ class MarkObjectsTest(unittest.TestCase):
                 table_name,
                 [
                     model.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
-                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.deg),
-                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.deg),
+                    model.ColumnDescription("ra", "float", unit=u.deg),
+                    model.ColumnDescription("dec", "float", unit=u.deg),
+                    model.ColumnDescription("e_ra", "float", unit=u.deg),
+                    model.ColumnDescription("e_dec", "float", unit=u.deg),
                     model.ColumnDescription("redshift", "float", unit=u.dimensionless_unscaled),
+                    model.ColumnDescription("e_redshift", "float"),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,
@@ -66,7 +66,10 @@ class MarkObjectsTest(unittest.TestCase):
                 ],
                 "ra": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
                 "dec": [20.0, 30.0, 40.0, 50.0, 60.0, 70.0],
+                "e_ra": [0.1] * 6,
+                "e_dec": [0.11] * 6,
                 "redshift": [100, 200, 300, 400, 500, 600],
+                "e_redshift": [2] * 6,
             }
         )
 
@@ -107,7 +110,7 @@ class MarkObjectsTest(unittest.TestCase):
 
         self.layer0_repo.update_column_metadata(
             table_name,
-            model.ColumnDescription("redshift", "float", ucd="src.redshift"),
+            model.ColumnDescription("e_redshift", "float", unit=u.km / u.s),
         )
 
         processing.mark_objects(self.layer0_repo, table_id, 5)

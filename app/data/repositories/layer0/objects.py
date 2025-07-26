@@ -12,6 +12,9 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         table_id: int,
         objects: list[model.Layer0Object],
     ) -> None:
+        if len(objects) == 0:
+            raise RuntimeError("no objects to upsert")
+
         query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES "
         params = []
         values = []
