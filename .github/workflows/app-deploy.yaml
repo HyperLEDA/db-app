@@ -84,7 +84,7 @@ jobs:
         run: |
           mkdir infra/settings
           echo "${{ secrets.TEST_DEPLOY_CONFIG }}" >> infra/settings/test.yaml
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" >> /etc/.ssh/hyperleda_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" >> infra/hyperleda_rsa
 
       - name: Add backend to known hosts
         run: |
