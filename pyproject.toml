@@ -119,4 +119,5 @@ dev = [
     "types-regex>=2024.11.6.20241221",
     "hyperleda",
     "fabric>=3.2.2",
+    "ipympl>=0.9.7",
 ]
