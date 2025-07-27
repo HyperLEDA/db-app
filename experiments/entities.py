@@ -19,9 +19,10 @@ class CrossIdentificationResult:
 @dataclass
 class PGCObjectInfo:
     pgc: int
-    ra: float | None
-    dec: float | None
-    name: str | None
+    ra: float
+    dec: float
+    pos_err: float
+    name: str
 
 
 def get_pgc_objects_info(
@@ -52,22 +53,25 @@ def get_pgc_objects_info(
         limit=len(pgc_numbers),
     )
 
-    # Convert to PGCObjectInfo objects
     pgc_info_list = []
     for obj in layer2_objects:
         ra = None
         dec = None
+        pos_err = None
         name = None
 
-        # Extract coordinates from ICRS catalog
         for catalog_obj in obj.data:
             if isinstance(catalog_obj, model.ICRSCatalogObject):
                 ra = catalog_obj.ra
                 dec = catalog_obj.dec
+                pos_err = catalog_obj.e_ra or 1 / 3600.0
             elif isinstance(catalog_obj, model.DesignationCatalogObject):
                 name = catalog_obj.designation
 
-        pgc_info_list.append(PGCObjectInfo(pgc=obj.pgc, ra=ra, dec=dec, name=name))
+        if ra is None or dec is None or name is None or pos_err is None:
+            continue
+
+        pgc_info_list.append(PGCObjectInfo(pgc=obj.pgc, ra=ra, dec=dec, name=name, pos_err=pos_err))
 
     return pgc_info_list
 
