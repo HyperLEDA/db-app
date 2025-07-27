@@ -59,8 +59,15 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_id: int) -> model.TableStatistics:
         return self.objects_repo.get_table_statistics(table_id)
 
-    def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
+    def get_objects_by_id(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
         return self.objects_repo.get_objects(table_id, limit, offset)
+
+    def get_objects(self, table_name: str, limit: int, offset: int) -> list[model.Layer0Object]:
+        meta = self.fetch_metadata_by_name(table_name)
+        if meta.table_id is None:
+            raise RuntimeError(f"{table_name} has no table_id")
+
+        return self.objects_repo.get_objects(meta.table_id, limit, offset)
 
     def get_processed_objects(
         self, table_id: int, limit: int, offset: str | None = None
