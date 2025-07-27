@@ -79,14 +79,16 @@ def calculate_bayes_factor(ra1: float, dec1: float, sigma1: float, ra2: float, d
     psi = calculate_angular_distance(ra1, dec1, ra2, dec2)
 
     psi_rad = math.radians(psi)
+    if sigma1 == 0:
+        sigma1 = 1 / 3600
+    if sigma2 == 0:
+        sigma2 = 1 / 3600
+
     sigma1_rad = math.radians(sigma1)
     sigma2_rad = math.radians(sigma2)
 
     w1 = 1.0 / (sigma1_rad**2)
     w2 = 1.0 / (sigma2_rad**2)
-
-    if w1 == 0 or w2 == 0:
-        return 0.0
 
     return (2.0 * w1 * w2 / (w1 + w2)) * math.exp(-(psi_rad**2) * w1 * w2 / (2.0 * (w1 + w2)))
 
