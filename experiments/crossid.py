@@ -5,6 +5,7 @@ from pathlib import Path
 # Add the parent directory to Python path so we can import from app
 sys.path.insert(0, str(Path(__file__).parent / ".."))
 
+import numpy as np
 import pandas
 import structlog
 from astropy import table
@@ -111,25 +112,30 @@ def main():
         upper_posterior_probability = 0.9
         cutoff_radius_degrees = to_deg(100)
 
+        positions = np.zeros(shape=(len(fast_objects), 3))
+        positions[:, 0] = fast_objects["RAJ2000"]
+        positions[:, 1] = fast_objects["DEJ2000"]
+        positions[:, 2] = fast_objects["ePos"]
         results_bayesian = cross_identify_objects_bayesian(
-            fast_objects,
+            positions,
             layer2_repo,
             lower_posterior_probability=lower_posterior_probability,
             upper_posterior_probability=upper_posterior_probability,
             cutoff_radius_degrees=cutoff_radius_degrees,
+            prior_probability=0.25,
         )
 
-        print()
-        print("Single radius:")
-        print_cross_identification_summary(results_single)
+        # print()
+        # print("Single radius:")
+        # print_cross_identification_summary(results_single)
 
-        save_cross_identification_results(results_single, fast_objects, "experiments/results/single_radius.csv")
+        # save_cross_identification_results(results_single, fast_objects, "experiments/results/single_radius.csv")
 
-        print()
-        print("Two-radius:")
-        print_cross_identification_summary(results_two_radius)
+        # print()
+        # print("Two-radius:")
+        # print_cross_identification_summary(results_two_radius)
 
-        save_cross_identification_results(results_two_radius, fast_objects, "experiments/results/two_radius.csv")
+        # save_cross_identification_results(results_two_radius, fast_objects, "experiments/results/two_radius.csv")
 
         print()
         print("Bayesian:")
