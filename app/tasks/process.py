@@ -12,11 +12,14 @@ from app.tasks import interface
 
 @final
 class ProcessTask(interface.Task):
-    def __init__(self, table_id: int, batch_size: int = 500, workers: int = 8) -> None:
+    def __init__(
+        self, table_id: int, batch_size: int = 500, workers: int = 8, crossmatch_enabled: bool = False
+    ) -> None:
         self.table_id = table_id
         self.batch_size = batch_size
         self.workers = workers
         self.log = structlog.get_logger()
+        self.crossmatch_enabled = crossmatch_enabled
 
     @classmethod
     def name(cls) -> str:
@@ -33,6 +36,9 @@ class ProcessTask(interface.Task):
         ctx = {"table_id": self.table_id}
         self.log.info("Starting marking of objects", **ctx)
         processing.mark_objects(self.layer0_repo, self.table_id, self.batch_size)
+
+        if not self.crossmatch_enabled:
+            return
 
         self.log.info("Erasing previous crossmatching results", **ctx)
         self.layer0_repo.erase_crossmatch_results(self.table_id)
