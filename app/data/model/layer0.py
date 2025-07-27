@@ -47,6 +47,13 @@ class Layer0Object:
     object_id: str
     data: list[interface.CatalogObject]
 
+    def get[T](self, t: type[T]) -> T | None:
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+
+        return None
+
 
 @dataclass
 class CIResultObjectNew:

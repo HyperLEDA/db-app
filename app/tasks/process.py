@@ -45,7 +45,7 @@ class ProcessTask(interface.Task):
 
         self.log.info("Starting cross-identification", **ctx)
         for offset, data in containers.read_batches(
-            self.layer0_repo.get_objects,
+            self.layer0_repo.get_objects_by_id,
             lambda data: len(data) == 0,
             0,
             lambda _, offset: offset + self.batch_size,

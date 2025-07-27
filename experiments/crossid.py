@@ -5,18 +5,15 @@ from pathlib import Path
 # Add the parent directory to Python path so we can import from app
 sys.path.insert(0, str(Path(__file__).parent / ".."))
 
-import numpy as np
 import pandas
 import structlog
 from astropy import table
 from astropy.io import fits
 
-from app.data.repositories import Layer2Repository
+from app.data import model, repositories
 from app.lib.storage import postgres
 from experiments.bayes import cross_identify_objects_bayesian
 from experiments.entities import print_cross_identification_summary, save_cross_identification_results
-from experiments.single_radius import cross_identify_objects
-from experiments.two_radius import cross_identify_objects_two_radius
 
 logger = structlog.get_logger()
 
@@ -81,10 +78,10 @@ def to_deg(arsec: float) -> float:
 
 
 def main():
-    fast_objects = get_objects("experiments/data/fast.fits")
-    fast_objects = fast_objects.head(5000)
+    # fast_objects = get_objects("experiments/data/fast.fits")
+    # fast_objects = fast_objects.head(500)
 
-    analyze_fast_objects_data(fast_objects)
+    # analyze_fast_objects_data(fast_objects)
 
     storage_config = postgres.PgStorageConfig(
         endpoint="dm2.sao.ru", port=5432, dbname="hyperleda", user="hyperleda", password=os.getenv("DB_PASS") or ""
@@ -93,38 +90,64 @@ def main():
     storage = postgres.PgStorage(storage_config, logger)
     storage.connect()
 
-    layer2_repo = Layer2Repository(storage, logger)
+    layer0_repo = repositories.Layer0Repository(storage, logger)
+    layer2_repo = repositories.Layer2Repository(storage, logger)
+    print("\nTesting Bayesian algorithm...")
 
     try:
-        print("Testing single-radius algorithm...")
-        search_radius_degrees = to_deg(20)
-        results_single = cross_identify_objects(fast_objects, layer2_repo, search_radius_degrees)
+        fashi_objects = layer0_repo.get_objects("fashi_catalog", 1000, 0)
+        icrs_objs: list[model.ICRSCatalogObject] = []
+        name_objs: list[model.DesignationCatalogObject] = []
+        for obj in fashi_objects:
+            icrs_data = obj.get(model.ICRSCatalogObject)
+            if icrs_data is not None:
+                icrs_objs.append(icrs_data)
 
-        print("\nTesting two-radius algorithm...")
-        inner_radius_degrees = to_deg(10)
-        outer_radius_degrees = to_deg(20)
-        results_two_radius = cross_identify_objects_two_radius(
-            fast_objects, layer2_repo, inner_radius_degrees, outer_radius_degrees
-        )
+            name_data = obj.get(model.DesignationCatalogObject)
+            if name_data is not None:
+                name_objs.append(name_data)
 
-        print("\nTesting Bayesian algorithm...")
+        parameters = pandas.DataFrame()
+        parameters["ra"] = [o.ra for o in icrs_objs]
+        parameters["dec"] = [o.dec for o in icrs_objs]
+        parameters["e_pos"] = [o.e_ra for o in icrs_objs]
+        parameters["name"] = [o.designation for o in name_objs]
+
         lower_posterior_probability = 0.1
         upper_posterior_probability = 0.9
-        cutoff_radius_degrees = to_deg(100)
 
-        positions = np.zeros(shape=(len(fast_objects), 3))
-        positions[:, 0] = fast_objects["RAJ2000"]
-        positions[:, 1] = fast_objects["DEJ2000"]
-        positions[:, 2] = fast_objects["ePos"]
-        results_bayesian = cross_identify_objects_bayesian(
-            positions,
-            layer2_repo,
-            lower_posterior_probability=lower_posterior_probability,
-            upper_posterior_probability=upper_posterior_probability,
-            cutoff_radius_degrees=cutoff_radius_degrees,
-            # probability for a random FAST object to correspond to a LEDA object within 100 arcsec from it
-            prior_probability=0.25,
-        )
+        for cutoff_radius_arcsec in [180]:
+            cutoff_radius_degrees = to_deg(cutoff_radius_arcsec)
+
+            results_bayesian = cross_identify_objects_bayesian(
+                parameters,
+                layer2_repo,
+                lower_posterior_probability=lower_posterior_probability,
+                upper_posterior_probability=upper_posterior_probability,
+                cutoff_radius_degrees=cutoff_radius_degrees,
+                # estimate of a probability for a random FAST object to correspond to
+                # a LEDA object within 100 arcsec from it
+                prior_probability=0.25,
+            )
+
+            print()
+            print("Bayesian:")
+            print_cross_identification_summary(results_bayesian)
+
+            save_cross_identification_results(
+                results_bayesian, parameters, f"experiments/results/bayes_{cutoff_radius_arcsec}arcsec.csv"
+            )
+
+        # print("Testing single-radius algorithm...")
+        # search_radius_degrees = to_deg(20)
+        # results_single = cross_identify_objects(fast_objects, layer2_repo, search_radius_degrees)
+
+        # print("\nTesting two-radius algorithm...")
+        # inner_radius_degrees = to_deg(10)
+        # outer_radius_degrees = to_deg(20)
+        # results_two_radius = cross_identify_objects_two_radius(
+        #     fast_objects, layer2_repo, inner_radius_degrees, outer_radius_degrees
+        # )
 
         # print()
         # print("Single radius:")
@@ -138,11 +161,6 @@ def main():
 
         # save_cross_identification_results(results_two_radius, fast_objects, "experiments/results/two_radius.csv")
 
-        print()
-        print("Bayesian:")
-        print_cross_identification_summary(results_bayesian)
-
-        save_cross_identification_results(results_bayesian, fast_objects, "experiments/results/bayes.csv")
     except Exception as e:
         logger.error(f"Error during cross-identification: {e}")
         raise

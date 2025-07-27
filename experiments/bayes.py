@@ -130,7 +130,7 @@ def bayes_factor_from_posterior_probability(posterior_probability: float, prior_
 
 
 def cross_identify_objects_bayesian(
-    positions: np.ndarray,
+    parameters: pandas.DataFrame,
     layer2_repo: Layer2Repository,
     lower_posterior_probability: float = 0.1,
     upper_posterior_probability: float = 0.9,
@@ -150,8 +150,7 @@ def cross_identify_objects_bayesian(
        - Otherwise → "collision"
 
     Args:
-        positions: (Nx3) ndarray, containing RA, Dec and position error
-            in first, second and third column correspondingly, all in degrees.
+        positions: DataFrame, containing "ra", "dec" and "e_pos" columns.
         layer2_repo: Layer2Repository instance for database queries
         lower_posterior_probability: Threshold for "definitely different" (default: 0.1)
         upper_posterior_probability: Threshold for "definitely same" (default: 0.9)
@@ -163,9 +162,9 @@ def cross_identify_objects_bayesian(
     """
     results: dict[str, CrossIdentificationResult] = {}
 
-    ra_column = positions[:, 0]
-    dec_column = positions[:, 1]
-    error_column = positions[:, 2]
+    ra_column = parameters["ra"]
+    dec_column = parameters["dec"]
+    error_column = parameters["e_pos"]
 
     bf_lower = bayes_factor_from_posterior_probability(lower_posterior_probability, prior_probability)
     bf_upper = bayes_factor_from_posterior_probability(upper_posterior_probability, prior_probability)
@@ -173,7 +172,7 @@ def cross_identify_objects_bayesian(
     logger.info(f"Bayes factor thresholds: B_lower={bf_lower:.2e}, B_upper={bf_upper:.2e}")
 
     # Process objects in batches
-    batch_size = 1000
+    batch_size = 20
     total_objects = len(ra_column)
 
     for batch_start in range(0, total_objects, batch_size):
@@ -192,7 +191,7 @@ def cross_identify_objects_bayesian(
             catalogs=[model.RawCatalog.ICRS],
             search_types=search_types,
             search_params=search_params,
-            limit=1000,
+            limit=10000,
             offset=0,
         )
 
@@ -203,10 +202,6 @@ def cross_identify_objects_bayesian(
             if len(candidates) == 0:
                 results[object_id] = CrossIdentificationResult(status="new")
                 continue
-
-            ra = ra_column[i]
-            dec = dec_column[i]
-            sigma = error_column[i]
 
             candidate_pgcs = []
 
@@ -220,17 +215,13 @@ def cross_identify_objects_bayesian(
                 if icrs_data is None:
                     continue
 
-                db_error = icrs_data.e_ra
-                if db_error is None or db_error == 0:
-                    db_error = 1 / 3600.0
-
                 bf = calculate_bayes_factor(
-                    ra,
-                    dec,
-                    sigma,
+                    ra_column[i],
+                    dec_column[i],
+                    error_column[i],
                     icrs_data.ra,  # type: ignore
                     icrs_data.dec,  # type: ignore
-                    db_error,
+                    icrs_data.e_ra or 1,
                 )
 
                 candidate_pgcs.append((candidate.pgc, bf))
@@ -252,6 +243,8 @@ def cross_identify_objects_bayesian(
             if len(high_probability_matches) == 1 and len(low_probability_matches) == len(candidate_pgcs) - 1:
                 pgc, posterior = high_probability_matches[0]
                 results[object_id] = CrossIdentificationResult(status="existing", pgc_numbers={pgc: posterior})
+            elif len(low_probability_matches) == len(all_matches):
+                results[object_id] = CrossIdentificationResult(status="new")
             else:
                 results[object_id] = CrossIdentificationResult(status="collision", pgc_numbers=dict(all_matches))
 
@@ -268,7 +261,6 @@ def create_simulated_data(num_objects: int = 100) -> pandas.DataFrame:
     Returns:
         DataFrame with simulated coordinates and errors
     """
-    import numpy as np
 
     # Generate random coordinates
     ra = np.random.uniform(0, 360, num_objects)
