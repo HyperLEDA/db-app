@@ -208,7 +208,6 @@ def cross_identify_objects_bayesian(
             dec = dec_column[i]
             sigma = error_column[i]
 
-            bayes_factors = []
             candidate_pgcs = []
 
             for candidate in candidates:
@@ -234,18 +233,27 @@ def cross_identify_objects_bayesian(
                     db_error,
                 )
 
-                bayes_factors.append(bf)
-                candidate_pgcs.append(candidate.pgc)
+                candidate_pgcs.append((candidate.pgc, bf))
 
-            high_probability_matches = [i for i, B in enumerate(bayes_factors) if B > bf_upper]
-            low_probability_matches = [i for i, B in enumerate(bayes_factors) if B < bf_lower]
+            high_probability_matches = [
+                (pgc, posterior_probability_from_bayes_factor(bf, prior_probability))
+                for pgc, bf in candidate_pgcs
+                if bf > bf_upper
+            ]
+            low_probability_matches = [
+                (pgc, posterior_probability_from_bayes_factor(bf, prior_probability))
+                for pgc, bf in candidate_pgcs
+                if bf < bf_lower
+            ]
+            all_matches = [
+                (pgc, posterior_probability_from_bayes_factor(bf, prior_probability)) for pgc, bf in candidate_pgcs
+            ]
 
-            if len(high_probability_matches) == 1 and len(low_probability_matches) == len(bayes_factors) - 1:
-                results[object_id] = CrossIdentificationResult(
-                    status="existing", pgc_numbers=[candidate_pgcs[high_probability_matches[0]]]
-                )
+            if len(high_probability_matches) == 1 and len(low_probability_matches) == len(candidate_pgcs) - 1:
+                pgc, posterior = high_probability_matches[0]
+                results[object_id] = CrossIdentificationResult(status="existing", pgc_numbers={pgc: posterior})
             else:
-                results[object_id] = CrossIdentificationResult(status="collision", pgc_numbers=candidate_pgcs)
+                results[object_id] = CrossIdentificationResult(status="collision", pgc_numbers=dict(all_matches))
 
     return results
 
