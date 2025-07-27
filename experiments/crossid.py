@@ -122,6 +122,7 @@ def main():
             lower_posterior_probability=lower_posterior_probability,
             upper_posterior_probability=upper_posterior_probability,
             cutoff_radius_degrees=cutoff_radius_degrees,
+            # probability for a random FAST object to correspond to a LEDA object within 100 arcsec from it
             prior_probability=0.25,
         )
 
