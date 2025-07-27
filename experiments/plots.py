@@ -31,7 +31,7 @@ def get_hips_map(
     ax.imshow(result, extent=(obj.ra + fov, obj.ra - fov, obj.dec - fov, obj.dec + fov))
     ax.scatter(obj.ra, obj.dec, color="blue", marker="x")
     ax.errorbar(obj.ra, obj.dec, obj.pos_err, obj.pos_err, ecolor="blue")
-    ax.set_title(obj.name)
+    ax.set_title(f"{obj.name} | {obj.status}")
 
     for pgc_obj in collision_data:
         print(pgc_obj.ra, pgc_obj.dec, pgc_obj.name, pgc_obj.pos_err)

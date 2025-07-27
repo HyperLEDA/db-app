@@ -110,15 +110,15 @@ class CrossIDInfo:
 
 def save_cross_identification_results(
     results: dict[str, CrossIdentificationResult],
-    fast_objects: pandas.DataFrame,
+    parameters: pandas.DataFrame,
     output_file: str = "cross_identification_results.csv",
 ) -> None:
     output = pandas.DataFrame()
 
-    output["ra"] = fast_objects["RAJ2000"]
-    output["dec"] = fast_objects["DEJ2000"]
-    output["pos_err"] = fast_objects["ePos"]
-    output["name"] = fast_objects["Name"]
+    output["ra"] = parameters["ra"]
+    output["dec"] = parameters["dec"]
+    output["pos_err"] = parameters["e_pos"]
+    output["name"] = parameters["name"]
 
     statuses = [""] * len(results)
     pgc_numbers = [""] * len(results)
@@ -127,7 +127,10 @@ def save_cross_identification_results(
         batch_idx = int(obj_id.split("_")[1])
 
         statuses[batch_idx] = result.status
-        pgc_numbers[batch_idx] = str(result.pgc_numbers) or ""
+        if result.pgc_numbers is not None:
+            pgc_numbers[batch_idx] = str(result.pgc_numbers)
+        else:
+            pgc_numbers[batch_idx] = "{}"
 
     output["status"] = statuses
     output["pgc_numbers"] = pgc_numbers
