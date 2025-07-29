@@ -32,6 +32,29 @@ class ColumnDescription:
 
 
 @dataclass
+class Bibliography:
+    title: str
+    authors: list[str]
+    year: int
+    bibcode: str
+
+
+@dataclass
+class GetTableRequest:
+    table_name: str
+
+
+@dataclass
+class GetTableResponse:
+    id: int
+    description: str
+    column_info: list[ColumnDescription]
+    rows_num: int
+    meta: dict[str, Any]
+    bibliography: Bibliography
+
+
+@dataclass
 class CreateTableRequest:
     table_name: str
     columns: list[ColumnDescription]
@@ -183,6 +206,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+        pass
+
+    @abc.abstractmethod
+    def get_table(self, request: GetTableRequest) -> GetTableResponse:
         pass
 
     @abc.abstractmethod

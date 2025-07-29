@@ -143,6 +143,21 @@ class TableUploadManager:
 
         return adminapi.CreateMarkingResponse()
 
+    def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
+        meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
+        bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
+        rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_rows
+        metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
+
+        return adminapi.GetTableResponse(
+            meta.table_id,
+            meta.description,
+            meta.column_descriptions,
+            rows_num,
+            metadata,
+            bibliography,
+        )
+
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:

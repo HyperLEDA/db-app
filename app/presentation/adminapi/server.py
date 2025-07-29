@@ -7,6 +7,7 @@ from app.presentation.adminapi import (
     create_source,
     create_table,
     get_api_v1_table_validation,
+    get_table,
     get_task_info,
     interface,
     login,
@@ -51,6 +52,16 @@ class Server(server.WebServer):
                     create_table.CreateTableResponseSchema,
                 ),
                 create_table.create_table_handler,
+            ),
+            server.ActionRoute(
+                actions,
+                server.RouteInfo(
+                    http.HTTPMethod.GET,
+                    "/admin/api/v1/table",
+                    get_table.GetTableRequestSchema,
+                    get_table.GetTableResponseSchema,
+                ),
+                get_table.get_table_handler,
             ),
             server.ActionRoute(
                 actions,
