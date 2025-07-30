@@ -113,8 +113,8 @@ def main():
         parameters["e_pos"] = [o.e_ra for o in icrs_objs]
         parameters["name"] = [o.designation for o in name_objs]
 
-        lower_posterior_probability = 0.1
-        upper_posterior_probability = 0.9
+        lower_posterior_probability = 0.01
+        upper_posterior_probability = 0.99
 
         for cutoff_radius_arcsec in [180]:
             cutoff_radius_degrees = to_deg(cutoff_radius_arcsec)
