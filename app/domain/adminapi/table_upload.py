@@ -150,15 +150,6 @@ class TableUploadManager:
         rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
-        # print("================", adminapi.GetTableResponse(
-        #     meta.table_id,
-        #     meta.description,
-        #     meta.column_descriptions,
-        #     rows_num,
-        #     metadata,
-        #     bibliography,
-        # ))
-
         return adminapi.GetTableResponse(
             meta.table_id,
             meta.description,
