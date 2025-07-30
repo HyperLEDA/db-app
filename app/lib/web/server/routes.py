@@ -63,7 +63,9 @@ def datetime_handler(obj: Any):
 
     if isinstance(obj, enum.Enum):
         return obj.value
-
+    
+        
+    print(f"UNHANDLED TYPE: {type(obj)} - VALUE: {obj}")
     raise TypeError("Unknown type")
 
 

@@ -51,4 +51,4 @@ class Actions(adminapi.Actions):
         return self.table_upload_manager.create_marking(r)
 
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
-        return self.get_table(r)
+        return self.table_upload_manager.get_table(r)
