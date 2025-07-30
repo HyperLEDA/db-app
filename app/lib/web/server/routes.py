@@ -66,10 +66,10 @@ def datetime_handler(obj: Any):
 
     if isinstance(obj, enum.Enum):
         return obj.value
-    
-    if hasattr(obj, 'physical_type'):  # для astropy.units
+
+    if hasattr(obj, "physical_type"):  # для astropy.units
         return str(obj)
-    
+
     # print(f"UNHANDLED: {type(obj)} ---- VALUE: {obj}")
     raise TypeError("Unknown type")
 
