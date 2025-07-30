@@ -58,14 +58,19 @@ class RouteInfo:
 
 
 def datetime_handler(obj: Any):
+    # может быть тут переименовать не datetime, a просто datatype_handler или что то еще? я так поняла json все,
+    # что сам не обрабатывает, сюда отправляет, в том числе юниты астропай и тд...
+    # мне пришлось поразбираться, причем здесь вообще DATETIME, если у меня вообще и не date, и не time ахаха
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
 
     if isinstance(obj, enum.Enum):
         return obj.value
     
-        
-    print(f"UNHANDLED TYPE: {type(obj)} - VALUE: {obj}")
+    if hasattr(obj, 'physical_type'):  # для astropy.units
+        return str(obj)
+    
+    # print(f"UNHANDLED: {type(obj)} ---- VALUE: {obj}")
     raise TypeError("Unknown type")
 
 
