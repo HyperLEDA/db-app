@@ -21,8 +21,8 @@ class EnvParams:
     ads_token: str = ""
     postgres_password: str = ""
 
-    _ads_token_env = "ADS_TOKEN"
-    _postgres_password_env = "POSTGRES_PASSWORD"
+    ads_token_env = "ADS_TOKEN"
+    postgres_password_env = "POSTGRES_PASSWORD"
 
     @classmethod
     def from_yaml(cls, path: str) -> "EnvParams":
@@ -35,8 +35,8 @@ class EnvParams:
 
         params = cls(**data)
 
-        params.ads_token = params.ads_token or os.getenv(params._ads_token_env) or ""
-        params.postgres_password = params.postgres_password or os.getenv(params._postgres_password_env) or ""
+        params.ads_token = params.ads_token or os.getenv(params.ads_token_env) or ""
+        params.postgres_password = params.postgres_password or os.getenv(params.postgres_password_env) or ""
 
         return params
 

@@ -42,13 +42,21 @@ class Actions(dataapi.Actions):
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         filters, search_params = self._build_filters_and_params(query)
 
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
-        )
+        if not query.pgcs:
+            objects = self.layer2_repo.query(
+                ENABLED_CATALOGS,
+                filters,
+                search_params,
+                query.page_size,
+                query.page,
+            )
+        else:
+            objects = self.layer2_repo.query_pgc(
+                ENABLED_CATALOGS,
+                query.pgcs,
+                query.page_size,
+                query.page,
+            )
 
         responder = responders.JSONResponder()
         pgc_objects = responder.build_response(objects)
