@@ -21,10 +21,6 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
                     "ra": hyperleda.Parameter(column_name="RAJ2000"),
                     "dec": hyperleda.Parameter(column_name="DEJ2000"),
                 },
-                additional_params={
-                    "e_ra": 0.1,
-                    "e_dec": 0.1,
-                },
             ),
             hyperleda.Catalog(
                 name=hyperleda.Name.designation,
@@ -37,7 +33,6 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
                 parameters={
                     "z": hyperleda.Parameter(column_name="z"),
                 },
-                additional_params={"e_z": 0.1},
             ),
         ],
     )
