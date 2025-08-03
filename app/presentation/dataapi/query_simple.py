@@ -35,6 +35,7 @@ class QuerySimpleRequestSchema(GenericSchema[interface.QuerySimpleRequest]):
 
 class QuerySimpleResponseSchema(Schema):
     objects = fields.List(fields.Nested(model.PGCObjectSchema))
+    schema = fields.Nested(model.SchemaSchema)
 
 
 async def query_simple_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:

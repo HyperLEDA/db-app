@@ -10,10 +10,10 @@ from app.data.model import interface
 class ICRSCatalogObject(interface.CatalogObject):
     def __init__(
         self,
-        ra: float | None = None,
-        dec: float | None = None,
-        e_ra: float | None = None,
-        e_dec: float | None = None,
+        ra: float,
+        dec: float,
+        e_ra: float,
+        e_dec: float,
     ) -> None:
         self.ra = ra
         self.dec = dec
@@ -62,14 +62,14 @@ class ICRSCatalogObject(interface.CatalogObject):
         Errors are computed as the mean of all errors.
         """
         ras = [obj.ra for obj in objects]
-        e_ras = [obj.e_ra for obj in objects if obj.e_ra is not None]
+        e_ras = [obj.e_ra for obj in objects]
         decs = [obj.dec for obj in objects]
-        e_decs = [obj.e_dec for obj in objects if obj.e_dec is not None]
+        e_decs = [obj.e_dec for obj in objects]
 
         ra = sum(ras) / len(ras)
-        e_ra = sum(e_ras) / len(e_ras) if e_ras else None
+        e_ra = sum(e_ras) / len(e_ras)
         dec = sum(decs) / len(decs)
-        e_dec = sum(e_decs) / len(e_decs) if e_decs else None
+        e_dec = sum(e_decs) / len(e_decs)
 
         return cls(ra, dec, e_ra, e_dec)
 
