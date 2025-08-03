@@ -109,3 +109,21 @@ class FormatColumnModifier(ColumnModifier):
             values = column.to_value()
 
         return self._format_func(values)
+
+
+@final
+class ConstantColumnModifier(ColumnModifier):
+    """
+    Substitutes any value that a columns has with the constant.
+    Does not preserve original units.
+    """
+
+    def __init__(self, constant: Any) -> None:
+        self.constant = constant
+
+    @classmethod
+    def name(cls) -> str:
+        return "constant"
+
+    def apply(self, column: u.Quantity | Sequence) -> u.Quantity | np.ndarray:
+        return np.full(len(column), self.constant)
