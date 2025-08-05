@@ -57,10 +57,7 @@ class RouteInfo:
     response_schema: type[marshmallow.Schema] | None
 
 
-def datetime_handler(obj: Any):
-    # может быть тут переименовать не datetime, a просто datatype_handler или что то еще? я так поняла json все,
-    # что сам не обрабатывает, сюда отправляет, в том числе юниты астропай и тд...
-    # мне пришлось поразбираться, причем здесь вообще DATETIME, если у меня вообще и не date, и не time ахаха
+def datatype_handler(obj: Any):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
 
@@ -74,7 +71,7 @@ def datetime_handler(obj: Any):
 
 
 def custom_dumps(obj):
-    return json.dumps(obj, default=datetime_handler)
+    return json.dumps(obj, default=datatype_handler)
 
 
 class ActionRoute[Actions](Route):
