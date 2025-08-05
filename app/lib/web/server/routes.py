@@ -57,18 +57,21 @@ class RouteInfo:
     response_schema: type[marshmallow.Schema] | None
 
 
-def datetime_handler(obj: Any):
+def datatype_handler(obj: Any):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
 
     if isinstance(obj, enum.Enum):
         return obj.value
 
+    if hasattr(obj, "physical_type"):  # для astropy.units
+        return str(obj)
+
     raise TypeError(f"Unknown type {type(obj)}")
 
 
 def custom_dumps(obj):
-    return json.dumps(obj, default=datetime_handler)
+    return json.dumps(obj, default=datatype_handler)
 
 
 class ActionRoute[Actions](Route):
