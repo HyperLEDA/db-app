@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import pandas
@@ -88,7 +88,6 @@ class HomogenizationRule:
     filters: dict[str, str]
     key: str = ""
     priority: int | None = None
-    enrichment: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -96,3 +95,10 @@ class HomogenizationParams:
     catalog: str
     params: dict[str, Any]
     key: str = ""
+
+
+@dataclass
+class Modifier:
+    column_name: str
+    modifier_name: str
+    params: dict[str, Any]

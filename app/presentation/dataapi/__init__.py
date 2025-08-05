@@ -6,7 +6,7 @@ from app.presentation.dataapi.interface import (
     QuerySimpleRequest,
     QuerySimpleResponse,
 )
-from app.presentation.dataapi.model import PGCObject
+from app.presentation.dataapi.model import *
 from app.presentation.dataapi.server import Server
 
 __all__ = [
@@ -15,7 +15,6 @@ __all__ = [
     "QuerySimpleResponse",
     "QueryRequest",
     "QueryResponse",
-    "PGCObject",
     "Server",
     "FITSRequest",
 ]

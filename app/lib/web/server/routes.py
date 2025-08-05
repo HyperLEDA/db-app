@@ -70,8 +70,7 @@ def datetime_handler(obj: Any):
     if hasattr(obj, "physical_type"):  # для astropy.units
         return str(obj)
 
-    # print(f"UNHANDLED: {type(obj)} ---- VALUE: {obj}")
-    raise TypeError("Unknown type")
+    raise TypeError(f"Unknown type {type(obj)}")
 
 
 def custom_dumps(obj):

@@ -1,6 +1,7 @@
 from typing import Any, Self, final
 
 import astropy.constants
+from astropy import units as u
 
 from app.data.model import interface
 
@@ -10,7 +11,7 @@ class RedshiftCatalogObject(interface.CatalogObject):
     def __init__(
         self,
         cz: float,
-        e_cz: float | None = None,
+        e_cz: float,
     ) -> None:
         self.cz = cz
         self.e_cz = e_cz
@@ -18,20 +19,20 @@ class RedshiftCatalogObject(interface.CatalogObject):
     @classmethod
     def from_custom(
         cls,
-        cz: interface.MeasuredValue | None = None,
+        cz: u.Quantity | None = None,
         z: float | None = None,
-        e_cz: interface.MeasuredValue | None = None,
+        e_cz: u.Quantity | float | None = None,
         e_z: float | None = None,
     ) -> Self:
         if not interface.is_nan(cz):
-            data_cz = (cz.value * cz.unit).to("m/s").value
+            data_cz = cz.to("m/s").value
         elif not interface.is_nan(z):
             data_cz = (z * astropy.constants.c).to("m/s").value
         else:
             raise ValueError("neither z nor cz is specified")
 
         if not interface.is_nan(e_cz):
-            data_e_cz = (e_cz.value * e_cz.unit).to("m/s").value
+            data_e_cz = e_cz.to("m/s").value
         elif not interface.is_nan(e_z):
             data_e_cz = (e_z * astropy.constants.c).to("m/s").value
         else:
@@ -44,10 +45,10 @@ class RedshiftCatalogObject(interface.CatalogObject):
 
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
-        e_cz = [obj.e_cz for obj in objects if obj.e_cz is not None]
+        e_cz = [obj.e_cz for obj in objects]
 
         cz = sum(obj.cz for obj in objects) / len(objects)
-        e_cz = sum(e_cz) / len(e_cz) if e_cz else None
+        e_cz = sum(e_cz) / len(e_cz)
 
         return cls(cz, e_cz)
 

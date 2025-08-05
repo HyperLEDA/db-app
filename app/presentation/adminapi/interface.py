@@ -178,7 +178,6 @@ class LoginResponse:
 @dataclass
 class ParameterToMark:
     column_name: str
-    enrichment: dict[str, str] | None = None
 
 
 @dataclass

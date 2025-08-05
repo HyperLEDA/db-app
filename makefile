@@ -103,3 +103,9 @@ image-build:
 image-push:
 	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
 	docker push ghcr.io/hyperleda/hyperleda:latest
+
+deploy-test:
+	uv run infra/deploy.py infra/settings/test.yaml
+
+deploy-prod:
+	uv run infra/deploy.py infra/settings/prod.yaml

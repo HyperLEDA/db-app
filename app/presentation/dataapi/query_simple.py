@@ -16,7 +16,9 @@ class DelimitedListField(fields.List):
 
 
 class QuerySimpleRequestSchema(GenericSchema[interface.QuerySimpleRequest]):
-    pgcs = DelimitedListField(fields.Integer(metadata={"description": "List of PGC numbers"}))
+    pgcs = DelimitedListField(
+        fields.Integer(metadata={"description": "List of PGC numbers. If specified, all other filters will be ignored"})
+    )
     ra = fields.Float(metadata={"description": "Right ascension of the center of the search area in degrees"})
     dec = fields.Float(metadata={"description": "Declination of the center of the search area in degrees"})
     radius = fields.Float(metadata={"description": "Radius of the search area in degrees"})
@@ -33,6 +35,7 @@ class QuerySimpleRequestSchema(GenericSchema[interface.QuerySimpleRequest]):
 
 class QuerySimpleResponseSchema(Schema):
     objects = fields.List(fields.Nested(model.PGCObjectSchema))
+    schema = fields.Nested(model.SchemaSchema)
 
 
 async def query_simple_handler(actions: interface.Actions, r: web.Request) -> responses.APIOkResponse:
@@ -44,7 +47,10 @@ async def query_simple_handler(actions: interface.Actions, r: web.Request) -> re
         For example, if both coordinates and designation are specified, object must be in the specified area and have
         the specified designation.
 
-        Note that the answer is paginated to improve performance.
+        Several notes:
+        - You cannot specify both PGC numbers and additional queries. If both are specified, only PGC numbers
+        will be used to query.
+        - The answer is paginated to improve performance.
     parameters:
       - in: query
         schema: QuerySimpleRequestSchema
