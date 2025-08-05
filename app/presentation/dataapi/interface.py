@@ -20,6 +20,7 @@ class QuerySimpleRequest:
 @dataclass
 class QuerySimpleResponse:
     objects: list[model.PGCObject]
+    schema: model.Schema
 
 
 @dataclass

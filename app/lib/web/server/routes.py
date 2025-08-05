@@ -64,7 +64,7 @@ def datetime_handler(obj: Any):
     if isinstance(obj, enum.Enum):
         return obj.value
 
-    raise TypeError("Unknown type")
+    raise TypeError(f"Unknown type {type(obj)}")
 
 
 def custom_dumps(obj):
