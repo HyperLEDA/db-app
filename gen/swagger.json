@@ -134,6 +134,41 @@
           }
         }
       },
+      "get": {
+        "summary": "Retrieve table information",
+        "description": "Fetches details about a specific table using the provided table name.\nThe response includes the table's ID, description, columns, number of rows,\nmetadata, and bibliography.\n",
+        "tags": [
+          "table"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "table_name",
+            "description": "Name of the table",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table information successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GetTableResponseSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "summary": "Patch table schema",
         "description": "Patch the schema of the table, including column UCDs and units.\n",
@@ -583,6 +618,79 @@
         "required": [
           "id"
         ]
+      },
+      "GetTableRequestSchema": {
+        "type": "object",
+        "properties": {
+          "table_name": {
+            "type": "string",
+            "description": "Name of the table"
+          }
+        },
+        "required": [
+          "table_name"
+        ]
+      },
+      "Bibliography": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of publication"
+          },
+          "authors": {
+            "type": "array",
+            "description": "List of authors",
+            "items": {
+              "type": "string"
+            }
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year of the publication"
+          },
+          "bibcode": {
+            "type": "string",
+            "description": "Bibcode reference"
+          }
+        }
+      },
+      "GetTableResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID of the table"
+          },
+          "description": {
+            "type": "string",
+            "description": "Table description"
+          },
+          "column_info": {
+            "type": "array",
+            "description": "List of columns in the table",
+            "items": {
+              "$ref": "#/components/schemas/ColumnDescription"
+            }
+          },
+          "rows_num": {
+            "type": "integer",
+            "description": "Number of rows"
+          },
+          "meta": {
+            "type": "object",
+            "description": "Table metadata",
+            "additionalProperties": {}
+          },
+          "bibliography": {
+            "description": "Table bibliography",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Bibliography"
+              }
+            ]
+          }
+        }
       },
       "GetTableValidationRequestSchema": {
         "type": "object",
