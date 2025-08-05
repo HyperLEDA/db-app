@@ -105,6 +105,10 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                     for column in object_cls.layer2_keys()
                 ]
             )
+            columns.append(
+                f"CASE WHEN {object_cls.layer2_table()}.pgc IS NOT NULL "
+                f'THEN true ELSE false END AS "{catalog.value}|_present"'
+            )
 
         joined_tables = " FULL JOIN ".join(
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
@@ -165,20 +169,25 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 obj.pop("pgc")
 
             res: dict[model.RawCatalog, dict[str, Any]] = {}
+            presence_flags: dict[model.RawCatalog, bool] = {}
 
             for key, value in obj.items():
                 catalog_name, column = key.split("|")
                 catalog = model.RawCatalog(catalog_name)
 
-                if catalog not in res:
-                    res[catalog] = {}
-
-                res[catalog][column] = value
+                if column == "_present":
+                    presence_flags[catalog] = bool(value)
+                else:
+                    if catalog not in res:
+                        res[catalog] = {}
+                    res[catalog][column] = value
 
             for catalog, data in res.items():
                 object_cls = model.get_catalog_object_type(catalog)
 
-                layer2_obj.data.append(object_cls.from_layer2(data))
+                # Only create catalog object if the object exists in this table
+                if presence_flags.get(catalog, False):
+                    layer2_obj.data.append(object_cls.from_layer2(data))
 
             result.append(layer2_obj)
 
@@ -215,6 +224,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             )""")
 
             select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer2_keys()])
+            select_parts.append(
+                f'CASE WHEN {alias}.pgc IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
+            )
 
             if i == 0:
                 join_parts.append(f"FROM {alias}")
