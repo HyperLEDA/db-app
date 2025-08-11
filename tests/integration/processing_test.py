@@ -83,10 +83,10 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        actual = self.layer0_repo.get_objects(table_id, 5, 0)
+        actual = self.layer0_repo.get_objects_by_id(table_id, 5, 0)
         self.assertEqual(len(actual), 5)
 
-        actual = self.layer0_repo.get_objects(table_id, 5, 5)
+        actual = self.layer0_repo.get_objects_by_id(table_id, 5, 5)
         self.assertEqual(len(actual), 1)
 
     def test_number_of_objects_divisible_by_batch_size(self):
@@ -94,10 +94,10 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 3)
 
-        actual = self.layer0_repo.get_objects(table_id, 3, 0)
+        actual = self.layer0_repo.get_objects_by_id(table_id, 3, 0)
         self.assertEqual(len(actual), 3)
 
-        actual = self.layer0_repo.get_objects(table_id, 3, 3)
+        actual = self.layer0_repo.get_objects_by_id(table_id, 3, 3)
         self.assertEqual(len(actual), 3)
 
     def test_table_patched_after_processing(self):
@@ -105,7 +105,7 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        before = self.layer0_repo.get_objects(table_id, 5, 0)
+        before = self.layer0_repo.get_objects_by_id(table_id, 5, 0)
         obj_before = before[0]
 
         self.layer0_repo.update_column_metadata(
@@ -115,7 +115,7 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        after = self.layer0_repo.get_objects(table_id, 5, 0)
+        after = self.layer0_repo.get_objects_by_id(table_id, 5, 0)
         obj_after = after[0]
 
         self.assertGreater(len(obj_after.data), len(obj_before.data))
