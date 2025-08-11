@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 import sys
 from dataclasses import dataclass
@@ -17,6 +18,9 @@ from experiments import entities
 from experiments.bayes import cross_identify_objects_bayesian
 
 logger = structlog.get_logger()
+structlog.configure(
+    wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+)
 
 
 def to_deg(arsec: float) -> float:
@@ -102,9 +106,9 @@ def main():
         params_all = []
         metrics_all = []
 
-        for prior in np.linspace(0.01, 0.99, 20):
+        for prior in np.logspace(np.log10(0.01), np.log10(1), 20, endpoint=False):
             params = Hyperparameters(
-                catalog="fashi_catalog",
+                catalog="alfalfa_catalog",
                 cutoff=500,
                 lower_posterior=0.01,
                 upper_posterior=0.99,
@@ -119,7 +123,7 @@ def main():
                 lower_posterior_probability=params.lower_posterior,
                 upper_posterior_probability=params.upper_posterior,
                 cutoff_radius_degrees=to_deg(params.cutoff_radius_arcsec),
-                prior_probability=params.upper_posterior,
+                prior_probability=params.prior,
             )
 
             metrics_all.append(get_metrics(results_bayesian))

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import numpy as np
 from astropy import coordinates
 from astropy import units as u
 
@@ -39,22 +40,20 @@ def calculate_bayes_factor(ra1: float, dec1: float, sigma1: float, ra2: float, d
     sigma1_rad = math.radians(sigma1)
     sigma2_rad = math.radians(sigma2)
 
-    w1 = 1.0 / (sigma1_rad**2)
-    w2 = 1.0 / (sigma2_rad**2)
-
-    return (2.0 * w1 * w2 / (w1 + w2)) * math.exp(-(sep**2) * w1 * w2 / (2.0 * (w1 + w2)))
+    return 2 / (sigma1_rad**2 + sigma2_rad**2) * math.exp(-(sep**2) / (2.0 * (sigma1_rad**2 + sigma2_rad**2)))
 
 
-def bayes_to_posterior(bayes_factor: float, prior_probability: float) -> float:
-    assert bayes_factor > 0
+def bayes_to_posterior(bayes_factor: float, prior: float) -> float:
+    if bayes_factor <= 0:
+        return 0
 
-    return 1.0 / (1.0 + (1.0 - prior_probability) / (bayes_factor * prior_probability))
+    return (1.0 + (1.0 - prior) / (bayes_factor * prior)) ** -1
 
 
-def posterior_to_bayes(posterior_probability: float, prior_probability: float) -> float:
-    assert posterior_probability >= 0 and posterior_probability <= 1
+def posterior_to_bayes(posterior: float, prior: float) -> float:
+    assert posterior >= 0 and posterior <= 1
 
-    return (posterior_probability * (1.0 - prior_probability)) / (prior_probability * (1.0 - posterior_probability))
+    return (posterior * (1.0 - prior)) / (prior * (1.0 - posterior))
 
 
 def cross_identify_objects_bayesian(
@@ -88,7 +87,7 @@ def cross_identify_objects_bayesian(
     bf_lower = posterior_to_bayes(lower_posterior_probability, prior_probability)
     bf_upper = posterior_to_bayes(upper_posterior_probability, prior_probability)
 
-    logger.info(f"Bayes factor thresholds: B_lower={bf_lower:.2e}, B_upper={bf_upper:.2e}")
+    logger.info("Bayes factors", b_lower=bf_lower, b_upper=bf_upper)
 
     batch_size = 50
     total_objects = len(ra_column)
@@ -96,7 +95,7 @@ def cross_identify_objects_bayesian(
     for batch_start in range(0, total_objects, batch_size):
         batch_end = min(batch_start + batch_size, total_objects)
 
-        logger.info(f"Processing batch {batch_start // batch_size + 1}, objects {batch_start + 1}-{batch_end}")
+        logger.info("Processing batch", batch_n=batch_start // batch_size + 1, start=batch_start + 1, end=batch_end)
 
         search_types: dict[str, filters.Filter] = {"icrs": filters.ICRSCoordinatesInRadiusFilter(cutoff_radius_degrees)}
 
@@ -139,7 +138,7 @@ def cross_identify_objects_bayesian(
                     error_column[i],
                     icrs_data.ra,
                     icrs_data.dec,
-                    icrs_data.e_ra,
+                    np.sqrt(icrs_data.e_ra**2 + icrs_data.e_dec**2),
                 )
 
                 candidate_pgcs.append((candidate.pgc, bf))
