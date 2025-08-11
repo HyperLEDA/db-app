@@ -6,10 +6,12 @@ from collections.abc import Callable
 import astropy.io.votable.ucd as ucd
 import pandas
 import regex
+import structlog
 from astropy import units
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
+from app.domain import homogenization
 from app.lib import clients
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
@@ -18,6 +20,8 @@ from app.presentation import adminapi
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 
 FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
+
+logger = structlog.stdlib.get_logger()
 
 
 class TableUploadManager:
@@ -145,6 +149,9 @@ class TableUploadManager:
 
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
+
+        hom = get_homogenization(self.layer0_repo, meta)
+
         bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
 
         if meta.table_id is None:
@@ -153,32 +160,71 @@ class TableUploadManager:
         rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
-        column_info = [
-            adminapi.ColumnDescription(
-                name=col.name,
-                data_type=col.data_type,
-                ucd=col.ucd,
-                unit=str(col.unit) if col.unit else None,
-                description=col.description,
-            )
-            for col in meta.column_descriptions
-        ]
+        mapping = hom.get_column_mapping()
 
-        bibliography_presentation = adminapi.Bibliography(
-            title=bibliography.title,
-            authors=bibliography.author,
-            year=bibliography.year,
-            bibcode=bibliography.code,
-        )
+        logger.info("Got mapping", mapping=mapping)
 
         return adminapi.GetTableResponse(
             id=meta.table_id,
             description=meta.description or "",
-            column_info=column_info,
+            column_info=_column_description_to_presentation(meta.column_descriptions),
             rows_num=rows_num,
             meta=metadata,
-            bibliography=bibliography_presentation,
+            bibliography=_bibliography_to_presentation(bibliography),
+            marking_rules=[
+                adminapi.MarkingRule(catalog=catalog.value, key=key, columns=data)
+                for ((catalog, key), data) in mapping.items()
+            ],
         )
+
+
+def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
+    return homogenization.Rule(
+        model.RawCatalog(rule.catalog),
+        rule.parameter,
+        homogenization.parse_filters(rule.filters),
+        rule.key or "",
+        rule.priority or 2**32,
+    )
+
+
+def new_params(params: model.HomogenizationParams) -> homogenization.Params:
+    return homogenization.Params(model.RawCatalog(params.catalog), params.key, params.params)
+
+
+def get_homogenization(
+    repo: repositories.Layer0Repository,
+    metadata: model.Layer0TableMeta,
+    **kwargs,
+) -> homogenization.Homogenization:
+    db_rules = repo.get_homogenization_rules()
+    db_params = repo.get_homogenization_params()
+
+    rules = [new_rule(rule) for rule in db_rules]
+    params = [new_params(param) for param in db_params]
+
+    return homogenization.get_homogenization(rules, params, metadata, **kwargs)
+
+
+def _bibliography_to_presentation(bib: model.Bibliography) -> adminapi.Bibliography:
+    return adminapi.Bibliography(title=bib.title, authors=bib.author, year=bib.year, bibcode=bib.code)
+
+
+def _column_description_to_presentation(columns: list[model.ColumnDescription]) -> list[adminapi.ColumnDescription]:
+    res = []
+
+    for col in columns:
+        res.append(
+            adminapi.ColumnDescription(
+                name=col.name,
+                data_type=col.data_type,
+                ucd=col.ucd,
+                unit=col.unit.to_string() if col.unit is not None else None,
+                description=col.description,
+            )
+        )
+
+    return res
 
 
 def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
