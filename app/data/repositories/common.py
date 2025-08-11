@@ -4,7 +4,7 @@ import structlog
 from psycopg.types import json
 
 from app import entities
-from app.data import template
+from app.data import model, template
 from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
@@ -31,15 +31,15 @@ class CommonRepository(postgres.TransactionalPGRepository):
 
         return int(result["id"])
 
-    def get_source_entry(self, source_name: str) -> entities.Bibliography:
+    def get_source_entry(self, source_name: str) -> model.Bibliography:
         row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name])
 
-        return entities.Bibliography(**row)
+        return model.Bibliography(**row)
 
-    def get_source_by_id(self, source_id: int) -> entities.Bibliography:
+    def get_source_by_id(self, source_id: int) -> model.Bibliography:
         row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id])
 
-        return entities.Bibliography(**row)
+        return model.Bibliography(**row)
 
     def insert_task(self, task: entities.Task) -> int:
         row = self._storage.query_one(
