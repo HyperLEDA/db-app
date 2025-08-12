@@ -134,9 +134,17 @@ class QuerySimpleResponse(pydantic.BaseModel):
 
 
 class QueryRequest(pydantic.BaseModel):
-    q: str
-    page_size: int = 10
-    page: int = 0
+    q: str = pydantic.Field(
+        description="Query string",
+    )
+    page_size: int = pydantic.Field(
+        default=10,
+        description="Number of objects per page",
+    )
+    page: int = pydantic.Field(
+        default=0,
+        description="Page number",
+    )
 
 
 class QueryResponse(pydantic.BaseModel):

@@ -21,6 +21,13 @@ class API:
 
         return server.APIOkResponse(data=response)
 
+    def query(
+        self, request: Annotated[interface.QueryRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.QueryResponse]:
+        response = self.actions.query(request)
+
+        return server.APIOkResponse(data=response)
+
 
 class Server2(server.FastAPIServer):
     def __init__(
@@ -43,7 +50,25 @@ Several notes:
 - You cannot specify both PGC numbers and additional queries. If both are specified, only PGC numbers
 will be used to query.
 - The answer is paginated to improve performance.""",
-            )
+            ),
+            server.FastAPIRoute(
+                "/api/v1/query",
+                http.HTTPMethod.GET,
+                api.query,
+                "Query data about objects using query string",
+                """Obtains objects using the query string. It is composed of functions and operators.
+
+Allowed functions are:
+- `pgc`: Returns object with the particular PGC number.
+- `name`: Returns objects that are sufficiently similar to the given name.
+- `pos`: Returns objects that are within 1 arcsecond to the given coordinates.
+
+Allowed operators are:
+- `and`: Logical AND operator.
+- `or`: Logical OR operator.
+
+Note that the answer is paginated to improve performance.""",
+            ),
         ]
 
         super().__init__(routes, config, logger)
@@ -54,26 +79,6 @@ class Server(server.WebServer):
         self.actions = actions
 
         routes: list[server.Route] = [
-            # server.ActionRoute(
-            #     actions,
-            #     server.RouteInfo(
-            #         http.HTTPMethod.GET,
-            #         "/api/v1/query/simple",
-            #         query_simple.QuerySimpleRequestSchema,
-            #         query_simple.QuerySimpleResponseSchema,
-            #     ),
-            #     query_simple.query_simple_handler,
-            # ),
-            # server.ActionRoute(
-            #     actions,
-            #     server.RouteInfo(
-            #         http.HTTPMethod.GET,
-            #         "/api/v1/query",
-            #         query.QueryRequestSchema,
-            #         query.QueryResponseSchema,
-            #     ),
-            #     query.query_handler,
-            # ),
             # server.ActionRoute(
             #     actions,
             #     server.RouteInfo(
