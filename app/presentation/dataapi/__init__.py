@@ -1,7 +1,4 @@
 from app.presentation.dataapi.interface import *
-from app.presentation.dataapi.server import Server, Server2
+from app.presentation.dataapi.server import Server
 
-__all__ = [
-    "Server",
-    "Server2",
-]
+__all__ = ["Server"]

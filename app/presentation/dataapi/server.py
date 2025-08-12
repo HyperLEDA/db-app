@@ -1,3 +1,4 @@
+import datetime
 import http
 from typing import Annotated
 
@@ -28,8 +29,24 @@ class API:
 
         return server.APIOkResponse(data=response)
 
+    def query_fits(
+        self,
+        request: Annotated[interface.FITSRequest, fastapi.Query()],
+    ) -> fastapi.Response:
+        response = self.actions.query_fits(request)
 
-class Server2(server.FastAPIServer):
+        filename = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
+        return fastapi.Response(
+            content=response,
+            status_code=200,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}.fits"',
+                "Content-Type": "application/fits",
+            },
+        )
+
+
+class Server(server.FastAPIServer):
     def __init__(
         self, actions: interface.Actions, config: server.ServerConfig, logger: structlog.stdlib.BoundLogger
     ) -> None:
@@ -69,26 +86,16 @@ Allowed operators are:
 
 Note that the answer is paginated to improve performance.""",
             ),
+            server.FastAPIRoute(
+                "/api/v1/query/fits",
+                http.HTTPMethod.GET,
+                api.query_fits,
+                "Query data about objects and return as FITS file",
+                """Obtains data about the objects according to the specified parameters and returns it as a FITS file.
+All of the conditions are combined with the logical AND operator.
+For example, if both coordinates and designation are specified, object must be in the specified area and have
+the specified designation.""",
+            ),
         ]
 
         super().__init__(routes, config, logger)
-
-
-class Server(server.WebServer):
-    def __init__(self, actions: interface.Actions, config: server.ServerConfig, *args, **kwargs):
-        self.actions = actions
-
-        routes: list[server.Route] = [
-            # server.ActionRoute(
-            #     actions,
-            #     server.RouteInfo(
-            #         http.HTTPMethod.GET,
-            #         "/api/v1/query/fits",
-            #         fits.FITSRequestSchema,
-            #         None,
-            #     ),
-            #     fits.fits_handler,
-            # ),
-        ]
-
-        super().__init__(routes, config, *args, **kwargs)

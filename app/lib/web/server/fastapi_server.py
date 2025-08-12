@@ -19,7 +19,7 @@ class APIOkResponse[T: Any](pydantic.BaseModel):
 class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     path: str
     method: http.HTTPMethod
-    handler: Callable[[ReqT], APIOkResponse[RespT]]
+    handler: Callable[[ReqT], APIOkResponse[RespT] | fastapi.Response]
     summary: str
     description: str = ""
 
@@ -31,7 +31,11 @@ class FastAPIServer:
         cfg: config.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
     ) -> None:
-        app = fastapi.FastAPI(docs_url=cfg.swagger_ui_path)
+        app = fastapi.FastAPI(
+            docs_url=f"{cfg.path_prefix}/docs",
+            openapi_url=f"{cfg.path_prefix}/openapi.json",
+            redoc_url=f"{cfg.path_prefix}/redoc",
+        )
 
         for route in routes:
             app.add_api_route(

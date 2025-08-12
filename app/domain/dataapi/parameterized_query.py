@@ -91,4 +91,4 @@ class ParameterizedQueryManager:
 
         responder = responders.StructuredResponder()
         pgc_objects = responder.build_response(objects)
-        return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=DATA_SCHEMA)
+        return dataapi.QuerySimpleResponse(objects=pgc_objects, schema_=DATA_SCHEMA)
