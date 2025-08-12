@@ -7,7 +7,9 @@ import fastapi
 import pydantic
 import structlog
 import uvicorn
+from fastapi.middleware import cors
 
+from app.lib.web import middlewares
 from app.lib.web.server import config
 
 
@@ -37,6 +39,22 @@ class FastAPIServer:
             redoc_url=f"{cfg.path_prefix}/redoc",
         )
 
+        app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
+        app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
+        app.add_middleware(
+            cors.CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_headers=["Content-Type", "Authorization"],
+            allow_methods=[
+                http.HTTPMethod.GET,
+                http.HTTPMethod.POST,
+                http.HTTPMethod.PUT,
+                http.HTTPMethod.DELETE,
+                http.HTTPMethod.OPTIONS,
+            ],
+        )
+
         for route in routes:
             app.add_api_route(
                 path=f"/api{route.path}",
@@ -61,4 +79,9 @@ class FastAPIServer:
             swagger_ui=f"{self.config.host}:{self.config.port}{self.config.swagger_ui_path}",
         )
 
-        uvicorn.run(self.app, host=self.config.host, port=self.config.port)
+        uvicorn.run(
+            self.app,
+            host=self.config.host,
+            port=self.config.port,
+            log_config=None,
+        )
