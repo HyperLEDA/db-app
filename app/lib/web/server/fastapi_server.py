@@ -8,6 +8,7 @@ import pydantic
 import structlog
 import uvicorn
 from fastapi.middleware import cors
+from starlette.middleware import base as smiddlewares
 
 from app.lib.web import middlewares
 from app.lib.web.server import config
@@ -71,6 +72,9 @@ class FastAPIServer:
         self.logger = logger
 
         self.logger.debug("initialized server", n_routes=len(routes))
+
+    def add_mw(self, mw: type[smiddlewares.BaseHTTPMiddleware], *args, **kwargs):
+        self.app.add_middleware(mw, *args, **kwargs)
 
     def run(self):
         self.logger.info(
