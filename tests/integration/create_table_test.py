@@ -5,6 +5,7 @@ import structlog
 from app.data import repositories
 from app.domain import adminapi as domain
 from app.lib import clients
+from app.lib.storage import enums
 from app.presentation import adminapi as presentation
 from tests import lib
 
@@ -25,41 +26,53 @@ class CreateTableTest(unittest.TestCase):
 
     def test_create_table(self):
         source_code = self.source_manager.create_source(
-            presentation.CreateSourceRequest("title", ["author"], 2022)
+            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
 
         response, created = self.upload_manager.create_table(
             presentation.CreateTableRequest(
-                "table_name",
-                [
-                    presentation.ColumnDescription("name", "text", ucd="meta.id"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="rad"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="rad"),
-                    presentation.ColumnDescription("redshift", "float", ucd="src.redshift"),
+                table_name="table_name",
+                columns=[
+                    presentation.ColumnDescription(
+                        name="name", data_type=presentation.DatatypeEnum["text"], ucd="meta.id"
+                    ),
+                    presentation.ColumnDescription(
+                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="rad"
+                    ),
+                    presentation.ColumnDescription(
+                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
+                    ),
+                    presentation.ColumnDescription(
+                        name="redshift", data_type=presentation.DatatypeEnum["float"], ucd="src.redshift"
+                    ),
                 ],
-                source_code,
-                "regular",
-                "description",
+                bibcode=source_code,
+                datatype=enums.DataType.REGULAR,
+                description="description",
             )
         )
 
     def test_create_table_with_patch(self):
         source_code = self.source_manager.create_source(
-            presentation.CreateSourceRequest("title", ["author"], 2022)
+            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
         table_name = "table_name"
 
         response, created = self.upload_manager.create_table(
             presentation.CreateTableRequest(
-                table_name,
-                [
-                    presentation.ColumnDescription("name", "text"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="rad"),
+                table_name=table_name,
+                columns=[
+                    presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["text"]),
+                    presentation.ColumnDescription(
+                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra"
+                    ),
+                    presentation.ColumnDescription(
+                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
+                    ),
                 ],
-                source_code,
-                "regular",
-                "description",
+                bibcode=source_code,
+                datatype=enums.DataType.REGULAR,
+                description="description",
             )
         )
 
@@ -67,10 +80,10 @@ class CreateTableTest(unittest.TestCase):
 
         self.upload_manager.patch_table(
             presentation.PatchTableRequest(
-                table_name,
-                [
-                    presentation.PatchTableActionTypeChangeUCD("name", "meta.id"),
-                    presentation.PatchTableActionTypeChangeUnit("ra", "hourangle"),
+                table_name=table_name,
+                actions=[
+                    presentation.PatchTableActionTypeChangeUCD(column="name", ucd="meta.id"),
+                    presentation.PatchTableActionTypeChangeUnit(column="ra", unit="hourangle"),
                 ],
             ),
         )
