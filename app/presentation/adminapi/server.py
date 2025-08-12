@@ -127,8 +127,9 @@ If there are no objects with the given status, it will not be present in the res
                 http.HTTPMethod.POST,
                 api.create_marking,
                 "New marking rules for the table",
-                """Creates new marking rules to map the columns in the table to catalog parameters. For a given table a marking
-would consist of the mapping between catalog parameters and the columns from the original table.
+                """Creates new marking rules to map the columns in the table to catalog parameters. 
+For a given table a marking would consist of the mapping between catalog parameters 
+and the columns from the original table.
 
 For example, if one wants to create a marking for a column `object_name` that designates the name of an object,
 they should create a catalog entry similar to the following:
