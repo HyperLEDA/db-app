@@ -38,7 +38,7 @@ class FastAPIServer:
             docs_url=f"{cfg.path_prefix}/docs",
             openapi_url=f"{cfg.path_prefix}/openapi.json",
             redoc_url=f"{cfg.path_prefix}/redoc",
-            title="HyperLEDA API"
+            title="HyperLEDA API",
         )
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)

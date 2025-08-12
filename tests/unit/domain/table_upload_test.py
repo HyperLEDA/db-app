@@ -2,6 +2,7 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
+from astropy import units
 from parameterized import param, parameterized
 
 from app.data import model, repositories
@@ -24,7 +25,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
     def test_add_data(self):
         request = presentation.AddDataRequest(
-            42,
+            table_id=42,
             data=[
                 {
                     "test": "row",
@@ -50,7 +51,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
     def test_add_data_identical_rows(self):
         request = presentation.AddDataRequest(
-            42,
+            table_id=42,
             data=[
                 {
                     "test": "row",
@@ -75,29 +76,29 @@ class TableUploadManagerTest(unittest.TestCase):
             param(
                 "create new table",
                 presentation.CreateTableRequest(
-                    "test",
-                    [
-                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    table_name="test",
+                    columns=[
+                        presentation.ColumnDescription(name="objname", data_type="str", ucd="meta.id"),
+                        presentation.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra", unit="h"),
+                        presentation.ColumnDescription(name="dec", data_type="float", ucd="pos.eq.dec", unit="h"),
                     ],
-                    "totally real bibcode",
-                    "regular",
-                    "",
+                    bibcode="totally real bibcode",
+                    datatype="regular",
+                    description="",
                 ),
             ),
             param(
                 "create already existing table",
                 presentation.CreateTableRequest(
-                    "test",
-                    [
-                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    table_name="test",
+                    columns=[
+                        presentation.ColumnDescription(name="objname", data_type="str", ucd="meta.id"),
+                        presentation.ColumnDescription(name="ra", data_type="float", ucd="pos.eq.ra", unit="h"),
+                        presentation.ColumnDescription(name="dec", data_type="float", ucd="pos.eq.dec", unit="h"),
                     ],
-                    "totally real bibcode",
-                    "regular",
-                    "",
+                    bibcode="totally real bibcode",
+                    datatype="regular",
+                    description="",
                 ),
                 table_already_existed=True,
                 expected_created=False,
@@ -105,11 +106,13 @@ class TableUploadManagerTest(unittest.TestCase):
             param(
                 "create table with forbidden name",
                 presentation.CreateTableRequest(
-                    "test",
-                    [presentation.ColumnDescription("hyperleda_internal_id", "str", None, "")],
-                    "totally real bibcode",
-                    "regular",
-                    "",
+                    table_name="test",
+                    columns=[
+                        presentation.ColumnDescription(name="hyperleda_internal_id", data_type="str", description="")
+                    ],
+                    bibcode="totally real bibcode",
+                    datatype="regular",
+                    description="",
                 ),
                 err_substr="is a reserved column name",
             ),
@@ -208,44 +211,44 @@ class MappingTest(unittest.TestCase):
                 "simple column",
                 [
                     presentation.ColumnDescription(
-                        "name", "str", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                        name="name", data_type="str", ucd="phys.veloc.orbital", unit="m / s", description="description"
                     )
                 ],
                 [
                     internal_id_column,
                     model.ColumnDescription(
-                        "name", "text", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                        "name", "text", ucd="phys.veloc.orbital", unit=units.Unit("m / s"), description="description"
                     ),
                 ],
             ),
             param(
                 "wrong type",
-                [presentation.ColumnDescription("name", "obscure_type", unit="m / s")],
+                [presentation.ColumnDescription(name="name", data_type="obscure_type", unit="m / s")],
                 err_substr="unknown type of data",
             ),
             param(
                 "wrong unit",
-                [presentation.ColumnDescription("name", "str", unit="wrong")],
+                [presentation.ColumnDescription(name="name", data_type="str", unit="wrong")],
                 err_substr="unknown unit",
             ),
             param(
                 "unit is None",
-                [presentation.ColumnDescription("name", "str")],
+                [presentation.ColumnDescription(name="name", data_type="str")],
                 [internal_id_column, model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
-                [presentation.ColumnDescription("name", "str", unit="m     /       s")],
-                [internal_id_column, model.ColumnDescription("name", "text", unit="m / s")],
+                [presentation.ColumnDescription(name="name", data_type="str", unit="m     /       s")],
+                [internal_id_column, model.ColumnDescription("name", "text", unit=units.Unit("m / s"))],
             ),
             param(
                 "data type has extra spaces",
-                [presentation.ColumnDescription("name", "   str    ")],
+                [presentation.ColumnDescription(name="name", data_type="   str    ")],
                 [internal_id_column, model.ColumnDescription("name", "text", unit=None)],
             ),
             param(
                 "invalid ucd",
-                [presentation.ColumnDescription("name", "str", ucd="totally invalid ucd")],
+                [presentation.ColumnDescription(name="name", data_type="str", ucd="totally invalid ucd")],
                 err_substr="invalid or unknown UCD",
             ),
         ],
