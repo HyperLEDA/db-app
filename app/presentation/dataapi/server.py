@@ -46,7 +46,7 @@ class API:
         )
 
 
-class Server(server.FastAPIServer):
+class Server(server.WebServer):
     def __init__(
         self, actions: interface.Actions, config: server.ServerConfig, logger: structlog.stdlib.BoundLogger
     ) -> None:

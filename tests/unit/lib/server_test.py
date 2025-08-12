@@ -7,7 +7,7 @@ import structlog
 from fastapi import testclient
 
 from app.lib.web.server.config import ServerConfig
-from app.lib.web.server.fastapi_server import APIOkResponse, FastAPIServer, Route
+from app.lib.web.server.server import APIOkResponse, Route, WebServer
 
 
 class MockRequest(pydantic.BaseModel):
@@ -36,7 +36,7 @@ class ServerTest(unittest.TestCase):
         self.routes = [self.test_route]
 
     def test_ping_endpoint(self):
-        server = FastAPIServer(self.routes, self.config, self.logger)
+        server = WebServer(self.routes, self.config, self.logger)
         client = testclient.TestClient(server.app)
 
         response = client.get("/ping")
@@ -45,7 +45,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(response.json(), {"data": {"ping": "pong"}})
 
     def test_custom_endpoint(self):
-        server = FastAPIServer(self.routes, self.config, self.logger)
+        server = WebServer(self.routes, self.config, self.logger)
         client = testclient.TestClient(server.app)
 
         test_data = {"message": "Hello, World!"}
@@ -55,7 +55,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(response.json(), {"data": {"echo": "Hello, World!"}})
 
     def test_custom_endpoint_validation_error(self):
-        server = FastAPIServer(self.routes, self.config, self.logger)
+        server = WebServer(self.routes, self.config, self.logger)
         client = testclient.TestClient(server.app)
 
         invalid_data = {"invalid_field": "value"}

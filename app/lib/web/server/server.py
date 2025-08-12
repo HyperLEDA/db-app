@@ -27,7 +27,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     description: str = ""
 
 
-class FastAPIServer:
+class WebServer:
     def __init__(
         self,
         routes: list[Route],
