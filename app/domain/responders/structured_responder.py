@@ -7,7 +7,7 @@ from astropy import units as u
 from app.data import model
 from app.data.model import layer2
 from app.domain.responders import interface
-from app.presentation.dataapi.model import (
+from app.presentation.dataapi import (
     Catalogs,
     Coordinates,
     Designation,

@@ -31,7 +31,7 @@ class FastAPIServer:
         cfg: config.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
     ) -> None:
-        app = fastapi.FastAPI()
+        app = fastapi.FastAPI(docs_url=cfg.swagger_ui_path)
 
         for route in routes:
             app.add_api_route(
