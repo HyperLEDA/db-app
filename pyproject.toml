@@ -24,6 +24,9 @@ dependencies = [
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
     "marshmallow-generic>=1.0.1",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+    "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]
