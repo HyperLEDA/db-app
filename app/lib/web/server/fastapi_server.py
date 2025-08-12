@@ -38,6 +38,7 @@ class FastAPIServer:
             docs_url=f"{cfg.path_prefix}/docs",
             openapi_url=f"{cfg.path_prefix}/openapi.json",
             redoc_url=f"{cfg.path_prefix}/redoc",
+            title="HyperLEDA API"
         )
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
@@ -58,14 +59,18 @@ class FastAPIServer:
 
         for route in routes:
             app.add_api_route(
-                path=f"/api{route.path}",
+                path=f"{cfg.path_prefix}{route.path}",
                 endpoint=route.handler,
                 methods=[route.method],
                 summary=route.summary,
                 description=route.description,
             )
 
-        app.add_api_route("/ping", lambda: {"data": {"ping": "pong"}})
+        app.add_api_route(
+            path="/ping",
+            endpoint=lambda: {"data": {"ping": "pong"}},
+            summary="Check that service is up and running",
+        )
 
         self.app = app
         self.config = cfg

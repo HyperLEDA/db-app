@@ -54,7 +54,7 @@ class Server(server.FastAPIServer):
 
         routes: list[server.FastAPIRoute] = [
             server.FastAPIRoute(
-                "/api/v1/query/simple",
+                "/v1/query/simple",
                 http.HTTPMethod.GET,
                 api.query_simple,
                 "Query data about objects",
@@ -69,7 +69,7 @@ will be used to query.
 - The answer is paginated to improve performance.""",
             ),
             server.FastAPIRoute(
-                "/api/v1/query",
+                "/v1/query",
                 http.HTTPMethod.GET,
                 api.query,
                 "Query data about objects using query string",
@@ -87,7 +87,7 @@ Allowed operators are:
 Note that the answer is paginated to improve performance.""",
             ),
             server.FastAPIRoute(
-                "/api/v1/query/fits",
+                "/v1/query/fits",
                 http.HTTPMethod.GET,
                 api.query_fits,
                 "Query data about objects and return as FITS file",
