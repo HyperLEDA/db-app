@@ -52,8 +52,8 @@ class Server(server.WebServer):
     ) -> None:
         api = API(actions)
 
-        routes: list[server.FastAPIRoute] = [
-            server.FastAPIRoute(
+        routes: list[server.Route] = [
+            server.Route(
                 "/v1/query/simple",
                 http.HTTPMethod.GET,
                 api.query_simple,
@@ -68,7 +68,7 @@ Several notes:
 will be used to query.
 - The answer is paginated to improve performance.""",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/query",
                 http.HTTPMethod.GET,
                 api.query,
@@ -86,7 +86,7 @@ Allowed operators are:
 
 Note that the answer is paginated to improve performance.""",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/query/fits",
                 http.HTTPMethod.GET,
                 api.query_fits,

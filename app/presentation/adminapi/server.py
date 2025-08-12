@@ -66,8 +66,8 @@ class Server(server.WebServer):
     ) -> None:
         api = API(actions)
 
-        routes: list[server.FastAPIRoute] = [
-            server.FastAPIRoute(
+        routes: list[server.Route] = [
+            server.Route(
                 "/v1/table/data",
                 http.HTTPMethod.POST,
                 api.add_data,
@@ -76,14 +76,14 @@ class Server(server.WebServer):
 Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/source",
                 http.HTTPMethod.POST,
                 api.create_source,
                 "New internal source entry",
                 "Creates new source entry in the database for internal communication and unpublished articles.",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/table",
                 http.HTTPMethod.POST,
                 api.create_table,
@@ -92,28 +92,28 @@ If two rows were identical this method will only insert the last one.""",
 **Important**: If the table with the specified name already exists, does nothing and returns ID
 of the previously created table without any alterations.""",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/table",
                 http.HTTPMethod.GET,
                 api.get_table,
                 "Retrieve table information",
                 "Fetches details about a specific table using the provided table name",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/table",
                 http.HTTPMethod.PATCH,
                 api.patch_table,
                 "Patch table schema",
                 "Patch the schema of the table, including column UCDs and units.",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/login",
                 http.HTTPMethod.POST,
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/table/status/stats",
                 http.HTTPMethod.GET,
                 api.table_status_stats,
@@ -122,7 +122,7 @@ of the previously created table without any alterations.""",
 Returns the distribution of objects by processing status.
 If there are no objects with the given status, it will not be present in the response.""",
             ),
-            server.FastAPIRoute(
+            server.Route(
                 "/v1/marking",
                 http.HTTPMethod.POST,
                 api.create_marking,

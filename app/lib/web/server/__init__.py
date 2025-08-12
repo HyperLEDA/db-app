@@ -1,11 +1,10 @@
 from app.lib.web.server.config import ServerConfig, ServerConfigSchema
-from app.lib.web.server.server import APIOkResponse, WebServer
-from app.lib.web.server.server import Route as FastAPIRoute
+from app.lib.web.server.server import APIOkResponse, Route, WebServer
 
 __all__ = [
     "ServerConfig",
     "ServerConfigSchema",
     "WebServer",
-    "FastAPIRoute",
+    "Route",
     "APIOkResponse",
 ]
