@@ -214,6 +214,9 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
     res = []
 
     for col in columns:
+        if col.name in FORBIDDEN_COLUMN_NAMES:
+            continue
+
         res.append(
             adminapi.ColumnDescription(
                 name=col.name,

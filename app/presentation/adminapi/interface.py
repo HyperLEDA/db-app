@@ -29,7 +29,10 @@ DatatypeEnum = enum.StrEnum(
 )
 
 
-def check_unit(unit: str) -> str:
+def check_unit(unit: str | None) -> str | None:
+    if unit is None:
+        return unit
+
     try:
         u.Unit(unit)
     except Exception as e:

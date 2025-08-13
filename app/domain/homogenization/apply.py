@@ -37,6 +37,9 @@ class Homogenization:
         return mapping
 
     def apply(self, data: table.Table) -> list[data_model.Layer0Object]:
+        if len(self.column_rules) == 0:
+            raise ValueError("No rules satisfy any of the table columns")
+
         catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, table.Column]] = {}
 
         for key, params in self.column_rules.items():
@@ -117,9 +120,6 @@ def get_homogenization(
             params_by_catalog[key] = {}
 
         params_by_catalog[key].update(param.params)
-
-    if len(rules_by_column) == 0:
-        raise ValueError("No rules satisfy any of the table columns")
 
     priorities: dict[tuple[data_model.RawCatalog, str], dict[str, int]] = {}
     column_rules: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}
