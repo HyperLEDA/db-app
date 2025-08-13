@@ -150,8 +150,6 @@ class TableUploadManager:
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
 
-        hom = get_homogenization(self.layer0_repo, meta)
-
         bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
 
         if meta.table_id is None:
@@ -160,9 +158,8 @@ class TableUploadManager:
         rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
+        hom = get_homogenization(self.layer0_repo, meta)
         mapping = hom.get_column_mapping()
-
-        logger.info("Got mapping", mapping=mapping)
 
         return adminapi.GetTableResponse(
             id=meta.table_id,
