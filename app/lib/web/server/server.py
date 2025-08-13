@@ -46,7 +46,6 @@ class WebServer:
             openapi_url=f"{cfg.path_prefix}/openapi.json",
             redoc_url=f"{cfg.path_prefix}/redoc",
             title="HyperLEDA API",
-            
         )
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
@@ -93,9 +92,7 @@ class WebServer:
 
     def run(self):
         self.logger.info(
-            "starting server",
-            url=f"{self.config.host}:{self.config.port}",
-            swagger_ui={self.app.docs_url}
+            "starting server", url=f"{self.config.host}:{self.config.port}", swagger_ui={self.app.docs_url}
         )
 
         uvicorn.run(
