@@ -7,10 +7,11 @@ import fastapi
 import pydantic
 import structlog
 import uvicorn
+from fastapi import exceptions, responses
 from fastapi.middleware import cors
 from starlette.middleware import base as smiddlewares
 
-from app.lib.web import middlewares
+from app.lib.web import errors, middlewares
 from app.lib.web.server import config
 
 
@@ -25,6 +26,12 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     handler: Callable[[ReqT], APIOkResponse[RespT] | fastapi.Response]
     summary: str
     description: str = ""
+
+
+async def validation_exception_handler(request, exc):
+    err = errors.RuleValidationError(str(exc))
+
+    return responses.JSONResponse(err.dict(), status_code=err.status())
 
 
 class WebServer:
@@ -71,6 +78,8 @@ class WebServer:
             endpoint=lambda: {"data": {"ping": "pong"}},
             summary="Check that service is up and running",
         )
+
+        app.add_exception_handler(exceptions.RequestValidationError, validation_exception_handler)
 
         self.app = app
         self.config = cfg
