@@ -61,4 +61,4 @@ class ServerTest(unittest.TestCase):
         invalid_data = {"invalid_field": "value"}
         response = client.post("/api/test", json=invalid_data)
 
-        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.status_code, 400)

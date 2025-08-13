@@ -3,29 +3,38 @@ from typing import Annotated
 
 import fastapi
 import structlog
+from fastapi.security import api_key
 
 from app.lib.web import server
-from app.presentation.adminapi import (
-    interface,
-)
+from app.presentation.adminapi import interface
+
+api_key_header = api_key.APIKeyHeader(name="Authorization")
 
 
 class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
 
-    def add_data(self, request: interface.AddDataRequest) -> server.APIOkResponse[interface.AddDataResponse]:
+    def add_data(
+        self,
+        request: interface.AddDataRequest,
+        token: str = fastapi.Security(api_key_header),
+    ) -> server.APIOkResponse[interface.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
 
     def create_source(
-        self, request: interface.CreateSourceRequest
+        self,
+        request: interface.CreateSourceRequest,
+        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
 
     def create_table(
-        self, request: interface.CreateTableRequest
+        self,
+        request: interface.CreateTableRequest,
+        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
         return server.APIOkResponse(data=response)
@@ -36,7 +45,11 @@ class API:
         response = self.actions.get_table(request)
         return server.APIOkResponse(data=response)
 
-    def patch_table(self, request: interface.PatchTableRequest) -> server.APIOkResponse[interface.PatchTableResponse]:
+    def patch_table(
+        self,
+        request: interface.PatchTableRequest,
+        token: str = fastapi.Security(api_key_header),
+    ) -> server.APIOkResponse[interface.PatchTableResponse]:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
 
@@ -51,7 +64,9 @@ class API:
         return server.APIOkResponse(data=response)
 
     def create_marking(
-        self, request: interface.CreateMarkingRequest
+        self,
+        request: interface.CreateMarkingRequest,
+        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateMarkingResponse]:
         response = self.actions.create_marking(request)
         return server.APIOkResponse(data=response)
