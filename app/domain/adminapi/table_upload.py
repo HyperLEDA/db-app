@@ -157,7 +157,7 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_rows
+        rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
         mapping = hom.get_column_mapping()
