@@ -7,7 +7,7 @@ from app.data import repositories
 from app.domain import adminapi as domain
 from app.lib import auth, clients, commands
 from app.lib.storage import postgres, redis
-from app.lib.web import server
+from app.lib.web import middlewares
 from app.presentation import adminapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -43,11 +43,10 @@ class AdminAPICommand(commands.Command):
             clients=clients.Clients(cfg.clients.ads_token),
         )
 
-        middlewares = []
-        if cfg.auth_enabled:
-            middlewares.append(server.get_auth_middleware("/admin/api/v1/", authenticator))
+        self.app = presentation.Server(actions, cfg.server, log)
 
-        self.app = presentation.Server(actions, cfg.server, middlewares=middlewares)
+        if cfg.auth_enabled:
+            self.app.add_mw(middlewares.AuthMiddleware, authenticator)
 
     def run(self):
         self.app.run()

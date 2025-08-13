@@ -43,14 +43,20 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = self.manager.create_table(
             presentation.CreateTableRequest(
-                "test_table",
-                [
-                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                table_name="test_table",
+                columns=[
+                    presentation.ColumnDescription(
+                        name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                    ),
+                    presentation.ColumnDescription(
+                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                    ),
+                    presentation.ColumnDescription(
+                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                    ),
                 ],
                 bibcode="2024arXiv240411942F",
-                datatype="regular",
+                datatype=enums.DataType.REGULAR,
                 description="",
             ),
         )
@@ -85,21 +91,27 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = self.manager.create_table(
             presentation.CreateTableRequest(
-                "test_table",
-                [
-                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                table_name="test_table",
+                columns=[
+                    presentation.ColumnDescription(
+                        name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                    ),
+                    presentation.ColumnDescription(
+                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                    ),
+                    presentation.ColumnDescription(
+                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                    ),
                 ],
                 bibcode="2024arXiv240411942F",
-                datatype="regular",
+                datatype=enums.DataType.REGULAR,
                 description="",
             ),
         )
 
         self.manager.add_data(
             presentation.AddDataRequest(
-                table_resp.id,
+                table_id=table_resp.id,
                 data=[{"ra": 5.5}, {"ra": 5.0}],
             ),
         )
@@ -125,16 +137,22 @@ class RawDataTableTest(unittest.TestCase):
         with self.assertRaises(psycopg.errors.DuplicateColumn):
             _ = self.manager.create_table(
                 presentation.CreateTableRequest(
-                    "test_table",
-                    [
-                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
-                        presentation.ColumnDescription("duplicate", "str"),
-                        presentation.ColumnDescription("duplicate", "str"),
+                    table_name="test_table",
+                    columns=[
+                        presentation.ColumnDescription(
+                            name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                        ),
+                        presentation.ColumnDescription(
+                            name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                        ),
+                        presentation.ColumnDescription(
+                            name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                        ),
+                        presentation.ColumnDescription(name="duplicate", data_type=presentation.DatatypeEnum["str"]),
+                        presentation.ColumnDescription(name="duplicate", data_type=presentation.DatatypeEnum["str"]),
                     ],
                     bibcode="2024arXiv240411942F",
-                    datatype="regular",
+                    datatype=enums.DataType.REGULAR,
                     description="",
                 ),
             )
@@ -154,14 +172,20 @@ class RawDataTableTest(unittest.TestCase):
 
         table_resp, _ = self.manager.create_table(
             presentation.CreateTableRequest(
-                "test_table",
-                [
-                    presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                    presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                    presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                table_name="test_table",
+                columns=[
+                    presentation.ColumnDescription(
+                        name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                    ),
+                    presentation.ColumnDescription(
+                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                    ),
+                    presentation.ColumnDescription(
+                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                    ),
                 ],
                 bibcode="2024arXiv240411942F",
-                datatype="regular",
+                datatype=enums.DataType.REGULAR,
                 description="",
             ),
         )
@@ -169,7 +193,7 @@ class RawDataTableTest(unittest.TestCase):
         with self.assertRaises(psycopg.errors.UndefinedColumn):
             self.manager.add_data(
                 presentation.AddDataRequest(
-                    table_resp.id,
+                    table_id=table_resp.id,
                     data=[{"totally_nonexistent_column": 5.5}],
                 ),
             )

@@ -32,7 +32,7 @@ class DataAPICommand(commands.Command):
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
         )
 
-        self.app = presentation.Server(actions, self.config.server)
+        self.app = presentation.Server(actions, self.config.server, log)
 
     def run(self):
         self.app.run()

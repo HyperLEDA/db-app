@@ -50,7 +50,7 @@ class TableUploadManager:
             ),
         )
 
-        return adminapi.CreateTableResponse(table_resp.table_id), table_resp.created
+        return adminapi.CreateTableResponse(id=table_resp.table_id), table_resp.created
 
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
@@ -146,16 +146,38 @@ class TableUploadManager:
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
+
+        if meta.table_id is None:
+            raise RuntimeError(f"Table {r.table_name} has no ID")
+
         rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
+        column_info = [
+            adminapi.ColumnDescription(
+                name=col.name,
+                data_type=col.data_type,
+                ucd=col.ucd,
+                unit=str(col.unit) if col.unit else None,
+                description=col.description,
+            )
+            for col in meta.column_descriptions
+        ]
+
+        bibliography_presentation = adminapi.Bibliography(
+            title=bibliography.title,
+            authors=bibliography.author,
+            year=bibliography.year,
+            bibcode=bibliography.code,
+        )
+
         return adminapi.GetTableResponse(
-            meta.table_id,
-            meta.description,
-            meta.column_descriptions,
-            rows_num,
-            metadata,
-            bibliography,
+            id=meta.table_id,
+            description=meta.description or "",
+            column_info=column_info,
+            rows_num=rows_num,
+            meta=metadata,
+            bibliography=bibliography_presentation,
         )
 
 
