@@ -29,7 +29,10 @@ DatatypeEnum = enum.StrEnum(
 )
 
 
-def check_unit(unit: str) -> str:
+def check_unit(unit: str | None) -> str | None:
+    if unit is None:
+        return unit
+
     try:
         u.Unit(unit)
     except Exception as e:
@@ -64,6 +67,12 @@ class GetTableRequest(pydantic.BaseModel):
     table_name: str
 
 
+class MarkingRule(pydantic.BaseModel):
+    catalog: str
+    key: str
+    columns: dict[str, str]
+
+
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
@@ -71,6 +80,7 @@ class GetTableResponse(pydantic.BaseModel):
     rows_num: int
     meta: dict[str, Any]
     bibliography: Bibliography
+    marking_rules: list[MarkingRule]
 
 
 class CreateTableRequest(pydantic.BaseModel):

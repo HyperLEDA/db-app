@@ -1,3 +1,4 @@
+from app.data.model.bibliography import Bibliography
 from app.data.model.designation import DesignationCatalogObject
 from app.data.model.helpers import (
     CatalogObjectEncoder,
@@ -56,4 +57,5 @@ __all__ = [
     "HomogenizationParams",
     "MeasuredValue",
     "Modifier",
+    "Bibliography",
 ]

@@ -234,49 +234,6 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
             ),
-            # param(
-            #     "additional params",
-            #     rules=[
-            #         homogenization.Rule(
-            #             catalog=model.RawCatalog.ICRS,
-            #             parameter="ra",
-            #             filter=homogenization.UCDColumnFilter("pos.eq.ra"),
-            #             key="pos",
-            #         ),
-            #         homogenization.Rule(
-            #             catalog=model.RawCatalog.ICRS,
-            #             parameter="dec",
-            #             filter=homogenization.UCDColumnFilter("pos.eq.dec"),
-            #             key="pos",
-            #         ),
-            #     ],
-            #     params=[
-            #         homogenization.Params(
-            #             catalog=model.RawCatalog.ICRS,
-            #             key="pos",
-            #             params={"e_ra": 0.1},
-            #         ),
-            #         homogenization.Params(
-            #             catalog=model.RawCatalog.ICRS,
-            #             key="pos",
-            #             params={"e_dec": 0.1},
-            #         ),
-            #     ],
-            #     expected_objects=[
-            #         model.Layer0Object(
-            #             object_id="id1",
-            #             data=[
-            #                 model.ICRSCatalogObject(ra=10.0, dec=30.0, e_ra=0.1, e_dec=0.1),
-            #             ],
-            #         ),
-            #         model.Layer0Object(
-            #             object_id="id2",
-            #             data=[
-            #                 model.ICRSCatalogObject(ra=20.0, dec=40.0, e_ra=0.1, e_dec=0.1),
-            #             ],
-            #         ),
-            #     ],
-            # ),
         ]
     )
     def test_table(
@@ -287,12 +244,13 @@ class HomogenizationTest(unittest.TestCase):
         expected_objects: list[model.Layer0Object] | None = None,
         err_substr: str | None = None,
     ):
+        h = homogenization.get_homogenization(rules, params or [], self.table_meta)
+
         if err_substr is not None:
             with self.assertRaises(Exception) as cm:
-                homogenization.get_homogenization(rules, params or [], self.table_meta)
+                objects = h.apply(self.data)
             self.assertIn(err_substr, str(cm.exception))
         else:
-            h = homogenization.get_homogenization(rules, params or [], self.table_meta)
             objects = h.apply(self.data)
 
         if expected_objects is not None:

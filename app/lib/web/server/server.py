@@ -75,6 +75,8 @@ class WebServer:
                 methods=[route.method],
                 summary=route.summary,
                 description=route.description,
+                response_model_exclude_none=True,
+                response_model_exclude_unset=True,
             )
 
         app.add_api_route(
