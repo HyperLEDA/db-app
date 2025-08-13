@@ -852,6 +852,13 @@
           },
           "bibliography": {
             "$ref": "#/components/schemas/Bibliography"
+          },
+          "marking_rules": {
+            "items": {
+              "$ref": "#/components/schemas/MarkingRule"
+            },
+            "type": "array",
+            "title": "Marking Rules"
           }
         },
         "type": "object",
@@ -861,7 +868,8 @@
           "column_info",
           "rows_num",
           "meta",
-          "bibliography"
+          "bibliography",
+          "marking_rules"
         ],
         "title": "GetTableResponse"
       },
@@ -909,6 +917,32 @@
           "token"
         ],
         "title": "LoginResponse"
+      },
+      "MarkingRule": {
+        "properties": {
+          "catalog": {
+            "type": "string",
+            "title": "Catalog"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "columns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Columns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "catalog",
+          "key",
+          "columns"
+        ],
+        "title": "MarkingRule"
       },
       "ObjectCrossmatchStatus": {
         "type": "string",
