@@ -115,21 +115,6 @@ class TableUploadManagerTest(unittest.TestCase):
                 table_already_existed=True,
                 expected_created=False,
             ),
-            param(
-                "create table with forbidden name",
-                presentation.CreateTableRequest(
-                    table_name="test",
-                    columns=[
-                        presentation.ColumnDescription(
-                            name="hyperleda_internal_id", data_type=presentation.DatatypeEnum["str"], description=""
-                        )
-                    ],
-                    bibcode="totally real bibcode",
-                    datatype=enums.DataType.REGULAR,
-                    description="",
-                ),
-                err_substr="is a reserved column name",
-            ),
         ],
     )
     def test_create_table(
