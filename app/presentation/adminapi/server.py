@@ -8,7 +8,7 @@ from fastapi.security import api_key
 from app.lib.web import server
 from app.presentation.adminapi import interface
 
-api_key_header = api_key.APIKeyHeader(name="Authorization")
+api_key_header = api_key.APIKeyHeader(name="Authorization", auto_error=False)
 
 
 class API:

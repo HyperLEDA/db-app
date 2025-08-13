@@ -45,7 +45,7 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     async def dispatch(
         self, request: fastapi.Request, call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]]
     ) -> fastapi.Response:
-        self.logger.debug("HTTP request", **(await self._log_request(request)))
+        self.logger.info("HTTP request", **(await self._log_request(request)))
 
         start = time.perf_counter()
         response = await call_next(request)
@@ -53,6 +53,6 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
 
         elapsed_ms = (end - start) * 1000
 
-        self.logger.debug("HTTP response", elapsed_ms=elapsed_ms, **self._log_response(response))
+        self.logger.info("HTTP response", elapsed_ms=elapsed_ms, **self._log_response(response))
 
         return response
