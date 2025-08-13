@@ -1,133 +1,135 @@
 {
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HyperLEDA API",
+    "version": "0.1.0"
+  },
   "paths": {
-    "/admin/api/v1/table/data": {
+    "/api/v1/table/data": {
       "post": {
-        "summary": "Add new raw data to the table",
-        "description": "Inserts new data to the table.\n\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.\n",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "table"
-        ],
+        "summary": "Add new data to the table",
+        "description": "Inserts new data to the table.\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.",
+        "operationId": "add_data_api_v1_table_data_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddDataRequestSchema"
+                "$ref": "#/components/schemas/AddDataRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "Source was successfully created",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/AddDataResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/api/v1/source": {
-      "post": {
-        "summary": "New source entry",
-        "description": "Creates new source entry in the database for internal communication and unpublished articles.",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "source"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSourceRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Source was successfully created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateSourceResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/api/v1/table": {
-      "post": {
-        "summary": "Get or create schema for the table.",
-        "description": "Creates new schema for the table which can later be used to upload data.\n\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.\n",
-        "tags": [
-          "table"
-        ],
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTableRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Table was successfully created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateTableResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/APIOkResponse_AddDataResponse_"
                 }
               }
             }
           },
-          "201": {
-            "description": "Table with this name already existed, its ID is returned",
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateTableResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/source": {
+      "post": {
+        "summary": "New internal source entry",
+        "description": "Creates new source entry in the database for internal communication and unpublished articles.",
+        "operationId": "create_source_api_v1_source_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_CreateSourceResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/table": {
+      "post": {
+        "summary": "Get or create schema for the table.",
+        "description": "Creates new schema for the table which can later be used to upload data.\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.",
+        "operationId": "create_table_api_v1_table_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_CreateTableResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -136,33 +138,36 @@
       },
       "get": {
         "summary": "Retrieve table information",
-        "description": "Fetches details about a specific table using the provided table name.\nThe response includes the table's ID, description, columns, number of rows,\nmetadata, and bibliography.\n",
-        "tags": [
-          "table"
-        ],
+        "description": "Fetches details about a specific table using the provided table name",
+        "operationId": "get_table_api_v1_table_get",
         "parameters": [
           {
-            "in": "query",
             "name": "table_name",
-            "description": "Name of the table",
+            "in": "query",
+            "required": true,
             "schema": {
-              "type": "string"
-            },
-            "required": true
+              "type": "string",
+              "title": "Table Name"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Table information successfully retrieved",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetTableResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/APIOkResponse_GetTableResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -171,32 +176,40 @@
       },
       "patch": {
         "summary": "Patch table schema",
-        "description": "Patch the schema of the table, including column UCDs and units.\n",
-        "tags": [
-          "table"
+        "description": "Patch the schema of the table, including column UCDs and units.",
+        "operationId": "patch_table_api_v1_table_patch",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchTableRequestSchema"
+                "$ref": "#/components/schemas/PatchTableRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Table was successfully patched",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/PatchTableResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/APIOkResponse_PatchTableResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -204,113 +217,38 @@
         }
       }
     },
-    "/admin/api/v1/table/validation": {
-      "get": {
-        "summary": "Validate table schema",
-        "description": "Validates the schema of the table, including column units and UCDs.\n\nReturns code 200 even if there are validation errors.\n",
-        "tags": [
-          "table"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "table_name",
-            "description": "Name of the table",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Table was successfully validated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetTableValidationResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/api/v1/task": {
-      "get": {
-        "summary": "Get information about the task",
-        "description": "Retrieves information about the task using its id.",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "tasks"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "task_id",
-            "description": "ID of the task",
-            "schema": {
-              "type": "integer"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Task was successfully obtained",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/GetTaskInfoResponseSchema"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/api/v1/login": {
+    "/api/v1/login": {
       "post": {
-        "summary": "Login user with username and password",
-        "description": "Gives user credentials for authentication in handlers",
-        "tags": [
-          "authentication"
-        ],
+        "summary": "Login",
+        "description": "Authenticates user and returns token",
+        "operationId": "login_api_v1_login_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequestSchema"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "User was successfully logged in",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/LoginResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/APIOkResponse_LoginResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -318,41 +256,39 @@
         }
       }
     },
-    "/admin/api/v1/table/status/stats": {
+    "/api/v1/table/status/stats": {
       "get": {
         "summary": "Get statistics on table processing",
-        "description": "Accesses the current status of the processing of a given table.\nReturns the distribution of objects by processing status.\n\nIf there are no objects with the given status, it will not be present in the response.\n",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "table"
-        ],
+        "description": "Accesses the current status of the processing of a given table.\nReturns the distribution of objects by processing status.\nIf there are no objects with the given status, it will not be present in the response.",
+        "operationId": "table_status_stats_api_v1_table_status_stats_get",
         "parameters": [
           {
-            "in": "query",
             "name": "table_id",
-            "description": "Identifier of the table",
+            "in": "query",
+            "required": true,
             "schema": {
-              "type": "integer"
-            },
-            "required": true
+              "type": "integer",
+              "title": "Table Id"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Number of objects in each status",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/TableStatusStatsResponseSchema"
-                    }
-                  }
+                  "$ref": "#/components/schemas/APIOkResponse_TableStatusStatsResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -360,40 +296,60 @@
         }
       }
     },
-    "/admin/api/v1/marking": {
+    "/api/v1/marking": {
       "post": {
         "summary": "New marking rules for the table",
-        "description": "Creates new marking rules to map the columns in the table to catalog parameters. For a given table a marking\nwould consist of the mapping between catalog parameters and the columns from the original table.\n\nFor example, if one wants to create a marking for a column `object_name` that designates the name of an object,\nthey should create a catalog entry similar to the following:\n```json\n{\n    \"name\": \"designation\",\n    \"parameters\": {\n        \"design\": {\n            \"column_name\": \"object_name\"\n        }\n    }\n}\n```\n\nHere, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`\nvalues are actual names of the columns under question. **For now, only one column per parameter is supported.**\n\nIt is possible to create several catalog entries for a single object, for example - is there are two columns\nthat represent a name of an object. In that case we might want to upload both names to the database so it is\neasier to cross-identify and search these objects later. Another use case might be if there are several columns\nthat represent photometric information in different filters. In that case one might want to create one entry\nfor each of the magnitude columns.\n\nIn that case you can specify several entries into `rules` list with different values of `key`. For example:\n\n```json\n{\n    \"table_name\": \"my_table\",\n    \"rules\": [\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"object_name\"\n                }\n            },\n            \"key\": \"primary_name\"\n        },\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"secondary_object_name\"\n                }\n            },\n            \"key\": \"secondary_name\"\n        }\n    ]\n}\n```\n\nThe result of this would be two entries into the `designation` catalog for each object in the original table.\n\nThis handler also supports additional parameters that are not present in the original table. For example, a\ntable might not have a separate column for astrometric errors but from other sources you know that its error is\n0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the\n`additional_params` field for each catalog:\n\n```json\n{\n    \"name\": \"icrs\",\n    \"parameters\": {\n        \"ra\": {\n            \"column_name\": \"RAJ2000\"\n        },\n        \"dec\": {\n            \"column_name\": \"DEJ2000\"\n        }\n    },\n    \"additional_params\": {\n        \"e_ra\": 0.1,\n        \"e_dec\": 0.5\n    }\n}\n```\n",
-        "security": [
-          {
-            "TokenAuth": []
-          }
-        ],
-        "tags": [
-          "table"
-        ],
+        "description": "Creates new marking rules to map the columns in the table to catalog parameters. \nFor a given table a marking would consist of the mapping between catalog parameters \nand the columns from the original table.\n\nFor example, if one wants to create a marking for a column `object_name` that designates the name of an object,\nthey should create a catalog entry similar to the following:\n```json\n{\n    \"name\": \"designation\",\n    \"parameters\": {\n        \"design\": {\n            \"column_name\": \"object_name\"\n        }\n    }\n}\n```\n\nHere, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`\nvalues are actual names of the columns under question. **For now, only one column per parameter is supported.**\n\nIt is possible to create several catalog entries for a single object, for example - is there are two columns\nthat represent a name of an object. In that case we might want to upload both names to the database so it is\neasier to cross-identify and search these objects later. Another use case might be if there are several columns\nthat represent photometric information in different filters. In that case one might want to create one entry\nfor each of the magnitude columns.\n\nIn that case you can specify several entries into `rules` list with different values of `key`. For example:\n\n```json\n{\n    \"table_name\": \"my_table\",\n    \"rules\": [\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"object_name\"\n                }\n            },\n            \"key\": \"primary_name\"\n        },\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"secondary_object_name\"\n                }\n            },\n            \"key\": \"secondary_name\"\n        }\n    ]\n}\n```\n\nThe result of this would be two entries into the `designation` catalog for each object in the original table.\n\nThis handler also supports additional parameters that are not present in the original table. For example, a\ntable might not have a separate column for astrometric errors but from other sources you know that its error is\n0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the\n`additional_params` field for each catalog:\n\n```json\n{\n    \"name\": \"icrs\",\n    \"parameters\": {\n        \"ra\": {\n            \"column_name\": \"RAJ2000\"\n        },\n        \"dec\": {\n            \"column_name\": \"DEJ2000\"\n        }\n    },\n    \"additional_params\": {\n        \"e_ra\": 0.1,\n        \"e_dec\": 0.5\n    }\n}\n```",
+        "operationId": "create_marking_api_v1_marking_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateMarkingRequestSchema"
+                "$ref": "#/components/schemas/CreateMarkingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_CreateMarkingResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/ping": {
+      "get": {
+        "summary": "Check that service is up and running",
+        "operationId": "_lambda__ping_get",
         "responses": {
           "200": {
-            "description": "Homogenization rules were successfully created",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreateMarkingResponseSchema"
-                    }
-                  }
-                }
+                "schema": {}
               }
             }
           }
@@ -401,545 +357,713 @@
       }
     }
   },
-  "info": {
-    "title": "HyperLeda API specification",
-    "version": "1.0.0"
-  },
-  "openapi": "3.0.2",
   "components": {
     "schemas": {
-      "AddDataRequestSchema": {
+      "APIOkResponse_AddDataResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddDataResponse"
+          }
+        },
         "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[AddDataResponse]"
+      },
+      "APIOkResponse_CreateMarkingResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateMarkingResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[CreateMarkingResponse]"
+      },
+      "APIOkResponse_CreateSourceResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateSourceResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[CreateSourceResponse]"
+      },
+      "APIOkResponse_CreateTableResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateTableResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[CreateTableResponse]"
+      },
+      "APIOkResponse_GetTableResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetTableResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[GetTableResponse]"
+      },
+      "APIOkResponse_LoginResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[LoginResponse]"
+      },
+      "APIOkResponse_PatchTableResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PatchTableResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[PatchTableResponse]"
+      },
+      "APIOkResponse_TableStatusStatsResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TableStatusStatsResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[TableStatusStatsResponse]"
+      },
+      "AddDataRequest": {
         "properties": {
           "table_id": {
             "type": "integer",
-            "description": "ID of the table to add data to"
+            "title": "Table Id"
           },
           "data": {
-            "type": "array",
-            "description": "Actual data to append. \n                Keys in this dictionary must be a subset of the columns in the table. \n                If not specified, column will be set to NULL.\n\n                NaN and NULL are considered to be the same thing.",
-            "example": [
-              {
-                "name": "M 33",
-                "ra": 1.5641,
-                "dec": 30.6602
-              },
-              {
-                "name": "M 31",
-                "ra": 0.7123,
-                "dec": 41.269
-              }
-            ],
             "items": {
-              "type": "object",
-              "additionalProperties": {}
-            }
-          }
-        },
-        "required": [
-          "data",
-          "table_id"
-        ]
-      },
-      "AddDataResponseSchema": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateSourceRequestSchema": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "description": "Title of publication"
-          },
-          "authors": {
+              "additionalProperties": true,
+              "type": "object"
+            },
             "type": "array",
-            "description": "List of authors",
-            "items": {
-              "type": "string"
-            }
-          },
-          "year": {
-            "type": "integer",
-            "minimum": 1500,
-            "description": "Year of the publication",
-            "example": 2006
+            "title": "Data",
+            "description": "Actual data to append. \nKeys in this dictionary must be a subset of the columns in the table. If not specified, column will be set to NULL.\nNaN and NULL are considered to be the same thing.",
+            "examples": [
+              [
+                {
+                  "dec": 41.269,
+                  "name": "M 31",
+                  "ra": 0.7123
+                },
+                {
+                  "dec": 30.6602,
+                  "name": "M 33",
+                  "ra": 1.5641
+                }
+              ]
+            ]
           }
         },
-        "required": [
-          "authors",
-          "title",
-          "year"
-        ]
-      },
-      "CreateSourceResponseSchema": {
         "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Code for the source"
-          }
-        },
         "required": [
-          "code"
-        ]
+          "table_id",
+          "data"
+        ],
+        "title": "AddDataRequest"
       },
-      "ColumnDescription": {
+      "AddDataResponse": {
+        "properties": {},
         "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the column. Should not equal `hyperleda_internal_id`."
-          },
-          "data_type": {
-            "type": "string",
-            "enum": [
-              "str",
-              "string",
-              "character varying",
-              "text",
-              "character",
-              "char",
-              "short",
-              "int",
-              "long",
-              "integer",
-              "smallint",
-              "float",
-              "double",
-              "double precision",
-              "real",
-              "timestamp without time zone",
-              "unsignedLong",
-              "unsignedInt",
-              "unsignedShort",
-              "unsignedByte",
-              "positiveInteger",
-              "number"
-            ],
-            "description": "Type of data"
-          },
-          "unit": {
-            "type": "string",
-            "description": "Unit of the data",
-            "example": "m/s",
-            "nullable": true
-          },
-          "ucd": {
-            "type": "string",
-            "description": "Unified Content Descriptor for the column (UCD1+)",
-            "example": "pos.eq.ra",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "default": "",
-            "description": "Human-readable description of the column",
-            "nullable": true
-          }
-        },
-        "required": [
-          "data_type",
-          "name"
-        ]
-      },
-      "CreateTableRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_name": {
-            "type": "string",
-            "description": "Name of the table"
-          },
-          "columns": {
-            "type": "array",
-            "description": "List of columns in the table",
-            "example": [
-              {
-                "name": "name",
-                "data_type": "str",
-                "ucd": "meta.id"
-              },
-              {
-                "name": "ra",
-                "data_type": "float",
-                "unit": "hourangle",
-                "ucd": "pos.eq.ra"
-              },
-              {
-                "name": "dec",
-                "data_type": "float",
-                "unit": "deg",
-                "ucd": "pos.eq.dec"
-              }
-            ],
-            "items": {
-              "$ref": "#/components/schemas/ColumnDescription"
-            }
-          },
-          "bibcode": {
-            "type": "string",
-            "description": "ADS bibcode of the article that published the data (or code of the internal communication)",
-            "example": "2024PDU....4601628D"
-          },
-          "datatype": {
-            "type": "string",
-            "default": "regular",
-            "enum": [
-              "regular",
-              "reprocessing",
-              "preliminary",
-              "compilation",
-              null
-            ],
-            "description": "Type of the data in the table",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "default": "",
-            "description": "Human-readable description of the table",
-            "nullable": true
-          }
-        },
-        "required": [
-          "bibcode",
-          "columns",
-          "table_name"
-        ]
-      },
-      "CreateTableResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "Output id of the table"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "GetTableRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_name": {
-            "type": "string",
-            "description": "Name of the table"
-          }
-        },
-        "required": [
-          "table_name"
-        ]
+        "title": "AddDataResponse"
       },
       "Bibliography": {
-        "type": "object",
         "properties": {
           "title": {
             "type": "string",
-            "description": "Title of publication"
+            "title": "Title"
           },
           "authors": {
-            "type": "array",
-            "description": "List of authors",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array",
+            "title": "Authors"
           },
           "year": {
             "type": "integer",
-            "description": "Year of the publication"
+            "title": "Year"
           },
           "bibcode": {
             "type": "string",
-            "description": "Bibcode reference"
-          }
-        }
-      },
-      "GetTableResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "ID of the table"
-          },
-          "description": {
-            "type": "string",
-            "description": "Table description"
-          },
-          "column_info": {
-            "type": "array",
-            "description": "List of columns in the table",
-            "items": {
-              "$ref": "#/components/schemas/ColumnDescription"
-            }
-          },
-          "rows_num": {
-            "type": "integer",
-            "description": "Number of rows"
-          },
-          "meta": {
-            "type": "object",
-            "description": "Table metadata",
-            "additionalProperties": {}
-          },
-          "bibliography": {
-            "description": "Table bibliography",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Bibliography"
-              }
-            ]
-          }
-        }
-      },
-      "GetTableValidationRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_name": {
-            "type": "string",
-            "description": "Name of the table"
+            "title": "Bibcode"
           }
         },
+        "type": "object",
         "required": [
-          "table_name"
-        ]
+          "title",
+          "authors",
+          "year",
+          "bibcode"
+        ],
+        "title": "Bibliography"
       },
-      "TableValidation": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "Error message"
-          },
-          "validator": {
-            "type": "string",
-            "description": "Type of the rule that was not satisfied"
-          }
-        }
-      },
-      "GetTableValidationResponseSchema": {
-        "type": "object",
-        "properties": {
-          "validations": {
-            "type": "array",
-            "description": "List of validation errors",
-            "items": {
-              "$ref": "#/components/schemas/TableValidation"
-            }
-          }
-        }
-      },
-      "PatchTableAction": {
-        "type": "object",
-        "properties": {}
-      },
-      "PatchTableRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_name": {
-            "type": "string",
-            "description": "Name of the table"
-          },
-          "actions": {
-            "type": "array",
-            "description": "List of actions to perform",
-            "items": {
-              "$ref": "#/components/schemas/PatchTableAction"
-            }
-          }
-        },
-        "required": [
-          "actions",
-          "table_name"
-        ]
-      },
-      "PatchTableResponseSchema": {
-        "type": "object",
-        "properties": {}
-      },
-      "GetTaskInfoRequestSchema": {
-        "type": "object",
-        "properties": {
-          "task_id": {
-            "type": "integer",
-            "description": "ID of the task"
-          }
-        },
-        "required": [
-          "task_id"
-        ]
-      },
-      "GetTaskInfoResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "ID of the task"
-          },
-          "task_name": {
-            "type": "string",
-            "description": "Name of the task from task registry"
-          },
-          "status": {
-            "type": "string",
-            "description": "Task status"
-          },
-          "payload": {
-            "type": "object",
-            "description": "Payload to the task",
-            "additionalProperties": {}
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Time when task started"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Time when task ended"
-          },
-          "message": {
-            "type": "object",
-            "description": "Message associated with the task status",
-            "additionalProperties": {}
-          }
-        }
-      },
-      "LoginRequestSchema": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "password",
-          "username"
-        ]
-      },
-      "LoginResponseSchema": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "Token used to authenticate user in handlers that require a specific role to access"
-          }
-        }
-      },
-      "TableStatusStatsRequestSchema": {
-        "type": "object",
-        "properties": {
-          "table_id": {
-            "type": "integer",
-            "description": "Identifier of the table"
-          }
-        },
-        "required": [
-          "table_id"
-        ]
-      },
-      "TableStatusStatsResponseSchema": {
-        "type": "object",
-        "properties": {
-          "processing": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer"
-            }
-          }
-        }
-      },
-      "Parameter": {
-        "type": "object",
-        "properties": {
-          "column_name": {
-            "type": "string",
-            "description": "Column that this parameter will be mapped to.",
-            "example": "ra"
-          }
-        },
-        "required": [
-          "column_name"
-        ]
-      },
-      "Catalog": {
-        "type": "object",
+      "CatalogToMark": {
         "properties": {
           "name": {
             "type": "string",
-            "enum": [
-              "icrs",
-              "designation",
-              "redshift"
-            ]
+            "title": "Name"
           },
           "parameters": {
-            "type": "object",
-            "minLength": 1,
-            "description": "Map of parameter names to their configurations",
-            "example": {
-              "ra": {
-                "column_name": "ra"
-              },
-              "dec": {
-                "column_name": "dec"
-              }
-            },
             "additionalProperties": {
-              "$ref": "#/components/schemas/Parameter"
-            }
+              "$ref": "#/components/schemas/ParameterToMark"
+            },
+            "type": "object",
+            "title": "Parameters",
+            "description": "Map of parameter names to their configurations",
+            "examples": [
+              {
+                "dec": {
+                  "column_name": "dec"
+                },
+                "ra": {
+                  "column_name": "ra"
+                }
+              }
+            ]
           },
           "key": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key",
+            "examples": [
+              ""
+            ]
           },
           "additional_params": {
-            "type": "object",
-            "description": "Additional parameters for the catalog",
-            "example": {
-              "e_ra": 0.1,
-              "e_dec": 0.2
-            },
-            "additionalProperties": {}
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additional Params",
+            "default": {}
           }
         },
+        "type": "object",
         "required": [
           "name",
           "parameters"
-        ]
+        ],
+        "title": "CatalogToMark"
       },
-      "CreateMarkingRequestSchema": {
+      "ColumnDescription": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/DatatypeEnum"
+          },
+          "ucd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ucd"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
         "type": "object",
+        "required": [
+          "name",
+          "data_type"
+        ],
+        "title": "ColumnDescription"
+      },
+      "CreateMarkingRequest": {
         "properties": {
           "table_name": {
             "type": "string",
-            "description": "Table to which apply the marking rules to."
+            "title": "Table Name"
           },
           "catalogs": {
-            "type": "array",
-            "minItems": 1,
             "items": {
-              "$ref": "#/components/schemas/Catalog"
-            }
+              "$ref": "#/components/schemas/CatalogToMark"
+            },
+            "type": "array",
+            "title": "Catalogs"
           }
         },
-        "required": [
-          "catalogs",
-          "table_name"
-        ]
-      },
-      "CreateMarkingResponseSchema": {
         "type": "object",
-        "properties": {}
+        "required": [
+          "table_name",
+          "catalogs"
+        ],
+        "title": "CreateMarkingRequest"
+      },
+      "CreateMarkingResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "CreateMarkingResponse"
+      },
+      "CreateSourceRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Authors",
+            "examples": [
+              [
+                "Ivanov V.",
+                "Johnson H."
+              ]
+            ]
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year",
+            "examples": [
+              2006
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "authors",
+          "year"
+        ],
+        "title": "CreateSourceRequest"
+      },
+      "CreateSourceResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CreateSourceResponse"
+      },
+      "CreateTableRequest": {
+        "properties": {
+          "table_name": {
+            "type": "string",
+            "title": "Table Name"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnDescription"
+            },
+            "type": "array",
+            "title": "Columns",
+            "description": "List of columns in the table",
+            "examples": [
+              [
+                {
+                  "data_type": "str",
+                  "name": "name",
+                  "ucd": "meta.id"
+                },
+                {
+                  "data_type": "float",
+                  "name": "ra",
+                  "ucd": "pos.eq.ra",
+                  "unit": "hourangle"
+                },
+                {
+                  "data_type": "float",
+                  "name": "dec",
+                  "ucd": "pos.eq.dec",
+                  "unit": "deg"
+                }
+              ]
+            ]
+          },
+          "bibcode": {
+            "type": "string",
+            "title": "Bibcode",
+            "description": "ADS bibcode of the article that published the data (or code of the internal communication)",
+            "examples": [
+              "2024PDU....4601628D"
+            ]
+          },
+          "datatype": {
+            "$ref": "#/components/schemas/DataType"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Human-readable description of the table"
+          }
+        },
+        "type": "object",
+        "required": [
+          "table_name",
+          "columns",
+          "bibcode",
+          "datatype",
+          "description"
+        ],
+        "title": "CreateTableRequest"
+      },
+      "CreateTableResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "CreateTableResponse"
+      },
+      "DataType": {
+        "type": "string",
+        "enum": [
+          "regular",
+          "reprocessing",
+          "preliminary",
+          "compilation"
+        ],
+        "title": "DataType"
+      },
+      "DatatypeEnum": {
+        "type": "string",
+        "enum": [
+          "str",
+          "string",
+          "character varying",
+          "text",
+          "character",
+          "char",
+          "short",
+          "int",
+          "long",
+          "integer",
+          "smallint",
+          "float",
+          "double",
+          "double precision",
+          "real",
+          "timestamp without time zone",
+          "unsignedLong",
+          "unsignedInt",
+          "unsignedShort",
+          "unsignedByte",
+          "positiveInteger",
+          "number"
+        ],
+        "title": "DatatypeEnum"
+      },
+      "GetTableResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "column_info": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnDescription"
+            },
+            "type": "array",
+            "title": "Column Info"
+          },
+          "rows_num": {
+            "type": "integer",
+            "title": "Rows Num"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "bibliography": {
+            "$ref": "#/components/schemas/Bibliography"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "column_info",
+          "rows_num",
+          "meta",
+          "bibliography"
+        ],
+        "title": "GetTableResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Token used to authenticate user in handlers that require a specific role to access"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "LoginResponse"
+      },
+      "ObjectCrossmatchStatus": {
+        "type": "string",
+        "enum": [
+          "unprocessed",
+          "new",
+          "collided",
+          "existing"
+        ],
+        "title": "ObjectCrossmatchStatus"
+      },
+      "ParameterToMark": {
+        "properties": {
+          "column_name": {
+            "type": "string",
+            "title": "Column Name",
+            "description": "Column that this parameter will be mapped to.",
+            "examples": [
+              "ra"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "column_name"
+        ],
+        "title": "ParameterToMark"
+      },
+      "PatchTableActionTypeChangeUCD": {
+        "properties": {
+          "column": {
+            "type": "string",
+            "title": "Column"
+          },
+          "ucd": {
+            "type": "string",
+            "title": "Ucd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "column",
+          "ucd"
+        ],
+        "title": "PatchTableActionTypeChangeUCD"
+      },
+      "PatchTableActionTypeChangeUnit": {
+        "properties": {
+          "column": {
+            "type": "string",
+            "title": "Column"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "column",
+          "unit"
+        ],
+        "title": "PatchTableActionTypeChangeUnit"
+      },
+      "PatchTableRequest": {
+        "properties": {
+          "table_name": {
+            "type": "string",
+            "title": "Table Name"
+          },
+          "actions": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PatchTableActionTypeChangeUCD"
+                },
+                {
+                  "$ref": "#/components/schemas/PatchTableActionTypeChangeUnit"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "table_name",
+          "actions"
+        ],
+        "title": "PatchTableRequest"
+      },
+      "PatchTableResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "PatchTableResponse"
+      },
+      "TableStatusStatsResponse": {
+        "properties": {
+          "processing": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ObjectCrossmatchStatus"
+            },
+            "type": "object",
+            "title": "Processing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "processing"
+        ],
+        "title": "TableStatusStatsResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     },
     "securitySchemes": {
-      "TokenAuth": {
-        "type": "http",
-        "scheme": "bearer"
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
       }
     }
   }
