@@ -38,8 +38,15 @@ def check_unit(unit: str) -> str:
     return unit
 
 
+def check_column_name(column_name: str) -> str:
+    if column_name == "hyperleda_internal_id":
+        raise ValueError(f"Forbidden column name: {column_name}")
+
+    return column_name
+
+
 class ColumnDescription(pydantic.BaseModel):
-    name: str = pydantic.Field(description="Name of the column. Should not equal `hyperleda_internal_id`.")
+    name: Annotated[str, pydantic.AfterValidator(func=check_column_name)]
     data_type: DatatypeEnum
     ucd: str | None = None
     unit: Annotated[str | None, pydantic.AfterValidator(func=check_unit)] = None
