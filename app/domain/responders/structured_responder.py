@@ -24,6 +24,18 @@ class StructuredResponder(interface.ObjectResponder):
     def _heliocentric_to_redshift(self, cz: float) -> float:
         return ((cz * u.m / u.s) / constants.c).value
 
+    def _equatorial(
+        self,
+        ra: float,
+        dec: float,
+        e_ra: float,
+        e_dec: float,
+    ) -> tuple[float, float, float, float]:
+        e_ra = (e_ra * u.deg).to(u.arcsec).value
+        e_dec = (e_dec * u.deg).to(u.arcsec).value
+
+        return ra, dec, e_ra, e_dec
+
     def _equatorial_to_galactic(
         self, ra: float, dec: float, e_ra: float, e_dec: float
     ) -> tuple[float, float, float, float]:
@@ -34,8 +46,8 @@ class StructuredResponder(interface.ObjectResponder):
         # same, which might not necessarily be true for larger erros.
         lon = gal.l.to(u.deg).value
         lat = gal.b.to(u.deg).value
-        e_lon = e_ra
-        e_lat = e_dec
+        e_lon = (e_ra * u.deg).to(u.arcsec).value
+        e_lat = (e_dec * u.deg).to(u.arcsec).value
 
         return lon, lat, e_lon, e_lat
 
@@ -49,10 +61,11 @@ class StructuredResponder(interface.ObjectResponder):
                 catalogs.designation = Designation(name=designation.designation)
 
             if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
+                ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
                 lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
                 catalogs.coordinates = Coordinates(
-                    equatorial=EquatorialCoordinates(ra=icrs.ra, dec=icrs.dec, e_ra=icrs.e_ra, e_dec=icrs.e_dec),
+                    equatorial=EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
                     galactic=GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
                 )
 

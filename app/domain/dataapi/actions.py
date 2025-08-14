@@ -36,7 +36,7 @@ class Actions(dataapi.Actions):
 
         responder = responders.JSONResponder()
         pgc_objects = responder.build_response(objects)
-        return dataapi.QueryResponse(pgc_objects)
+        return dataapi.QueryResponse(objects=pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         return self.parameterized_query_manager.query_fits(query)
