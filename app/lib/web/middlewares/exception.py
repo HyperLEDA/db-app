@@ -1,3 +1,4 @@
+import traceback
 from collections.abc import Awaitable, Callable
 
 import fastapi
@@ -27,8 +28,12 @@ class ExceptionMiddleware(middlewares.BaseHTTPMiddleware):
             return await call_next(request)
         except errors.APIError as e:
             exc = e
+            traceback.print_tb(e.__traceback__)
         except Exception as e:
             exc = errors.InternalError(str(e))
+            traceback.print_tb(e.__traceback__)
 
-        self.logger.exception(str(exc))
+        data = {"type": type(exc).__name__, "error": str(exc)}
+        self.logger.exception("Got exception", **data)
+
         return fastapi.responses.JSONResponse(exc.dict())

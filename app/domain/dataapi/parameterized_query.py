@@ -3,36 +3,17 @@ from app.data.repositories import layer2
 from app.domain import responders
 from app.presentation import dataapi
 
-DATA_SCHEMA = dataapi.Schema(
-    units=dataapi.Units(
-        coordinates=dataapi.CoordinateUnits(
-            equatorial=dataapi.EquatorialCoordinatesUnits(
-                ra="deg",
-                dec="deg",
-                e_ra="arcsec",
-                e_dec="arcsec",
-            ),
-            galactic=dataapi.GalacticCoordinatesUnits(
-                lon="deg",
-                lat="deg",
-                e_lon="arcsec",
-                e_lat="arcsec",
-            ),
-        ),
-        velocity=dataapi.VelocityUnits(
-            heliocentric=dataapi.HeliocentricVelocityUnits(
-                v="km/s",
-                e_v="km/s",
-            )
-        ),
-    )
-)
-
 
 class ParameterizedQueryManager:
-    def __init__(self, layer2_repo: repositories.Layer2Repository, enabled_catalogs: list[model.RawCatalog]) -> None:
+    def __init__(
+        self,
+        layer2_repo: repositories.Layer2Repository,
+        enabled_catalogs: list[model.RawCatalog],
+        catalog_cfg: responders.CatalogConfig,
+    ) -> None:
         self.layer2_repo = layer2_repo
         self.enabled_catalogs = enabled_catalogs
+        self.catalog_config = catalog_cfg
 
     def _build_filters_and_params(
         self, query: dataapi.QuerySimpleRequest | dataapi.FITSRequest
@@ -89,6 +70,5 @@ class ParameterizedQueryManager:
                 query.page,
             )
 
-        responder = responders.StructuredResponder()
-        pgc_objects = responder.build_response(objects)
-        return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=DATA_SCHEMA)
+        responder = responders.StructuredResponder(self.catalog_config)
+        return responder.build_response(objects)

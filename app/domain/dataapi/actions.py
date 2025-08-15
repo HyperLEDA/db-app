@@ -18,9 +18,15 @@ ENABLED_CATALOGS = [
 
 @final
 class Actions(dataapi.Actions):
-    def __init__(self, layer2_repo: repositories.Layer2Repository) -> None:
+    def __init__(
+        self,
+        layer2_repo: repositories.Layer2Repository,
+        catalog_cfg: responders.CatalogConfig,
+    ) -> None:
         self.layer2_repo = layer2_repo
-        self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(layer2_repo, ENABLED_CATALOGS)
+        self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
+            layer2_repo, ENABLED_CATALOGS, catalog_cfg
+        )
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         expression = expressions.parse_expression(query.q)
@@ -36,7 +42,7 @@ class Actions(dataapi.Actions):
 
         responder = responders.JSONResponder()
         pgc_objects = responder.build_response(objects)
-        return dataapi.QueryResponse(pgc_objects)
+        return dataapi.QueryResponse(objects=pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         return self.parameterized_query_manager.query_fits(query)
@@ -48,14 +54,14 @@ class Actions(dataapi.Actions):
 def parse_coordinates(coord_str: str) -> coords.SkyCoord:
     try:
         if coord_str.startswith(("J", "B")):
-            return coords.SkyCoord(coord_str[1:], unit=(u.hourangle, u.deg))
+            return coords.SkyCoord(coord_str[1:], unit=(u.Unit("hourangle"), u.Unit("deg")))
 
         if coord_str.startswith("G"):
             long, lat = map(float, coord_str[1:].split("+"))
-            coord = coords.SkyCoord(l=long * u.deg, b=lat * u.deg, frame="galactic")
+            coord = coords.SkyCoord(l=long * u.Unit("deg"), b=lat * u.Unit("deg"), frame="galactic")
             return coord.transform_to("icrs")
 
-        return coords.SkyCoord(coord_str, unit=(u.hourangle, u.deg))
+        return coords.SkyCoord(coord_str, unit=(u.Unit("hourangle"), u.Unit("deg")))
     except Exception as e:
         raise ValueError(f"Invalid coordinate format: {coord_str}") from e
 
@@ -71,7 +77,7 @@ def parse_function_node(node: expressions.FunctionNode) -> tuple[layer2.Filter, 
     if node.function == expressions.FunctionName.NAME:
         return layer2.DesignationCloseFilter(2), layer2.DesignationSearchParams(node.value)
     if node.function == expressions.FunctionName.POS:
-        return layer2.ICRSCoordinatesInRadiusFilter(1 * u.arcsec), layer2.ICRSSearchParams(
+        return layer2.ICRSCoordinatesInRadiusFilter(1 * u.Unit("arcsec")), layer2.ICRSSearchParams(
             coords=parse_coordinates(node.value)
         )
 

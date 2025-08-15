@@ -54,8 +54,10 @@ class AdminAPICommand(commands.Command):
         self.app.run()
 
     def cleanup(self):
-        self.redis_storage.disconnect()
-        self.pg_storage.disconnect()
+        if self.redis_storage:
+            self.redis_storage.disconnect()
+        if self.pg_storage:
+            self.pg_storage.disconnect()
 
 
 class ClientsConfig(config.ConfigSettings):

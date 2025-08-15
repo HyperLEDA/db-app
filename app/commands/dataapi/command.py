@@ -6,6 +6,7 @@ import yaml
 
 from app.data import repositories
 from app.domain import dataapi as domain
+from app.domain import responders
 from app.lib import commands, config
 from app.lib.storage import postgres
 from app.lib.web import server
@@ -32,6 +33,7 @@ class DataAPICommand(commands.Command):
 
         actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            catalog_cfg=self.config.catalogs,
         )
 
         self.app = presentation.Server(actions, self.config.server, log)
@@ -40,12 +42,14 @@ class DataAPICommand(commands.Command):
         self.app.run()
 
     def cleanup(self):
-        self.pg_storage.disconnect()
+        if self.pg_storage:
+            self.pg_storage.disconnect()
 
 
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
+    catalogs: responders.CatalogConfig
 
 
 def parse_config(path: str) -> Config:
