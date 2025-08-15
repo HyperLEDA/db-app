@@ -39,7 +39,7 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
 
-        return cls(coords.ra.deg, coords.dec.deg, e_ra.to(u.deg).value, e_dec.to(u.deg).value)
+        return cls(coords.ra.deg, coords.dec.deg, e_ra.to(u.Unit("deg")).value, e_dec.to(u.Unit("deg")).value)
 
     def layer0_data(self) -> dict[str, Any]:
         return {

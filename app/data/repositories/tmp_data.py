@@ -61,9 +61,9 @@ class TmpDataRepositoryImpl(TmpDataRepository, postgres.TransactionalPGRepositor
 
     def query_table(self, param: TmpDataRepositoryQueryParam) -> list[dict[str, Any]]:
         if isinstance(param, TmpCoordinateTableQueryParam):
-            delta = param.r.to(u.deg).value
-            ra0 = param.center.ra.to(u.deg).value
-            dec0 = param.center.dec.to(u.deg).value
+            delta = param.r.to(u.Unit("deg")).value
+            ra0 = param.center.ra.to(u.Unit("deg")).value
+            dec0 = param.center.dec.to(u.Unit("deg")).value
             return self._storage.query(
                 template.render_query(
                     template.GET_TMP_DATA_INSIDE, table_name=param.table_name(), delta=delta, ra0=ra0, dec0=dec0

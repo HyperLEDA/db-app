@@ -13,12 +13,19 @@ class TestParseCoordinates(unittest.TestCase):
 
     @parameterized.expand(
         [
-            param("J12:34:56+12:34:56", coords.SkyCoord("12:34:56 +12:34:56", unit=(u.hourangle, u.deg))),
-            param("B12:34:56-12:34:56", coords.SkyCoord("12:34:56 -12:34:56", unit=(u.hourangle, u.deg))),
             param(
-                "G180.5+45.8", coords.SkyCoord(l=180.5 * u.deg, b=45.8 * u.deg, frame="galactic").transform_to("icrs")
+                "J12:34:56+12:34:56", coords.SkyCoord("12:34:56 +12:34:56", unit=(u.Unit("hourangle"), u.Unit("deg")))
             ),
-            param("12:34:56 +12:34:56", coords.SkyCoord("12:34:56 +12:34:56", unit=(u.hourangle, u.deg))),
+            param(
+                "B12:34:56-12:34:56", coords.SkyCoord("12:34:56 -12:34:56", unit=(u.Unit("hourangle"), u.Unit("deg")))
+            ),
+            param(
+                "G180.5+45.8",
+                coords.SkyCoord(l=180.5 * u.Unit("deg"), b=45.8 * u.Unit("deg"), frame="galactic").transform_to("icrs"),
+            ),
+            param(
+                "12:34:56 +12:34:56", coords.SkyCoord("12:34:56 +12:34:56", unit=(u.Unit("hourangle"), u.Unit("deg")))
+            ),
         ]
     )
     def test_valid_coordinates(self, input_str, expected):

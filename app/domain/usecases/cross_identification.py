@@ -10,8 +10,8 @@ from app.domain.cross_id_simultaneous_data_provider import (
 from app.domain.model.params import cross_identification_result as result
 from app.domain.model.params.cross_identification_user_param import CrossIdentificationUserParam
 
-DEFAULT_INNER_RADIUS = 1.5 * u.arcsec
-DEFAULT_OUTER_RADIUS = 4.5 * u.arcsec
+DEFAULT_INNER_RADIUS = 1.5 * u.Unit("arcsec")
+DEFAULT_OUTER_RADIUS = 4.5 * u.Unit("arcsec")
 
 cross_identification_func_type = Callable[
     [

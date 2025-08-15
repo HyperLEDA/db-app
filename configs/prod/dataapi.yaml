@@ -8,3 +8,7 @@ storage:
   dbname: hyperleda
   user: hyperleda
   password: fake
+
+catalogs:
+  velocity:
+    apexes: {}

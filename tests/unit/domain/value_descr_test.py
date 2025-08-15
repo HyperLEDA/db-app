@@ -19,7 +19,7 @@ class ValueDescrTest(unittest.TestCase):
         speeds = value_descr.parse_values(df)
 
         # one km/sec == 1000 m/sec
-        self.assertEqual(speeds[1].to(u.m / u.s).value, df["speed"][1] * 1000)
+        self.assertEqual(speeds[1].to(u.Unit("m") / u.Unit("s")).value, df["speed"][1] * 1000)
 
     def test_column_not_found(self):
         df = DataFrame(
