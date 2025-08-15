@@ -1,9 +1,5 @@
 import pydantic_settings as settings
 
-from app.lib.config.marshmallow import EnvField
-
-__all__ = ["EnvField"]
-
 
 class ConfigSettings(settings.BaseSettings):
     @classmethod
