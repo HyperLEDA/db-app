@@ -1,8 +1,21 @@
 from dataclasses import dataclass
 
+import pydantic
 from marshmallow import Schema, fields, post_load
 
 from app.lib import config
+
+
+class PgStorageConfigPydantic(config.ConfigSettings):
+    endpoint: str
+    port: int = pydantic.Field(validation_alias=pydantic.AliasChoices("STORAGE_PORT", "port"))
+    dbname: str
+    user: str
+    password: str = pydantic.Field(validation_alias=pydantic.AliasChoices("STORAGE_PASSWORD", "password"))
+
+    def get_dsn(self) -> str:
+        # TODO: SSL and other options like transaction timeout
+        return f"postgresql://{self.endpoint}:{self.port}/{self.dbname}?user={self.user}&password={self.password}"
 
 
 @dataclass
