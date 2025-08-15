@@ -122,6 +122,9 @@ class StructuredResponder(interface.ObjectResponder):
                         vel_apex=apex.vel * u.Unit("km/s"),
                         lon_apex=apex.lon * u.Unit("deg"),
                         lat_apex=apex.lat * u.Unit("deg"),
+                        vel_err=redshift.e_cz * u.Unit("m/s"),
+                        lon_err=e_lon * u.Unit("arcsec"),
+                        lat_err=e_lat * u.Unit("arcsec"),
                     )
 
                     schema = VELOCITY_SCHEMA

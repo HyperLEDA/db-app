@@ -38,17 +38,26 @@ def velocity_wr_apex(
         A tuple containing (velocity, velocity_uncertainty) in km/s.
         If no error parameters are provided, the uncertainty will be zero.
     """
-    lon_rad = lon.to(u.Unit("rad"))
-    lat_rad = lat.to(u.Unit("rad"))
-    lon_apex_rad = lon_apex.to(u.Unit("rad"))
-    lat_apex_rad = lat_apex.to(u.Unit("rad"))
+    vel = vel.to(u.Unit("km/s"))
+    lon = lon.to(u.Unit("rad"))
+    lat = lat.to(u.Unit("rad"))
+    vel_apex = vel_apex.to(u.Unit("km/s"))
+    lon_apex = lon_apex.to(u.Unit("rad"))
+    lat_apex = lat_apex.to(u.Unit("rad"))
 
-    vel_u = ufloat(vel.value, vel_err.value if vel_err is not None else 0.0)
-    lon_u = ufloat(lon_rad.value, lon_err.to(u.Unit("rad")).value if lon_err is not None else 0.0)
-    lat_u = ufloat(lat_rad.value, lat_err.to(u.Unit("rad")).value if lat_err is not None else 0.0)
-    vel_apex_u = ufloat(vel_apex.value, vel_apex_err.value if vel_apex_err is not None else 0.0)
-    lon_apex_u = ufloat(lon_apex_rad.value, lon_apex_err.to(u.Unit("rad")).value if lon_apex_err is not None else 0.0)
-    lat_apex_u = ufloat(lat_apex_rad.value, lat_apex_err.to(u.Unit("rad")).value if lat_apex_err is not None else 0.0)
+    vel_err_val = vel_err.to(u.Unit("km/s")).value if vel_err is not None else 0.0
+    lon_err_val = lon_err.to(u.Unit("rad")).value if lon_err is not None else 0.0
+    lat_err_val = lat_err.to(u.Unit("rad")).value if lat_err is not None else 0.0
+    vel_apex_err_val = vel_apex_err.to(u.Unit("km/s")).value if vel_apex_err is not None else 0.0
+    lon_apex_err_val = lon_apex_err.to(u.Unit("rad")).value if lon_apex_err is not None else 0.0
+    lat_apex_err_val = lat_apex_err.to(u.Unit("rad")).value if lat_apex_err is not None else 0.0
+
+    vel_u = ufloat(vel.value, vel_err_val)
+    lon_u = ufloat(lon.value, lon_err_val)
+    lat_u = ufloat(lat.value, lat_err_val)
+    vel_apex_u = ufloat(vel_apex.value, vel_apex_err_val)
+    lon_apex_u = ufloat(lon_apex.value, lon_apex_err_val)
+    lat_apex_u = ufloat(lat_apex.value, lat_apex_err_val)
 
     result = vel_u - vel_apex_u * (
         sin(lat_u) * sin(lat_apex_u) + cos(lat_u) * cos(lat_apex_u) * cos(lon_u - lon_apex_u)  # type: ignore
