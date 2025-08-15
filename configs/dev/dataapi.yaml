@@ -3,8 +3,8 @@ server:
   port: 8080
 
 storage:
-  endpoint: dm2.sao.ru
-  port: 5432
+  endpoint: localhost
+  port: 6432
   dbname: hyperleda
   user: hyperleda
   password: fake

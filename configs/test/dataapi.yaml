@@ -11,4 +11,47 @@ storage:
 
 catalogs:
   velocity:
-    apexes: {}
+    apexes:
+      heliocentric:
+        lon: 
+          value: 0
+          error: 0
+        lat: 
+          value: 0
+          error: 0
+        vel: 
+          value: 0
+          error: 0
+      local_group:
+        # source: https://ui.adsabs.harvard.edu/abs/2025A%26A...698A.178M/abstract
+        lon:
+          value: 94.0
+          error: 0.7
+        lat:
+          value: -2.7
+          error: 0.3
+        vel: 
+          value: 301
+          error: 3
+      cmb_old:
+        # source: https://ui.adsabs.harvard.edu/abs/1996ApJ...473..576F/abstract
+        lon:
+          value: 264.14
+          error: 0.30
+        lat:
+          value: 48.26
+          error: 0.30
+        vel:
+          value: 371
+          error: 1
+      cmb:
+        # source: https://ui.adsabs.harvard.edu/abs/2016A%26A...594A...8P/abstract
+        lon:
+          value: 263.99
+          error: 0.14
+        lat:
+          value: 48.26
+          error: 0.03
+        vel:
+          value: 370.06
+          error: 0.09
