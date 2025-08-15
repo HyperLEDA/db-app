@@ -10,6 +10,31 @@ from app.domain.responders import interface
 from app.lib import astronomy, config
 from app.presentation import dataapi
 
+DATA_SCHEMA = dataapi.Schema(
+    units=dataapi.Units(
+        coordinates=dataapi.CoordinateUnits(
+            equatorial=dataapi.EquatorialCoordinatesUnits(
+                ra="deg",
+                dec="deg",
+                e_ra="arcsec",
+                e_dec="arcsec",
+            ),
+            galactic=dataapi.GalacticCoordinatesUnits(
+                lon="deg",
+                lat="deg",
+                e_lon="arcsec",
+                e_lat="arcsec",
+            ),
+        ),
+        velocity={},
+    )
+)
+
+VELOCITY_SCHEMA = dataapi.AbsoluteVelocityUnits(
+    v="km/s",
+    e_v="km/s",
+)
+
 
 class ApexConfig(config.BaseConfigSettings):
     lon: float
@@ -60,6 +85,7 @@ class StructuredResponder(interface.ObjectResponder):
         return lon, lat, e_lon, e_lat
 
     def build_response(self, objects: list[layer2.Layer2Object]) -> Any:
+        catalog_schema = DATA_SCHEMA
         pgc_objects = []
 
         for obj in objects:
@@ -98,12 +124,15 @@ class StructuredResponder(interface.ObjectResponder):
                         lat_apex=apex.lat * u.Unit("deg"),
                     )
 
+                    schema = VELOCITY_SCHEMA
+
+                    catalog_schema.units.velocity[key] = schema
                     catalogs.velocity[key] = dataapi.AbsoluteVelocity(
-                        v=vel_wr_apex.to(u.Unit("km/s")).value,
+                        v=vel_wr_apex.to(u.Unit(schema.v)).value,
                         e_v=redshift.e_cz,
                     )
 
             pgc_object = dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs)
             pgc_objects.append(pgc_object)
 
-        return pgc_objects
+        return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)

@@ -67,18 +67,14 @@ class CoordinateUnits(pydantic.BaseModel):
     galactic: GalacticCoordinatesUnits
 
 
-class HeliocentricVelocityUnits(pydantic.BaseModel):
+class AbsoluteVelocityUnits(pydantic.BaseModel):
     v: str
     e_v: str
 
 
-class VelocityUnits(pydantic.BaseModel):
-    heliocentric: HeliocentricVelocityUnits
-
-
 class Units(pydantic.BaseModel):
     coordinates: CoordinateUnits
-    velocity: VelocityUnits
+    velocity: dict[str, AbsoluteVelocityUnits]
 
 
 class Schema(pydantic.BaseModel):

@@ -3,31 +3,6 @@ from app.data.repositories import layer2
 from app.domain import responders
 from app.presentation import dataapi
 
-DATA_SCHEMA = dataapi.Schema(
-    units=dataapi.Units(
-        coordinates=dataapi.CoordinateUnits(
-            equatorial=dataapi.EquatorialCoordinatesUnits(
-                ra="deg",
-                dec="deg",
-                e_ra="arcsec",
-                e_dec="arcsec",
-            ),
-            galactic=dataapi.GalacticCoordinatesUnits(
-                lon="deg",
-                lat="deg",
-                e_lon="arcsec",
-                e_lat="arcsec",
-            ),
-        ),
-        velocity=dataapi.VelocityUnits(
-            heliocentric=dataapi.HeliocentricVelocityUnits(
-                v="km/s",
-                e_v="km/s",
-            )
-        ),
-    )
-)
-
 
 class ParameterizedQueryManager:
     def __init__(
@@ -96,5 +71,4 @@ class ParameterizedQueryManager:
             )
 
         responder = responders.StructuredResponder(self.catalog_config)
-        pgc_objects = responder.build_response(objects)
-        return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=DATA_SCHEMA)
+        return responder.build_response(objects)
