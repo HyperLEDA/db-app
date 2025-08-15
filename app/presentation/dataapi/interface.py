@@ -22,7 +22,7 @@ class Coordinates(pydantic.BaseModel):
     galactic: GalacticCoordinates
 
 
-class HeliocentricVelocity(pydantic.BaseModel):
+class AbsoluteVelocity(pydantic.BaseModel):
     v: float
     e_v: float
 
@@ -32,11 +32,6 @@ class Redshift(pydantic.BaseModel):
     e_z: float
 
 
-class Velocity(pydantic.BaseModel):
-    heliocentric: HeliocentricVelocity
-    redshift: Redshift
-
-
 class Designation(pydantic.BaseModel):
     name: str
 
@@ -44,7 +39,8 @@ class Designation(pydantic.BaseModel):
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
     coordinates: Coordinates | None = None
-    velocity: Velocity | None = None
+    velocity: dict[str, AbsoluteVelocity] | None = None
+    redshift: Redshift | None = None
 
 
 class PGCObject(pydantic.BaseModel):

@@ -1,7 +1,11 @@
 import pydantic_settings as settings
 
 
-class ConfigSettings(settings.BaseSettings):
+class BaseConfigSettings(settings.BaseSettings):
+    pass
+
+
+class ConfigSettings(BaseConfigSettings):
     @classmethod
     def settings_customise_sources(
         cls,

@@ -18,9 +18,15 @@ ENABLED_CATALOGS = [
 
 @final
 class Actions(dataapi.Actions):
-    def __init__(self, layer2_repo: repositories.Layer2Repository) -> None:
+    def __init__(
+        self,
+        layer2_repo: repositories.Layer2Repository,
+        catalog_cfg: responders.CatalogConfig,
+    ) -> None:
         self.layer2_repo = layer2_repo
-        self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(layer2_repo, ENABLED_CATALOGS)
+        self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
+            layer2_repo, ENABLED_CATALOGS, catalog_cfg
+        )
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         expression = expressions.parse_expression(query.q)

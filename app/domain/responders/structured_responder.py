@@ -7,20 +7,28 @@ from astropy import units as u
 from app.data import model
 from app.data.model import layer2
 from app.domain.responders import interface
-from app.presentation.dataapi import (
-    Catalogs,
-    Coordinates,
-    Designation,
-    EquatorialCoordinates,
-    GalacticCoordinates,
-    HeliocentricVelocity,
-    PGCObject,
-    Redshift,
-    Velocity,
-)
+from app.lib import config
+from app.presentation import dataapi
+
+
+class ApexConfig(config.BaseConfigSettings):
+    lon: float
+    lat: float
+    vel: float
+
+
+class VelocityCatalogConfig(config.BaseConfigSettings):
+    apexes: dict[str, ApexConfig]
+
+
+class CatalogConfig(config.BaseConfigSettings):
+    velocity: VelocityCatalogConfig
 
 
 class StructuredResponder(interface.ObjectResponder):
+    def __init__(self, cfg: CatalogConfig) -> None:
+        self.config = cfg
+
     def _heliocentric_to_redshift(self, cz: float) -> float:
         return ((cz * u.m / u.s) / constants.c).value
 
@@ -55,30 +63,31 @@ class StructuredResponder(interface.ObjectResponder):
         pgc_objects = []
 
         for obj in objects:
-            catalogs = Catalogs()
+            catalogs = dataapi.Catalogs()
 
             if (designation := obj.get(model.DesignationCatalogObject)) is not None:
-                catalogs.designation = Designation(name=designation.designation)
+                catalogs.designation = dataapi.Designation(name=designation.designation)
 
             if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
                 ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
                 lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
-                catalogs.coordinates = Coordinates(
-                    equatorial=EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
-                    galactic=GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
+                catalogs.coordinates = dataapi.Coordinates(
+                    equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
+                    galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
                 )
 
             if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
-                catalogs.velocity = Velocity(
-                    heliocentric=HeliocentricVelocity(v=redshift.cz, e_v=redshift.e_cz),
-                    redshift=Redshift(
-                        z=self._heliocentric_to_redshift(redshift.cz),
-                        e_z=self._heliocentric_to_redshift(redshift.e_cz),
-                    ),
+                catalogs.redshift = dataapi.Redshift(
+                    z=self._heliocentric_to_redshift(redshift.cz),
+                    e_z=self._heliocentric_to_redshift(redshift.e_cz),
                 )
+                catalogs.velocity = {}
 
-            pgc_object = PGCObject(pgc=obj.pgc, catalogs=catalogs)
+                for key, apex in self.config.velocity.apexes.items():
+                    catalogs.velocity[key] = dataapi.AbsoluteVelocity(v=redshift.cz, e_v=redshift.e_cz)
+
+            pgc_object = dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs)
             pgc_objects.append(pgc_object)
 
         return pgc_objects
