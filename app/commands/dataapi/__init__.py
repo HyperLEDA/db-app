@@ -1,4 +1,3 @@
-from app.commands.dataapi.command import DataAPICommand
-from app.commands.dataapi.config import Config
+from app.commands.dataapi.command import Config, DataAPICommand
 
 __all__ = ["DataAPICommand", "Config"]

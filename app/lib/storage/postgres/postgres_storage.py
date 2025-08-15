@@ -42,12 +42,12 @@ DEFAULT_ENUMS = [
 
 
 class PgStorage:
-    def __init__(self, cfg: config.PgStorageConfigPydantic, logger: structlog.stdlib.BoundLogger) -> None:
+    def __init__(self, cfg: config.PgStorageConfig, logger: structlog.stdlib.BoundLogger) -> None:
         self._config = cfg
         self._connection: psycopg.Connection | None = None
         self._logger = logger
 
-    def get_config(self) -> config.PgStorageConfigPydantic:
+    def get_config(self) -> config.PgStorageConfig:
         return self._config
 
     def connect(self) -> None:

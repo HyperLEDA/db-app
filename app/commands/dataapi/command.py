@@ -1,12 +1,14 @@
+from pathlib import Path
 from typing import final
 
 import structlog
+import yaml
 
-from app.commands.dataapi import config
 from app.data import repositories
 from app.domain import dataapi as domain
-from app.lib import commands
+from app.lib import commands, config
 from app.lib.storage import postgres
+from app.lib.web import server
 from app.presentation import dataapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -23,7 +25,7 @@ class DataAPICommand(commands.Command):
         self.config_path = config_path
 
     def prepare(self):
-        self.config = config.parse_config(self.config_path)
+        self.config = parse_config(self.config_path)
 
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
@@ -39,3 +41,14 @@ class DataAPICommand(commands.Command):
 
     def cleanup(self):
         self.pg_storage.disconnect()
+
+
+class Config(config.ConfigSettings):
+    server: server.ServerConfig
+    storage: postgres.PgStorageConfig
+
+
+def parse_config(path: str) -> Config:
+    data = yaml.safe_load(Path(path).read_text())
+
+    return Config(**data)

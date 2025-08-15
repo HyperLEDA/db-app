@@ -27,7 +27,7 @@ class GenerateSpecCommand(commands.Command):
     def run(self):
         app = presentation.Server(
             domain.get_mock_actions(),
-            server.ServerConfig(80, "localhost"),
+            server.ServerConfig(port=80, host="localhost"),
             structlog.get_logger(),
         )
 
