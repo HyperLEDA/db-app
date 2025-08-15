@@ -24,6 +24,8 @@ jobs:
           make adminapi &
 
       - name: Start DataAPI server
+        env:
+          STORAGE_PASSWORD: password
         run: |
           SERVER_PORT=8081 make dataapi &
 
