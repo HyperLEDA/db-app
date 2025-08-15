@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 
-import pydantic
+import pydantic_settings as settings
 from marshmallow import Schema, fields, post_load
 
 from app.lib import config
 
 
 class ServerConfigPydantic(config.ConfigSettings):
-    port: int = pydantic.Field(validation_alias=pydantic.AliasChoices("SERVER_PORT", "port"))
+    model_config = settings.SettingsConfigDict(env_prefix="SERVER_")
+
+    port: int
     host: str
     path_prefix: str = "/api"
 
