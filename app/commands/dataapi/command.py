@@ -42,7 +42,8 @@ class DataAPICommand(commands.Command):
         self.app.run()
 
     def cleanup(self):
-        self.pg_storage.disconnect()
+        if self.pg_storage:
+            self.pg_storage.disconnect()
 
 
 class Config(config.ConfigSettings):

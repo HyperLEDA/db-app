@@ -115,7 +115,7 @@ class StructuredResponder(interface.ObjectResponder):
                 catalogs.velocity = {}
 
                 for key, apex in self.config.velocity.apexes.items():
-                    vel_wr_apex = astronomy.velocity_wr_apex(
+                    vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
                         redshift.cz * u.Unit("m/s"),
                         lon=lon * u.Unit("deg"),
                         lat=lat * u.Unit("deg"),
@@ -129,7 +129,7 @@ class StructuredResponder(interface.ObjectResponder):
                     catalog_schema.units.velocity[key] = schema
                     catalogs.velocity[key] = dataapi.AbsoluteVelocity(
                         v=vel_wr_apex.to(u.Unit(schema.v)).value,
-                        e_v=redshift.e_cz,
+                        e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
                     )
 
             pgc_object = dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs)
