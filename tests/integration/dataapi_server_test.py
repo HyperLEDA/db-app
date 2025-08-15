@@ -38,6 +38,7 @@ class DataAPIServerTest(unittest.TestCase):
 
         os.environ["SERVER_PORT"] = str(cls.server_port)
         os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
+        os.environ["STORAGE_PASSWORD"] = str(cls.pg_storage.config.password)
 
         logger.info("starting server", port=cls.server_port)
 

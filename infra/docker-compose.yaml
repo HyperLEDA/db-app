@@ -46,7 +46,7 @@ services:
     entrypoint: ["uv", "run", "main.py", "adminapi"]
     environment:
       - CONFIG=configs/adminapi.yaml
-      - ADS_TOKEN
+      - CLIENTS_ADS_TOKEN
       - STORAGE_PASSWORD=${POSTGRES_PASSWORD:-password}
     volumes:
       - ./configs:/usr/src/app/configs

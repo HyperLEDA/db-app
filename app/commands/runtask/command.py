@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 from typing import Any, final
 
+import yaml
+
 from app import tasks
-from app.commands.runtask import config
 from app.lib import commands
 
 
@@ -33,7 +34,7 @@ class RunTaskCommand(commands.Command):
         """
 
     def prepare(self):
-        cfg = config.parse_config(self.config_path)
+        cfg = parse_config(self.config_path)
 
         input_data = self.input_data
 
@@ -48,3 +49,9 @@ class RunTaskCommand(commands.Command):
 
     def cleanup(self):
         self.task.cleanup()
+
+
+def parse_config(path: str) -> tasks.Config:
+    data = yaml.safe_load(Path(path).read_text())
+
+    return tasks.Config(**data)

@@ -9,7 +9,6 @@ dependencies = [
     "bcrypt>=4.2.1",
     "click>=8.1.8",
     "jinja2>=3.1.5",
-    "marshmallow>=3.26.0",
     "pandas>=2.2.3",
     "psycopg[binary,pool]>=3.2.4",
     "pyyaml>=6.0.2",
@@ -19,12 +18,12 @@ dependencies = [
     "rq>=2.1.0",
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
-    "marshmallow-generic>=1.0.1",
     "fastapi>=0.116.1",
     "uvicorn>=0.35.0",
     "httpx>=0.28.1",
     "pydantic>=2.11.7",
     "starlette>=0.47.2",
+    "pydantic-settings>=2.10.1",
 ]
 
 [project.optional-dependencies]
@@ -97,7 +96,6 @@ ignore_missing_imports = true
 [tool.uv.sources]
 hyperleda-scripts = { git = "https://github.com/HyperLEDA/scripts.git" }
 hyperleda = { git = "https://github.com/HyperLEDA/client.git" }
-marshmallow-generic = { git = "https://github.com/Kraysent/marshmallow-generic.git" }
 
 [dependency-groups]
 dev = [

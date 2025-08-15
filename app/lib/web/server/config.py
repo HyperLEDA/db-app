@@ -1,22 +1,11 @@
-from dataclasses import dataclass
-
-from marshmallow import Schema, fields, post_load
+import pydantic_settings as settings
 
 from app.lib import config
 
 
-@dataclass
-class ServerConfig:
+class ServerConfig(config.ConfigSettings):
+    model_config = settings.SettingsConfigDict(env_prefix="SERVER_")
+
     port: int
     host: str
     path_prefix: str = "/api"
-
-
-class ServerConfigSchema(Schema):
-    port = config.EnvField("SERVER_PORT", fields.Int(required=True))
-    host = fields.Str(required=True)
-    path_prefix = fields.Str(required=False)
-
-    @post_load
-    def make(self, data, **kwargs):
-        return ServerConfig(**data)

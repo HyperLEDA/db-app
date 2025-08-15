@@ -34,7 +34,7 @@ class AdminAPIServerTest(unittest.TestCase):
         os.environ["SERVER_PORT"] = str(cls.server_port)
         os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
         os.environ["QUEUE_PORT"] = str(cls.redis_queue.port)
-        os.environ["ADS_TOKEN"] = "test"
+        os.environ["CLIENTS_ADS_TOKEN"] = "test"
 
         logger.info("starting server", port=cls.server_port)
 

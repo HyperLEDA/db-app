@@ -4,9 +4,9 @@ from pathlib import Path
 
 from parameterized import parameterized
 
-import app.commands.adminapi.config as adminapi_config
-import app.commands.dataapi.config as dataapi_config
-import app.commands.runtask.config as runtask_config
+import app.commands.adminapi.command as adminapi
+import app.commands.dataapi.command as dataapi
+import app.commands.runtask.command as runtask
 
 REQUIREMENTS_PATH = Path("requirements.txt")
 MINIMAL_PYTHON_VERSION = (3, 10)
@@ -25,19 +25,21 @@ class TestEnvironment(unittest.TestCase):
         [
             ("configs/dev/adminapi.yaml"),
             ("configs/test/adminapi.yaml"),
+            ("configs/prod/adminapi.yaml"),
         ]
     )
     def test_parse_adminapi_config(self, path):
-        _ = adminapi_config.parse_config(path)
+        _ = adminapi.parse_config(path)
 
     @parameterized.expand(
         [
             ("configs/dev/dataapi.yaml"),
             ("configs/test/dataapi.yaml"),
+            ("configs/prod/dataapi.yaml"),
         ]
     )
     def test_parse_dataapi_config(self, path):
-        _ = dataapi_config.parse_config(path)
+        _ = dataapi.parse_config(path)
 
     @parameterized.expand(
         [
@@ -45,4 +47,4 @@ class TestEnvironment(unittest.TestCase):
         ]
     )
     def test_parse_runtask_config(self, path):
-        _ = runtask_config.parse_config(path)
+        _ = runtask.parse_config(path)

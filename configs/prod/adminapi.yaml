@@ -10,7 +10,7 @@ storage:
   port: 5432
   dbname: hyperleda
   user: hyperleda
-  password: password
+  password: fake
 
 queue:
   endpoint: redis
@@ -19,4 +19,4 @@ queue:
 
 clients:
   enabled: true
-  ads_token: token
+  ads_token: fake

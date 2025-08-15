@@ -21,7 +21,7 @@ class EnvParams:
     ads_token: str = ""
     postgres_password: str = ""
 
-    ads_token_env = "ADS_TOKEN"
+    ads_token_env = "CLIENTS_ADS_TOKEN"
     postgres_password_env = "POSTGRES_PASSWORD"
 
     @classmethod
@@ -67,7 +67,7 @@ def get_spec(params: EnvParams) -> deployment.RemoteSpec:
         ],
         root_dir=pathlib.Path(params.remote_base_path),
         env_vars={
-            "ADS_TOKEN": params.ads_token,
+            "CLIENTS_ADS_TOKEN": params.ads_token,
             "POSTGRES_PASSWORD": params.postgres_password,
         },
     )
