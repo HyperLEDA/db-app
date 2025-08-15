@@ -36,10 +36,15 @@ VELOCITY_SCHEMA = dataapi.AbsoluteVelocityUnits(
 )
 
 
+class ValueWithUncertainty(config.BaseConfigSettings):
+    value: float
+    error: float
+
+
 class ApexConfig(config.BaseConfigSettings):
-    lon: float
-    lat: float
-    vel: float
+    lon: ValueWithUncertainty
+    lat: ValueWithUncertainty
+    vel: ValueWithUncertainty
 
 
 class VelocityCatalogConfig(config.BaseConfigSettings):
@@ -116,15 +121,18 @@ class StructuredResponder(interface.ObjectResponder):
 
                 for key, apex in self.config.velocity.apexes.items():
                     vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                        redshift.cz * u.Unit("m/s"),
+                        vel=redshift.cz * u.Unit("m/s"),
                         lon=lon * u.Unit("deg"),
                         lat=lat * u.Unit("deg"),
-                        vel_apex=apex.vel * u.Unit("km/s"),
-                        lon_apex=apex.lon * u.Unit("deg"),
-                        lat_apex=apex.lat * u.Unit("deg"),
+                        vel_apex=apex.vel.value * u.Unit("km/s"),
+                        lon_apex=apex.lon.value * u.Unit("deg"),
+                        lat_apex=apex.lat.value * u.Unit("deg"),
                         vel_err=redshift.e_cz * u.Unit("m/s"),
                         lon_err=e_lon * u.Unit("arcsec"),
                         lat_err=e_lat * u.Unit("arcsec"),
+                        vel_apex_err=apex.vel.error * u.Unit("km/s"),
+                        lon_apex_err=apex.lon.error * u.Unit("arcsec"),
+                        lat_apex_err=apex.lat.error * u.Unit("arcsec"),
                     )
 
                     schema = VELOCITY_SCHEMA

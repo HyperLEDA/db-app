@@ -13,10 +13,22 @@ catalogs:
   velocity:
     apexes:
       heliocentric:
-        lon: 0
-        lat: 0
-        vel: 0
+        lon: 
+          value: 0
+          error: 0
+        lat: 
+          value: 0
+          error: 0
+        vel: 
+          value: 0
+          error: 0
       local_group:
-        lon: 93
-        lat: -4
-        vel: 316
+        lon:
+          value: 93
+          error: 2
+        lat:
+          value: -4
+          error: 2
+        vel: 
+          value: 316
+          error: 5
