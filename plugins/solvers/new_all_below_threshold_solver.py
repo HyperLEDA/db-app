@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import model
-from plugins.ci_types import CISolver
+from app.domain.unification.crossmatch import CISolver
 
 
 @final
@@ -23,4 +23,4 @@ def new_all_below_threshold_solver(threshold: float) -> CISolver:
 
 
 name = "new_all_below_threshold"
-solver = new_all_below_threshold_solver
+plugin = new_all_below_threshold_solver

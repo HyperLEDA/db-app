@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data.model import designation, layer0, layer2
-from plugins.ci_types import CIMatcher
+from app.domain.unification.crossmatch import CIMatcher
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -51,4 +51,4 @@ def levenshtein_matcher(max_distance: int) -> CIMatcher:
 
 
 name = "levenshtein"
-matcher = levenshtein_matcher
+plugin = levenshtein_matcher

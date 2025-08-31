@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import model
-from plugins.ci_types import CISolver
+from app.domain.unification.crossmatch import CISolver
 
 
 @final
@@ -23,4 +23,4 @@ def existing_only_one_above_threshold_solver(threshold: float) -> CISolver:
 
 
 name = "existing_only_one_above_threshold"
-solver = existing_only_one_above_threshold_solver
+plugin = existing_only_one_above_threshold_solver

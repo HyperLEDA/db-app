@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data.model import designation, layer0, layer2
-from plugins.ci_types import CIMatcher
+from app.domain.unification.crossmatch import CIMatcher
 
 
 @final
@@ -24,4 +24,4 @@ def ignore_if_no_name_matcher(matcher: CIMatcher) -> CIMatcher:
 
 
 name = "ignore_if_no_name"
-matcher = ignore_if_no_name_matcher
+plugin = ignore_if_no_name_matcher

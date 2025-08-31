@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data.model import layer0, layer2
-from plugins.ci_types import CIMatcher
+from app.domain.unification.crossmatch import CIMatcher
 
 
 @final
@@ -21,4 +21,4 @@ def and_matcher(matcher1: CIMatcher, matcher2: CIMatcher) -> CIMatcher:
 
 
 name = "and"
-matcher = and_matcher
+plugin = and_matcher

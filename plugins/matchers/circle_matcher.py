@@ -4,7 +4,7 @@ from astropy import coordinates
 from astropy import units as u
 
 from app.data.model import icrs, layer0, layer2
-from plugins.ci_types import CIMatcher
+from app.domain.unification.crossmatch import CIMatcher
 
 
 @final
@@ -36,4 +36,4 @@ def circle_matcher(radius_arcsec: float) -> CIMatcher:
 
 
 name = "circle"
-matcher = circle_matcher
+plugin = circle_matcher

@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import model
-from plugins.ci_types import CISolver
+from app.domain.unification.crossmatch import CISolver
 
 
 @final
@@ -24,4 +24,4 @@ def or_solver(solver1: CISolver, solver2: CISolver) -> CISolver:
 
 
 name = "or"
-solver = or_solver
+plugin = or_solver

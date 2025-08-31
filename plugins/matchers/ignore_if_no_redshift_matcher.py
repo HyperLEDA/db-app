@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data.model import layer0, layer2, redshift
-from plugins.ci_types import CIMatcher
+from app.domain.unification.crossmatch import CIMatcher
 
 
 @final
@@ -24,4 +24,4 @@ def ignore_if_no_redshift_matcher(matcher: CIMatcher) -> CIMatcher:
 
 
 name = "ignore_if_no_redshift"
-matcher = ignore_if_no_redshift_matcher
+plugin = ignore_if_no_redshift_matcher

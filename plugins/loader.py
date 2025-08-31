@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 from typing import Any
 
-from plugins.ci_types import CIMatcher, CISolver
+from app.domain.unification.crossmatch import CIMatcher, CISolver
 
 
 class PluginLoader:
@@ -39,20 +39,18 @@ class PluginLoader:
                     print(f"Warning: Plugin {py_file} missing 'name' variable")
                     continue
 
-                if not hasattr(module, plugin_type):
-                    print(f"Warning: Plugin {py_file} missing '{plugin_type}' variable")
+                if not hasattr(module, "plugin"):
+                    print(f"Warning: Plugin {py_file} missing 'plugin' variable")
                     continue
 
                 plugin_name = module.name
-                plugin_func = getattr(module, plugin_type)
+                plugin_func = module.plugin
 
                 if not callable(plugin_func):
-                    print(f"Warning: Plugin {py_file} '{plugin_type}' is not callable")
+                    print(f"Warning: Plugin {py_file} plugin is not callable")
                     continue
 
                 target_dict[plugin_name] = plugin_func
-                print(f"Registered {plugin_type}: {plugin_name}")
-
             except Exception as e:
                 print(f"Warning: Failed to load plugin {py_file}: {e}")
 
