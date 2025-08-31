@@ -33,3 +33,7 @@ class CircleMatcher:
 
 def circle_matcher(radius_arcsec: float) -> CIMatcher:
     return CircleMatcher(radius_arcsec)
+
+
+name = "circle"
+matcher = circle_matcher

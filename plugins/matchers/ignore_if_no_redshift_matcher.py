@@ -21,3 +21,7 @@ class IgnoreIfNoRedshiftMatcher:
 
 def ignore_if_no_redshift_matcher(matcher: CIMatcher) -> CIMatcher:
     return IgnoreIfNoRedshiftMatcher(matcher)
+
+
+name = "ignore_if_no_redshift"
+matcher = ignore_if_no_redshift_matcher

@@ -21,3 +21,7 @@ class OrSolver:
 
 def or_solver(solver1: CISolver, solver2: CISolver) -> CISolver:
     return OrSolver(solver1, solver2)
+
+
+name = "or"
+solver = or_solver

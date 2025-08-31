@@ -20,3 +20,7 @@ class ExistingOnlyOneAboveThresholdSolver:
 
 def existing_only_one_above_threshold_solver(threshold: float) -> CISolver:
     return ExistingOnlyOneAboveThresholdSolver(threshold)
+
+
+name = "existing_only_one_above_threshold"
+solver = existing_only_one_above_threshold_solver

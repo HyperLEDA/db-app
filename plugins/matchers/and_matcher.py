@@ -18,3 +18,7 @@ class AndMatcher:
 
 def and_matcher(matcher1: CIMatcher, matcher2: CIMatcher) -> CIMatcher:
     return AndMatcher(matcher1, matcher2)
+
+
+name = "and"
+matcher = and_matcher

@@ -21,3 +21,7 @@ class IgnoreIfNoNameMatcher:
 
 def ignore_if_no_name_matcher(matcher: CIMatcher) -> CIMatcher:
     return IgnoreIfNoNameMatcher(matcher)
+
+
+name = "ignore_if_no_name"
+matcher = ignore_if_no_name_matcher

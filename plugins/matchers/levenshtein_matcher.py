@@ -48,3 +48,7 @@ class LevenshteinMatcher:
 
 def levenshtein_matcher(max_distance: int) -> CIMatcher:
     return LevenshteinMatcher(max_distance)
+
+
+name = "levenshtein"
+matcher = levenshtein_matcher

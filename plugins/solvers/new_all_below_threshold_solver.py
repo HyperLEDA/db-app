@@ -20,3 +20,7 @@ class NewAllBelowThresholdSolver:
 
 def new_all_below_threshold_solver(threshold: float) -> CISolver:
     return NewAllBelowThresholdSolver(threshold)
+
+
+name = "new_all_below_threshold"
+solver = new_all_below_threshold_solver
