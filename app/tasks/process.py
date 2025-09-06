@@ -1,11 +1,9 @@
-from concurrent import futures
 from typing import final
 
 import structlog
 
-from app.data import model, repositories
+from app.data import repositories
 from app.domain import processing
-from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface
 
@@ -39,38 +37,6 @@ class ProcessTask(interface.Task):
         ctx = {"table_id": self.table_id}
         self.log.info("Starting marking of objects", **ctx)
         processing.mark_objects(self.layer0_repo, self.table_id, self.batch_size)
-
-        self.log.info("Erasing previous crossmatching results", **ctx)
-        self.layer0_repo.erase_crossmatch_results(self.table_id)
-
-        self.log.info("Starting cross-identification", **ctx)
-        for offset, data in containers.read_batches(
-            self.layer0_repo.get_objects,
-            lambda data: len(data) == 0,
-            0,
-            lambda _, offset: offset + self.batch_size,
-            self.table_id,
-            batch_size=self.batch_size,
-        ):
-            crossmatch_results: dict[str, model.CIResult] = {}
-
-            with futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
-                chunk_size = len(data) // self.workers
-                if chunk_size == 0:
-                    chunk_size = len(data)
-
-                data_chunks = [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
-
-                future_results = [
-                    executor.submit(processing.crossmatch, self.layer2_repo, chunk) for chunk in data_chunks
-                ]
-
-                for future in futures.as_completed(future_results):
-                    crossmatch_results.update(future.result())
-
-            self.layer0_repo.add_crossmatch_result(crossmatch_results)
-
-            self.log.info("Processed batch", done=offset, **ctx)
 
     def cleanup(self):
         self.pg_storage.disconnect()

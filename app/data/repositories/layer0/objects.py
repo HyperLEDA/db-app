@@ -167,9 +167,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 meta = {"pgc": result.pgc}
             else:
                 status = enums.ObjectCrossmatchStatus.COLLIDED
-                possible_pgcs = {}
-                for catalog, vals in result.possible_pgcs.items():
-                    possible_pgcs[catalog] = list(vals)
+                possible_pgcs = list(result.pgcs or set())
 
                 meta = {"possible_matches": possible_pgcs}
 
