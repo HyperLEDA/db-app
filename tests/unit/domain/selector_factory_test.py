@@ -1,10 +1,13 @@
 import unittest
-from typing import Any, cast
+from typing import Any, cast, final
 
+from app.data.model.interface import CatalogObject
 from app.data.repositories.layer2 import Filter
+from app.data.repositories.layer2.params import SearchParams
 from app.domain.unification.crossmatch import create_selector
 
 
+@final
 class DummyFilter(Filter):
     def __init__(self, value: str, **kwargs):
         self.value = value
@@ -16,7 +19,11 @@ class DummyFilter(Filter):
     def get_params(self) -> list[Any]:
         return [self.value]
 
+    def extract_search_params(self, object_info: list[CatalogObject]) -> SearchParams:
+        raise NotImplementedError
 
+
+@final
 class DummyNestedFilter(Filter):
     def __init__(self, filter1: Filter, filter2: Filter, **kwargs):
         self.filter1 = filter1
@@ -32,7 +39,11 @@ class DummyNestedFilter(Filter):
         params.extend(self.filter2.get_params())
         return params
 
+    def extract_search_params(self, object_info: list[CatalogObject]) -> SearchParams:
+        raise NotImplementedError
 
+
+@final
 class DummyListFilter(Filter):
     def __init__(self, filters: list[Filter]):
         self.filters = filters
@@ -47,7 +58,11 @@ class DummyListFilter(Filter):
             params.extend(f.get_params())
         return params
 
+    def extract_search_params(self, object_info: list[CatalogObject]) -> SearchParams:
+        raise NotImplementedError
 
+
+@final
 class DummyFilterWithRequiredParam(Filter):
     def __init__(self, required_param: str):
         self.required_param = required_param
@@ -57,6 +72,9 @@ class DummyFilterWithRequiredParam(Filter):
 
     def get_params(self) -> list[Any]:
         return [self.required_param]
+
+    def extract_search_params(self, object_info: list[CatalogObject]) -> SearchParams:
+        raise NotImplementedError
 
 
 class TestCreateSelector(unittest.TestCase):
