@@ -2,6 +2,7 @@ from typing import final
 
 import structlog
 
+from app.data.repositories import layer2
 from app.domain.unification import crossmatch
 from app.tasks import interface
 from plugins.loader import discover_matchers, discover_solvers
@@ -25,6 +26,13 @@ test_solver_config = {
     "solver2": {"type": "new_all_below_threshold", "threshold": 0.01},
 }
 
+test_selector_config = {
+    "type": "or",
+    "filters": [
+        {"type": "coordinates_in_radius", "radius": 100},
+    ],
+}
+
 
 @final
 class CrossmatchTask(interface.Task):
@@ -45,7 +53,8 @@ class CrossmatchTask(interface.Task):
 
         matcher = crossmatch.create_matcher(test_matcher_config, matchers)
         solver = crossmatch.create_solver(test_solver_config, solvers)
-        print(matcher, solver)
+        selector = crossmatch.create_selector(test_selector_config, layer2.AVAILABLE_FILTERS)
+        print(matcher, solver, selector)
 
         self.log.info("matchers", lst=matchers.keys())
         self.log.info("solvers", lst=solvers.keys())

@@ -1,9 +1,8 @@
 import abc
 from typing import Any
 
-import astropy
-import astropy.units
-import astropy.units.quantity
+from astropy import units as u
+from astropy.units import quantity
 
 
 class Filter(abc.ABC):
@@ -17,6 +16,10 @@ class Filter(abc.ABC):
 
 
 class PGCOneOfFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "pgc_one_of"
+
     def __init__(self, pgcs: list[int]):
         self._pgcs = pgcs
 
@@ -28,6 +31,10 @@ class PGCOneOfFilter(Filter):
 
 
 class AndFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "and"
+
     def __init__(self, filters: list[Filter]):
         self._filters = filters
 
@@ -44,6 +51,10 @@ class AndFilter(Filter):
 
 
 class OrFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "or"
+
     def __init__(self, filters: list[Filter]):
         self._filters = filters
 
@@ -58,6 +69,10 @@ class OrFilter(Filter):
 
 
 class DesignationEqualsFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "designation_equals"
+
     def __init__(self, designation: str):
         self._designation = designation
 
@@ -69,6 +84,10 @@ class DesignationEqualsFilter(Filter):
 
 
 class DesignationCloseFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "designation_close"
+
     def __init__(self, distance: int):
         self._distance = distance
 
@@ -80,9 +99,13 @@ class DesignationCloseFilter(Filter):
 
 
 class ICRSCoordinatesInRadiusFilter(Filter):
-    def __init__(self, radius: float | astropy.units.quantity.Quantity):
-        if isinstance(radius, astropy.units.quantity.Quantity):
-            radius = radius.to(astropy.units.deg).value
+    @classmethod
+    def name(cls) -> str:
+        return "coordinates_in_radius"
+
+    def __init__(self, radius: float | quantity.Quantity):
+        if isinstance(radius, quantity.Quantity):
+            radius = radius.to(u.Unit("deg")).value
 
         self._radius = radius
 
@@ -99,6 +122,10 @@ class ICRSCoordinatesInRadiusFilter(Filter):
 
 
 class RedshiftCloseFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "redshift_close"
+
     def __init__(self, redshift: float, distance_percent: float):
         self._redshift = redshift
         self._distance_percent = distance_percent
@@ -108,3 +135,14 @@ class RedshiftCloseFilter(Filter):
 
     def get_params(self):
         return [self._redshift, self._distance_percent]
+
+
+AVAILABLE_FILTERS = {
+    PGCOneOfFilter.name(): PGCOneOfFilter,
+    AndFilter.name(): AndFilter,
+    OrFilter.name(): OrFilter,
+    DesignationEqualsFilter.name(): DesignationEqualsFilter,
+    DesignationCloseFilter.name(): DesignationCloseFilter,
+    ICRSCoordinatesInRadiusFilter.name(): ICRSCoordinatesInRadiusFilter,
+    RedshiftCloseFilter.name(): RedshiftCloseFilter,
+}
