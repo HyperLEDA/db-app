@@ -12,11 +12,17 @@ from app.tasks import interface
 
 @final
 class ProcessTask(interface.Task):
-    def __init__(self, table_id: int, batch_size: int = 500, workers: int = 8) -> None:
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        table_id: int,
+        batch_size: int = 500,
+        workers: int = 8,
+    ) -> None:
         self.table_id = table_id
         self.batch_size = batch_size
         self.workers = workers
-        self.log = structlog.get_logger()
+        self.log = logger
 
     @classmethod
     def name(cls) -> str:

@@ -1,7 +1,9 @@
 import json
+import logging
 from pathlib import Path
 from typing import Any, final
 
+import structlog
 import yaml
 
 from app import tasks
@@ -47,7 +49,12 @@ class RunTaskCommand(commands.Command):
         task_args_dict = self._parse_task_args(self.task_args)
         input_data.update(task_args_dict)
 
-        self.task = tasks.get_task(self.task_name, input_data)
+        structlog.configure(
+            wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+        )
+        logger = structlog.get_logger()
+
+        self.task = tasks.get_task(self.task_name, logger, input_data)
         self.task.prepare(cfg)
 
     def run(self):

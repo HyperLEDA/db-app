@@ -11,10 +11,15 @@ from app.tasks import interface
 
 @final
 class Layer1ImportTask(interface.Task):
-    def __init__(self, table_id: int, batch_size: int) -> None:
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        table_id: int,
+        batch_size: int,
+    ) -> None:
         self.table_id = table_id
         self.batch_size = batch_size
-        self.log = structlog.get_logger()
+        self.log = logger
 
     @classmethod
     def name(cls) -> str:

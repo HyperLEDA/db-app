@@ -1,3 +1,4 @@
+import uuid
 from typing import final
 
 import structlog
@@ -38,11 +39,17 @@ test_solver_config = {
 
 @final
 class CrossmatchTask(interface.Task):
-    def __init__(self, table_name: str, batch_size: int = 500, workers: int = 8) -> None:
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        table_name: str,
+        batch_size: int = 500,
+        workers: int = 8,
+    ) -> None:
         self.table_name = table_name
         self.batch_size = batch_size
         self.workers = workers
-        self.log = structlog.get_logger()
+        self.log = logger
 
     @classmethod
     def name(cls) -> str:
@@ -63,49 +70,79 @@ class CrossmatchTask(interface.Task):
         self.matcher = crossmatch.create_matcher(test_matcher_config, matchers)
         self.solver = crossmatch.create_solver(test_solver_config, solvers)
 
-        self.log.info("matchers", lst=matchers.keys())
-        self.log.info("solvers", lst=solvers.keys())
-
     def run(self):
         table_meta = self.layer0_repo.fetch_metadata_by_name(self.table_name)
         if table_meta.table_id is None:
             raise RuntimeError(f"Table {self.table_name} has no table_id")
 
-        layer0_objects = self.layer0_repo.get_objects(
-            table_id=table_meta.table_id,
-            limit=10,
-            offset=0,
-        )
+        ctx = {"table_name": self.table_name, "table_id": table_meta.table_id}
 
-        search_params = {}
-        search_types = {}
+        offset = 0
+        new_count = 0
+        existing_count = 0
+        collision_count = 0
 
-        for layer0_object in layer0_objects:
-            icrs_obj = layer0_object.get(model.ICRSCatalogObject)
-            if icrs_obj is not None:
-                search_params[layer0_object.object_id] = self.selector.extract_search_params(layer0_object.data)
-                search_types[search_params[layer0_object.object_id].name()] = self.selector
+        while True:
+            layer0_objects = self.layer0_repo.get_objects(
+                table_id=table_meta.table_id,
+                limit=self.batch_size,
+                offset=offset,
+            )
+            if not layer0_objects:
+                break
 
-        layer2_results = self.layer2_repo.query_batch(
-            catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            search_types=search_types,
-            search_params=search_params,
-            limit=len(layer0_objects) * 10,  # Allow multiple matches per object
-            offset=0,
-        )
+            search_params = {}
+            search_types = {}
 
-        results: dict[str, model.CIResult] = {}
+            for layer0_object in layer0_objects:
+                icrs_obj = layer0_object.get(model.ICRSCatalogObject)
+                if icrs_obj is not None:
+                    search_params[layer0_object.object_id] = self.selector.extract_search_params(layer0_object.data)
+                    search_types[search_params[layer0_object.object_id].name()] = self.selector
 
-        for layer0_object in layer0_objects:
-            layer2_objects = layer2_results.get(layer0_object.object_id, [])
-            probabilities: list[tuple[model.Layer2Object, float]] = []
+            layer2_results = self.layer2_repo.query_batch(
+                catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
+                search_types=search_types,
+                search_params=search_params,
+                limit=len(layer0_objects) * 10,  # Allow multiple matches per object
+                offset=0,
+            )
 
-            for layer2_object in layer2_objects:
-                probabilities.append((layer2_object, self.matcher(layer0_object, layer2_object)))
+            results: dict[str, model.CIResult] = {}
 
-            results[layer0_object.object_id] = self.solver(probabilities)
+            for layer0_object in layer0_objects:
+                layer2_objects = layer2_results.get(layer0_object.object_id, [])
+                probabilities: list[tuple[model.Layer2Object, float]] = []
 
-        print(results)
+                for layer2_object in layer2_objects:
+                    probabilities.append((layer2_object, self.matcher(layer0_object, layer2_object)))
+
+                result = self.solver(probabilities)
+                results[layer0_object.object_id] = result
+
+                if isinstance(result, model.CIResultObjectNew):
+                    new_count += 1
+                elif isinstance(result, model.CIResultObjectExisting):
+                    existing_count += 1
+                elif isinstance(result, model.CIResultObjectCollision):
+                    collision_count += 1
+
+            self.layer0_repo.add_crossmatch_result(results)
+
+            offset += self.batch_size
+
+            last_uuid = uuid.UUID(layer0_object.object_id or "00000000-0000-0000-0000-000000000000")
+            max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
+
+            self.log.info(
+                "Completed batch",
+                new=f"{new_count / offset * 100:.01f}%",
+                existing=f"{existing_count / offset * 100:.01f}%",
+                collision=f"{collision_count / offset * 100:.01f}%",
+                total=offset,
+                very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
+                **ctx,
+            )
 
     def cleanup(self):
         self.pg_storage.disconnect()

@@ -176,6 +176,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             params.extend([object_id, status, json.dumps(meta)])
 
         query += ",".join(values)
+        query += " ON CONFLICT (object_id) DO UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata"
 
         self._storage.exec(query, params=params)
 

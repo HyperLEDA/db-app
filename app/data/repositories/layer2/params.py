@@ -6,7 +6,7 @@ from astropy import coordinates as coords
 
 class SearchParams(abc.ABC):
     @abc.abstractmethod
-    def name() -> str:
+    def name(self) -> str:
         pass
 
     @abc.abstractmethod
