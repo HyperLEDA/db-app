@@ -2,8 +2,22 @@ from typing import final
 
 import structlog
 
+from app.domain.unification import crossmatch
 from app.tasks import interface
 from plugins.loader import discover_matchers, discover_solvers
+
+test_config = {
+    "type": "and",
+    "matcher1": {
+        "type": "and",
+        "matcher1": {"type": "circle", "radius_arcsec": 100},
+        "matcher2": {"type": "ignore_no_name", "matcher": {"type": "levenshtein", "max_distance": 5}},
+    },
+    "matcher2": {
+        "type": "ignore_no_redshift",
+        "matcher": {"type": "velocity_close", "velocity_variance": 1000},
+    },
+}
 
 
 @final
@@ -22,6 +36,9 @@ class CrossmatchTask(interface.Task):
         self.log.info("Loading cross-identification plugins")
         matchers = discover_matchers("plugins/matchers")
         solvers = discover_solvers("plugins/solvers")
+
+        matcher = crossmatch.create_matcher(test_config, matchers)
+        print(matcher)
 
         self.log.info("matchers", lst=matchers.keys())
         self.log.info("solvers", lst=solvers.keys())

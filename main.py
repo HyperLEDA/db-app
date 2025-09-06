@@ -3,7 +3,6 @@ import os
 import click
 
 from app.commands.adminapi import AdminAPICommand
-from app.commands.crossmatch import CrossmatchCommand
 from app.commands.dataapi import DataAPICommand
 from app.commands.generate_spec import GenerateSpecCommand
 from app.commands.runtask import RunTaskCommand
@@ -39,7 +38,7 @@ def dataapi(config: str):
     commands.run(DataAPICommand(config))
 
 
-@cli.command(short_help=RunTaskCommand.help())
+@cli.command(short_help=RunTaskCommand.help(), context_settings={"ignore_unknown_options": True})
 @click.argument(
     "task_name",
     required=True,
@@ -58,8 +57,9 @@ def dataapi(config: str):
     type=str,
     help="Path to input data file",
 )
-def runtask(task_name: str, config: str, input_data: str | None):
-    commands.run(RunTaskCommand(task_name, config, input_data))
+@click.argument("task_args", nargs=-1, type=click.UNPROCESSED)
+def runtask(task_name: str, config: str, input_data: str | None, task_args: tuple[str, ...]):
+    commands.run(RunTaskCommand(task_name, config, input_data, None, task_args))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())
@@ -72,23 +72,6 @@ def runtask(task_name: str, config: str, input_data: str | None):
 )
 def generate_spec(output: str):
     commands.run(GenerateSpecCommand(output))
-
-
-@cli.command(short_help=CrossmatchCommand.help())
-@click.argument(
-    "table_name",
-    required=True,
-    type=str,
-)
-@click.option(
-    "-c",
-    "--config",
-    type=str,
-    default=lambda: os.environ.get("CONFIG", ""),
-    help="Path to configuration file",
-)
-def crossmatch(table_name: str, config: str):
-    commands.run(CrossmatchCommand(table_name, config))
 
 
 if __name__ == "__main__":

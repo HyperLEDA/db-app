@@ -5,7 +5,7 @@ from app.domain.unification.crossmatch import CIMatcher
 
 
 @final
-class IgnoreIfNoNameMatcher:
+class IgnoreNoNameMatcher:
     def __init__(self, matcher: CIMatcher):
         self.matcher = matcher
 
@@ -19,9 +19,9 @@ class IgnoreIfNoNameMatcher:
         return self.matcher(object1, object2)
 
 
-def ignore_if_no_name_matcher(matcher: CIMatcher) -> CIMatcher:
-    return IgnoreIfNoNameMatcher(matcher)
+def ignore_no_name_matcher(matcher: CIMatcher) -> CIMatcher:
+    return IgnoreNoNameMatcher(matcher)
 
 
-name = "ignore_if_no_name"
-plugin = ignore_if_no_name_matcher
+name = "ignore_no_name"
+plugin = ignore_no_name_matcher

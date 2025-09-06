@@ -48,3 +48,44 @@ Examples of when NOT to comment:
 ## Docstrings
 
 Unless explicitly instructed otherwise, do not write docstrings for functions, classes, or modules. The code should be self-documenting through clear naming and structure.
+
+## Import Guidelines
+
+### Module Exports
+
+When adding a new exportable function, class, or other symbol, add it to `__all__` inside the `__init__.py` of the corresponding directory. A symbol is deemed exportable only if it is used in other business logic of the project. If it is only used inside the same directory or in tests from the `tests/` directory, it should not be exported through `__all__`.
+
+### Import Style
+
+Prefer importing modules rather than individual symbols from modules. This improves code readability and makes dependencies clearer.
+
+**Preferred:**
+
+```python
+import numpy as np
+import pandas as pd
+
+# Usage
+data: np.ndarray = np.array([1, 2, 3])
+df: pd.DataFrame = pd.DataFrame(data)
+```
+
+**Avoid:**
+
+```python
+from numpy import ndarray, array
+from pandas import DataFrame
+
+# Usage
+data: ndarray = array([1, 2, 3])
+df: DataFrame = DataFrame(data)
+```
+
+### Exception for Typing Imports
+
+The only exception to the above rule is for imports from the `typing` or `collections.abc` package. These should be imported directly:
+
+```python
+from typing import Any
+from collections.abc import Sequence
+```
