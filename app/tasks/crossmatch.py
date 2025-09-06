@@ -1,3 +1,4 @@
+import pprint
 from typing import final
 
 import structlog
@@ -80,11 +81,11 @@ class CrossmatchTask(interface.Task):
         search_params = {}
         search_types = {}
 
-        for layer0_obj in layer0_objects:
-            icrs_obj = layer0_obj.get(model.ICRSCatalogObject)
+        for layer0_object in layer0_objects:
+            icrs_obj = layer0_object.get(model.ICRSCatalogObject)
             if icrs_obj is not None:
-                search_params[layer0_obj.object_id] = self.selector.extract_search_params(layer0_obj.data)
-                search_types[search_params[layer0_obj.object_id].name()] = self.selector
+                search_params[layer0_object.object_id] = self.selector.extract_search_params(layer0_object.data)
+                search_types[search_params[layer0_object.object_id].name()] = self.selector
 
         layer2_results = self.layer2_repo.query_batch(
             catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
@@ -94,13 +95,20 @@ class CrossmatchTask(interface.Task):
             offset=0,
         )
 
-        result = {}
-        for layer0_obj in layer0_objects:
-            object_id = layer0_obj.object_id
-            layer2_objects = layer2_results.get(object_id, [])
-            result[object_id] = layer2_objects
+        probabilities: dict[str, list[tuple[model.Layer2Object, float]]] = {}
 
-        print(result)
+        for layer0_object in layer0_objects:
+            layer2_objects = layer2_results.get(layer0_object.object_id, [])
+
+            for layer2_object in layer2_objects:
+                if layer0_object.object_id not in probabilities:
+                    probabilities[layer0_object.object_id] = []
+
+                probabilities[layer0_object.object_id].append(
+                    (layer2_object, self.matcher(layer0_object, layer2_object))
+                )
+
+        pprint.pprint(probabilities)
 
     def cleanup(self):
         self.pg_storage.disconnect()
