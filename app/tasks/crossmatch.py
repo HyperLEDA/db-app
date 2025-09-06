@@ -21,7 +21,7 @@ class CrossmatchTask(interface.Task):
 
         self.log.info("Loading cross-identification plugins")
         matchers = discover_matchers("plugins/matchers")
-        solvers = discover_solvers("plugins/matchers")
+        solvers = discover_solvers("plugins/solvers")
 
         self.log.info("matchers", lst=matchers.keys())
         self.log.info("solvers", lst=solvers.keys())
