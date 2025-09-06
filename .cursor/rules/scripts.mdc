@@ -1,0 +1,22 @@
+---
+alwaysApply: true
+---
+
+# Scripts and Python Execution
+
+This project uses `uv` for package management. `uv` manages virtual environments as well, meaning that simple running of `python` command will not work.
+
+## Running Python Scripts
+
+When running Python scripts or commands, always use `uv run` instead of raw `python` or `python3`:
+
+```bash
+# Correct - use uv run
+uv run python script.py
+uv run python -c "print('Hello World')"
+uv run python -m pytest
+
+# Incorrect - don't use raw python
+python script.py
+python3 script.py
+```
