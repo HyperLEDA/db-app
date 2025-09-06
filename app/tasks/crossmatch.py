@@ -1,4 +1,3 @@
-import pprint
 from typing import final
 
 import structlog
@@ -95,20 +94,18 @@ class CrossmatchTask(interface.Task):
             offset=0,
         )
 
-        probabilities: dict[str, list[tuple[model.Layer2Object, float]]] = {}
+        results: dict[str, model.CIResult] = {}
 
         for layer0_object in layer0_objects:
             layer2_objects = layer2_results.get(layer0_object.object_id, [])
+            probabilities: list[tuple[model.Layer2Object, float]] = []
 
             for layer2_object in layer2_objects:
-                if layer0_object.object_id not in probabilities:
-                    probabilities[layer0_object.object_id] = []
+                probabilities.append((layer2_object, self.matcher(layer0_object, layer2_object)))
 
-                probabilities[layer0_object.object_id].append(
-                    (layer2_object, self.matcher(layer0_object, layer2_object))
-                )
+            results[layer0_object.object_id] = self.solver(probabilities)
 
-        pprint.pprint(probabilities)
+        print(results)
 
     def cleanup(self):
         self.pg_storage.disconnect()
