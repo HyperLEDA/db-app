@@ -19,8 +19,8 @@ class CircleMatcher:
         if coords1 is None or coords2 is None:
             return 0.0
 
-        acoords1 = coordinates.SkyCoord(ra=coords1.ra, dec=coords1.dec)
-        acoords2 = coordinates.SkyCoord(ra=coords2.ra, dec=coords2.dec)
+        acoords1 = coordinates.SkyCoord(ra=coords1.ra * u.Unit("deg"), dec=coords1.dec * u.Unit("deg"))
+        acoords2 = coordinates.SkyCoord(ra=coords2.ra * u.Unit("deg"), dec=coords2.dec * u.Unit("deg"))
 
         sep = acoords1.separation(acoords2)
 
