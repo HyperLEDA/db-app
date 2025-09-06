@@ -32,8 +32,7 @@ class RunTaskCommand(commands.Command):
     @classmethod
     def help(cls) -> str:
         return f"""
-            Executes specified task. 
-            Input should be specified as a separate file. 
+            Executes specified task.
             Possible tasks are: {", ".join(tasks.list_tasks())}.
         """
 

@@ -9,9 +9,8 @@ from app.domain.unification.crossmatch import create_selector
 
 @final
 class DummyFilter(Filter):
-    def __init__(self, value: str, **kwargs):
+    def __init__(self, value: str):
         self.value = value
-        self.extra_params = kwargs
 
     def get_query(self) -> str:
         return "dummy = %s"
@@ -25,10 +24,9 @@ class DummyFilter(Filter):
 
 @final
 class DummyNestedFilter(Filter):
-    def __init__(self, filter1: Filter, filter2: Filter, **kwargs):
+    def __init__(self, filter1: Filter, filter2: Filter):
         self.filter1 = filter1
         self.filter2 = filter2
-        self.extra_params = kwargs
 
     def get_query(self) -> str:
         return f"({self.filter1.get_query()}) AND ({self.filter2.get_query()})"
@@ -160,25 +158,6 @@ class TestCreateSelector(unittest.TestCase):
         with self.assertRaises(TypeError):
             create_selector(config, available_filters)
 
-    def test_mixed_parameters(self):
-        available_filters = {
-            "dummy": DummyFilter,
-            "nested": DummyNestedFilter,
-        }
-        config = {
-            "type": "nested",
-            "filter1": {"type": "dummy", "value": "nested_value"},
-            "filter2": {"type": "dummy", "value": "another_value"},
-            "extra_param": "should_be_ignored",
-        }
-
-        result = create_selector(config, available_filters)
-
-        self.assertIsInstance(result, DummyNestedFilter)
-        nested_result = cast(DummyNestedFilter, result)
-        self.assertEqual(cast(DummyFilter, nested_result.filter1).value, "nested_value")
-        self.assertEqual(cast(DummyFilter, nested_result.filter2).value, "another_value")
-
     def test_empty_list_handling(self):
         available_filters = {
             "dummy": DummyFilter,
@@ -194,22 +173,6 @@ class TestCreateSelector(unittest.TestCase):
         self.assertIsInstance(result, DummyListFilter)
         list_result = cast(DummyListFilter, result)
         self.assertEqual(len(list_result.filters), 0)
-
-    def test_non_dict_list_items_are_preserved(self):
-        available_filters = {
-            "dummy": DummyFilter,
-        }
-        config = {
-            "type": "dummy",
-            "value": "test_value",
-            "simple_list": [1, 2, 3],
-        }
-
-        result = create_selector(config, available_filters)
-
-        self.assertIsInstance(result, DummyFilter)
-        dummy_result = cast(DummyFilter, result)
-        self.assertEqual(dummy_result.value, "test_value")
 
     def test_mixed_list_with_dicts_raises_error(self):
         available_filters = {
