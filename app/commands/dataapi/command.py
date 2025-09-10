@@ -1,12 +1,15 @@
+from pathlib import Path
 from typing import final
 
 import structlog
+import yaml
 
-from app.commands.dataapi import config
 from app.data import repositories
 from app.domain import dataapi as domain
-from app.lib import commands
+from app.domain import responders
+from app.lib import commands, config
 from app.lib.storage import postgres
+from app.lib.web import server
 from app.presentation import dataapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -23,19 +26,33 @@ class DataAPICommand(commands.Command):
         self.config_path = config_path
 
     def prepare(self):
-        self.config = config.parse_config(self.config_path)
+        self.config = parse_config(self.config_path)
 
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
 
         actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            catalog_cfg=self.config.catalogs,
         )
 
-        self.app = presentation.Server(actions, self.config.server)
+        self.app = presentation.Server(actions, self.config.server, log)
 
     def run(self):
         self.app.run()
 
     def cleanup(self):
-        self.pg_storage.disconnect()
+        if self.pg_storage:
+            self.pg_storage.disconnect()
+
+
+class Config(config.ConfigSettings):
+    server: server.ServerConfig
+    storage: postgres.PgStorageConfig
+    catalogs: responders.CatalogConfig
+
+
+def parse_config(path: str) -> Config:
+    data = yaml.safe_load(Path(path).read_text())
+
+    return Config(**data)

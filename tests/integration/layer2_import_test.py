@@ -20,7 +20,7 @@ class Layer2ImportTest(unittest.TestCase):
         cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
         cls.task = layer2_import.Layer2ImportTask()
-        cls.task.prepare(tasks.Config(cls.pg_storage.config))
+        cls.task.prepare(tasks.Config(storage=cls.pg_storage.config))
 
     def tearDown(self):
         self.pg_storage.clear()

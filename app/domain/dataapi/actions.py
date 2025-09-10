@@ -1,9 +1,12 @@
+from typing import final
+
 import astropy.units as u
 from astropy import coordinates as coords
 
 from app.data import model, repositories
 from app.data.repositories import layer2
 from app.domain import expressions, responders
+from app.domain.dataapi import parameterized_query
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -13,46 +16,17 @@ ENABLED_CATALOGS = [
 ]
 
 
+@final
 class Actions(dataapi.Actions):
-    def __init__(self, layer2_repo: repositories.Layer2Repository) -> None:
+    def __init__(
+        self,
+        layer2_repo: repositories.Layer2Repository,
+        catalog_cfg: responders.CatalogConfig,
+    ) -> None:
         self.layer2_repo = layer2_repo
-
-    def _build_filters_and_params(
-        self, query: dataapi.QuerySimpleRequest | dataapi.FITSRequest
-    ) -> tuple[layer2.Filter, layer2.SearchParams]:
-        filters = []
-        search_params = []
-
-        if query.pgcs is not None:
-            filters.append(layer2.PGCOneOfFilter(query.pgcs))
-
-        if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
-            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(layer2.ICRSSearchParams(query.ra, query.dec))
-
-        if query.name is not None:
-            filters.append(layer2.DesignationCloseFilter(3))
-            search_params.append(layer2.DesignationSearchParams(query.name))
-
-        if (query.cz is not None) and (query.cz_err_percent is not None):
-            filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
-
-        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params)
-
-    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
-        filters, search_params = self._build_filters_and_params(query)
-
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
+        self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
+            layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
-
-        responder = responders.JSONResponder()
-        pgc_objects = responder.build_response(objects)
-        return dataapi.QuerySimpleResponse(pgc_objects)
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         expression = expressions.parse_expression(query.q)
@@ -68,34 +42,26 @@ class Actions(dataapi.Actions):
 
         responder = responders.JSONResponder()
         pgc_objects = responder.build_response(objects)
-        return dataapi.QueryResponse(pgc_objects)
+        return dataapi.QueryResponse(objects=pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
-        filters, search_params = self._build_filters_and_params(query)
+        return self.parameterized_query_manager.query_fits(query)
 
-        objects = self.layer2_repo.query(
-            ENABLED_CATALOGS,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
-        )
-
-        responder = responders.FITSResponder()
-        return responder.build_response(objects)
+    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+        return self.parameterized_query_manager.query_simple(query)
 
 
 def parse_coordinates(coord_str: str) -> coords.SkyCoord:
     try:
         if coord_str.startswith(("J", "B")):
-            return coords.SkyCoord(coord_str[1:], unit=(u.hourangle, u.deg))
+            return coords.SkyCoord(coord_str[1:], unit=(u.Unit("hourangle"), u.Unit("deg")))
 
         if coord_str.startswith("G"):
             long, lat = map(float, coord_str[1:].split("+"))
-            coord = coords.SkyCoord(l=long * u.deg, b=lat * u.deg, frame="galactic")
+            coord = coords.SkyCoord(l=long * u.Unit("deg"), b=lat * u.Unit("deg"), frame="galactic")
             return coord.transform_to("icrs")
 
-        return coords.SkyCoord(coord_str, unit=(u.hourangle, u.deg))
+        return coords.SkyCoord(coord_str, unit=(u.Unit("hourangle"), u.Unit("deg")))
     except Exception as e:
         raise ValueError(f"Invalid coordinate format: {coord_str}") from e
 
@@ -111,7 +77,7 @@ def parse_function_node(node: expressions.FunctionNode) -> tuple[layer2.Filter, 
     if node.function == expressions.FunctionName.NAME:
         return layer2.DesignationCloseFilter(2), layer2.DesignationSearchParams(node.value)
     if node.function == expressions.FunctionName.POS:
-        return layer2.ICRSCoordinatesInRadiusFilter(1 * u.arcsec), layer2.ICRSSearchParams(
+        return layer2.ICRSCoordinatesInRadiusFilter(1 * u.Unit("arcsec")), layer2.ICRSSearchParams(
             coords=parse_coordinates(node.value)
         )
 

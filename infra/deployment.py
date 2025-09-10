@@ -83,8 +83,12 @@ def _run_command(
     logger: structlog.stdlib.BoundLogger,
     connection: Connection,
     cmd: str,
+    params: dict[str, str] | None = None,
 ):
     logger.debug("Running command", cmd=cmd)
+
+    if params:
+        cmd = cmd.format(**params)
 
     connection.run(cmd)
 
@@ -170,10 +174,14 @@ class RemoteSpec:
 
     def reload(self):
         env_strings = []
+        params = {}
 
         for key, value in self.env_vars.items():
-            env_strings.append(f"{key}={value}")
+            env_strings.append(f"{key}=" + "{" + key + "}")
+            params[key] = value
 
         env_string = " ".join(env_strings)
 
-        _run_command(self.logger, self.connection, f"cd {self.root_dir} && {env_string} docker compose up -d")
+        _run_command(
+            self.logger, self.connection, f"cd {self.root_dir} && {env_string} docker compose up -d", params=params
+        )

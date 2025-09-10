@@ -1,26 +1,34 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 # Testing Guide
 
-The project provides two different test commands depending on your needs:
+The project provides several different commands depending on your needs:
 
 ## Quick Tests
+
 For small features or changes that affect a single component, use:
+
 ```bash
 make test
 ```
+
 This command runs:
+
 - Unit tests
 - Style/lint checks
 
-## Full Test Suite
-For larger features or changes that touch multiple components, use:
+## Fixing Style/Lint Issues
+
+When style/lint check failures are encountered, use:
+
 ```bash
-make test-all
+make fix
 ```
-This command runs the complete test suite including integration tests.
+
+This command automatically fixes most style and linting issues in the codebase.
 
 You can run these commands freely whenever you need to test something.

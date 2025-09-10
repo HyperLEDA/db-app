@@ -11,7 +11,7 @@ class RedshiftCatalogObject(interface.CatalogObject):
     def __init__(
         self,
         cz: float,
-        e_cz: float | None = None,
+        e_cz: float,
     ) -> None:
         self.cz = cz
         self.e_cz = e_cz
@@ -45,10 +45,10 @@ class RedshiftCatalogObject(interface.CatalogObject):
 
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
-        e_cz = [obj.e_cz for obj in objects if obj.e_cz is not None]
+        e_cz = [obj.e_cz for obj in objects]
 
         cz = sum(obj.cz for obj in objects) / len(objects)
-        e_cz = sum(e_cz) / len(e_cz) if e_cz else None
+        e_cz = sum(e_cz) / len(e_cz)
 
         return cls(cz, e_cz)
 

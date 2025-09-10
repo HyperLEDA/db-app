@@ -80,8 +80,13 @@ class PostgreSimultaneousDataProvider(CrossIdSimultaneousDataProvider):
                 {
                     "idx": list(range(len(data))),
                     "name": [it.names for it in data],
-                    "ra": [it.coordinates.ra.to(u.deg).value if it.coordinates is not None else None for it in data],
-                    "dec": [it.coordinates.dec.to(u.deg).value if it.coordinates is not None else None for it in data],
+                    "ra": [
+                        it.coordinates.ra.to(u.Unit("deg")).value if it.coordinates is not None else None for it in data
+                    ],
+                    "dec": [
+                        it.coordinates.dec.to(u.Unit("deg")).value if it.coordinates is not None else None
+                        for it in data
+                    ],
                 }
             ),
             index_on=["ra", "dec"],

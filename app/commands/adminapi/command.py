@@ -1,13 +1,15 @@
+from pathlib import Path
 from typing import final
 
+import pydantic_settings as settings
 import structlog
+import yaml
 
-from app.commands.adminapi import config
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.lib import auth, clients, commands
+from app.lib import auth, clients, commands, config
 from app.lib.storage import postgres, redis
-from app.lib.web import server
+from app.lib.web import middlewares, server
 from app.presentation import adminapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -23,7 +25,7 @@ class AdminAPICommand(commands.Command):
         self.config_path = config_path
 
     def prepare(self):
-        cfg = config.parse_config(self.config_path)
+        cfg = parse_config(self.config_path)
 
         self.pg_storage = postgres.PgStorage(cfg.storage, log)
         self.pg_storage.connect()
@@ -43,15 +45,37 @@ class AdminAPICommand(commands.Command):
             clients=clients.Clients(cfg.clients.ads_token),
         )
 
-        middlewares = []
-        if cfg.auth_enabled:
-            middlewares.append(server.get_auth_middleware("/admin/api/v1/", authenticator))
+        self.app = presentation.Server(actions, cfg.server, log)
 
-        self.app = presentation.Server(actions, cfg.server, middlewares=middlewares)
+        if cfg.auth_enabled:
+            self.app.add_mw(middlewares.AuthMiddleware, authenticator)
 
     def run(self):
         self.app.run()
 
     def cleanup(self):
-        self.redis_storage.disconnect()
-        self.pg_storage.disconnect()
+        if self.redis_storage:
+            self.redis_storage.disconnect()
+        if self.pg_storage:
+            self.pg_storage.disconnect()
+
+
+class ClientsConfig(config.ConfigSettings):
+    model_config = settings.SettingsConfigDict(env_prefix="CLIENTS_")
+
+    enabled: bool
+    ads_token: str
+
+
+class Config(config.ConfigSettings):
+    server: server.ServerConfig
+    storage: postgres.PgStorageConfig
+    queue: redis.QueueConfig
+    clients: ClientsConfig
+    auth_enabled: bool
+
+
+def parse_config(path: str) -> Config:
+    data = yaml.safe_load(Path(path).read_text())
+
+    return Config(**data)

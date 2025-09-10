@@ -2,13 +2,14 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
+from astropy import units
 from parameterized import param, parameterized
 
 from app.data import model, repositories
 from app.domain import adminapi as domain
 from app.domain.adminapi.table_upload import domain_descriptions_to_data, get_source_id
 from app.lib import clients
-from app.lib.storage import mapping
+from app.lib.storage import enums, mapping
 from app.lib.web import errors
 from app.presentation import adminapi as presentation
 from tests import lib
@@ -24,7 +25,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
     def test_add_data(self):
         request = presentation.AddDataRequest(
-            42,
+            table_id=42,
             data=[
                 {
                     "test": "row",
@@ -50,7 +51,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
     def test_add_data_identical_rows(self):
         request = presentation.AddDataRequest(
-            42,
+            table_id=42,
             data=[
                 {
                     "test": "row",
@@ -75,43 +76,44 @@ class TableUploadManagerTest(unittest.TestCase):
             param(
                 "create new table",
                 presentation.CreateTableRequest(
-                    "test",
-                    [
-                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    table_name="test",
+                    columns=[
+                        presentation.ColumnDescription(
+                            name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                        ),
+                        presentation.ColumnDescription(
+                            name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                        ),
+                        presentation.ColumnDescription(
+                            name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                        ),
                     ],
-                    "totally real bibcode",
-                    "regular",
-                    "",
+                    bibcode="totally real bibcode",
+                    datatype=enums.DataType.REGULAR,
+                    description="",
                 ),
             ),
             param(
                 "create already existing table",
                 presentation.CreateTableRequest(
-                    "test",
-                    [
-                        presentation.ColumnDescription("objname", "str", ucd="meta.id"),
-                        presentation.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit="h"),
-                        presentation.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit="h"),
+                    table_name="test",
+                    columns=[
+                        presentation.ColumnDescription(
+                            name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                        ),
+                        presentation.ColumnDescription(
+                            name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                        ),
+                        presentation.ColumnDescription(
+                            name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                        ),
                     ],
-                    "totally real bibcode",
-                    "regular",
-                    "",
+                    bibcode="totally real bibcode",
+                    datatype=enums.DataType.REGULAR,
+                    description="",
                 ),
                 table_already_existed=True,
                 expected_created=False,
-            ),
-            param(
-                "create table with forbidden name",
-                presentation.CreateTableRequest(
-                    "test",
-                    [presentation.ColumnDescription("hyperleda_internal_id", "str", None, "")],
-                    "totally real bibcode",
-                    "regular",
-                    "",
-                ),
-                err_substr="is a reserved column name",
             ),
         ],
     )
@@ -208,45 +210,33 @@ class MappingTest(unittest.TestCase):
                 "simple column",
                 [
                     presentation.ColumnDescription(
-                        "name", "str", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                        name="name",
+                        data_type=presentation.DatatypeEnum["str"],
+                        ucd="phys.veloc.orbital",
+                        unit="m / s",
+                        description="description",
                     )
                 ],
                 [
                     internal_id_column,
                     model.ColumnDescription(
-                        "name", "text", ucd="phys.veloc.orbital", unit="m / s", description="description"
+                        "name", "text", ucd="phys.veloc.orbital", unit=units.Unit("m / s"), description="description"
                     ),
                 ],
             ),
             param(
-                "wrong type",
-                [presentation.ColumnDescription("name", "obscure_type", unit="m / s")],
-                err_substr="unknown type of data",
-            ),
-            param(
-                "wrong unit",
-                [presentation.ColumnDescription("name", "str", unit="wrong")],
-                err_substr="unknown unit",
-            ),
-            param(
                 "unit is None",
-                [presentation.ColumnDescription("name", "str")],
+                [presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["str"])],
                 [internal_id_column, model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
-                [presentation.ColumnDescription("name", "str", unit="m     /       s")],
-                [internal_id_column, model.ColumnDescription("name", "text", unit="m / s")],
-            ),
-            param(
-                "data type has extra spaces",
-                [presentation.ColumnDescription("name", "   str    ")],
-                [internal_id_column, model.ColumnDescription("name", "text", unit=None)],
-            ),
-            param(
-                "invalid ucd",
-                [presentation.ColumnDescription("name", "str", ucd="totally invalid ucd")],
-                err_substr="invalid or unknown UCD",
+                [
+                    presentation.ColumnDescription(
+                        name="name", data_type=presentation.DatatypeEnum["str"], unit="m     /       s"
+                    )
+                ],
+                [internal_id_column, model.ColumnDescription("name", "text", unit=units.Unit("m / s"))],
             ),
         ],
     )

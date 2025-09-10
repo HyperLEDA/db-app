@@ -24,7 +24,22 @@ class Homogenization:
         self.params_by_catalog = params_by_catalog
         self.ignore_errors = ignore_errors
 
+    def get_column_mapping(self) -> dict[tuple[data_model.RawCatalog, str], dict[str, str]]:
+        mapping: dict[tuple[data_model.RawCatalog, str], dict[str, str]] = {}
+
+        for (catalog, key), params in self.column_rules.items():
+            if (catalog, key) not in mapping:
+                mapping[(catalog, key)] = {}
+
+            for param, col_name in params.items():
+                mapping[(catalog, key)][param] = col_name
+
+        return mapping
+
     def apply(self, data: table.Table) -> list[data_model.Layer0Object]:
+        if len(self.column_rules) == 0:
+            raise ValueError("No rules satisfy any of the table columns")
+
         catalog_objects: dict[tuple[data_model.RawCatalog, str], dict[str, table.Column]] = {}
 
         for key, params in self.column_rules.items():
@@ -105,9 +120,6 @@ def get_homogenization(
             params_by_catalog[key] = {}
 
         params_by_catalog[key].update(param.params)
-
-    if len(rules_by_column) == 0:
-        raise ValueError("No rules satisfy any of the table columns")
 
     priorities: dict[tuple[data_model.RawCatalog, str], dict[str, int]] = {}
     column_rules: dict[tuple[data_model.RawCatalog, str], dict[str, Any]] = {}

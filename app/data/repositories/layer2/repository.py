@@ -3,6 +3,7 @@ import json
 from typing import Any
 
 import structlog
+from psycopg import rows
 
 from app.data import model
 from app.data.repositories.layer2 import filters as repofilters
@@ -104,6 +105,10 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                     for column in object_cls.layer2_keys()
                 ]
             )
+            columns.append(
+                f"CASE WHEN {object_cls.layer2_table()}.pgc IS NOT NULL "
+                f'THEN true ELSE false END AS "{catalog.value}|_present"'
+            )
 
         joined_tables = " FULL JOIN ".join(
             [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
@@ -144,36 +149,104 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             if object_id not in result:
                 result[object_id] = []
 
-            objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
-
-            for pgc, pgc_objects in objects_by_pgc.items():
-                layer2_obj = model.Layer2Object(pgc, [])
-
-                # TODO: what if for each pgc there are multiple rows? For example, if
-                # the catalog does not have a UNIQUE constraint on pgc.
-                obj = pgc_objects[0]
-                obj.pop("object_id")
-                obj.pop("pgc")
-
-                res: dict[model.RawCatalog, dict[str, Any]] = {}
-
-                for key, value in obj.items():
-                    catalog_name, column = key.split("|")
-                    catalog = model.RawCatalog(catalog_name)
-
-                    if catalog not in res:
-                        res[catalog] = {}
-
-                    res[catalog][column] = value
-
-                for catalog, data in res.items():
-                    object_cls = model.get_catalog_object_type(catalog)
-
-                    layer2_obj.data.append(object_cls.from_layer2(data))
-
-                result[object_id].append(layer2_obj)
+            result[object_id].extend(self._group_by_pgc(objects))
 
         return result
+
+    def _group_by_pgc(self, objects: list[rows.DictRow]) -> list[model.Layer2Object]:
+        objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
+        result = []
+
+        for pgc, pgc_objects in objects_by_pgc.items():
+            layer2_obj = model.Layer2Object(pgc, [])
+
+            # TODO: what if for each pgc there are multiple rows? For example, if
+            # the catalog does not have a UNIQUE constraint on pgc.
+            obj = pgc_objects[0]
+            if "object_id" in obj:
+                obj.pop("object_id")
+            if "pgc" in obj:
+                obj.pop("pgc")
+
+            res: dict[model.RawCatalog, dict[str, Any]] = {}
+            presence_flags: dict[model.RawCatalog, bool] = {}
+
+            for key, value in obj.items():
+                catalog_name, column = key.split("|")
+                catalog = model.RawCatalog(catalog_name)
+
+                if column == "_present":
+                    presence_flags[catalog] = bool(value)
+                else:
+                    if catalog not in res:
+                        res[catalog] = {}
+                    res[catalog][column] = value
+
+            for catalog, data in res.items():
+                object_cls = model.get_catalog_object_type(catalog)
+
+                # Only create catalog object if the object exists in this table
+                if presence_flags.get(catalog, False):
+                    layer2_obj.data.append(object_cls.from_layer2(data))
+
+            result.append(layer2_obj)
+
+        return result
+
+    def query_pgc(
+        self,
+        catalogs: list[model.RawCatalog],
+        pgc_numbers: list[int],
+        limit: int,
+        offset: int = 0,
+    ):
+        if not catalogs:
+            return []
+
+        cte_parts = []
+        select_parts = []
+        join_parts = []
+
+        for i, catalog in enumerate(catalogs):
+            object_cls = model.get_catalog_object_type(catalog)
+            table_name = object_cls.layer2_table()
+            alias = f"t{i}"
+
+            catalog_columns = []
+            for column in object_cls.layer2_keys():
+                catalog_columns.append(f'{column} AS "{catalog.value}|{column}"')
+
+            cte_parts.append(f"""
+            {alias} AS (
+                SELECT pgc, {", ".join(catalog_columns)}
+                FROM {table_name}
+                WHERE pgc = ANY(%s)
+            )""")
+
+            select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer2_keys()])
+            select_parts.append(
+                f'CASE WHEN {alias}.pgc IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
+            )
+
+            if i == 0:
+                join_parts.append(f"FROM {alias}")
+            else:
+                join_parts.append(f"FULL OUTER JOIN {alias} USING (pgc)")
+
+        query = f"""
+            WITH {", ".join(cte_parts)}
+            SELECT COALESCE({", ".join([f"t{i}.pgc" for i in range(len(catalogs))])}) AS pgc,
+                   {", ".join(select_parts)}
+            {" ".join(join_parts)}
+            ORDER BY pgc
+            LIMIT %s OFFSET %s
+        """
+
+        params = [pgc_numbers] * len(catalogs) + [limit, offset]
+
+        objects = self._storage.query(query, params=params)
+
+        return self._group_by_pgc(objects)
 
     def query(
         self,

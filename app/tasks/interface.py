@@ -1,22 +1,11 @@
 import abc
-from dataclasses import dataclass
 
-from marshmallow import Schema, fields, post_load
-
+from app.lib import config
 from app.lib.storage import postgres
 
 
-@dataclass
-class Config:
+class Config(config.ConfigSettings):
     storage: postgres.PgStorageConfig
-
-
-class ConfigSchema(Schema):
-    storage = fields.Nested(postgres.PgStorageConfigSchema(), required=True)
-
-    @post_load
-    def make(self, data, **kwargs):
-        return Config(**data)
 
 
 class Task(abc.ABC):

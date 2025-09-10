@@ -42,10 +42,10 @@ class MarkObjectsTest(unittest.TestCase):
                 table_name,
                 [
                     model.ColumnDescription(repositories.INTERNAL_ID_COLUMN_NAME, "text"),
-                    model.ColumnDescription("ra", "float", unit=u.deg),
-                    model.ColumnDescription("dec", "float", unit=u.deg),
-                    model.ColumnDescription("e_ra", "float", unit=u.deg),
-                    model.ColumnDescription("e_dec", "float", unit=u.deg),
+                    model.ColumnDescription("ra", "float", unit=u.Unit("deg")),
+                    model.ColumnDescription("dec", "float", unit=u.Unit("deg")),
+                    model.ColumnDescription("e_ra", "float", unit=u.Unit("deg")),
+                    model.ColumnDescription("e_dec", "float", unit=u.Unit("deg")),
                     model.ColumnDescription("redshift", "float", unit=u.dimensionless_unscaled),
                     model.ColumnDescription("e_redshift", "float"),
                 ],
@@ -110,7 +110,7 @@ class MarkObjectsTest(unittest.TestCase):
 
         self.layer0_repo.update_column_metadata(
             table_name,
-            model.ColumnDescription("e_redshift", "float", unit=u.km / u.s),
+            model.ColumnDescription("e_redshift", "float", unit=u.km / u.Unit("s")),
         )
 
         processing.mark_objects(self.layer0_repo, table_id, 5)

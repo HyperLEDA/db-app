@@ -4,7 +4,7 @@ from typing import Any
 import structlog
 
 from app.lib.storage import redis
-from app.lib.storage.postgres.config import PgStorageConfig
+from app.lib.storage.postgres import PgStorageConfig
 
 
 class QueueRepository:

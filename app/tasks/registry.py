@@ -1,8 +1,9 @@
 from typing import Any
 
-from app.tasks import interface, layer1_import, layer2_import, process
+from app.tasks import crossmatch, interface, layer1_import, layer2_import, process
 
 tasks: list[type[interface.Task]] = [
+    crossmatch.CrossmatchTask,
     process.ProcessTask,
     layer1_import.Layer1ImportTask,
     layer2_import.Layer2ImportTask,

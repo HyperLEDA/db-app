@@ -19,4 +19,4 @@ class ICRSDescrStr(CoordinateDescr):
         return ICRS_DESCR_ID
 
     def _parse_row(self, data: Iterable[Any]) -> SkyCoord:
-        return SkyCoord(*data, frame="icrs", unit=(u.hourangle, u.deg))
+        return SkyCoord(*data, frame="icrs", unit=(u.Unit("hourangle"), u.Unit("deg")))

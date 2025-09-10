@@ -1,7 +1,7 @@
 server:
   host: 0.0.0.0
   port: 8080
-  swagger_ui_path: /admin/api/docs
+  path_prefix: /admin/api
 
 auth_enabled: false
 
@@ -10,7 +10,7 @@ storage:
   port: 5432
   dbname: hyperleda
   user: hyperleda
-  password: password
+  password: fake
 
 queue:
   endpoint: redis
@@ -19,4 +19,4 @@ queue:
 
 clients:
   enabled: true
-  ads_token: token
+  ads_token: fake

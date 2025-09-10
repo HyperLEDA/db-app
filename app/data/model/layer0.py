@@ -47,6 +47,13 @@ class Layer0Object:
     object_id: str
     data: list[interface.CatalogObject]
 
+    def get[T](self, t: type[T]) -> T | None:
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+
+        return None
+
 
 @dataclass
 class CIResultObjectNew:
@@ -60,7 +67,8 @@ class CIResultObjectExisting:
 
 @dataclass
 class CIResultObjectCollision:
-    possible_pgcs: dict[str, set[int]]
+    possible_pgcs: dict[str, set[int]] | None = None
+    pgcs: set[int] | None = None
 
 
 CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision

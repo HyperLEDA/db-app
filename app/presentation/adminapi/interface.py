@@ -1,18 +1,19 @@
 import abc
 import datetime
-from dataclasses import dataclass
-from typing import Any
+import enum
+from typing import Annotated, Any
 
-from app.lib.storage import enums
+import pydantic
+from astropy import units as u
+
+from app.lib.storage import enums, mapping
 
 
-@dataclass
-class GetTaskInfoRequest:
+class GetTaskInfoRequest(pydantic.BaseModel):
     task_id: int
 
 
-@dataclass
-class GetTaskInfoResponse:
+class GetTaskInfoResponse(pydantic.BaseModel):
     id: int | None
     task_name: str
     status: str
@@ -22,157 +23,197 @@ class GetTaskInfoResponse:
     message: dict[str, Any] | None
 
 
-@dataclass
-class ColumnDescription:
-    name: str
-    data_type: str
+DatatypeEnum = enum.StrEnum(
+    "DatatypeEnum",
+    zip(mapping.type_map.keys(), mapping.type_map.keys(), strict=False),
+)
+
+
+def check_unit(unit: str | None) -> str | None:
+    if unit is None:
+        return unit
+
+    try:
+        u.Unit(unit)
+    except Exception as e:
+        raise ValueError(f"Invalid unit: {unit}") from e
+
+    return unit
+
+
+def check_column_name(column_name: str) -> str:
+    if column_name == "hyperleda_internal_id":
+        raise ValueError(f"Forbidden column name: {column_name}")
+
+    return column_name
+
+
+class ColumnDescription(pydantic.BaseModel):
+    name: Annotated[str, pydantic.AfterValidator(func=check_column_name)]
+    data_type: DatatypeEnum
     ucd: str | None = None
-    unit: str | None = None
+    unit: Annotated[str | None, pydantic.AfterValidator(func=check_unit)] = None
     description: str | None = None
 
 
-@dataclass
-class CreateTableRequest:
-    table_name: str
-    columns: list[ColumnDescription]
+class Bibliography(pydantic.BaseModel):
+    title: str
+    authors: list[str]
+    year: int
     bibcode: str
-    datatype: str
+
+
+class GetTableRequest(pydantic.BaseModel):
+    table_name: str
+
+
+class MarkingRule(pydantic.BaseModel):
+    catalog: str
+    key: str
+    columns: dict[str, str]
+
+
+class GetTableResponse(pydantic.BaseModel):
+    id: int
     description: str
+    column_info: list[ColumnDescription]
+    rows_num: int
+    meta: dict[str, Any]
+    bibliography: Bibliography
+    marking_rules: list[MarkingRule]
 
 
-@dataclass
-class CreateTableResponse:
+class CreateTableRequest(pydantic.BaseModel):
+    table_name: str
+    columns: list[ColumnDescription] = pydantic.Field(
+        description="List of columns in the table",
+        examples=[
+            [
+                ColumnDescription(name="name", data_type=DatatypeEnum["str"], ucd="meta.id"),
+                ColumnDescription(name="ra", data_type=DatatypeEnum["float"], unit="hourangle", ucd="pos.eq.ra"),
+                ColumnDescription(name="dec", data_type=DatatypeEnum["float"], unit="deg", ucd="pos.eq.dec"),
+            ]
+        ],
+    )
+    bibcode: str = pydantic.Field(
+        description="ADS bibcode of the article that published the data (or code of the internal communication)",
+        examples=["2024PDU....4601628D"],
+    )
+    datatype: enums.DataType
+    description: str = pydantic.Field(description="Human-readable description of the table")
+
+
+class CreateTableResponse(pydantic.BaseModel):
     id: int
 
 
-@dataclass
-class AddDataRequest:
+class AddDataRequest(pydantic.BaseModel):
     table_id: int
-    data: list[dict[str, Any]]
+    data: list[dict[str, Any]] = pydantic.Field(
+        description="""Actual data to append. 
+Keys in this dictionary must be a subset of the columns in the table. If not specified, column will be set to NULL.
+NaN and NULL are considered to be the same thing.""",
+        examples=[
+            [
+                {"name": "M 31", "ra": 0.7123, "dec": 41.2690},
+                {"name": "M 33", "ra": 1.5641, "dec": 30.6602},
+            ]
+        ],
+    )
 
 
-@dataclass
-class AddDataResponse:
+class AddDataResponse(pydantic.BaseModel):
     pass
 
 
-@dataclass
-class GetTableValidationRequest:
-    table_name: str
-
-
-@dataclass
-class TableValidation:
-    validator: str
-    message: str
-
-
-@dataclass
-class GetTableValidationResponse:
-    validations: list[TableValidation]
-
-
-@dataclass
-class PatchTableActionTypeChangeUCD:
+class PatchTableActionTypeChangeUCD(pydantic.BaseModel):
     column: str
     ucd: str
 
 
-@dataclass
-class PatchTableActionTypeChangeUnit:
+class PatchTableActionTypeChangeUnit(pydantic.BaseModel):
     column: str
     unit: str
 
 
-@dataclass
-class PatchTableRequest:
+class PatchTableRequest(pydantic.BaseModel):
     table_name: str
     actions: list[PatchTableActionTypeChangeUCD | PatchTableActionTypeChangeUnit]
 
 
-@dataclass
-class PatchTableResponse:
+class PatchTableResponse(pydantic.BaseModel):
     pass
 
 
-@dataclass
-class CrossIdentification:
+class CrossIdentification(pydantic.BaseModel):
     inner_radius_arcsec: float = 1.5
     outer_radius_arcsec: float = 3
 
 
-@dataclass
-class TableStatusStatsRequest:
+class TableStatusStatsRequest(pydantic.BaseModel):
     table_id: int
 
 
-@dataclass
-class TableStatusStatsResponse:
+class TableStatusStatsResponse(pydantic.BaseModel):
     processing: dict[enums.ObjectCrossmatchStatus, int]
 
 
-@dataclass
-class SetTableStatusOverrides:
+class SetTableStatusOverrides(pydantic.BaseModel):
     id: str
     pgc: int | None = None
 
 
-@dataclass
-class SetTableStatusRequest:
+class SetTableStatusRequest(pydantic.BaseModel):
     table_id: int
     overrides: list[SetTableStatusOverrides] | None = None
     batch_size: int = 100
 
 
-@dataclass
-class SetTableStatusResponse:
+class SetTableStatusResponse(pydantic.BaseModel):
     pass
 
 
-@dataclass
-class CreateSourceRequest:
+class CreateSourceRequest(pydantic.BaseModel):
     title: str
-    authors: list[str]
-    year: int
+    authors: list[str] = pydantic.Field(examples=[["Ivanov V.", "Johnson H."]])
+    year: int = pydantic.Field(examples=[2006])
 
 
-@dataclass
-class CreateSourceResponse:
+class CreateSourceResponse(pydantic.BaseModel):
     code: str
 
 
-@dataclass
-class LoginRequest:
+class LoginRequest(pydantic.BaseModel):
     username: str
     password: str
 
 
-@dataclass
-class LoginResponse:
-    token: str
+class LoginResponse(pydantic.BaseModel):
+    token: str = pydantic.Field(
+        description="Token used to authenticate user in handlers that require a specific role to access",
+    )
 
 
-@dataclass
-class ParameterToMark:
-    column_name: str
+class ParameterToMark(pydantic.BaseModel):
+    column_name: str = pydantic.Field(description="Column that this parameter will be mapped to.", examples=["ra"])
 
 
-@dataclass
-class CatalogToMark:
+class CatalogToMark(pydantic.BaseModel):
     name: str
-    parameters: dict[str, ParameterToMark]
-    key: str | None = None
-    additional_params: dict[str, Any] | None = None
+    parameters: dict[str, ParameterToMark] = pydantic.Field(
+        description="Map of parameter names to their configurations",
+        examples=[{"ra": ParameterToMark(column_name="ra"), "dec": ParameterToMark(column_name="dec")}],
+    )
+    key: str | None = pydantic.Field(default=None, examples=[""])
+    additional_params: dict[str, Any] | None = {}
 
 
-@dataclass
-class CreateMarkingRequest:
+class CreateMarkingRequest(pydantic.BaseModel):
     table_name: str
     catalogs: list[CatalogToMark]
 
 
-@dataclass
-class CreateMarkingResponse:
+class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
@@ -183,6 +224,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+        pass
+
+    @abc.abstractmethod
+    def get_table(self, request: GetTableRequest) -> GetTableResponse:
         pass
 
     @abc.abstractmethod

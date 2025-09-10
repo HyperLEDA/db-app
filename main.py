@@ -38,7 +38,7 @@ def dataapi(config: str):
     commands.run(DataAPICommand(config))
 
 
-@cli.command(short_help=RunTaskCommand.help())
+@cli.command(short_help=RunTaskCommand.help(), context_settings={"ignore_unknown_options": True})
 @click.argument(
     "task_name",
     required=True,
@@ -57,8 +57,9 @@ def dataapi(config: str):
     type=str,
     help="Path to input data file",
 )
-def runtask(task_name: str, config: str, input_data: str | None):
-    commands.run(RunTaskCommand(task_name, config, input_data))
+@click.argument("task_args", nargs=-1, type=click.UNPROCESSED)
+def runtask(task_name: str, config: str, input_data: str | None, task_args: tuple[str, ...]):
+    commands.run(RunTaskCommand(task_name, config, input_data, None, task_args))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())

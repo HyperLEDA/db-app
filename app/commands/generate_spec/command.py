@@ -2,6 +2,9 @@ import json
 import pathlib
 from typing import final
 
+import structlog
+from fastapi.openapi import utils
+
 from app.domain import adminapi as domain
 from app.lib import commands
 from app.lib.web import server
@@ -22,13 +25,23 @@ class GenerateSpecCommand(commands.Command):
         pass
 
     def run(self):
-        routes = presentation.Server.routes(domain.get_mock_actions())
+        app = presentation.Server(
+            domain.get_mock_actions(),
+            server.ServerConfig(port=80, host="localhost"),
+            structlog.get_logger(),
+        )
 
-        spec, _ = server.get_router(routes)
+        spec = utils.get_openapi(
+            title=app.app.title,
+            version=app.app.version,
+            openapi_version=app.app.openapi_version,
+            description=app.app.description,
+            routes=app.app.routes,
+        )
 
         output_file = pathlib.Path(self.filename)
         output_file.parent.mkdir(exist_ok=True, parents=True)
-        output_file.write_text(json.dumps(spec.to_dict(), indent=2))
+        output_file.write_text(json.dumps(spec, indent=2))
 
     def cleanup(self):
         pass
