@@ -66,12 +66,20 @@ def patch_table(client: hyperleda.HyperLedaClient, table_name: str):
 
 
 @lib.test_logging_decorator(__file__)
-def start_processing(table_id: int):
+def start_processing(table_id: int, table_name: str):
     commands.run(
         RunTaskCommand(
             "process",
             "configs/dev/tasks.yaml",
             input_data={"table_id": table_id, "batch_size": 200, "workers": 8},
+        ),
+    )
+
+    commands.run(
+        RunTaskCommand(
+            "crossmatch",
+            "configs/dev/tasks.yaml",
+            input_data={"table_name": table_name},
         ),
     )
 
@@ -119,7 +127,7 @@ def run():
 
     patch_table(client, table_name)
 
-    start_processing(table_id)
+    start_processing(table_id, table_name)
 
     statuses = check_statuses(client, table_id)
     assert statuses["new"] > 0
