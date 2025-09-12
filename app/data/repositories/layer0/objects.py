@@ -28,16 +28,24 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
-    def get_objects(self, table_id: int, limit: int, offset: int) -> list[model.Layer0Object]:
+    def get_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0Object]:
+        params = []
+
+        where_stmnt = ["table_id = %s"]
+        params.append(table_id)
+        if offset is not None:
+            where_stmnt.append("id > %s")
+            params.append(offset)
+
         rows = self._storage.query(
-            """
+            f"""
             SELECT id, data
             FROM rawdata.objects
-            WHERE table_id = %s
+            WHERE {" AND ".join(where_stmnt)}
             ORDER BY id
-            LIMIT %s OFFSET %s
+            LIMIT %s
             """,
-            params=[table_id, limit, offset],
+            params=params + [limit],
         )
 
         return [

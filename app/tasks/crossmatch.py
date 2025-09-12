@@ -77,7 +77,7 @@ class CrossmatchTask(interface.Task):
 
         ctx = {"table_name": self.table_name, "table_id": table_meta.table_id}
 
-        offset = 0
+        offset = None
         new_count = 0
         existing_count = 0
         collision_count = 0
@@ -129,17 +129,17 @@ class CrossmatchTask(interface.Task):
 
             self.layer0_repo.add_crossmatch_result(results)
 
-            offset += self.batch_size
+            offset = layer0_objects[-1].object_id
 
             last_uuid = uuid.UUID(layer0_object.object_id or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
             self.log.info(
                 "Completed batch",
-                new=f"{new_count / offset * 100:.01f}%",
-                existing=f"{existing_count / offset * 100:.01f}%",
-                collision=f"{collision_count / offset * 100:.01f}%",
-                total=offset,
+                new=f"{new_count / (new_count + existing_count + collision_count) * 100:.01f}%",
+                existing=f"{existing_count / (new_count + existing_count + collision_count) * 100:.01f}%",
+                collision=f"{collision_count / (new_count + existing_count + collision_count) * 100:.01f}%",
+                total=new_count + existing_count + collision_count,
                 very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
                 **ctx,
             )
