@@ -95,3 +95,11 @@ class CatalogObject(abc.ABC):
     @abc.abstractmethod
     def from_layer2(cls, data: dict[str, Any]) -> Self:
         pass
+
+
+def get_object[T](catalog_objects: list[CatalogObject], t: type[T]) -> T | None:
+    for obj in catalog_objects:
+        if isinstance(obj, t):
+            return obj
+
+    return None

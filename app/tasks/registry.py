@@ -1,5 +1,7 @@
 from typing import Any
 
+import structlog
+
 from app.tasks import crossmatch, interface, layer1_import, layer2_import, process
 
 tasks: list[type[interface.Task]] = [
@@ -16,8 +18,10 @@ def list_tasks() -> list[str]:
     return [task.name() for task in tasks]
 
 
-def get_task(task_name: str, params: dict[str, Any]) -> interface.Task:
+def get_task(task_name: str, logger: structlog.stdlib.BoundLogger, params: dict[str, Any]) -> interface.Task:
     if task_name not in task_by_name:
         raise ValueError(f"Unknown task: {task_name}")
+
+    params["logger"] = logger
 
     return task_by_name[task_name](**params)

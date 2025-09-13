@@ -1,8 +1,11 @@
 import abc
-from typing import Any
+from typing import Any, final
 
 from astropy import units as u
 from astropy.units import quantity
+
+from app.data import model
+from app.data.repositories.layer2 import params
 
 
 class Filter(abc.ABC):
@@ -14,7 +17,12 @@ class Filter(abc.ABC):
     def get_params(self) -> list[Any]:
         pass
 
+    @abc.abstractmethod
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        pass
 
+
+@final
 class PGCOneOfFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -29,7 +37,11 @@ class PGCOneOfFilter(Filter):
     def get_params(self):
         return self._pgcs
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        return params.CombinedSearchParams([])
 
+
+@final
 class AndFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -49,7 +61,12 @@ class AndFilter(Filter):
 
         return params
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        search_params_list = [f.extract_search_params(object_info) for f in self._filters]
+        return params.CombinedSearchParams(search_params_list)
 
+
+@final
 class OrFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -67,7 +84,12 @@ class OrFilter(Filter):
             params.extend(f.get_params())
         return params
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        search_params_list = [f.extract_search_params(object_info) for f in self._filters]
+        return params.CombinedSearchParams(search_params_list)
 
+
+@final
 class DesignationEqualsFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -82,7 +104,11 @@ class DesignationEqualsFilter(Filter):
     def get_params(self):
         return [self._designation]
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        return params.CombinedSearchParams([])
 
+
+@final
 class DesignationCloseFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -97,7 +123,14 @@ class DesignationCloseFilter(Filter):
     def get_params(self):
         return [self._distance, self._distance]
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        if (cat := model.get_object(object_info, model.DesignationCatalogObject)) is not None:
+            return params.DesignationSearchParams(designation=cat.designation)
 
+        return params.CombinedSearchParams([])
+
+
+@final
 class ICRSCoordinatesInRadiusFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -111,16 +144,24 @@ class ICRSCoordinatesInRadiusFilter(Filter):
 
     def get_query(self):
         return """
-        ST_Distance(
+        ST_DWithin(
             ST_MakePoint((sp.params->>'dec')::float, (params->>'ra')::float-180), 
-            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180)
-        ) < %s
+            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180),
+            %s
+        )
         """
 
     def get_params(self):
         return [self._radius]
 
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        if (cat := model.get_object(object_info, model.ICRSCatalogObject)) is not None:
+            return params.ICRSSearchParams(ra=cat.ra, dec=cat.dec)
 
+        return params.CombinedSearchParams([])
+
+
+@final
 class RedshiftCloseFilter(Filter):
     @classmethod
     def name(cls) -> str:
@@ -135,6 +176,9 @@ class RedshiftCloseFilter(Filter):
 
     def get_params(self):
         return [self._redshift, self._distance_percent]
+
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        return params.CombinedSearchParams([])
 
 
 AVAILABLE_FILTERS = {

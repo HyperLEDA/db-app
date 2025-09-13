@@ -1,5 +1,6 @@
 import datetime
 import json
+from collections.abc import Mapping
 from typing import Any
 
 import structlog
@@ -66,11 +67,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def _construct_batch_query(
         self,
         catalogs: list[model.RawCatalog],
-        search_types: dict[str, repofilters.Filter],
-        search_params: dict[str, params.SearchParams],
+        search_types: Mapping[str, repofilters.Filter],
+        search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
     ) -> tuple[str, list[Any]]:
+        if not search_params:
+            # If no search parameters, return empty result
+            return "SELECT NULL as object_id, NULL as pgc WHERE FALSE", []
+
         query = """
             WITH search_params AS (
                 SELECT * FROM (
@@ -132,8 +137,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def query_batch(
         self,
         catalogs: list[model.RawCatalog],
-        search_types: dict[str, repofilters.Filter],
-        search_params: dict[str, params.SearchParams],
+        search_types: Mapping[str, repofilters.Filter],
+        search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
     ) -> dict[str, list[model.Layer2Object]]:

@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Any
 
 import structlog
@@ -9,8 +8,6 @@ from app.data import repositories
 from app.domain.homogenization import model
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
-
-Enricher = Callable[[Any], Any]
 
 
 class Homogenization:

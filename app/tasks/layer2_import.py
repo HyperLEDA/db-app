@@ -17,8 +17,12 @@ catalogs = [
 
 @final
 class Layer2ImportTask(interface.Task):
-    def __init__(self, batch_size: int = 1500) -> None:
-        self.log = structlog.get_logger()
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        batch_size: int = 1500,
+    ) -> None:
+        self.log = logger
         self.batch_size = batch_size
 
     @classmethod

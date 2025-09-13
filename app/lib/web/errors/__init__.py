@@ -43,20 +43,6 @@ class InternalError(APIError):
         return (INTERNAL_ERROR_CODE, 500, str(self.msg))
 
 
-class LogicalError(APIError):
-    """
-    Internal error that shows that something on the backend was logically wrong.
-    For example, integrity of internal database or some invariant was broken.
-    Usually indicates some bug in the code.
-    """
-
-    def __init__(self, message: str | Exception):
-        self.msg = message
-
-    def data(self) -> tuple[str, int, str]:
-        return (LOGICAL_ERROR_CODE, 500, str(self.msg))
-
-
 class RuleValidationError(APIError):
     """
     Some validation requirements of the request were not satisfied.
