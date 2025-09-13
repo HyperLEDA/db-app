@@ -155,11 +155,16 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_original_rows
+        table_stats = self.layer0_repo.get_table_statistics(meta.table_id)
+        rows_num = table_stats.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
         hom = get_homogenization(self.layer0_repo, meta)
         mapping = hom.get_column_mapping()
+
+        statistics = None
+        if table_stats.statuses:
+            statistics = table_stats.statuses
 
         return adminapi.GetTableResponse(
             id=meta.table_id,
@@ -172,6 +177,7 @@ class TableUploadManager:
                 adminapi.MarkingRule(catalog=catalog.value, key=key, columns=data)
                 for ((catalog, key), data) in mapping.items()
             ],
+            statistics=statistics,
         )
 
 
@@ -217,7 +223,7 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
         res.append(
             adminapi.ColumnDescription(
                 name=col.name,
-                data_type=col.data_type,
+                data_type=adminapi.DatatypeEnum[col.data_type],
                 ucd=col.ucd,
                 unit=col.unit.to_string() if col.unit is not None else None,
                 description=col.description,

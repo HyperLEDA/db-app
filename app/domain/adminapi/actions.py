@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import repositories
-from app.domain.adminapi import login, sources, table_transfer, table_upload, tasks
+from app.domain.adminapi import login, sources, table_upload, tasks
 from app.lib import auth, clients
 from app.presentation import adminapi
 
@@ -22,9 +22,6 @@ class Actions(adminapi.Actions):
         self.task_manager = tasks.TaskManager(common_repo, queue_repo)
         self.login_manager = login.LoginManager(authenticator)
         self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, clients)
-        self.table_transfer_manager = table_transfer.TableTransferManager(
-            common_repo, layer0_repo, layer1_repo, layer2_repo
-        )
 
     def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -43,9 +40,6 @@ class Actions(adminapi.Actions):
 
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         return self.table_upload_manager.patch_table(r)
-
-    def table_status_stats(self, r: adminapi.TableStatusStatsRequest) -> adminapi.TableStatusStatsResponse:
-        return self.table_transfer_manager.table_status_stats(r)
 
     def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
         return self.table_upload_manager.create_marking(r)
