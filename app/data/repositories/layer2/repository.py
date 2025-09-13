@@ -72,6 +72,10 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         limit: int,
         offset: int,
     ) -> tuple[str, list[Any]]:
+        if not search_params:
+            # If no search parameters, return empty result
+            return "SELECT NULL as object_id, NULL as pgc WHERE FALSE", []
+
         query = """
             WITH search_params AS (
                 SELECT * FROM (
