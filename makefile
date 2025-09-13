@@ -61,6 +61,13 @@ build-docs:
 		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs build
 
+cleanup:
+	rm -rf uv.lock .venv \
+		.pytest_cache .mypy_cache .vizier_cache .ruff_cache \
+		__pycache__ */__pycache__ \
+		.coverage htmlcov site \
+		docs/gen
+
 ## Testing
 
 check:
