@@ -18,20 +18,24 @@ def create_marking(client: hyperleda.HyperLedaClient, table_name: str):
     client.create_marking(
         table_name=table_name,
         rules=[
-            hyperleda.Catalog(
-                name=hyperleda.Name.icrs,
+            hyperleda.CatalogToMark(
+                name="icrs",
                 parameters={
-                    "ra": hyperleda.Parameter(column_name="ra"),
-                    "dec": hyperleda.Parameter(column_name="dec"),
-                    "e_ra": hyperleda.Parameter(column_name="e_ra"),
-                    "e_dec": hyperleda.Parameter(column_name="e_dec"),
+                    "ra": hyperleda.ParameterToMark(column_name="ra"),
+                    "dec": hyperleda.ParameterToMark(column_name="dec"),
+                    "e_ra": hyperleda.ParameterToMark(column_name="e_ra"),
+                    "e_dec": hyperleda.ParameterToMark(column_name="e_dec"),
                 },
+                key=None,
+                additional_params=None,
             ),
-            hyperleda.Catalog(
-                name=hyperleda.Name.designation,
+            hyperleda.CatalogToMark(
+                name="designation",
                 parameters={
-                    "design": hyperleda.Parameter(column_name="name"),
+                    "design": hyperleda.ParameterToMark(column_name="name"),
                 },
+                key=None,
+                additional_params=None,
             ),
         ],
     )
@@ -51,17 +55,35 @@ def create_table(client: hyperleda.HyperLedaClient, bib_id: str) -> tuple[int, s
     table_name = f"test_{str(uuid.uuid4())}"
 
     return client.create_table(
-        hyperleda.CreateTableRequestSchema(
-            table_name,
-            [
-                hyperleda.ColumnDescription("name", hyperleda.DataType.str, ucd="meta.id"),
-                hyperleda.ColumnDescription("ra", hyperleda.DataType.float, "hourangle", "pos.eq.ra"),
-                hyperleda.ColumnDescription("dec", hyperleda.DataType.float, "deg", "pos.eq.dec"),
-                hyperleda.ColumnDescription("e_ra", hyperleda.DataType.float, "deg"),
-                hyperleda.ColumnDescription("e_dec", hyperleda.DataType.float, "deg"),
-                hyperleda.ColumnDescription("fuzz", hyperleda.DataType.str),
+        hyperleda.CreateTableRequest(
+            table_name=table_name,
+            columns=[
+                hyperleda.ColumnDescription(
+                    name="name", data_type=hyperleda.DatatypeEnum.str, ucd="meta.id", unit=None, description=None
+                ),
+                hyperleda.ColumnDescription(
+                    name="ra",
+                    data_type=hyperleda.DatatypeEnum.float,
+                    unit="hourangle",
+                    ucd="pos.eq.ra",
+                    description=None,
+                ),
+                hyperleda.ColumnDescription(
+                    name="dec", data_type=hyperleda.DatatypeEnum.float, unit="deg", ucd="pos.eq.dec", description=None
+                ),
+                hyperleda.ColumnDescription(
+                    name="e_ra", data_type=hyperleda.DatatypeEnum.float, unit="deg", ucd=None, description=None
+                ),
+                hyperleda.ColumnDescription(
+                    name="e_dec", data_type=hyperleda.DatatypeEnum.float, unit="deg", ucd=None, description=None
+                ),
+                hyperleda.ColumnDescription(
+                    name="fuzz", data_type=hyperleda.DatatypeEnum.str, ucd=None, unit=None, description=None
+                ),
             ],
-            bib_id,
+            bibcode=bib_id,
+            datatype=hyperleda.DataType.regular,
+            description="",
         )
     ), table_name
 
@@ -112,12 +134,12 @@ def start_processing(table_id: int, table_name: str):
 
 
 @lib.test_logging_decorator(__file__)
-def get_object_statuses(client: hyperleda.HyperLedaClient, table_id: int) -> dict[str, int]:
-    stats = client.get_table_status_stats(table_id)
-    if stats.processing is None:
+def get_object_statuses(client: hyperleda.HyperLedaClient, table_name: str) -> dict[str, int]:
+    table_info = client.get_table(table_name)
+    if table_info.statistics is None:
         raise ValueError("Processing status is None")
 
-    return stats.processing
+    return table_info.statistics
 
 
 @lib.test_logging_decorator(__file__)
@@ -144,7 +166,7 @@ def run():
     create_marking(client, table_name)
     start_processing(table_id, table_name)
 
-    statuses_data = get_object_statuses(client, table_id)
+    statuses_data = get_object_statuses(client, table_name)
     assert statuses_data["new"] == 2
 
     layer1_import(table_id)

@@ -81,6 +81,7 @@ class GetTableResponse(pydantic.BaseModel):
     meta: dict[str, Any]
     bibliography: Bibliography
     marking_rules: list[MarkingRule]
+    statistics: dict[enums.ObjectCrossmatchStatus, int] | None = None
 
 
 class CreateTableRequest(pydantic.BaseModel):
@@ -148,14 +149,6 @@ class PatchTableResponse(pydantic.BaseModel):
 class CrossIdentification(pydantic.BaseModel):
     inner_radius_arcsec: float = 1.5
     outer_radius_arcsec: float = 3
-
-
-class TableStatusStatsRequest(pydantic.BaseModel):
-    table_id: int
-
-
-class TableStatusStatsResponse(pydantic.BaseModel):
-    processing: dict[enums.ObjectCrossmatchStatus, int]
 
 
 class SetTableStatusOverrides(pydantic.BaseModel):
@@ -236,10 +229,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_source(self, request: CreateSourceRequest) -> CreateSourceResponse:
-        pass
-
-    @abc.abstractmethod
-    def table_status_stats(self, request: TableStatusStatsRequest) -> TableStatusStatsResponse:
         pass
 
     @abc.abstractmethod

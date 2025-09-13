@@ -57,12 +57,6 @@ class API:
         response = self.actions.login(request)
         return server.APIOkResponse(data=response)
 
-    def table_status_stats(
-        self, request: Annotated[interface.TableStatusStatsRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[interface.TableStatusStatsResponse]:
-        response = self.actions.table_status_stats(request)
-        return server.APIOkResponse(data=response)
-
     def create_marking(
         self,
         request: interface.CreateMarkingRequest,
@@ -127,15 +121,6 @@ of the previously created table without any alterations.""",
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
-            ),
-            server.Route(
-                "/v1/table/status/stats",
-                http.HTTPMethod.GET,
-                api.table_status_stats,
-                "Get statistics on table processing",
-                """Accesses the current status of the processing of a given table.
-Returns the distribution of objects by processing status.
-If there are no objects with the given status, it will not be present in the response.""",
             ),
             server.Route(
                 "/v1/marking",

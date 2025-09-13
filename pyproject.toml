@@ -34,7 +34,6 @@ test = [
     "pytest>=8.3.4",
     "testcontainers-postgres>=0.0.1rc1",
     "testcontainers-redis>=0.0.1rc1",
-    "hyperleda-scripts",
 ]
 
 [tool.ruff]
@@ -95,7 +94,6 @@ module = "astroquery.*"
 ignore_missing_imports = true
 
 [tool.uv.sources]
-hyperleda-scripts = { git = "https://github.com/HyperLEDA/scripts.git" }
 hyperleda = { git = "https://github.com/HyperLEDA/client.git" }
 
 [dependency-groups]
