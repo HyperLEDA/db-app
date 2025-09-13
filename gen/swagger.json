@@ -256,46 +256,6 @@
         }
       }
     },
-    "/api/v1/table/status/stats": {
-      "get": {
-        "summary": "Get statistics on table processing",
-        "description": "Accesses the current status of the processing of a given table.\nReturns the distribution of objects by processing status.\nIf there are no objects with the given status, it will not be present in the response.",
-        "operationId": "table_status_stats_api_v1_table_status_stats_get",
-        "parameters": [
-          {
-            "name": "table_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Table Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIOkResponse_TableStatusStatsResponse_"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/marking": {
       "post": {
         "summary": "New marking rules for the table",
@@ -442,18 +402,6 @@
           "data"
         ],
         "title": "APIOkResponse[PatchTableResponse]"
-      },
-      "APIOkResponse_TableStatusStatsResponse_": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/TableStatusStatsResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "APIOkResponse[TableStatusStatsResponse]"
       },
       "AddDataRequest": {
         "properties": {
@@ -859,6 +807,23 @@
             },
             "type": "array",
             "title": "Marking Rules"
+          },
+          "statistics": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "propertyNames": {
+                  "$ref": "#/components/schemas/ObjectCrossmatchStatus"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statistics"
           }
         },
         "type": "object",
@@ -1039,25 +1004,6 @@
         "properties": {},
         "type": "object",
         "title": "PatchTableResponse"
-      },
-      "TableStatusStatsResponse": {
-        "properties": {
-          "processing": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "propertyNames": {
-              "$ref": "#/components/schemas/ObjectCrossmatchStatus"
-            },
-            "type": "object",
-            "title": "Processing"
-          }
-        },
-        "type": "object",
-        "required": [
-          "processing"
-        ],
-        "title": "TableStatusStatsResponse"
       },
       "ValidationError": {
         "properties": {
