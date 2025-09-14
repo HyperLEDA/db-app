@@ -42,7 +42,7 @@ def create_marking(session: requests.Session, table_name: str):
         ],
     )
 
-    response = session.post("/api/v1/marking", json=request_data.model_dump())
+    response = session.post("/v1/marking", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
 
@@ -54,7 +54,7 @@ def create_bibliography(session: requests.Session) -> str:
         year=2024,
     )
 
-    response = session.post("/api/v1/source", json=request_data.model_dump())
+    response = session.post("/v1/source", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
     return response.json()["data"]["code"]
 
@@ -94,7 +94,7 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
         description="",
     )
 
-    response = session.post("/api/v1/table", json=request_data.model_dump())
+    response = session.post("/v1/table", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
     table_id = response.json()["data"]["id"]
 
@@ -129,7 +129,7 @@ def upload_data(session: requests.Session, table_id: int):
         data=df.to_dict("records"),  # type: ignore
     )
 
-    response = session.post("/api/v1/table/data", json=request_data.model_dump())
+    response = session.post("/v1/table/data", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
 
@@ -156,7 +156,7 @@ def start_processing(table_id: int, table_name: str):
 def get_object_statuses(session: requests.Session, table_name: str) -> dict[str, int]:
     request_data = adminapi.GetTableRequest(table_name=table_name)
 
-    response = session.get("/api/v1/table", params=request_data.model_dump())
+    response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
     table_info = response.json()["data"]
@@ -170,7 +170,7 @@ def get_object_statuses(session: requests.Session, table_name: str) -> dict[str,
 def get_crossmatch_results(session: requests.Session, table_name: str) -> dict:
     request_data = adminapi.GetRecordsCrossmatchRequest(table_name=table_name, status=enums.RecordCrossmatchStatus.NEW)
 
-    response = session.get("/api/v1/records/crossmatch", params=request_data.model_dump())
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
     return response.json()["data"]
