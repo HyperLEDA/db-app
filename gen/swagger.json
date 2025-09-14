@@ -300,6 +300,82 @@
         ]
       }
     },
+    "/api/v1/records/crossmatch": {
+      "get": {
+        "summary": "Get crossmatch records",
+        "description": "Retrieves crossmatch records for a specific table with optional filtering.\n\n### Request Parameters\n- `table_name` (required): Name of the table to query crossmatch results for\n- `status` (optional, default: \"collided\"): Filter by crossmatch status\n- `decision` (optional, default: \"all\"): Filter by decision type (future extension)\n- `page` (optional, default: 0): Page number for pagination\n- `page_size` (optional, default: 25): Number of records per page\n\n### Response\nReturns a list of crossmatch records with their catalog information including\ncoordinates, designations, redshift, and velocity data.",
+        "operationId": "get_crossmatch_records_api_v1_records_crossmatch_get",
+        "parameters": [
+          {
+            "name": "table_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Name"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordCrossmatchStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_GetRecordsCrossmatchResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ping": {
       "get": {
         "summary": "Check that service is up and running",
@@ -366,6 +442,18 @@
           "data"
         ],
         "title": "APIOkResponse[CreateTableResponse]"
+      },
+      "APIOkResponse_GetRecordsCrossmatchResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetRecordsCrossmatchResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[GetRecordsCrossmatchResponse]"
       },
       "APIOkResponse_GetTableResponse_": {
         "properties": {
@@ -535,6 +623,52 @@
         ],
         "title": "CatalogToMark"
       },
+      "Catalogs": {
+        "properties": {
+          "designation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Designation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coordinates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redshift": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Redshift"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "velocity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Velocity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Catalogs"
+      },
       "ColumnDescription": {
         "properties": {
           "name": {
@@ -584,6 +718,22 @@
           "data_type"
         ],
         "title": "ColumnDescription"
+      },
+      "Coordinates": {
+        "properties": {
+          "equatorial": {
+            "$ref": "#/components/schemas/EquatorialCoordinates"
+          },
+          "galactic": {
+            "$ref": "#/components/schemas/GalacticCoordinates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "equatorial",
+          "galactic"
+        ],
+        "title": "Coordinates"
       },
       "CreateMarkingRequest": {
         "properties": {
@@ -772,6 +922,95 @@
         ],
         "title": "DatatypeEnum"
       },
+      "Designation": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "Designation"
+      },
+      "EquatorialCoordinates": {
+        "properties": {
+          "ra": {
+            "type": "number",
+            "title": "Ra"
+          },
+          "dec": {
+            "type": "number",
+            "title": "Dec"
+          },
+          "e_ra": {
+            "type": "number",
+            "title": "E Ra"
+          },
+          "e_dec": {
+            "type": "number",
+            "title": "E Dec"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ra",
+          "dec",
+          "e_ra",
+          "e_dec"
+        ],
+        "title": "EquatorialCoordinates"
+      },
+      "GalacticCoordinates": {
+        "properties": {
+          "lon": {
+            "type": "number",
+            "title": "Lon"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "e_lon": {
+            "type": "number",
+            "title": "E Lon"
+          },
+          "e_lat": {
+            "type": "number",
+            "title": "E Lat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lon",
+          "lat",
+          "e_lon",
+          "e_lat"
+        ],
+        "title": "GalacticCoordinates"
+      },
+      "GetRecordsCrossmatchResponse": {
+        "properties": {
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/RecordCrossmatch"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "units_schema": {
+            "$ref": "#/components/schemas/UnitsSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records",
+          "units_schema"
+        ],
+        "title": "GetRecordsCrossmatchResponse"
+      },
       "GetTableResponse": {
         "properties": {
           "id": {
@@ -815,7 +1054,7 @@
                   "type": "integer"
                 },
                 "propertyNames": {
-                  "$ref": "#/components/schemas/ObjectCrossmatchStatus"
+                  "$ref": "#/components/schemas/RecordCrossmatchStatus"
                 },
                 "type": "object"
               },
@@ -850,6 +1089,24 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HeliocentricVelocity": {
+        "properties": {
+          "v": {
+            "type": "number",
+            "title": "V"
+          },
+          "e_v": {
+            "type": "number",
+            "title": "E V"
+          }
+        },
+        "type": "object",
+        "required": [
+          "v",
+          "e_v"
+        ],
+        "title": "HeliocentricVelocity"
       },
       "LoginRequest": {
         "properties": {
@@ -908,16 +1165,6 @@
           "columns"
         ],
         "title": "MarkingRule"
-      },
-      "ObjectCrossmatchStatus": {
-        "type": "string",
-        "enum": [
-          "unprocessed",
-          "new",
-          "collided",
-          "existing"
-        ],
-        "title": "ObjectCrossmatchStatus"
       },
       "ParameterToMark": {
         "properties": {
@@ -1005,6 +1252,120 @@
         "type": "object",
         "title": "PatchTableResponse"
       },
+      "RecordCrossmatch": {
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "title": "Record Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecordCrossmatchStatus"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RecordCrossmatchMetadata"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/Catalogs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_id",
+          "status",
+          "metadata",
+          "catalogs"
+        ],
+        "title": "RecordCrossmatch"
+      },
+      "RecordCrossmatchMetadata": {
+        "properties": {
+          "possible_matches": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Possible Matches"
+          },
+          "pgc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pgc"
+          }
+        },
+        "type": "object",
+        "title": "RecordCrossmatchMetadata"
+      },
+      "RecordCrossmatchStatus": {
+        "type": "string",
+        "enum": [
+          "unprocessed",
+          "new",
+          "collided",
+          "existing"
+        ],
+        "title": "RecordCrossmatchStatus"
+      },
+      "Redshift": {
+        "properties": {
+          "z": {
+            "type": "number",
+            "title": "Z"
+          },
+          "e_z": {
+            "type": "number",
+            "title": "E Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "z",
+          "e_z"
+        ],
+        "title": "Redshift"
+      },
+      "UnitsSchema": {
+        "properties": {
+          "coordinates": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Coordinates"
+          },
+          "velocity": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Velocity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "coordinates",
+          "velocity"
+        ],
+        "title": "UnitsSchema"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -1037,6 +1398,18 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Velocity": {
+        "properties": {
+          "heliocentric": {
+            "$ref": "#/components/schemas/HeliocentricVelocity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "heliocentric"
+        ],
+        "title": "Velocity"
       }
     },
     "securitySchemes": {
