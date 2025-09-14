@@ -12,9 +12,9 @@ from app.presentation import adminapi
 logger = structlog.stdlib.get_logger()
 
 status_map = {
-    model.CIResultObjectNew: enums.ObjectCrossmatchStatus.NEW,
-    model.CIResultObjectExisting: enums.ObjectCrossmatchStatus.EXISTING,
-    model.CIResultObjectCollision: enums.ObjectCrossmatchStatus.COLLIDED,
+    model.CIResultObjectNew: enums.RecordCrossmatchStatus.NEW,
+    model.CIResultObjectExisting: enums.RecordCrossmatchStatus.EXISTING,
+    model.CIResultObjectCollision: enums.RecordCrossmatchStatus.COLLIDED,
 }
 
 
@@ -23,7 +23,7 @@ class CrossmatchManager:
     def __init__(self, layer0_repo: layer0.Layer0Repository) -> None:
         self.layer0_repo = layer0_repo
 
-    def get_crossmatch_records(self, r: adminapi.GetCrossmatchRecordsRequest) -> adminapi.GetCrossmatchRecordsResponse:
+    def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         table_id = table_metadata.table_id
         if table_id is None:
@@ -35,10 +35,10 @@ class CrossmatchManager:
         status_enum = None
         if r.status != "all":
             try:
-                status_enum = enums.ObjectCrossmatchStatus(r.status)
+                status_enum = enums.RecordCrossmatchStatus(r.status)
             except ValueError:
                 # Invalid status, return empty results
-                return adminapi.GetCrossmatchRecordsResponse(records=[], units_schema=self._create_units_schema())
+                return adminapi.GetRecordsCrossmatchResponse(records=[], units_schema=self._create_units_schema())
 
         processed_objects = self.layer0_repo.get_processed_objects(
             table_id=table_id,
@@ -52,7 +52,7 @@ class CrossmatchManager:
             record = self._convert_to_crossmatch_record(obj)
             records.append(record)
 
-        return adminapi.GetCrossmatchRecordsResponse(records=records, units_schema=self._create_units_schema())
+        return adminapi.GetRecordsCrossmatchResponse(records=records, units_schema=self._create_units_schema())
 
     def _create_units_schema(self) -> adminapi.UnitsSchema:
         return adminapi.UnitsSchema(
@@ -63,8 +63,8 @@ class CrossmatchManager:
             velocity={"heliocentric": {"v": "km/s", "e_v": "km/s"}},
         )
 
-    def _convert_to_crossmatch_record(self, obj: model.Layer0ProcessedObject) -> adminapi.CrossmatchRecord:
-        metadata = adminapi.CrossmatchRecordMetadata()
+    def _convert_to_crossmatch_record(self, obj: model.Layer0ProcessedObject) -> adminapi.RecordCrossmatch:
+        metadata = adminapi.RecordCrossmatchMetadata()
         if isinstance(obj.processing_result, model.CIResultObjectExisting):
             metadata.pgc = obj.processing_result.pgc
         elif isinstance(obj.processing_result, model.CIResultObjectCollision):
@@ -114,13 +114,13 @@ class CrossmatchManager:
                 )
             )
 
-        status = enums.ObjectCrossmatchStatus.UNPROCESSED
+        status = enums.RecordCrossmatchStatus.UNPROCESSED
 
         for result_type, stat in status_map.items():
             if isinstance(obj.processing_result, result_type):
                 status = stat
 
-        return adminapi.CrossmatchRecord(
+        return adminapi.RecordCrossmatch(
             record_id=obj.object_id,
             status=status,
             metadata=metadata,

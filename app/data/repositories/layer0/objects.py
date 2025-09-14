@@ -57,7 +57,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         ]
 
     def get_processed_objects(
-        self, table_id: int, limit: int, offset: str | None, status: enums.ObjectCrossmatchStatus | None = None
+        self, table_id: int, limit: int, offset: str | None, status: enums.RecordCrossmatchStatus | None = None
     ) -> list[model.Layer0ProcessedObject]:
         params = []
 
@@ -89,9 +89,9 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             metadata = row["metadata"]
             ci_result = None
 
-            if status == enums.ObjectCrossmatchStatus.NEW:
+            if status == enums.RecordCrossmatchStatus.NEW:
                 ci_result = model.CIResultObjectNew()
-            elif status == enums.ObjectCrossmatchStatus.EXISTING:
+            elif status == enums.RecordCrossmatchStatus.EXISTING:
                 ci_result = model.CIResultObjectExisting(pgc=metadata["pgc"])
             else:
                 ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
@@ -133,7 +133,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             raise DatabaseError(f"unable to fetch total rows for table {table_name}")
 
         return model.TableStatistics(
-            {enums.ObjectCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
+            {enums.RecordCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,
@@ -170,13 +170,13 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             meta = {}
 
             if isinstance(result, model.CIResultObjectNew):
-                status = enums.ObjectCrossmatchStatus.NEW
+                status = enums.RecordCrossmatchStatus.NEW
                 meta = {}
             elif isinstance(result, model.CIResultObjectExisting):
-                status = enums.ObjectCrossmatchStatus.EXISTING
+                status = enums.RecordCrossmatchStatus.EXISTING
                 meta = {"pgc": result.pgc}
             else:
-                status = enums.ObjectCrossmatchStatus.COLLIDED
+                status = enums.RecordCrossmatchStatus.COLLIDED
                 possible_pgcs = list(result.pgcs or set())
 
                 meta = {"possible_matches": possible_pgcs}

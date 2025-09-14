@@ -48,5 +48,5 @@ class Actions(adminapi.Actions):
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         return self.table_upload_manager.get_table(r)
 
-    def get_crossmatch_records(self, r: adminapi.GetCrossmatchRecordsRequest) -> adminapi.GetCrossmatchRecordsResponse:
+    def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         return self.crossmatch_manager.get_crossmatch_records(r)

@@ -63,7 +63,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         return self.objects_repo.get_objects(table_id, limit, offset)
 
     def get_processed_objects(
-        self, table_id: int, limit: int, offset: str | None = None, status: enums.ObjectCrossmatchStatus | None = None
+        self, table_id: int, limit: int, offset: str | None = None, status: enums.RecordCrossmatchStatus | None = None
     ) -> list[model.Layer0ProcessedObject]:
         return self.objects_repo.get_processed_objects(table_id, limit, offset, status)
 

@@ -37,7 +37,7 @@ DEFAULT_ENUMS = [
     (enums.TaskStatus, "common.task_status"),
     (enums.DataType, "common.datatype"),
     (enums.RawDataStatus, "rawdata.status"),
-    (enums.ObjectCrossmatchStatus, "rawdata.crossmatch_status"),
+    (enums.RecordCrossmatchStatus, "rawdata.crossmatch_status"),
 ]
 
 

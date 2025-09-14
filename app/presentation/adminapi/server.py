@@ -66,8 +66,8 @@ class API:
         return server.APIOkResponse(data=response)
 
     def get_crossmatch_records(
-        self, request: Annotated[interface.GetCrossmatchRecordsRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[interface.GetCrossmatchRecordsResponse]:
+        self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.GetRecordsCrossmatchResponse]:
         response = self.actions.get_crossmatch_records(request)
         return server.APIOkResponse(data=response)
 

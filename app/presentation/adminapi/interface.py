@@ -81,7 +81,7 @@ class GetTableResponse(pydantic.BaseModel):
     meta: dict[str, Any]
     bibliography: Bibliography
     marking_rules: list[MarkingRule]
-    statistics: dict[enums.ObjectCrossmatchStatus, int] | None = None
+    statistics: dict[enums.RecordCrossmatchStatus, int] | None = None
 
 
 class CreateTableRequest(pydantic.BaseModel):
@@ -210,14 +210,14 @@ class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
-class GetCrossmatchRecordsRequest(pydantic.BaseModel):
+class GetRecordsCrossmatchRequest(pydantic.BaseModel):
     table_name: str
-    status: enums.ObjectCrossmatchStatus | None = None
+    status: enums.RecordCrossmatchStatus | None = None
     page: int = 0
     page_size: int = 25
 
 
-class CrossmatchRecordMetadata(pydantic.BaseModel):
+class RecordCrossmatchMetadata(pydantic.BaseModel):
     possible_matches: list[int] | None = None
     pgc: int | None = None
 
@@ -266,10 +266,10 @@ class Catalogs(pydantic.BaseModel):
     velocity: Velocity | None = None
 
 
-class CrossmatchRecord(pydantic.BaseModel):
+class RecordCrossmatch(pydantic.BaseModel):
     record_id: str
-    status: enums.ObjectCrossmatchStatus
-    metadata: CrossmatchRecordMetadata
+    status: enums.RecordCrossmatchStatus
+    metadata: RecordCrossmatchMetadata
     catalogs: Catalogs
 
 
@@ -278,8 +278,8 @@ class UnitsSchema(pydantic.BaseModel):
     velocity: dict[str, dict[str, str]]
 
 
-class GetCrossmatchRecordsResponse(pydantic.BaseModel):
-    records: list[CrossmatchRecord]
+class GetRecordsCrossmatchResponse(pydantic.BaseModel):
+    records: list[RecordCrossmatch]
     units_schema: UnitsSchema
 
 
@@ -317,5 +317,5 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_crossmatch_records(self, request: GetCrossmatchRecordsRequest) -> GetCrossmatchRecordsResponse:
+    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
         pass

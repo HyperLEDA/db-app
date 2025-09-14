@@ -89,7 +89,7 @@ class Layer0ProcessedObject:
 
 @dataclass
 class TableStatistics:
-    statuses: dict[enums.ObjectCrossmatchStatus, int]
+    statuses: dict[enums.RecordCrossmatchStatus, int]
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int
