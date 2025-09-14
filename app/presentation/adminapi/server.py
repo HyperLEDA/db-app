@@ -65,6 +65,12 @@ class API:
         response = self.actions.create_marking(request)
         return server.APIOkResponse(data=response)
 
+    def get_crossmatch_records(
+        self, request: Annotated[interface.GetCrossmatchRecordsRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.GetCrossmatchRecordsResponse]:
+        response = self.actions.get_crossmatch_records(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -205,6 +211,24 @@ table might not have a separate column for astrometric errors but from other sou
     }
 }
 ```""",
+            ),
+            server.Route(
+                "/v1/records/crossmatch",
+                http.HTTPMethod.GET,
+                api.get_crossmatch_records,
+                "Get crossmatch records",
+                """Retrieves crossmatch records for a specific table with optional filtering.
+
+### Request Parameters
+- `table_name` (required): Name of the table to query crossmatch results for
+- `status` (optional, default: "collided"): Filter by crossmatch status
+- `decision` (optional, default: "all"): Filter by decision type (future extension)
+- `page` (optional, default: 0): Page number for pagination
+- `page_size` (optional, default: 25): Number of records per page
+
+### Response
+Returns a list of crossmatch records with their catalog information including
+coordinates, designations, redshift, and velocity data.""",
             ),
         ]
 

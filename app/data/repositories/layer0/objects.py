@@ -56,7 +56,9 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             for row in rows
         ]
 
-    def get_processed_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0ProcessedObject]:
+    def get_processed_objects(
+        self, table_id: int, limit: int, offset: str | None, status: enums.ObjectCrossmatchStatus | None = None
+    ) -> list[model.Layer0ProcessedObject]:
         params = []
 
         where_stmnt = ["table_id = %s"]
@@ -64,6 +66,10 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         if offset is not None:
             where_stmnt.append("id > %s")
             params.append(offset)
+
+        if status is not None:
+            where_stmnt.append("c.status = %s")
+            params.append(status)
 
         query = f"""SELECT o.id, o.data, c.status, c.metadata
             FROM rawdata.crossmatch AS c

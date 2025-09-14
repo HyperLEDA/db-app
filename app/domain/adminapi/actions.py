@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import repositories
-from app.domain.adminapi import login, sources, table_upload, tasks
+from app.domain.adminapi import crossmatch, login, sources, table_upload, tasks
 from app.lib import auth, clients
 from app.presentation import adminapi
 
@@ -22,6 +22,7 @@ class Actions(adminapi.Actions):
         self.task_manager = tasks.TaskManager(common_repo, queue_repo)
         self.login_manager = login.LoginManager(authenticator)
         self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, clients)
+        self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo)
 
     def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -46,3 +47,6 @@ class Actions(adminapi.Actions):
 
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         return self.table_upload_manager.get_table(r)
+
+    def get_crossmatch_records(self, r: adminapi.GetCrossmatchRecordsRequest) -> adminapi.GetCrossmatchRecordsResponse:
+        return self.crossmatch_manager.get_crossmatch_records(r)
