@@ -67,7 +67,6 @@ class CIResultObjectExisting:
 
 @dataclass
 class CIResultObjectCollision:
-    possible_pgcs: dict[str, set[int]] | None = None
     pgcs: set[int] | None = None
 
 
@@ -80,10 +79,17 @@ class Layer0ProcessedObject:
     data: list[interface.CatalogObject]
     processing_result: CIResult
 
+    def get[T](self, t: type[T]) -> T | None:
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+
+        return None
+
 
 @dataclass
 class TableStatistics:
-    statuses: dict[enums.ObjectCrossmatchStatus, int]
+    statuses: dict[enums.RecordCrossmatchStatus, int]
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int

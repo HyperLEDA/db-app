@@ -56,25 +56,27 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             for row in rows
         ]
 
-    def get_processed_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0ProcessedObject]:
+    def get_processed_objects(
+        self, table_id: int, limit: int, offset: str | None, status: enums.RecordCrossmatchStatus | None = None
+    ) -> list[model.Layer0ProcessedObject]:
         params = []
 
-        where_stmnt = ["table_id = %s"]
+        where_stmnt = ["o.table_id = %s"]
         params.append(table_id)
         if offset is not None:
-            where_stmnt.append("id > %s")
+            where_stmnt.append("o.id > %s")
             params.append(offset)
 
+        if status is not None:
+            where_stmnt.append("c.status = %s")
+            params.append(status)
+
         query = f"""SELECT o.id, o.data, c.status, c.metadata
-            FROM rawdata.crossmatch AS c
-            JOIN (
-                SELECT id, data
-                FROM rawdata.objects
-                WHERE {" AND ".join(where_stmnt)}
-                ORDER BY id
-                LIMIT %s
-            ) AS o ON o.id = c.object_id
-            ORDER BY o.id"""
+            FROM rawdata.objects AS o
+            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            WHERE {" AND ".join(where_stmnt)}
+            ORDER BY o.id
+            LIMIT %s"""
 
         params.append(limit)
 
@@ -87,12 +89,12 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             metadata = row["metadata"]
             ci_result = None
 
-            if status == enums.ObjectCrossmatchStatus.NEW:
+            if status == enums.RecordCrossmatchStatus.NEW:
                 ci_result = model.CIResultObjectNew()
-            elif status == enums.ObjectCrossmatchStatus.EXISTING:
+            elif status == enums.RecordCrossmatchStatus.EXISTING:
                 ci_result = model.CIResultObjectExisting(pgc=metadata["pgc"])
             else:
-                ci_result = model.CIResultObjectCollision(possible_pgcs=metadata["possible_matches"])
+                ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
 
             objects.append(
                 model.Layer0ProcessedObject(
@@ -131,7 +133,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             raise DatabaseError(f"unable to fetch total rows for table {table_name}")
 
         return model.TableStatistics(
-            {enums.ObjectCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
+            {enums.RecordCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,
@@ -168,13 +170,13 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             meta = {}
 
             if isinstance(result, model.CIResultObjectNew):
-                status = enums.ObjectCrossmatchStatus.NEW
+                status = enums.RecordCrossmatchStatus.NEW
                 meta = {}
             elif isinstance(result, model.CIResultObjectExisting):
-                status = enums.ObjectCrossmatchStatus.EXISTING
+                status = enums.RecordCrossmatchStatus.EXISTING
                 meta = {"pgc": result.pgc}
             else:
-                status = enums.ObjectCrossmatchStatus.COLLIDED
+                status = enums.RecordCrossmatchStatus.COLLIDED
                 possible_pgcs = list(result.pgcs or set())
 
                 meta = {"possible_matches": possible_pgcs}

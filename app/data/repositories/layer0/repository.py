@@ -3,7 +3,7 @@ from astropy import table
 
 from app.data import model
 from app.data.repositories.layer0 import homogenization, modifiers, objects, tables
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 
 class Layer0Repository(postgres.TransactionalPGRepository):
@@ -63,9 +63,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         return self.objects_repo.get_objects(table_id, limit, offset)
 
     def get_processed_objects(
-        self, table_id: int, limit: int, offset: str | None = None
+        self, table_id: int, limit: int, offset: str | None = None, status: enums.RecordCrossmatchStatus | None = None
     ) -> list[model.Layer0ProcessedObject]:
-        return self.objects_repo.get_processed_objects(table_id, limit, offset)
+        return self.objects_repo.get_processed_objects(table_id, limit, offset, status)
 
     def erase_crossmatch_results(self, table_id: int) -> None:
         return self.objects_repo.erase_crossmatch_results(table_id)

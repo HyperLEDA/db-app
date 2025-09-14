@@ -18,5 +18,8 @@ class TestSession(requests.Session):
         self.base_url = base_url
 
     def request(self, method, url, *args, **kwargs):
-        joined_url = parse.urljoin(self.base_url, url)
+        if url.startswith("/"):
+            joined_url = self.base_url.rstrip("/") + url
+        else:
+            joined_url = parse.urljoin(self.base_url, url)
         return super().request(method, joined_url, *args, **kwargs)

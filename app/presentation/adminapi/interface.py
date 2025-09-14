@@ -81,7 +81,7 @@ class GetTableResponse(pydantic.BaseModel):
     meta: dict[str, Any]
     bibliography: Bibliography
     marking_rules: list[MarkingRule]
-    statistics: dict[enums.ObjectCrossmatchStatus, int] | None = None
+    statistics: dict[enums.RecordCrossmatchStatus, int] | None = None
 
 
 class CreateTableRequest(pydantic.BaseModel):
@@ -210,6 +210,79 @@ class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
+class GetRecordsCrossmatchRequest(pydantic.BaseModel):
+    table_name: str
+    status: enums.RecordCrossmatchStatus | None = None
+    page: int = 0
+    page_size: int = 25
+
+
+class RecordCrossmatchMetadata(pydantic.BaseModel):
+    possible_matches: list[int] | None = None
+    pgc: int | None = None
+
+
+class EquatorialCoordinates(pydantic.BaseModel):
+    ra: float
+    dec: float
+    e_ra: float
+    e_dec: float
+
+
+class GalacticCoordinates(pydantic.BaseModel):
+    lon: float
+    lat: float
+    e_lon: float
+    e_lat: float
+
+
+class Coordinates(pydantic.BaseModel):
+    equatorial: EquatorialCoordinates
+    galactic: GalacticCoordinates
+
+
+class Designation(pydantic.BaseModel):
+    name: str
+
+
+class Redshift(pydantic.BaseModel):
+    z: float
+    e_z: float
+
+
+class HeliocentricVelocity(pydantic.BaseModel):
+    v: float
+    e_v: float
+
+
+class Velocity(pydantic.BaseModel):
+    heliocentric: HeliocentricVelocity
+
+
+class Catalogs(pydantic.BaseModel):
+    designation: Designation | None = None
+    coordinates: Coordinates | None = None
+    redshift: Redshift | None = None
+    velocity: Velocity | None = None
+
+
+class RecordCrossmatch(pydantic.BaseModel):
+    record_id: str
+    status: enums.RecordCrossmatchStatus
+    metadata: RecordCrossmatchMetadata
+    catalogs: Catalogs
+
+
+class UnitsSchema(pydantic.BaseModel):
+    coordinates: dict[str, dict[str, str]]
+    velocity: dict[str, dict[str, str]]
+
+
+class GetRecordsCrossmatchResponse(pydantic.BaseModel):
+    records: list[RecordCrossmatch]
+    units_schema: UnitsSchema
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -241,4 +314,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_marking(self, request: CreateMarkingRequest) -> CreateMarkingResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
         pass
