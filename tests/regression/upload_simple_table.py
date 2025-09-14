@@ -190,7 +190,7 @@ def layer1_import(table_id: int):
 def run():
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
-    api_url = f"http://{api_host}:{api_port}"
+    api_url = f"http://{api_host}:{api_port}/admin/api"
 
     session = lib.TestSession(api_url)
     code = create_bibliography(session)
