@@ -167,6 +167,16 @@ def get_object_statuses(session: requests.Session, table_name: str) -> dict[str,
 
 
 @lib.test_logging_decorator(__file__)
+def get_crossmatch_results(session: requests.Session, table_name: str) -> dict:
+    request_data = adminapi.GetRecordsCrossmatchRequest(table_name=table_name, status=enums.RecordCrossmatchStatus.NEW)
+
+    response = session.get("/api/v1/records/crossmatch", params=request_data.model_dump())
+    response.raise_for_status()
+
+    return response.json()["data"]
+
+
+@lib.test_logging_decorator(__file__)
 def layer1_import(table_id: int):
     commands.run(
         RunTaskCommand(
@@ -192,5 +202,10 @@ def run():
 
     statuses_data = get_object_statuses(session, table_name)
     assert statuses_data["new"] == 2
+
+    crossmatch_data = get_crossmatch_results(session, table_name)
+    assert "records" in crossmatch_data
+    assert "units_schema" in crossmatch_data
+    assert len(crossmatch_data["records"]) == statuses_data["new"]
 
     layer1_import(table_id)
