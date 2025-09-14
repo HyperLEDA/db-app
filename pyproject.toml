@@ -93,9 +93,6 @@ ignore_missing_imports = true
 module = "astroquery.*"
 ignore_missing_imports = true
 
-[tool.uv.sources]
-hyperleda = { git = "https://github.com/HyperLEDA/client.git" }
-
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
@@ -107,6 +104,5 @@ dev = [
     "types-psycopg2>=2.9.21.20250121",
     "types-pyyaml>=6.0.12.20241230",
     "types-regex>=2024.11.6.20241221",
-    "hyperleda",
     "fabric>=3.2.2",
 ]
