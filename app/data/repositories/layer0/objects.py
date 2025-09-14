@@ -61,10 +61,10 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
     ) -> list[model.Layer0ProcessedObject]:
         params = []
 
-        where_stmnt = ["table_id = %s"]
+        where_stmnt = ["o.table_id = %s"]
         params.append(table_id)
         if offset is not None:
-            where_stmnt.append("id > %s")
+            where_stmnt.append("o.id > %s")
             params.append(offset)
 
         if status is not None:
@@ -72,15 +72,11 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             params.append(status)
 
         query = f"""SELECT o.id, o.data, c.status, c.metadata
-            FROM rawdata.crossmatch AS c
-            JOIN (
-                SELECT id, data
-                FROM rawdata.objects
-                WHERE {" AND ".join(where_stmnt)}
-                ORDER BY id
-                LIMIT %s
-            ) AS o ON o.id = c.object_id
-            ORDER BY o.id"""
+            FROM rawdata.objects AS o
+            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            WHERE {" AND ".join(where_stmnt)}
+            ORDER BY o.id
+            LIMIT %s"""
 
         params.append(limit)
 
@@ -98,7 +94,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             elif status == enums.ObjectCrossmatchStatus.EXISTING:
                 ci_result = model.CIResultObjectExisting(pgc=metadata["pgc"])
             else:
-                ci_result = model.CIResultObjectCollision(possible_pgcs=metadata["possible_matches"])
+                ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
 
             objects.append(
                 model.Layer0ProcessedObject(

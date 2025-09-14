@@ -1,7 +1,7 @@
 from typing import final
 
 import structlog
-from astropy import coordinates
+from astropy import constants, coordinates
 from astropy import units as u
 
 from app.data import model
@@ -10,6 +10,12 @@ from app.lib.storage import enums
 from app.presentation import adminapi
 
 logger = structlog.stdlib.get_logger()
+
+status_map = {
+    model.CIResultObjectNew: enums.ObjectCrossmatchStatus.NEW,
+    model.CIResultObjectExisting: enums.ObjectCrossmatchStatus.EXISTING,
+    model.CIResultObjectCollision: enums.ObjectCrossmatchStatus.COLLIDED,
+}
 
 
 @final
@@ -25,11 +31,20 @@ class CrossmatchManager:
 
         offset = r.page * r.page_size
 
+        # Convert status string to enum if not "all"
+        status_enum = None
+        if r.status != "all":
+            try:
+                status_enum = enums.ObjectCrossmatchStatus(r.status)
+            except ValueError:
+                # Invalid status, return empty results
+                return adminapi.GetCrossmatchRecordsResponse(records=[], units_schema=self._create_units_schema())
+
         processed_objects = self.layer0_repo.get_processed_objects(
             table_id=table_id,
             limit=r.page_size,
             offset=str(offset) if offset > 0 else None,
-            status=r.status,
+            status=status_enum,
         )
 
         records = []
@@ -48,29 +63,12 @@ class CrossmatchManager:
             velocity={"heliocentric": {"v": "km/s", "e_v": "km/s"}},
         )
 
-    def _get_object_status(self, obj: model.Layer0ProcessedObject) -> enums.ObjectCrossmatchStatus:
-        if isinstance(obj.processing_result, model.CIResultObjectNew):
-            return enums.ObjectCrossmatchStatus.NEW
-        if isinstance(obj.processing_result, model.CIResultObjectExisting):
-            return enums.ObjectCrossmatchStatus.EXISTING
-        if isinstance(obj.processing_result, model.CIResultObjectCollision):
-            return enums.ObjectCrossmatchStatus.COLLIDED
-        return enums.ObjectCrossmatchStatus.UNPROCESSED
-
     def _convert_to_crossmatch_record(self, obj: model.Layer0ProcessedObject) -> adminapi.CrossmatchRecord:
-        # Extract metadata
         metadata = adminapi.CrossmatchRecordMetadata()
         if isinstance(obj.processing_result, model.CIResultObjectExisting):
             metadata.pgc = obj.processing_result.pgc
         elif isinstance(obj.processing_result, model.CIResultObjectCollision):
-            if obj.processing_result.pgcs:
-                metadata.possible_matches = list(obj.processing_result.pgcs)
-            elif obj.processing_result.possible_pgcs:
-                # Flatten all possible PGCs from different crossmatchers
-                all_pgcs = set()
-                for pgc_set in obj.processing_result.possible_pgcs.values():
-                    all_pgcs.update(pgc_set)
-                metadata.possible_matches = list(all_pgcs)
+            metadata.possible_matches = list(obj.processing_result.pgcs) if obj.processing_result.pgcs else None
 
         catalogs = adminapi.Catalogs()
 
@@ -100,21 +98,31 @@ class CrossmatchManager:
 
         redshift_obj = obj.get(model.RedshiftCatalogObject)
         if redshift_obj:
-            z = redshift_obj.cz / 299792458.0
-            e_z = redshift_obj.e_cz / 299792458.0
+            cz = redshift_obj.cz * u.Unit("km/s")
+            e_cz = redshift_obj.e_cz * u.Unit("km/s")
+            c_km_s = constants.c.to(u.Unit("km/s"))
+
+            z = (cz / c_km_s).value
+            e_z = (e_cz / c_km_s).value
 
             catalogs.redshift = adminapi.Redshift(z=z, e_z=e_z)
 
             catalogs.velocity = adminapi.Velocity(
                 heliocentric=adminapi.HeliocentricVelocity(
-                    v=redshift_obj.cz / 1000.0,
-                    e_v=redshift_obj.e_cz / 1000.0,
+                    v=cz.value,
+                    e_v=e_cz.value,
                 )
             )
 
+        status = enums.ObjectCrossmatchStatus.UNPROCESSED
+
+        for result_type, stat in status_map.items():
+            if isinstance(obj.processing_result, result_type):
+                status = stat
+
         return adminapi.CrossmatchRecord(
             record_id=obj.object_id,
-            status=self._get_object_status(obj).value,
+            status=status,
             metadata=metadata,
             catalogs=catalogs,
         )

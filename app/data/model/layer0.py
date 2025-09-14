@@ -67,7 +67,6 @@ class CIResultObjectExisting:
 
 @dataclass
 class CIResultObjectCollision:
-    possible_pgcs: dict[str, set[int]] | None = None
     pgcs: set[int] | None = None
 
 

@@ -213,7 +213,6 @@ class CreateMarkingResponse(pydantic.BaseModel):
 class GetCrossmatchRecordsRequest(pydantic.BaseModel):
     table_name: str
     status: enums.ObjectCrossmatchStatus | None = None
-    decision: str | None = None
     page: int = 0
     page_size: int = 25
 
@@ -269,7 +268,7 @@ class Catalogs(pydantic.BaseModel):
 
 class CrossmatchRecord(pydantic.BaseModel):
     record_id: str
-    status: str
+    status: enums.ObjectCrossmatchStatus
     metadata: CrossmatchRecordMetadata
     catalogs: Catalogs
 
