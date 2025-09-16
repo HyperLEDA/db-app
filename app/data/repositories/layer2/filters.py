@@ -1,7 +1,6 @@
 import abc
 from typing import Any, final
 
-from astropy import units as u
 from astropy.units import quantity
 
 from app.data import model
