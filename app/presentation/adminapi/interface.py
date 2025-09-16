@@ -292,14 +292,8 @@ class PGCCandidate(pydantic.BaseModel):
     catalogs: Catalogs
 
 
-class RecordCrossmatchDetail(pydantic.BaseModel):
-    record_id: str
-    original_data: dict[str, Any]
-    marked_catalogs: Catalogs
-
-
 class GetRecordCrossmatchResponse(pydantic.BaseModel):
-    record: RecordCrossmatchDetail
+    data: dict[str, Any]
     crossmatch: RecordCrossmatch
     candidates: list[PGCCandidate]
     units_schema: UnitsSchema

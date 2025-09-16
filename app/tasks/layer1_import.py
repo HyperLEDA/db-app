@@ -41,7 +41,7 @@ class Layer1ImportTask(interface.Task):
             lambda data: len(data) == 0,
             None,
             lambda d, _: d[-1].object_id,
-            self.table_id,
+            table_id=self.table_id,
         ):
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}

@@ -22,7 +22,7 @@ class Actions(adminapi.Actions):
         self.task_manager = tasks.TaskManager(common_repo, queue_repo)
         self.login_manager = login.LoginManager(authenticator)
         self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, clients)
-        self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo)
+        self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer2_repo)
 
     def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -52,4 +52,4 @@ class Actions(adminapi.Actions):
         return self.crossmatch_manager.get_crossmatch_records(r)
 
     def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
-        raise NotImplementedError()
+        return self.crossmatch_manager.get_record_crossmatch(r)
