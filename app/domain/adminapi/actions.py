@@ -50,3 +50,6 @@ class Actions(adminapi.Actions):
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         return self.crossmatch_manager.get_crossmatch_records(r)
+
+    def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
+        raise NotImplementedError()

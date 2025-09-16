@@ -1,11 +1,12 @@
 from typing import final
 
 import structlog
-from astropy import constants, coordinates
+from astropy import coordinates
 from astropy import units as u
 
 from app.data import model
 from app.data.repositories import layer0
+from app.lib import astronomy
 from app.lib.storage import enums
 from app.presentation import adminapi
 
@@ -100,17 +101,17 @@ class CrossmatchManager:
         if redshift_obj:
             cz = redshift_obj.cz * u.Unit("km/s")
             e_cz = redshift_obj.e_cz * u.Unit("km/s")
-            c_km_s = constants.c.to(u.Unit("km/s"))
+            c_km_s = astronomy.get_value(astronomy.get_const("c"), "km/s")
 
-            z = (cz / c_km_s).value
-            e_z = (e_cz / c_km_s).value
+            z = astronomy.get_value(cz / c_km_s)
+            e_z = astronomy.get_value(e_cz / c_km_s)
 
             catalogs.redshift = adminapi.Redshift(z=z, e_z=e_z)
 
             catalogs.velocity = adminapi.Velocity(
                 heliocentric=adminapi.HeliocentricVelocity(
-                    v=cz.value,
-                    e_v=e_cz.value,
+                    v=astronomy.get_value(cz, "km/s"),
+                    e_v=astronomy.get_value(e_cz, "km/s"),
                 )
             )
 

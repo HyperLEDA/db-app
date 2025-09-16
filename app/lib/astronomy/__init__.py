@@ -1,5 +1,6 @@
 import warnings
 
+from astropy import constants
 from astropy import units as u
 from uncertainties import ufloat
 from uncertainties.umath import cos, sin  # type: ignore
@@ -64,3 +65,14 @@ def velocity_wr_apex(
     )
 
     return u.Quantity(result.nominal_value, unit="km/s"), u.Quantity(result.std_dev, unit="km/s")
+
+
+def get_const(const_name: str) -> u.Quantity:
+    return getattr(constants, const_name)
+
+
+def get_value(value: u.Quantity, unit: str | None = None) -> float:
+    if unit is None:
+        return value.value
+
+    return float(value.to(u.Unit(unit)))

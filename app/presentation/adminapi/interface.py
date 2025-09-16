@@ -339,7 +339,7 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_records_crossmatch(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
+    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
         pass
 
     @abc.abstractmethod
