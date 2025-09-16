@@ -60,16 +60,23 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         self,
         limit: int,
         offset: str | None = None,
-        table_id: int | None = None,
+        table_name: str | None = None,
         status: enums.RecordCrossmatchStatus | None = None,
         object_id: str | None = None,
     ) -> list[model.Layer0ProcessedObject]:
         params = []
 
         where_stmnt = []
-        if table_id is not None:
-            where_stmnt.append("o.table_id = %s")
-            params.append(table_id)
+        join_tables = """
+            FROM rawdata.objects AS o
+            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+        """
+
+        if table_name is not None:
+            join_tables += " JOIN rawdata.tables AS t ON o.table_id = t.table_id"
+            where_stmnt.append("t.table_name = %s")
+            params.append(table_name)
+
         if offset is not None:
             where_stmnt.append("o.id > %s")
             params.append(offset)
@@ -85,8 +92,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
         query = f"""SELECT o.id, o.data, c.status, c.metadata
-            FROM rawdata.objects AS o
-            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            {join_tables}
             {where_clause}
             ORDER BY o.id
             LIMIT %s"""

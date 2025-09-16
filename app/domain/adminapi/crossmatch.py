@@ -63,11 +63,6 @@ class CrossmatchManager:
         self.layer2_repo = layer2_repo
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
-        table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
-        table_id = table_metadata.table_id
-        if table_id is None:
-            raise ValueError(f"Table {r.table_name} not found")
-
         offset = r.page * r.page_size
 
         status_enum = None
@@ -78,7 +73,7 @@ class CrossmatchManager:
                 return adminapi.GetRecordsCrossmatchResponse(records=[], units_schema=self._create_units_schema())
 
         processed_objects = self.layer0_repo.get_processed_objects(
-            table_id=table_id,
+            table_name=r.table_name,
             limit=r.page_size,
             offset=str(offset) if offset > 0 else None,
             status=status_enum,
