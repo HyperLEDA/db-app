@@ -283,6 +283,28 @@ class GetRecordsCrossmatchResponse(pydantic.BaseModel):
     units_schema: UnitsSchema
 
 
+class GetRecordCrossmatchRequest(pydantic.BaseModel):
+    record_id: str
+
+
+class PGCCandidate(pydantic.BaseModel):
+    pgc: int
+    catalogs: Catalogs
+
+
+class RecordCrossmatchDetail(pydantic.BaseModel):
+    record_id: str
+    original_data: dict[str, Any]
+    marked_catalogs: Catalogs
+
+
+class GetRecordCrossmatchResponse(pydantic.BaseModel):
+    record: RecordCrossmatchDetail
+    crossmatch: RecordCrossmatch
+    candidates: list[PGCCandidate]
+    units_schema: UnitsSchema
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -317,5 +339,9 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
+    def get_records_crossmatch(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_record_crossmatch(self, request: GetRecordCrossmatchRequest) -> GetRecordCrossmatchResponse:
         pass
