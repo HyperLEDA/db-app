@@ -28,7 +28,15 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
-    def get_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0Object]:
+    def get_objects(
+        self,
+        limit: int,
+        offset: str | None = None,
+        table_id: int | None = None,
+    ) -> list[model.Layer0Object]:
+        if table_id is None:
+            raise RuntimeError("no filters specified for object selection")
+
         params = []
 
         where_stmnt = ["table_id = %s"]
@@ -57,12 +65,26 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         ]
 
     def get_processed_objects(
-        self, table_id: int, limit: int, offset: str | None, status: enums.RecordCrossmatchStatus | None = None
+        self,
+        limit: int,
+        offset: str | None = None,
+        table_name: str | None = None,
+        status: enums.RecordCrossmatchStatus | None = None,
+        object_id: str | None = None,
     ) -> list[model.Layer0ProcessedObject]:
         params = []
 
-        where_stmnt = ["o.table_id = %s"]
-        params.append(table_id)
+        where_stmnt = []
+        join_tables = """
+            FROM rawdata.objects AS o
+            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+        """
+
+        if table_name is not None:
+            join_tables += " JOIN rawdata.tables AS t ON o.table_id = t.id"
+            where_stmnt.append("t.table_name = %s")
+            params.append(table_name)
+
         if offset is not None:
             where_stmnt.append("o.id > %s")
             params.append(offset)
@@ -71,10 +93,15 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             where_stmnt.append("c.status = %s")
             params.append(status)
 
+        if object_id is not None:
+            where_stmnt.append("o.id = %s")
+            params.append(object_id)
+
+        where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
+
         query = f"""SELECT o.id, o.data, c.status, c.metadata
-            FROM rawdata.objects AS o
-            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
-            WHERE {" AND ".join(where_stmnt)}
+            {join_tables}
+            {where_clause}
             ORDER BY o.id
             LIMIT %s"""
 
@@ -139,25 +166,6 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             total_original_rows,
         )
 
-    def erase_crossmatch_results(self, table_id: int) -> None:
-        """
-        This function locks the table while the data is deleted.
-        Be careful when deleting large tables.
-
-        TODO: consider erasing data in chunks.
-        """
-        self._storage.exec(
-            """
-            DELETE FROM rawdata.crossmatch
-            WHERE object_id IN (
-                SELECT id
-                FROM rawdata.objects
-                WHERE table_id = %s
-            )
-            """,
-            params=[table_id],
-        )
-
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
         query = "INSERT INTO rawdata.crossmatch (object_id, status, metadata) VALUES "
         params = []
@@ -177,7 +185,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 meta = {"pgc": result.pgc}
             else:
                 status = enums.RecordCrossmatchStatus.COLLIDED
-                possible_pgcs = list(result.pgcs or set())
+                possible_pgcs = list(result.pgcs)
 
                 meta = {"possible_matches": possible_pgcs}
 

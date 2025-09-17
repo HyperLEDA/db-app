@@ -83,10 +83,10 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        actual = self.layer0_repo.get_objects(table_id, 5, None)
+        actual = self.layer0_repo.get_objects(5, table_id=table_id)
         self.assertEqual(len(actual), 5)
 
-        actual = self.layer0_repo.get_objects(table_id, 5, actual[-1].object_id)
+        actual = self.layer0_repo.get_objects(5, offset=actual[-1].object_id, table_id=table_id)
         self.assertEqual(len(actual), 1)
 
     def test_number_of_objects_divisible_by_batch_size(self):
@@ -94,10 +94,10 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 3)
 
-        actual = self.layer0_repo.get_objects(table_id, 3, None)
+        actual = self.layer0_repo.get_objects(3, table_id=table_id)
         self.assertEqual(len(actual), 3)
 
-        actual = self.layer0_repo.get_objects(table_id, 3, actual[-1].object_id)
+        actual = self.layer0_repo.get_objects(3, offset=actual[-1].object_id, table_id=table_id)
         self.assertEqual(len(actual), 3)
 
     def test_table_patched_after_processing(self):
@@ -105,17 +105,17 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        before = self.layer0_repo.get_objects(table_id, 5, None)
+        before = self.layer0_repo.get_objects(5, table_id=table_id)
         obj_before = before[0]
 
         self.layer0_repo.update_column_metadata(
             table_name,
-            model.ColumnDescription("e_redshift", "float", unit=u.km / u.Unit("s")),
+            model.ColumnDescription("e_redshift", "float", unit=u.Unit("km/s")),
         )
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        after = self.layer0_repo.get_objects(table_id, 5, None)
+        after = self.layer0_repo.get_objects(5, table_id=table_id)
         obj_after = after[0]
 
         self.assertGreater(len(obj_after.data), len(obj_before.data))

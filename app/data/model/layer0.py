@@ -67,7 +67,7 @@ class CIResultObjectExisting:
 
 @dataclass
 class CIResultObjectCollision:
-    pgcs: set[int] | None = None
+    pgcs: set[int]
 
 
 CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision

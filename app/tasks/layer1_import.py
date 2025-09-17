@@ -14,10 +14,10 @@ class Layer1ImportTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
-        table_id: int,
+        table_name: str,
         batch_size: int,
     ) -> None:
-        self.table_id = table_id
+        self.table_name = table_name
         self.batch_size = batch_size
         self.log = logger
 
@@ -33,7 +33,7 @@ class Layer1ImportTask(interface.Task):
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
 
     def run(self):
-        ctx = {"table_id": self.table_id}
+        ctx = {"table_name": self.table_name}
         self.log.info("Starting import of objects", **ctx)
 
         for offset, data in containers.read_batches(
@@ -41,7 +41,7 @@ class Layer1ImportTask(interface.Task):
             lambda data: len(data) == 0,
             None,
             lambda d, _: d[-1].object_id,
-            self.table_id,
+            table_name=self.table_name,
         ):
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}
