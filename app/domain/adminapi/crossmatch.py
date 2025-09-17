@@ -65,18 +65,11 @@ class CrossmatchManager:
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         offset = r.page * r.page_size
 
-        status_enum = None
-        if r.status != "all":  # TODO
-            try:
-                status_enum = enums.RecordCrossmatchStatus(r.status)
-            except ValueError:
-                return adminapi.GetRecordsCrossmatchResponse(records=[], units_schema=self._create_units_schema())
-
         processed_objects = self.layer0_repo.get_processed_objects(
             table_name=r.table_name,
             limit=r.page_size,
             offset=str(offset) if offset > 0 else None,
-            status=status_enum,
+            status=r.status,
         )
 
         records = []

@@ -73,7 +73,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         """
 
         if table_name is not None:
-            join_tables += " JOIN rawdata.tables AS t ON o.table_id = t.table_id"
+            join_tables += " JOIN rawdata.tables AS t ON o.table_id = t.id"
             where_stmnt.append("t.table_name = %s")
             params.append(table_name)
 
