@@ -109,9 +109,8 @@ class CrossmatchManager:
 
         status = enums.RecordCrossmatchStatus.UNPROCESSED
 
-        for result_type, stat in status_map.items():
-            if isinstance(obj.processing_result, result_type):
-                status = stat
+        if (t := type(obj.processing_result)) in status_map:
+            status = status_map[t]
 
         return adminapi.RecordCrossmatch(
             record_id=obj.object_id,

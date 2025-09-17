@@ -284,7 +284,7 @@ class Schema(pydantic.BaseModel):
 
 class GetRecordsCrossmatchResponse(pydantic.BaseModel):
     records: list[RecordCrossmatch]
-    schema: Schema
+    schema_: Schema = pydantic.Field(..., alias="schema")
 
 
 class GetRecordCrossmatchRequest(pydantic.BaseModel):
@@ -300,7 +300,7 @@ class GetRecordCrossmatchResponse(pydantic.BaseModel):
     data: dict[str, Any]
     crossmatch: RecordCrossmatch
     candidates: list[PGCCandidate]
-    schema: Schema
+    schema_: Schema = pydantic.Field(..., alias="schema")
 
 
 class Actions(abc.ABC):
