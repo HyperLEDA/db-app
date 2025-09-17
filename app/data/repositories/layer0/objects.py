@@ -28,7 +28,15 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
-    def get_objects(self, table_id: int, limit: int, offset: str | None) -> list[model.Layer0Object]:
+    def get_objects(
+        self,
+        limit: int,
+        offset: str | None = None,
+        table_id: int | None = None,
+    ) -> list[model.Layer0Object]:
+        if table_id is None:
+            raise RuntimeError("no filters specified for object selection")
+
         params = []
 
         where_stmnt = ["table_id = %s"]
@@ -156,25 +164,6 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,
-        )
-
-    def erase_crossmatch_results(self, table_id: int) -> None:
-        """
-        This function locks the table while the data is deleted.
-        Be careful when deleting large tables.
-
-        TODO: consider erasing data in chunks.
-        """
-        self._storage.exec(
-            """
-            DELETE FROM rawdata.crossmatch
-            WHERE object_id IN (
-                SELECT id
-                FROM rawdata.objects
-                WHERE table_id = %s
-            )
-            """,
-            params=[table_id],
         )
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:

@@ -84,9 +84,9 @@ class CrossmatchTask(interface.Task):
 
         while True:
             layer0_objects = self.layer0_repo.get_objects(
-                table_id=table_meta.table_id,
                 limit=self.batch_size,
                 offset=offset,
+                table_id=table_meta.table_id,
             )
             if not layer0_objects:
                 break
