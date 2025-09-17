@@ -278,9 +278,13 @@ class UnitsSchema(pydantic.BaseModel):
     velocity: dict[str, dict[str, str]]
 
 
+class Schema(pydantic.BaseModel):
+    units: UnitsSchema
+
+
 class GetRecordsCrossmatchResponse(pydantic.BaseModel):
     records: list[RecordCrossmatch]
-    units_schema: UnitsSchema
+    schema: Schema
 
 
 class GetRecordCrossmatchRequest(pydantic.BaseModel):
@@ -296,7 +300,7 @@ class GetRecordCrossmatchResponse(pydantic.BaseModel):
     data: dict[str, Any]
     crossmatch: RecordCrossmatch
     candidates: list[PGCCandidate]
-    units_schema: UnitsSchema
+    schema: Schema
 
 
 class Actions(abc.ABC):

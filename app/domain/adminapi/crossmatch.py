@@ -19,6 +19,16 @@ status_map = {
     model.CIResultObjectCollision: enums.RecordCrossmatchStatus.COLLIDED,
 }
 
+DATA_SCHEMA = adminapi.Schema(
+    units=adminapi.UnitsSchema(
+        coordinates={
+            "equatorial": {"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+            "galactic": {"lon": "deg", "lat": "deg", "e_lon": "deg", "e_lat": "deg"},
+        },
+        velocity={"heliocentric": {"v": "km/s", "e_v": "km/s"}},
+    )
+)
+
 
 def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
     icrs_coords = coordinates.ICRS(ra=obj.ra * u.Unit("deg"), dec=obj.dec * u.Unit("deg"))
@@ -77,16 +87,7 @@ class CrossmatchManager:
             record = self._convert_to_crossmatch_record(obj)
             records.append(record)
 
-        return adminapi.GetRecordsCrossmatchResponse(records=records, units_schema=self._create_units_schema())
-
-    def _create_units_schema(self) -> adminapi.UnitsSchema:
-        return adminapi.UnitsSchema(
-            coordinates={
-                "equatorial": {"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
-                "galactic": {"lon": "deg", "lat": "deg", "e_lon": "deg", "e_lat": "deg"},
-            },
-            velocity={"heliocentric": {"v": "km/s", "e_v": "km/s"}},
-        )
+        return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
 
     def _convert_to_crossmatch_record(self, obj: model.Layer0ProcessedObject) -> adminapi.RecordCrossmatch:
         metadata = adminapi.RecordCrossmatchMetadata()
@@ -138,13 +139,15 @@ class CrossmatchManager:
         elif isinstance(obj.processing_result, model.CIResultObjectExisting):
             candidate_pgcs.append(obj.processing_result.pgc)
 
+        response = adminapi.GetRecordCrossmatchResponse(
+            data={},
+            crossmatch=crossmatch_record,
+            candidates=[],
+            schema=DATA_SCHEMA,
+        )
+
         if len(candidate_pgcs) == 0:
-            return adminapi.GetRecordCrossmatchResponse(
-                data={},
-                crossmatch=crossmatch_record,
-                candidates=[],
-                units_schema=self._create_units_schema(),
-            )
+            return response
 
         layer2_objects = self.layer2_repo.query_pgc(
             catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
@@ -153,7 +156,6 @@ class CrossmatchManager:
             offset=0,
         )
 
-        candidates = []
         for layer2_obj in layer2_objects:
             catalogs = adminapi.Catalogs()
 
@@ -166,16 +168,11 @@ class CrossmatchManager:
             if (redshift := layer2_obj.get(model.RedshiftCatalogObject)) is not None:
                 catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
-            candidates.append(
+            response.candidates.append(
                 adminapi.PGCCandidate(
                     pgc=layer2_obj.pgc,
                     catalogs=catalogs,
                 )
             )
 
-        return adminapi.GetRecordCrossmatchResponse(
-            data={},
-            crossmatch=crossmatch_record,
-            candidates=candidates,
-            units_schema=self._create_units_schema(),
-        )
+        return response
