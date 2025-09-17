@@ -303,7 +303,7 @@
     "/api/v1/records/crossmatch": {
       "get": {
         "summary": "Get crossmatch records",
-        "description": "Retrieves crossmatch records for a specific table with optional filtering.\n\n### Request Parameters\n- `table_name` (required): Name of the table to query crossmatch results for\n- `status` (optional, default: \"collided\"): Filter by crossmatch status\n- `decision` (optional, default: \"all\"): Filter by decision type (future extension)\n- `page` (optional, default: 0): Page number for pagination\n- `page_size` (optional, default: 25): Number of records per page\n\n### Response\nReturns a list of crossmatch records with their catalog information including\ncoordinates, designations, redshift, and velocity data.",
+        "description": "Retrieves crossmatch records for a specific table with optional filtering.",
         "operationId": "get_crossmatch_records_api_v1_records_crossmatch_get",
         "parameters": [
           {
@@ -359,6 +359,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/APIOkResponse_GetRecordsCrossmatchResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/record/crossmatch": {
+      "get": {
+        "summary": "Get record crossmatch details",
+        "description": "Retrieves detailed crossmatch information for a specific record.",
+        "operationId": "get_record_crossmatch_api_v1_record_crossmatch_get",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_GetRecordCrossmatchResponse_"
                 }
               }
             }
@@ -442,6 +482,18 @@
           "data"
         ],
         "title": "APIOkResponse[CreateTableResponse]"
+      },
+      "APIOkResponse_GetRecordCrossmatchResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetRecordCrossmatchResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[GetRecordCrossmatchResponse]"
       },
       "APIOkResponse_GetRecordsCrossmatchResponse_": {
         "properties": {
@@ -991,6 +1043,30 @@
         ],
         "title": "GalacticCoordinates"
       },
+      "GetRecordCrossmatchResponse": {
+        "properties": {
+          "crossmatch": {
+            "$ref": "#/components/schemas/RecordCrossmatch"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PGCCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crossmatch",
+          "candidates",
+          "schema"
+        ],
+        "title": "GetRecordCrossmatchResponse"
+      },
       "GetRecordsCrossmatchResponse": {
         "properties": {
           "records": {
@@ -1000,14 +1076,14 @@
             "type": "array",
             "title": "Records"
           },
-          "units_schema": {
-            "$ref": "#/components/schemas/UnitsSchema"
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
           }
         },
         "type": "object",
         "required": [
           "records",
-          "units_schema"
+          "schema"
         ],
         "title": "GetRecordsCrossmatchResponse"
       },
@@ -1165,6 +1241,23 @@
           "columns"
         ],
         "title": "MarkingRule"
+      },
+      "PGCCandidate": {
+        "properties": {
+          "pgc": {
+            "type": "integer",
+            "title": "Pgc"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/Catalogs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pgc",
+          "catalogs"
+        ],
+        "title": "PGCCandidate"
       },
       "ParameterToMark": {
         "properties": {
@@ -1335,6 +1428,18 @@
           "e_z"
         ],
         "title": "Redshift"
+      },
+      "Schema": {
+        "properties": {
+          "units": {
+            "$ref": "#/components/schemas/UnitsSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "units"
+        ],
+        "title": "Schema"
       },
       "UnitsSchema": {
         "properties": {
