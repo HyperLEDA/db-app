@@ -16,7 +16,7 @@ def to(value: u.Quantity, unit: str | None = None) -> float:
     if unit is None:
         return value.value
 
-    return float(value.to(u.Unit(unit)))
+    return float(value.to(u.Unit(unit)).value)
 
 
 def velocity_wr_apex(
