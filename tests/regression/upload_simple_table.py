@@ -177,12 +177,22 @@ def get_crossmatch_results(session: requests.Session, table_name: str) -> dict:
 
 
 @lib.test_logging_decorator(__file__)
-def layer1_import(table_id: int):
+def get_record_crossmatch(session: requests.Session, record_id: str) -> dict:
+    request_data = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
+
+    response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+
+    return response.json()["data"]
+
+
+@lib.test_logging_decorator(__file__)
+def layer1_import(table_name: str):
     commands.run(
         RunTaskCommand(
             "layer1-import",
             "configs/dev/tasks.yaml",
-            input_data={"table_id": table_id, "batch_size": 50},
+            input_data={"table_name": table_name, "batch_size": 50},
         ),
     )
 
@@ -204,8 +214,10 @@ def run():
     assert statuses_data["new"] == 2
 
     crossmatch_data = get_crossmatch_results(session, table_name)
-    assert "records" in crossmatch_data
-    assert "units_schema" in crossmatch_data
     assert len(crossmatch_data["records"]) == statuses_data["new"]
 
-    layer1_import(table_id)
+    first_record = crossmatch_data["records"][0]
+    first_record_detail = get_record_crossmatch(session, first_record["record_id"])
+    assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
+
+    layer1_import(table_name)
