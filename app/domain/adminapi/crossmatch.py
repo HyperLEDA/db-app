@@ -139,7 +139,6 @@ class CrossmatchManager:
             candidate_pgcs.append(obj.processing_result.pgc)
 
         response = adminapi.GetRecordCrossmatchResponse(
-            data={},
             crossmatch=crossmatch_record,
             candidates=[],
             schema=DATA_SCHEMA,
