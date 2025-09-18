@@ -90,6 +90,12 @@ class TableUploadManager:
                 ),
             )
 
+            objects = [
+                model.Layer0Object(object_id=object_id, data=[])
+                for object_id in data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist()
+            ]
+            self.layer0_repo.upsert_objects(r.table_id, objects)
+
         return adminapi.AddDataResponse()
 
     def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
