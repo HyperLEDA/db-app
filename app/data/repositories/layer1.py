@@ -92,3 +92,31 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
 
         return objects
+
+    def get_objects_by_object_id(
+        self, object_ids: list[str], catalogs: list[model.RawCatalog]
+    ) -> dict[str, list[model.Layer1Observation]]:
+        result: dict[str, list[model.Layer1Observation]] = {obj_id: [] for obj_id in object_ids}
+
+        for catalog in catalogs:
+            object_cls = model.get_catalog_object_type(catalog)
+            table_name = object_cls.layer1_table()
+
+            if not object_ids:
+                continue
+
+            placeholders = ",".join(["%s"] * len(object_ids))
+            query = f"""
+                SELECT object_id, {", ".join(object_cls.layer1_keys())}
+                FROM {table_name}
+                WHERE object_id IN ({placeholders})
+            """
+
+            rows = self._storage.query(query, params=object_ids)
+
+            for row in rows:
+                object_id = row["object_id"]
+                catalog_object = object_cls.from_layer1(row)
+                result[object_id].append(model.Layer1Observation(object_id, catalog_object))
+
+        return result
