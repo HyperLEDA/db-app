@@ -10,7 +10,7 @@ from app.tasks import interface
 
 
 @final
-class Layer1ImportTask(interface.Task):
+class SubmitCrossmatchTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -23,18 +23,16 @@ class Layer1ImportTask(interface.Task):
 
     @classmethod
     def name(cls) -> str:
-        return "layer1-import"
+        return "submit-crossmatch"
 
     def prepare(self, config: interface.Config):
         self.pg_storage = postgres.PgStorage(config.storage, self.log)
         self.pg_storage.connect()
 
         self.layer0_repository = repositories.Layer0Repository(self.pg_storage, self.log)
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
 
     def run(self):
         ctx = {"table_name": self.table_name}
-        self.log.info("Starting import of objects", **ctx)
 
         for offset, data in containers.read_batches(
             self.layer0_repository.get_processed_objects,
@@ -42,6 +40,7 @@ class Layer1ImportTask(interface.Task):
             "",
             lambda d, _: d[-1].object_id,
             table_name=self.table_name,
+            batch_size=self.batch_size,
         ):
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}

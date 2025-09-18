@@ -116,7 +116,7 @@ def upload_data(session: requests.Session, table_id: int, num_records: int = 50)
 
 
 @lib.test_logging_decorator(__file__)
-def start_processing(table_id: int, table_name: str):
+def start_marking(table_name: str):
     commands.run(
         RunTaskCommand(
             "layer0-marking",
@@ -125,6 +125,9 @@ def start_processing(table_id: int, table_name: str):
         ),
     )
 
+
+@lib.test_logging_decorator(__file__)
+def start_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
             "crossmatch",
@@ -173,10 +176,10 @@ def get_record_crossmatch(session: requests.Session, record_id: str) -> dict:
 
 
 @lib.test_logging_decorator(__file__)
-def layer1_import(table_name: str):
+def submit_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
-            "layer1-import",
+            "submit-crossmatch",
             "configs/dev/tasks.yaml",
             input_data={"table_name": table_name, "batch_size": 50},
         ),
@@ -187,14 +190,15 @@ def run():
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
     api_url = f"http://{api_host}:{api_port}/admin/api"
-
     session = lib.TestSession(api_url)
+
     code = create_bibliography(session)
     table_id, table_name = create_table(session, code)
     upload_data(session, table_id)
 
     create_marking(session, table_name)
-    start_processing(table_id, table_name)
+    start_marking(table_name)
+    start_crossmatch(table_name)
 
     statuses_data = get_object_statuses(session, table_name)
     assert statuses_data["new"] == 50
@@ -206,4 +210,4 @@ def run():
     first_record_detail = get_record_crossmatch(session, first_record["record_id"])
     assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
 
-    layer1_import(table_name)
+    submit_crossmatch(table_name)

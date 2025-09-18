@@ -9,7 +9,7 @@ from app.tasks import interface
 
 
 @final
-class Layer0Marking(interface.Task):
+class Layer0MarkingTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
