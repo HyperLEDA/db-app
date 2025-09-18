@@ -2,11 +2,11 @@ from typing import Any
 
 import structlog
 
-from app.tasks import crossmatch, interface, layer1_import, layer2_import, process
+from app.tasks import crossmatch, interface, layer0_marking, layer1_import, layer2_import
 
 tasks: list[type[interface.Task]] = [
     crossmatch.CrossmatchTask,
-    process.ProcessTask,
+    layer0_marking.Layer0Marking,
     layer1_import.Layer1ImportTask,
     layer2_import.Layer2ImportTask,
 ]
