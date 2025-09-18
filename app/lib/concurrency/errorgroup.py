@@ -1,7 +1,6 @@
 import threading
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any
 
 
 class ErrorGroup:
@@ -11,11 +10,12 @@ class ErrorGroup:
         self._error: Exception | None = None
         self._error_lock = threading.Lock()
 
-    def run(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> None:
-        future = self._executor.submit(self._run_with_error_handling, fn, *args, **kwargs)
-        self._futures.append(future)
+    def run[**P](self, fn: Callable[P, None], *args: P.args, **kwargs: P.kwargs) -> None:
+        self._futures.append(
+            self._executor.submit(self._run_with_error_handling, fn, *args, **kwargs),
+        )
 
-    def _run_with_error_handling(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+    def _run_with_error_handling[**P](self, fn: Callable[P, None], *args: P.args, **kwargs: P.kwargs) -> None:
         try:
             fn(*args, **kwargs)
         except Exception as e:

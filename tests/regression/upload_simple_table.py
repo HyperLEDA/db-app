@@ -102,27 +102,9 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
 
 
 @lib.test_logging_decorator(__file__)
-def upload_data(session: requests.Session, table_id: int):
-    df = pandas.DataFrame.from_records(
-        [
-            {
-                "name": f"M {random.randint(1, 1000)}",
-                "ra": random.uniform(0, 360),
-                "dec": random.uniform(-90, 90),
-                "e_ra": 0.1,
-                "e_dec": 0.1,
-                "fuzz": str(uuid.uuid4()),
-            },
-            {
-                "name": f"M {random.randint(1, 1000)}",
-                "ra": random.uniform(0, 360),
-                "dec": random.uniform(-90, 90),
-                "e_ra": 0.2,
-                "e_dec": 0.2,
-                "fuzz": str(uuid.uuid4()),
-            },
-        ]
-    )
+def upload_data(session: requests.Session, table_id: int, num_records: int = 50):
+    synthetic_data = lib.generate_synthetic_astronomical_data(num_records)
+    df = pandas.DataFrame.from_records(synthetic_data)
 
     request_data = adminapi.AddDataRequest(
         table_id=table_id,
@@ -168,7 +150,11 @@ def get_object_statuses(session: requests.Session, table_name: str) -> dict[str,
 
 @lib.test_logging_decorator(__file__)
 def get_crossmatch_results(session: requests.Session, table_name: str) -> dict:
-    request_data = adminapi.GetRecordsCrossmatchRequest(table_name=table_name, status=enums.RecordCrossmatchStatus.NEW)
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.NEW,
+        page_size=100,
+    )
 
     response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
@@ -211,7 +197,7 @@ def run():
     start_processing(table_id, table_name)
 
     statuses_data = get_object_statuses(session, table_name)
-    assert statuses_data["new"] == 2
+    assert statuses_data["new"] == 50
 
     crossmatch_data = get_crossmatch_results(session, table_name)
     assert len(crossmatch_data["records"]) == statuses_data["new"]

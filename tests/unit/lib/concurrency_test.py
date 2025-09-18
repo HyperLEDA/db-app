@@ -71,3 +71,22 @@ class ErrorGroupTest(unittest.TestCase):
     def test_empty_errorgroup_wait(self):
         eg = ErrorGroup()
         eg.wait()
+
+    def test_incorrect_args_number(self):
+        results = []
+
+        def failing_task(arg1):
+            print(arg1)
+
+        def second_task():
+            time.sleep(0.05)
+            results.append("second_task")
+
+        eg = ErrorGroup()
+        eg.run(failing_task)  # pyright: ignore[reportCallIssue] - this is intentional
+        eg.run(second_task)
+
+        with self.assertRaises(TypeError) as context:
+            eg.wait()
+
+        self.assertIn("missing 1 required positional argument", str(context.exception))

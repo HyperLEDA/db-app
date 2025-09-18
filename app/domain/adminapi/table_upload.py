@@ -93,6 +93,7 @@ class TableUploadManager:
             )
             errgr.run(
                 self.layer0_repo.upsert_objects,
+                r.table_id,
                 objects=[
                     model.Layer0Object(object_id=object_id, data=[])
                     for object_id in data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist()
