@@ -3,7 +3,7 @@ from typing import final
 import structlog
 
 from app.data import repositories
-from app.domain import processing
+from app.domain.unification import marking
 from app.lib.storage import postgres
 from app.tasks import interface
 
@@ -36,7 +36,7 @@ class Layer0Marking(interface.Task):
     def run(self):
         ctx = {"table_name": self.table_name}
         self.log.info("Starting marking of objects", **ctx)
-        processing.mark_objects(self.layer0_repo, self.layer1_repo, self.table_name, self.batch_size)
+        marking.mark_objects(self.layer0_repo, self.layer1_repo, self.table_name, self.batch_size)
 
     def cleanup(self):
         self.pg_storage.disconnect()

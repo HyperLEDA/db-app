@@ -65,22 +65,8 @@ def mark_objects(
     if meta.table_id is None:
         raise RuntimeError(f"Table {table_name} has no table_id")
 
-    table_stats = layer0_repo.get_table_statistics(table_name)
-
     h = get_homogenization(layer0_repo, meta, ignore_errors=ignore_homogenization_errors)
     modificator = get_modificator(layer0_repo, meta.table_name)
-
-    # the second condition is needed in case the uploading process was interrupted
-    # TODO: in this case the algorithm should determine the last uploaded row and start from there
-    if (
-        cache_enabled
-        and table_stats.total_rows == table_stats.total_original_rows
-        and meta.modification_dt is not None
-        and table_stats.last_modified_dt is not None
-        and meta.modification_dt < table_stats.last_modified_dt
-    ):
-        log.info("Table was not modified since the last processing", table_name=table_name)
-        return
 
     for offset, data in containers.read_batches(
         layer0_repo.fetch_table,
