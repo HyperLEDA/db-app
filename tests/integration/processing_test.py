@@ -128,5 +128,5 @@ class MarkObjectsTest(unittest.TestCase):
 
         processing.mark_objects(self.layer0_repo, table_id, 5)
 
-        stats = self.layer0_repo.get_table_statistics(table_id)
+        stats = self.layer0_repo.get_table_statistics(table_name)
         self.assertLess(stats.last_modified_dt.timestamp(), modification_dt.timestamp())

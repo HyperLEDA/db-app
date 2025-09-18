@@ -121,7 +121,7 @@ def start_processing(table_id: int, table_name: str):
         RunTaskCommand(
             "process",
             "configs/dev/tasks.yaml",
-            input_data={"table_id": table_id, "batch_size": 200, "workers": 8},
+            input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
         ),
     )
 
