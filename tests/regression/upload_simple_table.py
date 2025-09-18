@@ -119,9 +119,9 @@ def upload_data(session: requests.Session, table_id: int, num_records: int = 50)
 def start_processing(table_id: int, table_name: str):
     commands.run(
         RunTaskCommand(
-            "process",
+            "layer0-marking",
             "configs/dev/tasks.yaml",
-            input_data={"table_id": table_id, "batch_size": 200, "workers": 8},
+            input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
         ),
     )
 

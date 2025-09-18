@@ -54,29 +54,19 @@ def get_modificator(repo: repositories.Layer0Repository, table_name: str) -> mod
 
 def mark_objects(
     layer0_repo: repositories.Layer0Repository,
-    table_id: int,
+    layer1_repo: repositories.Layer1Repository,
+    table_name: str,
     batch_size: int,
-    cache_enabled: bool = True,
+    cache_enabled: bool = False,
     initial_offset: str | None = None,
     ignore_homogenization_errors: bool = True,
 ) -> None:
-    meta = layer0_repo.fetch_metadata(table_id)
-    table_stats = layer0_repo.get_table_statistics(table_id)
+    meta = layer0_repo.fetch_metadata_by_name(table_name)
+    if meta.table_id is None:
+        raise RuntimeError(f"Table {table_name} has no table_id")
 
     h = get_homogenization(layer0_repo, meta, ignore_errors=ignore_homogenization_errors)
     modificator = get_modificator(layer0_repo, meta.table_name)
-
-    # the second condition is needed in case the uploading process was interrupted
-    # TODO: in this case the algorithm should determine the last uploaded row and start from there
-    if (
-        cache_enabled
-        and table_stats.total_rows == table_stats.total_original_rows
-        and meta.modification_dt is not None
-        and table_stats.last_modified_dt is not None
-        and meta.modification_dt < table_stats.last_modified_dt
-    ):
-        log.info("Table was not modified since the last processing", table_id=table_id)
-        return
 
     for offset, data in containers.read_batches(
         layer0_repo.fetch_table,
@@ -89,7 +79,14 @@ def mark_objects(
     ):
         data = modificator.apply(data)
         objects = h.apply(data)
-        layer0_repo.upsert_objects(table_id, objects)
+
+        layer1_objects = []
+        for obj in objects:
+            for catalog_obj in obj.data:
+                layer1_objects.append(model.Layer1Observation(obj.object_id, catalog_obj))
+
+        if layer1_objects:
+            layer1_repo.save_data(layer1_objects)
 
         last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
         max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")

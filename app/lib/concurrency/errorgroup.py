@@ -3,6 +3,18 @@ from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 
 
+class TaskResult[T]:
+    def __init__(self, future: Future[T | None]) -> None:
+        self._future = future
+
+    def result(self) -> T:
+        res = self._future.result()
+        if res is None:
+            raise RuntimeError("Tried to call result() on a failed task")
+
+        return res
+
+
 class ErrorGroup:
     def __init__(self) -> None:
         self._executor = ThreadPoolExecutor()
@@ -10,18 +22,20 @@ class ErrorGroup:
         self._error: Exception | None = None
         self._error_lock = threading.Lock()
 
-    def run[**P](self, fn: Callable[P, None], *args: P.args, **kwargs: P.kwargs) -> None:
-        self._futures.append(
-            self._executor.submit(self._run_with_error_handling, fn, *args, **kwargs),
-        )
+    def run[T, **P](self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> TaskResult[T]:
+        future = self._executor.submit(self._run_with_error_handling, fn, *args, **kwargs)
+        self._futures.append(future)
 
-    def _run_with_error_handling[**P](self, fn: Callable[P, None], *args: P.args, **kwargs: P.kwargs) -> None:
+        return TaskResult[T](future)
+
+    def _run_with_error_handling[T, **P](self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
-            fn(*args, **kwargs)
+            return fn(*args, **kwargs)
         except Exception as e:
             with self._error_lock:
                 if self._error is None:
                     self._error = e
+            return None
 
     def wait(self) -> None:
         try:

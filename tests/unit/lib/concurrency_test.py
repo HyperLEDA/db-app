@@ -90,3 +90,39 @@ class ErrorGroupTest(unittest.TestCase):
             eg.wait()
 
         self.assertIn("missing 1 required positional argument", str(context.exception))
+
+    def test_multiple_tasks_with_return_values(self):
+        def task1():
+            time.sleep(0.1)
+            return "result1"
+
+        def task2():
+            time.sleep(0.1)
+            return "result2"
+
+        eg = ErrorGroup()
+        result1 = eg.run(task1)
+        result2 = eg.run(task2)
+
+        eg.wait()
+
+        self.assertEqual(result1.result(), "result1")
+        self.assertEqual(result2.result(), "result2")
+
+    def test_result_called_after_error(self):
+        def task1() -> int:
+            return 123
+
+        def task2() -> str:
+            raise RuntimeError("fail")
+
+        eg = ErrorGroup()
+        result1 = eg.run(task1)
+        result2 = eg.run(task2)
+
+        with self.assertRaises(RuntimeError):
+            eg.wait()
+
+        self.assertEqual(result1.result(), 123)
+        with self.assertRaises(RuntimeError):
+            result2.result()

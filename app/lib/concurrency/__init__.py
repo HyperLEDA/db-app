@@ -1,3 +1,3 @@
-from .errorgroup import ErrorGroup
+from .errorgroup import ErrorGroup, TaskResult
 
-__all__ = ["ErrorGroup"]
+__all__ = ["ErrorGroup", "TaskResult"]

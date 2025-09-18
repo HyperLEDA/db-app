@@ -56,8 +56,8 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def upsert_objects(self, table_id: int, objects: list[model.Layer0Object]) -> None:
         return self.objects_repo.upsert_objects(table_id, objects)
 
-    def get_table_statistics(self, table_id: int) -> model.TableStatistics:
-        return self.objects_repo.get_table_statistics(table_id)
+    def get_table_statistics(self, table_name: str) -> model.TableStatistics:
+        return self.objects_repo.get_table_statistics(table_name)
 
     def get_objects(
         self,
