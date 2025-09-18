@@ -12,7 +12,7 @@ from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
 from app.domain import homogenization
-from app.lib import clients
+from app.lib import clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
@@ -83,12 +83,24 @@ class TableUploadManager:
         data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self.layer0_repo.with_tx():
-            self.layer0_repo.insert_raw_data(
+            errgr = concurrency.ErrorGroup()
+            errgr.run(
+                self.layer0_repo.insert_raw_data,
                 model.Layer0RawData(
                     table_id=r.table_id,
                     data=data_df,
                 ),
             )
+            errgr.run(
+                self.layer0_repo.upsert_objects,
+                r.table_id,
+                objects=[
+                    model.Layer0Object(object_id=object_id, data=[])
+                    for object_id in data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist()
+                ],
+            )
+
+            errgr.wait()
 
         return adminapi.AddDataResponse()
 
