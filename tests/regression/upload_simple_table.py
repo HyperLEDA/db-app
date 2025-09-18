@@ -61,7 +61,7 @@ def create_bibliography(session: requests.Session) -> str:
 
 @lib.test_logging_decorator(__file__)
 def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
-    table_name = f"test_{str(uuid.uuid4())}"
+    table_name = f"test_{str(uuid.uuid4())[:8]}"
 
     request_data = adminapi.CreateTableRequest(
         table_name=table_name,

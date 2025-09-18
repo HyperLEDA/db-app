@@ -45,7 +45,7 @@ def _discover_plugins_generic(directory: str) -> dict[str, PluginType]:
         plugin_name = module.name
         plugins[plugin_name] = plugin
 
-        logger.info("discovered plugin", name=plugin_name)
+        logger.debug("discovered plugin", name=plugin_name)
 
     return plugins
 

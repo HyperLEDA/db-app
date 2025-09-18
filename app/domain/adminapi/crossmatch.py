@@ -5,7 +5,7 @@ from astropy import coordinates
 from astropy import units as u
 
 from app.data import model
-from app.data.repositories import layer0, layer2
+from app.data.repositories import layer0, layer1, layer2
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import NotFoundError
@@ -68,8 +68,14 @@ def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[adminapi.Red
 
 @final
 class CrossmatchManager:
-    def __init__(self, layer0_repo: layer0.Layer0Repository, layer2_repo: layer2.Layer2Repository) -> None:
+    def __init__(
+        self,
+        layer0_repo: layer0.Layer0Repository,
+        layer1_repo: layer1.Layer1Repository,
+        layer2_repo: layer2.Layer2Repository,
+    ) -> None:
         self.layer0_repo = layer0_repo
+        self.layer1_repo = layer1_repo
         self.layer2_repo = layer2_repo
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
@@ -98,13 +104,20 @@ class CrossmatchManager:
 
         catalogs = adminapi.Catalogs()
 
-        if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
+        layer1_data = self.layer1_repo.get_objects_by_object_id(
+            [obj.object_id], [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT]
+        )
+
+        observations = layer1_data.get(obj.object_id, [])
+        catalog_objects = [obs.catalog_object for obs in observations]
+
+        if (icrs := model.get_object(catalog_objects, model.ICRSCatalogObject)) is not None:
             catalogs.coordinates = icrs_to_response(icrs)
 
-        if (designation := obj.get(model.DesignationCatalogObject)) is not None:
+        if (designation := model.get_object(catalog_objects, model.DesignationCatalogObject)) is not None:
             catalogs.designation = adminapi.Designation(name=designation.designation)
 
-        if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
+        if (redshift := model.get_object(catalog_objects, model.RedshiftCatalogObject)) is not None:
             catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
         status = enums.RecordCrossmatchStatus.UNPROCESSED
