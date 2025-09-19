@@ -271,7 +271,6 @@ def check_crossmatch_collisions(session: requests.Session, table_name: str):
     crossmatch_data = response.json()["data"]
     collision_count = len(crossmatch_data["records"])
 
-    print(f"Found {collision_count} collision records in table {table_name}")
     assert collision_count > 0, f"Expected collisions in table {table_name}, but found {collision_count}"
 
     for record in crossmatch_data["records"]:

@@ -120,3 +120,12 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 result[object_id].append(model.Layer1Observation(object_id, catalog_object))
 
         return result
+
+    def query_records(
+        self,
+        catalogs: list[model.RawCatalog],
+        record_ids: list[str] | None = None,
+        table_name: str | None = None,
+        offset: str | None = None,
+        limit: int | None = None,
+    ) -> list[model.RecordInfo]: ...

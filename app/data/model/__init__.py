@@ -24,7 +24,7 @@ from app.data.model.layer0 import (
     Modifier,
     TableStatistics,
 )
-from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation
+from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation, RecordInfo
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
@@ -43,6 +43,7 @@ __all__ = [
     "CIResultObjectNew",
     "Layer1Observation",
     "Layer1PGCObservation",
+    "RecordInfo",
     "Layer2CatalogObject",
     "Layer2Object",
     "RawCatalog",

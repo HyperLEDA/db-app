@@ -60,6 +60,7 @@ class CrossmatchTask(interface.Task):
         self.pg_storage.connect()
 
         self.layer0_repo = repositories.Layer0Repository(self.pg_storage, self.log)
+        self.layer1_repo = repositories.Layer1Repository(self.pg_storage, self.log)
         self.layer2_repo = repositories.Layer2Repository(self.pg_storage, self.log)
 
         self.log.debug("Loading cross-identification plugins")
@@ -75,7 +76,7 @@ class CrossmatchTask(interface.Task):
         if table_meta.table_id is None:
             raise RuntimeError(f"Table {self.table_name} has no table_id")
 
-        ctx = {"table_name": self.table_name, "table_id": table_meta.table_id}
+        ctx = {"table_name": self.table_name}
 
         offset = None
         new_count = 0
@@ -83,42 +84,43 @@ class CrossmatchTask(interface.Task):
         collision_count = 0
 
         while True:
-            layer0_objects = self.layer0_repo.get_objects(
-                limit=self.batch_size,
+            records = self.layer1_repo.query_records(
+                catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
+                table_name=self.table_name,
                 offset=offset,
-                table_id=table_meta.table_id,
+                limit=self.batch_size,
             )
-            if not layer0_objects:
+            if len(records) == 0:
                 break
 
             search_params = {}
             search_types = {}
 
-            for layer0_object in layer0_objects:
-                icrs_obj = layer0_object.get(model.ICRSCatalogObject)
+            for record in records:
+                icrs_obj = record.get(model.ICRSCatalogObject)
                 if icrs_obj is not None:
-                    search_params[layer0_object.object_id] = self.selector.extract_search_params(layer0_object.data)
-                    search_types[search_params[layer0_object.object_id].name()] = self.selector
+                    search_params[record.id] = self.selector.extract_search_params(record.data)
+                    search_types[search_params[record.id].name()] = self.selector
 
             layer2_results = self.layer2_repo.query_batch(
                 catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
                 search_types=search_types,
                 search_params=search_params,
-                limit=len(layer0_objects) * 10,  # Allow multiple matches per object
+                limit=len(records) * 10,  # Allow multiple matches per object
                 offset=0,
             )
 
             results: dict[str, model.CIResult] = {}
 
-            for layer0_object in layer0_objects:
-                layer2_objects = layer2_results.get(layer0_object.object_id, [])
+            for record in records:
+                layer2_objects = layer2_results.get(record.id, [])
                 probabilities: list[tuple[model.Layer2Object, float]] = []
 
                 for layer2_object in layer2_objects:
-                    probabilities.append((layer2_object, self.matcher(layer0_object, layer2_object)))
+                    probabilities.append((layer2_object, self.matcher(record, layer2_object)))
 
                 result = self.solver(probabilities)
-                results[layer0_object.object_id] = result
+                results[record.id] = result
 
                 if isinstance(result, model.CIResultObjectNew):
                     new_count += 1
@@ -129,9 +131,9 @@ class CrossmatchTask(interface.Task):
 
             self.layer0_repo.add_crossmatch_result(results)
 
-            offset = layer0_objects[-1].object_id
+            offset = records[-1].id
 
-            last_uuid = uuid.UUID(layer0_object.object_id or "00000000-0000-0000-0000-000000000000")
+            last_uuid = uuid.UUID(record.id or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
             self.log.info(
