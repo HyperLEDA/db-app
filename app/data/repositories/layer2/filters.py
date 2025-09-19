@@ -131,6 +131,24 @@ class DesignationCloseFilter(Filter):
 
 
 @final
+class DesignationLikeFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "designation_like"
+
+    def get_query(self):
+        return "designation.design ILIKE CONCAT('%%', sp.params->>'design', '%%')"
+
+    def get_params(self):
+        return []
+
+    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
+        if (cat := model.get_object(object_info, model.DesignationCatalogObject)) is not None:
+            return params.DesignationSearchParams(designation=cat.designation)
+        return params.CombinedSearchParams([])
+
+
+@final
 class ICRSCoordinatesInRadiusFilter(Filter):
     @classmethod
     def name(cls) -> str:

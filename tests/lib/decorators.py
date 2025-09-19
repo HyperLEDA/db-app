@@ -15,7 +15,7 @@ def test_logging_decorator(source_file: str):
                 result = func(*args, **kwargs)
             except Exception as e:
                 elapsed_time = (time.time() - start_time) * 1000
-                print(f"{prefix} \x1b[32m[{elapsed_time:0.0f}ms]\x1b[0m Error: {e}")
+                print(f"{prefix} \x1b[32m[{elapsed_time:0.0f}ms]\x1b[0m Error: {type(e).__name__} - '{e}'")
                 raise KeyboardInterrupt from e
 
             elapsed_time = (time.time() - start_time) * 1000

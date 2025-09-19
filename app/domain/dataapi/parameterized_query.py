@@ -29,7 +29,7 @@ class ParameterizedQueryManager:
             search_params.append(layer2.ICRSSearchParams(query.ra, query.dec))
 
         if query.name is not None:
-            filters.append(layer2.DesignationCloseFilter(3))
+            filters.append(layer2.DesignationLikeFilter())
             search_params.append(layer2.DesignationSearchParams(query.name))
 
         if (query.cz is not None) and (query.cz_err_percent is not None):
