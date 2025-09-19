@@ -183,7 +183,12 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
     assert len(crossmatch_data["records"]) == OBJECTS_NUM
 
     first_record = crossmatch_data["records"][0]
-    first_record_detail = get_record_crossmatch(session, first_record["record_id"])
+
+    request_data = adminapi.GetRecordCrossmatchRequest(record_id=first_record["record_id"])
+
+    first_record_response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
+    first_record_response.raise_for_status()
+    first_record_detail = first_record_response.json()["data"]
     assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
 
     for record in crossmatch_data["records"]:
@@ -200,16 +205,6 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
         designation = record["catalogs"]["designation"]
         assert "name" in designation
         assert designation["name"] is not None
-
-
-@lib.test_logging_decorator(__file__)
-def get_record_crossmatch(session: requests.Session, record_id: str) -> dict:
-    request_data = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
-
-    response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    return response.json()["data"]
 
 
 @lib.test_logging_decorator(__file__)
