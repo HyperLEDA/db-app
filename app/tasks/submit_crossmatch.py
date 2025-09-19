@@ -10,7 +10,7 @@ from app.tasks import interface
 
 
 @final
-class Layer1ImportTask(interface.Task):
+class SubmitCrossmatchTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -23,25 +23,24 @@ class Layer1ImportTask(interface.Task):
 
     @classmethod
     def name(cls) -> str:
-        return "layer1-import"
+        return "submit-crossmatch"
 
     def prepare(self, config: interface.Config):
         self.pg_storage = postgres.PgStorage(config.storage, self.log)
         self.pg_storage.connect()
 
         self.layer0_repository = repositories.Layer0Repository(self.pg_storage, self.log)
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
 
     def run(self):
         ctx = {"table_name": self.table_name}
-        self.log.info("Starting import of objects", **ctx)
 
         for offset, data in containers.read_batches(
             self.layer0_repository.get_processed_objects,
             lambda data: len(data) == 0,
-            None,
+            "",
             lambda d, _: d[-1].object_id,
             table_name=self.table_name,
+            batch_size=self.batch_size,
         ):
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}
@@ -56,24 +55,13 @@ class Layer1ImportTask(interface.Task):
 
                 self.layer0_repository.upsert_pgc(pgcs)
 
-                layer1_objects = []
-
-                for obj in data:
-                    if obj.object_id not in pgcs:
-                        continue
-
-                    for catalog_obj in obj.data:
-                        layer1_objects.append(model.Layer1Observation(obj.object_id, catalog_obj))
-
-                self.layer1_repository.save_data(layer1_objects)
-
             last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
             self.log.info(
                 "Processed batch",
                 last_object=offset,
-                updated=len(layer1_objects),
+                updated=len(data),
                 very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
                 **ctx,
             )
