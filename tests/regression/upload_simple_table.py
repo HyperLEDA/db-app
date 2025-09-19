@@ -138,7 +138,7 @@ def start_crossmatch(table_name: str):
 
 
 @lib.test_logging_decorator(__file__)
-def get_object_statuses(session: requests.Session, table_name: str) -> dict[str, int]:
+def get_table_info(session: requests.Session, table_name: str) -> dict[str, int]:
     request_data = adminapi.GetTableRequest(table_name=table_name)
 
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
@@ -181,7 +181,7 @@ def submit_crossmatch(table_name: str):
         RunTaskCommand(
             "submit-crossmatch",
             "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name, "batch_size": 50},
+            input_data={"table_name": table_name, "batch_size": 10},
         ),
     )
 
@@ -200,7 +200,7 @@ def run():
     start_marking(table_name)
     start_crossmatch(table_name)
 
-    statuses_data = get_object_statuses(session, table_name)
+    statuses_data = get_table_info(session, table_name)
     assert statuses_data["new"] == 50
 
     crossmatch_data = get_crossmatch_results(session, table_name)
@@ -209,5 +209,20 @@ def run():
     first_record = crossmatch_data["records"][0]
     first_record_detail = get_record_crossmatch(session, first_record["record_id"])
     assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
+
+    for record in crossmatch_data["records"]:
+        assert record["catalogs"]["coordinates"] is not None
+        assert record["catalogs"]["designation"] is not None
+
+        coords = record["catalogs"]["coordinates"]
+        assert "equatorial" in coords
+        assert "ra" in coords["equatorial"]
+        assert "dec" in coords["equatorial"]
+        assert "e_ra" in coords["equatorial"]
+        assert "e_dec" in coords["equatorial"]
+
+        designation = record["catalogs"]["designation"]
+        assert "name" in designation
+        assert designation["name"] is not None
 
     submit_crossmatch(table_name)
