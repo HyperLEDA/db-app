@@ -19,6 +19,11 @@ COORD_RA_CENTER = random.uniform(0, 360)
 COORD_DEC_CENTER = random.uniform(-90, 90)
 COORD_RADIUS = 10
 
+SMALL_CLUSTER_OBJECTS_NUM = 20
+SMALL_CLUSTER_RA_CENTER = random.uniform(0, 360)
+SMALL_CLUSTER_DEC_CENTER = random.uniform(-90, 90)
+SMALL_CLUSTER_RADIUS = 20 / 3600
+
 
 @lib.test_logging_decorator
 def create_marking(session: requests.Session, table_name: str):
@@ -250,6 +255,40 @@ def check_crossmatch_existing_results(session: requests.Session, table_name: str
 
 
 @lib.test_logging_decorator
+def check_crossmatch_collided_results(session: requests.Session, table_name: str, expected_min_collided: int):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.COLLIDED,
+        page_size=SMALL_CLUSTER_OBJECTS_NUM * 2,
+    )
+
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+
+    crossmatch_data = response.json()["data"]
+    collided_records = crossmatch_data["records"]
+
+    assert len(collided_records) >= expected_min_collided, (
+        f"Expected at least {expected_min_collided} collided records, got {len(collided_records)}"
+    )
+
+    for record in collided_records:
+        assert record["catalogs"]["coordinates"] is not None
+        assert record["catalogs"]["designation"] is not None
+
+        coords = record["catalogs"]["coordinates"]
+        assert "equatorial" in coords
+        assert "ra" in coords["equatorial"]
+        assert "dec" in coords["equatorial"]
+        assert "e_ra" in coords["equatorial"]
+        assert "e_dec" in coords["equatorial"]
+
+        designation = record["catalogs"]["designation"]
+        assert "name" in designation
+        assert designation["name"] is not None
+
+
+@lib.test_logging_decorator
 def submit_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -316,6 +355,8 @@ def run():
     test_seed = 42
 
     code = create_bibliography(adminapi)
+
+    # ---- Create table with all `new` objects and upload it to layer 2 ----
     table_id, table_name = create_table(adminapi, code)
     upload_data(
         adminapi,
@@ -340,6 +381,7 @@ def run():
     check_dataapi_name_query(dataapi, "NGC")
     check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
 
+    # ---- Create table with all `existing` objects and upload it to layer 2 ----
     table_id_2, table_name_2 = create_table(adminapi, code)
     upload_data(
         adminapi,
@@ -350,6 +392,15 @@ def run():
         radius=COORD_RADIUS,
         seed=test_seed,
     )
+    upload_data(
+        adminapi,
+        table_id_2,
+        objects_num=SMALL_CLUSTER_OBJECTS_NUM,
+        ra_center=SMALL_CLUSTER_RA_CENTER,
+        dec_center=SMALL_CLUSTER_DEC_CENTER,
+        radius=SMALL_CLUSTER_RADIUS,
+        seed=random.randint(0, 1000000),
+    )
 
     create_marking(adminapi, table_name_2)
     start_marking(table_name_2)
@@ -358,3 +409,21 @@ def run():
     check_crossmatch_existing_results(adminapi, table_name_2)
     submit_crossmatch(table_name_2)
     layer2_import()
+
+    # ---- Create table with `collided` objects ----
+    table_id_3, table_name_3 = create_table(adminapi, code)
+    upload_data(
+        adminapi,
+        table_id_3,
+        objects_num=SMALL_CLUSTER_OBJECTS_NUM // 2,
+        ra_center=SMALL_CLUSTER_RA_CENTER,
+        dec_center=SMALL_CLUSTER_DEC_CENTER,
+        radius=SMALL_CLUSTER_RADIUS,
+        seed=random.randint(0, 1000000),
+    )
+
+    create_marking(adminapi, table_name_3)
+    start_marking(table_name_3)
+    start_crossmatch(table_name_3)
+
+    check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)
