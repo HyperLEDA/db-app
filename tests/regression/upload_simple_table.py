@@ -17,7 +17,7 @@ random.seed(time.time())
 OBJECTS_NUM = 50
 COORD_RA_CENTER = 45.5
 COORD_DEC_CENTER = 50
-COORD_RADIUS = 10
+COORD_RADIUS = 1
 
 
 @lib.test_logging_decorator(__file__)
@@ -110,13 +110,17 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
 def upload_data(
     session: requests.Session,
     table_id: int,
+    objects_num: int,
+    ra_center: float,
+    dec_center: float,
+    radius: float,
 ):
     synthetic_data = lib.get_synthetic_data(
-        OBJECTS_NUM,
-        ra_center=COORD_RA_CENTER,
-        dec_center=COORD_DEC_CENTER,
-        ra_range=COORD_RADIUS,
-        dec_range=COORD_RADIUS,
+        objects_num,
+        ra_center=ra_center,
+        dec_center=dec_center,
+        ra_range=radius,
+        dec_range=radius,
     )
     df = pandas.DataFrame.from_records(synthetic_data)
 
@@ -253,6 +257,29 @@ def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, r
     assert len(coord_results["objects"]) > 0
 
 
+@lib.test_logging_decorator(__file__)
+def check_crossmatch_collisions(session: requests.Session, table_name: str):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.COLLIDED,
+        page_size=OBJECTS_NUM * 10,
+    )
+
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+
+    crossmatch_data = response.json()["data"]
+    collision_count = len(crossmatch_data["records"])
+
+    print(f"Found {collision_count} collision records in table {table_name}")
+    assert collision_count > 0, f"Expected collisions in table {table_name}, but found {collision_count}"
+
+    for record in crossmatch_data["records"]:
+        assert record["status"] == enums.RecordCrossmatchStatus.COLLIDED
+        assert record["catalogs"]["coordinates"] is not None
+        assert record["catalogs"]["designation"] is not None
+
+
 def get_adminapi_session() -> lib.TestSession:
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
@@ -273,7 +300,14 @@ def run():
 
     code = create_bibliography(adminapi)
     table_id, table_name = create_table(adminapi, code)
-    upload_data(adminapi, table_id)
+    upload_data(
+        adminapi,
+        table_id,
+        objects_num=OBJECTS_NUM,
+        ra_center=COORD_RA_CENTER,
+        dec_center=COORD_DEC_CENTER,
+        radius=COORD_RADIUS,
+    )
 
     create_marking(adminapi, table_name)
     start_marking(table_name)
@@ -287,3 +321,20 @@ def run():
 
     check_dataapi_name_query(dataapi, "NGC")
     check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
+
+    table_id, table_name = create_table(adminapi, code)
+    # generate a lot of objects in the same place so there will be guarateed collisions
+    upload_data(
+        adminapi,
+        table_id,
+        objects_num=OBJECTS_NUM * 10,
+        ra_center=COORD_RA_CENTER,
+        dec_center=COORD_DEC_CENTER,
+        radius=COORD_RADIUS,
+    )
+
+    create_marking(adminapi, table_name)
+    start_marking(table_name)
+    start_crossmatch(table_name)
+
+    check_crossmatch_collisions(adminapi, table_name)
