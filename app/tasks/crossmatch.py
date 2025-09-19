@@ -106,7 +106,7 @@ class CrossmatchTask(interface.Task):
                 catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
                 search_types=search_types,
                 search_params=search_params,
-                limit=len(records) * 10,  # Allow multiple matches per object
+                limit=len(records) * 100,  # Allow multiple matches per object
                 offset=0,
             )
 

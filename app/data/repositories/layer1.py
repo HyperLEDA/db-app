@@ -128,4 +128,113 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         table_name: str | None = None,
         offset: str | None = None,
         limit: int | None = None,
-    ) -> list[model.RecordInfo]: ...
+    ) -> list[model.RecordInfo]:
+        if not catalogs:
+            return []
+
+        cte_parts = []
+        select_parts = []
+        join_parts = []
+        where_conditions = []
+        params = []
+
+        for i, catalog in enumerate(catalogs):
+            object_cls = model.get_catalog_object_type(catalog)
+            table_name_layer1 = object_cls.layer1_table()
+            alias = f"t{i}"
+
+            catalog_columns = []
+            for column in object_cls.layer1_keys():
+                catalog_columns.append(f'{column} AS "{catalog.value}|{column}"')
+
+            cte_query = f"""
+            {alias} AS (
+                SELECT object_id, {", ".join(catalog_columns)}
+                FROM {table_name_layer1}
+            """
+
+            cte_where_conditions = []
+            if record_ids:
+                cte_where_conditions.append("object_id = ANY(%s)")
+                params.append(record_ids)
+
+            if cte_where_conditions:
+                cte_query += f" WHERE {' AND '.join(cte_where_conditions)}"
+
+            cte_query += ")"
+            cte_parts.append(cte_query)
+
+            select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer1_keys()])
+            select_parts.append(
+                f'CASE WHEN {alias}.object_id IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
+            )
+
+            if i == 0:
+                join_parts.append(f"FROM {alias}")
+            else:
+                join_parts.append(f"FULL OUTER JOIN {alias} USING (object_id)")
+
+        if table_name:
+            where_conditions.append("rawdata.objects.table_id = rawdata.tables.id")
+            where_conditions.append("rawdata.tables.table_name = %s")
+            params.append(table_name)
+
+        if offset:
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.object_id" for i in range(len(catalogs))]) + ")"
+            where_conditions.append(f"{coalesce_expr} > %s")
+            params.append(offset)
+
+        query = f"""
+            WITH {", ".join(cte_parts)}
+            SELECT COALESCE({", ".join([f"t{i}.object_id" for i in range(len(catalogs))])}) AS object_id,
+                   {", ".join(select_parts)}
+            {" ".join(join_parts)}
+        """
+
+        if table_name:
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.object_id" for i in range(len(catalogs))]) + ")"
+            query += f"""
+            JOIN rawdata.objects ON {coalesce_expr} = rawdata.objects.id
+            JOIN rawdata.tables ON rawdata.objects.table_id = rawdata.tables.id
+            """
+
+        if where_conditions:
+            query += f" WHERE {' AND '.join(where_conditions)}"
+
+        query += " ORDER BY object_id"
+
+        if limit:
+            query += " LIMIT %s"
+            params.append(limit)
+
+        objects = self._storage.query(query, params=params)
+
+        return self._group_by_record_id(objects, catalogs)
+
+    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.RecordInfo]:
+        """Groups query results by record_id and creates RecordInfo objects."""
+        record_data: dict[str, list[model.CatalogObject]] = {}
+
+        for row in objects:
+            record_id = row["object_id"]
+            if record_id not in record_data:
+                record_data[record_id] = []
+
+            for catalog in catalogs:
+                present_key = f"{catalog.value}|_present"
+                if row.get(present_key, False):
+                    object_cls = model.get_catalog_object_type(catalog)
+
+                    catalog_data = {}
+                    for column in object_cls.layer1_keys():
+                        catalog_data[column] = row.get(f"{catalog.value}|{column}")
+
+                    if catalog_data:
+                        catalog_object = object_cls.from_layer1(catalog_data)
+                        record_data[record_id].append(catalog_object)
+
+        result = []
+        for record_id in sorted(record_data.keys()):
+            result.append(model.RecordInfo(id=record_id, data=record_data[record_id]))
+
+        return result
