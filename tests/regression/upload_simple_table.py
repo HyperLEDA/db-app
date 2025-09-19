@@ -20,7 +20,7 @@ COORD_DEC_CENTER = random.uniform(-90, 90)
 COORD_RADIUS = 10
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def create_marking(session: requests.Session, table_name: str):
     request_data = adminapi.CreateMarkingRequest(
         table_name=table_name,
@@ -51,7 +51,7 @@ def create_marking(session: requests.Session, table_name: str):
     response.raise_for_status()
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def create_bibliography(session: requests.Session) -> str:
     request_data = adminapi.CreateSourceRequest(
         authors=["Doe, J."],
@@ -64,7 +64,7 @@ def create_bibliography(session: requests.Session) -> str:
     return response.json()["data"]["code"]
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
     table_name = f"test_{str(uuid.uuid4())[:8]}"
 
@@ -106,7 +106,7 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
     return table_id, table_name
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def upload_data(
     session: requests.Session,
     table_id: int,
@@ -135,7 +135,7 @@ def upload_data(
     response.raise_for_status()
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def start_marking(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -147,7 +147,7 @@ def start_marking(table_name: str):
     )
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def start_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -159,7 +159,7 @@ def start_crossmatch(table_name: str):
     )
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def check_table_info(session: requests.Session, table_name: str):
     request_data = adminapi.GetTableRequest(table_name=table_name)
 
@@ -173,7 +173,7 @@ def check_table_info(session: requests.Session, table_name: str):
     assert table_info["statistics"]["new"] == OBJECTS_NUM
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def check_crossmatch_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
@@ -213,7 +213,7 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
         assert designation["name"] is not None
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def check_crossmatch_existing_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
@@ -249,7 +249,7 @@ def check_crossmatch_existing_results(session: requests.Session, table_name: str
         assert designation["name"] is not None
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def submit_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -261,7 +261,7 @@ def submit_crossmatch(table_name: str):
     )
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def layer2_import():
     commands.run(
         RunTaskCommand(
@@ -273,7 +273,7 @@ def layer2_import():
     )
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
     response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
     response.raise_for_status()
@@ -286,7 +286,7 @@ def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
             assert obj["designation"]["name"].startswith("NGC")
 
 
-@lib.test_logging_decorator(__file__)
+@lib.test_logging_decorator()
 def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, radius: float):
     response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
     response.raise_for_status()
