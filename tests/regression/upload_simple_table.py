@@ -15,9 +15,9 @@ from tests import lib
 random.seed(time.time())
 
 OBJECTS_NUM = 50
-COORD_RA_CENTER = 45.5
-COORD_DEC_CENTER = 50
-COORD_RADIUS = 1
+COORD_RA_CENTER = random.uniform(0, 360)
+COORD_DEC_CENTER = random.uniform(-90, 90)
+COORD_RADIUS = 10
 
 
 @lib.test_logging_decorator(__file__)
@@ -114,6 +114,7 @@ def upload_data(
     ra_center: float,
     dec_center: float,
     radius: float,
+    seed: int,
 ):
     synthetic_data = lib.get_synthetic_data(
         objects_num,
@@ -121,6 +122,7 @@ def upload_data(
         dec_center=dec_center,
         ra_range=radius,
         dec_range=radius,
+        seed=seed,
     )
     df = pandas.DataFrame.from_records(synthetic_data)
 
@@ -212,6 +214,42 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
 
 
 @lib.test_logging_decorator(__file__)
+def check_crossmatch_existing_results(session: requests.Session, table_name: str):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.EXISTING,
+        page_size=OBJECTS_NUM * 2,
+    )
+
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+
+    crossmatch_data = response.json()["data"]
+    existing_records = crossmatch_data["records"]
+
+    expected_min = int(OBJECTS_NUM * 0.8)
+    assert len(existing_records) >= expected_min, (
+        f"Expected at least {expected_min} existing records, got {len(existing_records)}"
+    )
+
+    for record in existing_records:
+        assert record["catalogs"]["coordinates"] is not None
+        assert record["catalogs"]["designation"] is not None
+        assert record["metadata"]["pgc"] is not None
+
+        coords = record["catalogs"]["coordinates"]
+        assert "equatorial" in coords
+        assert "ra" in coords["equatorial"]
+        assert "dec" in coords["equatorial"]
+        assert "e_ra" in coords["equatorial"]
+        assert "e_dec" in coords["equatorial"]
+
+        designation = record["catalogs"]["designation"]
+        assert "name" in designation
+        assert designation["name"] is not None
+
+
+@lib.test_logging_decorator(__file__)
 def submit_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -257,28 +295,6 @@ def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, r
     assert len(coord_results["objects"]) > 0
 
 
-@lib.test_logging_decorator(__file__)
-def check_crossmatch_collisions(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.COLLIDED,
-        page_size=OBJECTS_NUM * 10,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-    collision_count = len(crossmatch_data["records"])
-
-    assert collision_count > 0, f"Expected collisions in table {table_name}, but found {collision_count}"
-
-    for record in crossmatch_data["records"]:
-        assert record["status"] == enums.RecordCrossmatchStatus.COLLIDED
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-
-
 def get_adminapi_session() -> lib.TestSession:
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
@@ -297,6 +313,8 @@ def run():
     adminapi = get_adminapi_session()
     dataapi = get_dataapi_session()
 
+    test_seed = 42
+
     code = create_bibliography(adminapi)
     table_id, table_name = create_table(adminapi, code)
     upload_data(
@@ -306,6 +324,7 @@ def run():
         ra_center=COORD_RA_CENTER,
         dec_center=COORD_DEC_CENTER,
         radius=COORD_RADIUS,
+        seed=test_seed,
     )
 
     create_marking(adminapi, table_name)
@@ -321,19 +340,21 @@ def run():
     check_dataapi_name_query(dataapi, "NGC")
     check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
 
-    table_id, table_name = create_table(adminapi, code)
-    # generate a lot of objects in the same place so there will be guarateed collisions
+    table_id_2, table_name_2 = create_table(adminapi, code)
     upload_data(
         adminapi,
-        table_id,
-        objects_num=OBJECTS_NUM * 10,
+        table_id_2,
+        objects_num=OBJECTS_NUM,
         ra_center=COORD_RA_CENTER,
         dec_center=COORD_DEC_CENTER,
         radius=COORD_RADIUS,
+        seed=test_seed,
     )
 
-    create_marking(adminapi, table_name)
-    start_marking(table_name)
-    start_crossmatch(table_name)
+    create_marking(adminapi, table_name_2)
+    start_marking(table_name_2)
+    start_crossmatch(table_name_2)
 
-    check_crossmatch_collisions(adminapi, table_name)
+    check_crossmatch_existing_results(adminapi, table_name_2)
+    submit_crossmatch(table_name_2)
+    layer2_import()
