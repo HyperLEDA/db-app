@@ -34,8 +34,6 @@ class Layer0MarkingTask(interface.Task):
         self.layer1_repo = repositories.Layer1Repository(self.pg_storage, self.log)
 
     def run(self):
-        ctx = {"table_name": self.table_name}
-        self.log.info("Starting marking of objects", **ctx)
         marking.mark_objects(self.layer0_repo, self.layer1_repo, self.table_name, self.batch_size)
 
     def cleanup(self):

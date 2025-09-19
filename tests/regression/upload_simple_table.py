@@ -14,6 +14,11 @@ from tests import lib
 
 random.seed(time.time())
 
+OBJECTS_NUM = 50
+COORD_RA_CENTER = 45.5
+COORD_DEC_CENTER = 50
+COORD_RADIUS = 10
+
 
 @lib.test_logging_decorator(__file__)
 def create_marking(session: requests.Session, table_name: str):
@@ -102,8 +107,17 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
 
 
 @lib.test_logging_decorator(__file__)
-def upload_data(session: requests.Session, table_id: int, num_records: int = 50):
-    synthetic_data = lib.generate_synthetic_astronomical_data(num_records)
+def upload_data(
+    session: requests.Session,
+    table_id: int,
+):
+    synthetic_data = lib.get_synthetic_data(
+        OBJECTS_NUM,
+        ra_center=COORD_RA_CENTER,
+        dec_center=COORD_DEC_CENTER,
+        ra_range=COORD_RADIUS,
+        dec_range=COORD_RADIUS,
+    )
     df = pandas.DataFrame.from_records(synthetic_data)
 
     request_data = adminapi.AddDataRequest(
@@ -122,6 +136,7 @@ def start_marking(table_name: str):
             "layer0-marking",
             "configs/dev/tasks.yaml",
             input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
+            log_level="warn",
         ),
     )
 
@@ -133,12 +148,13 @@ def start_crossmatch(table_name: str):
             "crossmatch",
             "configs/dev/tasks.yaml",
             input_data={"table_name": table_name},
+            log_level="warn",
         ),
     )
 
 
 @lib.test_logging_decorator(__file__)
-def get_object_statuses(session: requests.Session, table_name: str) -> dict[str, int]:
+def check_table_info(session: requests.Session, table_name: str):
     request_data = adminapi.GetTableRequest(table_name=table_name)
 
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
@@ -148,31 +164,47 @@ def get_object_statuses(session: requests.Session, table_name: str) -> dict[str,
     if table_info["statistics"] is None:
         raise ValueError("Processing status is None")
 
-    return table_info["statistics"]
+    assert table_info["statistics"]["new"] == OBJECTS_NUM
 
 
 @lib.test_logging_decorator(__file__)
-def get_crossmatch_results(session: requests.Session, table_name: str) -> dict:
+def check_crossmatch_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
         status=enums.RecordCrossmatchStatus.NEW,
-        page_size=100,
+        page_size=OBJECTS_NUM * 2,
     )
 
     response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
-    return response.json()["data"]
+    crossmatch_data = response.json()["data"]
 
+    assert len(crossmatch_data["records"]) == OBJECTS_NUM
 
-@lib.test_logging_decorator(__file__)
-def get_record_crossmatch(session: requests.Session, record_id: str) -> dict:
-    request_data = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
+    first_record = crossmatch_data["records"][0]
 
-    response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
+    request_data = adminapi.GetRecordCrossmatchRequest(record_id=first_record["record_id"])
 
-    return response.json()["data"]
+    first_record_response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
+    first_record_response.raise_for_status()
+    first_record_detail = first_record_response.json()["data"]
+    assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
+
+    for record in crossmatch_data["records"]:
+        assert record["catalogs"]["coordinates"] is not None
+        assert record["catalogs"]["designation"] is not None
+
+        coords = record["catalogs"]["coordinates"]
+        assert "equatorial" in coords
+        assert "ra" in coords["equatorial"]
+        assert "dec" in coords["equatorial"]
+        assert "e_ra" in coords["equatorial"]
+        assert "e_dec" in coords["equatorial"]
+
+        designation = record["catalogs"]["designation"]
+        assert "name" in designation
+        assert designation["name"] is not None
 
 
 @lib.test_logging_decorator(__file__)
@@ -181,33 +213,77 @@ def submit_crossmatch(table_name: str):
         RunTaskCommand(
             "submit-crossmatch",
             "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name, "batch_size": 50},
+            input_data={"table_name": table_name, "batch_size": OBJECTS_NUM // 2},
+            log_level="warn",
         ),
     )
 
 
-def run():
+@lib.test_logging_decorator(__file__)
+def layer2_import():
+    commands.run(
+        RunTaskCommand(
+            "layer2-import",
+            "configs/dev/tasks.yaml",
+            input_data={"batch_size": OBJECTS_NUM // 5},
+            log_level="warn",
+        ),
+    )
+
+
+@lib.test_logging_decorator(__file__)
+def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
+    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response.raise_for_status()
+    name_results = response.json()["data"]
+
+    assert len(name_results["objects"]) > 0
+
+    for obj in name_results["objects"]:
+        if "designation" in obj and "name" in obj["designation"]:
+            assert obj["designation"]["name"].startswith("NGC")
+
+
+@lib.test_logging_decorator(__file__)
+def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, radius: float):
+    response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
+    response.raise_for_status()
+    coord_results = response.json()["data"]
+
+    assert len(coord_results["objects"]) > 0
+
+
+def get_adminapi_session() -> lib.TestSession:
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
     api_url = f"http://{api_host}:{api_port}/admin/api"
-    session = lib.TestSession(api_url)
+    return lib.TestSession(api_url)
 
-    code = create_bibliography(session)
-    table_id, table_name = create_table(session, code)
-    upload_data(session, table_id)
 
-    create_marking(session, table_name)
+def get_dataapi_session() -> lib.TestSession:
+    api_host = os.getenv("API_HOST", "localhost")
+    api_port = os.getenv("API_PORT", "8081")
+    api_url = f"http://{api_host}:{api_port}/api"
+    return lib.TestSession(api_url)
+
+
+def run():
+    adminapi = get_adminapi_session()
+    dataapi = get_dataapi_session()
+
+    code = create_bibliography(adminapi)
+    table_id, table_name = create_table(adminapi, code)
+    upload_data(adminapi, table_id)
+
+    create_marking(adminapi, table_name)
     start_marking(table_name)
     start_crossmatch(table_name)
 
-    statuses_data = get_object_statuses(session, table_name)
-    assert statuses_data["new"] == 50
-
-    crossmatch_data = get_crossmatch_results(session, table_name)
-    assert len(crossmatch_data["records"]) == statuses_data["new"]
-
-    first_record = crossmatch_data["records"][0]
-    first_record_detail = get_record_crossmatch(session, first_record["record_id"])
-    assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
+    check_table_info(adminapi, table_name)
+    check_crossmatch_results(adminapi, table_name)
 
     submit_crossmatch(table_name)
+    layer2_import()
+
+    check_dataapi_name_query(dataapi, "NGC")
+    check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)

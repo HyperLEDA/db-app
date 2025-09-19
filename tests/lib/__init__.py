@@ -1,4 +1,4 @@
-from tests.lib.astronomy import generate_synthetic_astronomical_data
+from tests.lib.astronomy import get_synthetic_data
 from tests.lib.decorators import test_logging_decorator
 from tests.lib.mocks import raises, returns
 from tests.lib.postgres import TestPostgresStorage
@@ -13,5 +13,5 @@ __all__ = [
     "returns",
     "raises",
     "test_logging_decorator",
-    "generate_synthetic_astronomical_data",
+    "get_synthetic_data",
 ]

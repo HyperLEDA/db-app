@@ -62,7 +62,7 @@ class CrossmatchTask(interface.Task):
         self.layer0_repo = repositories.Layer0Repository(self.pg_storage, self.log)
         self.layer2_repo = repositories.Layer2Repository(self.pg_storage, self.log)
 
-        self.log.info("Loading cross-identification plugins")
+        self.log.debug("Loading cross-identification plugins")
         matchers = discover_matchers("plugins/matchers")
         solvers = discover_solvers("plugins/solvers")
 
