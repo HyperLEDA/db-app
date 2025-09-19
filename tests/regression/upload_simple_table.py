@@ -186,6 +186,17 @@ def submit_crossmatch(table_name: str):
     )
 
 
+@lib.test_logging_decorator(__file__)
+def layer2_import():
+    commands.run(
+        RunTaskCommand(
+            "layer2-import",
+            "configs/dev/tasks.yaml",
+            input_data={"batch_size": 10},
+        ),
+    )
+
+
 def run():
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
@@ -226,3 +237,4 @@ def run():
         assert designation["name"] is not None
 
     submit_crossmatch(table_name)
+    layer2_import()
