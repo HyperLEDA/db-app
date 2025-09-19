@@ -28,7 +28,11 @@ def get_synthetic_data(
     dec_center: float,
     ra_range: float,
     dec_range: float,
+    seed: int | None = None,
 ) -> list[dict]:
+    if seed is not None:
+        random.seed(seed)
+
     data = []
 
     for _ in range(n):
@@ -58,7 +62,7 @@ def get_synthetic_data(
                 "dec": dec_deg,
                 "e_ra": e_ra,
                 "e_dec": e_dec,
-                "fuzz": str(uuid.uuid4()),
+                "fuzz": str(uuid.uuid4()),  # this fuzz does not respect seed so it is different for each run
             }
         )
 

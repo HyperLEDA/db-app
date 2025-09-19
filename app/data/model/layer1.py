@@ -10,6 +10,19 @@ class Layer1Observation:
 
 
 @dataclass
+class RecordInfo:
+    id: str
+    data: list[interface.CatalogObject]
+
+    def get[T](self, t: type[T]) -> T | None:
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+
+        return None
+
+
+@dataclass
 class Layer1PGCObservation:
     pgc: int
     observation: Layer1Observation

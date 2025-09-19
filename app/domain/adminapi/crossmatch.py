@@ -51,12 +51,11 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
 
 
 def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[adminapi.Redshift, adminapi.Velocity]:
-    cz = obj.cz * u.Unit("km/s")
-    e_cz = obj.e_cz * u.Unit("km/s")
-    c_km_s = astronomy.to(astronomy.const("c"), "km/s")
+    cz = obj.cz * u.Unit("m/s")
+    e_cz = obj.e_cz * u.Unit("m/s")
 
-    z = astronomy.to(cz / c_km_s)
-    e_z = astronomy.to(e_cz / c_km_s)
+    z = astronomy.to(cz / astronomy.const("c"))
+    e_z = astronomy.to(e_cz / astronomy.const("c"))
 
     return adminapi.Redshift(z=z, e_z=e_z), adminapi.Velocity(
         heliocentric=adminapi.HeliocentricVelocity(
