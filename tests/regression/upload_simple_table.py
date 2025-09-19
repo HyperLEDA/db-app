@@ -136,6 +136,7 @@ def start_marking(table_name: str):
             "layer0-marking",
             "configs/dev/tasks.yaml",
             input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
+            log_level="warn",
         ),
     )
 
@@ -147,6 +148,7 @@ def start_crossmatch(table_name: str):
             "crossmatch",
             "configs/dev/tasks.yaml",
             input_data={"table_name": table_name},
+            log_level="warn",
         ),
     )
 
@@ -170,7 +172,7 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
         status=enums.RecordCrossmatchStatus.NEW,
-        page_size=100,
+        page_size=OBJECTS_NUM * 2,
     )
 
     response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
@@ -216,7 +218,8 @@ def submit_crossmatch(table_name: str):
         RunTaskCommand(
             "submit-crossmatch",
             "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name, "batch_size": 10},
+            input_data={"table_name": table_name, "batch_size": OBJECTS_NUM // 2},
+            log_level="warn",
         ),
     )
 
@@ -227,7 +230,8 @@ def layer2_import():
         RunTaskCommand(
             "layer2-import",
             "configs/dev/tasks.yaml",
-            input_data={"batch_size": 10},
+            input_data={"batch_size": OBJECTS_NUM // 5},
+            log_level="warn",
         ),
     )
 

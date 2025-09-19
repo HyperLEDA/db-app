@@ -1,5 +1,4 @@
 import json
-import logging
 from pathlib import Path
 from typing import Any, final
 
@@ -19,6 +18,7 @@ class RunTaskCommand(commands.Command):
         input_data_path: str | None = None,
         input_data: dict[str, Any] | None = None,
         task_args: tuple[str, ...] | None = None,
+        log_level: str = "info",
     ) -> None:
         if input_data is None:
             input_data = {}
@@ -30,6 +30,7 @@ class RunTaskCommand(commands.Command):
         self.input_data_path = input_data_path
         self.input_data = input_data
         self.task_args = task_args
+        self.log_level = log_level
 
     @classmethod
     def help(cls) -> str:
@@ -50,7 +51,7 @@ class RunTaskCommand(commands.Command):
         input_data.update(task_args_dict)
 
         structlog.configure(
-            wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+            wrapper_class=structlog.make_filtering_bound_logger(self.log_level),
         )
         logger = structlog.get_logger()
 
