@@ -87,52 +87,56 @@ class CrossmatchManager:
             status=r.status,
         )
 
-        records = []
-        for obj in processed_objects:
-            record = self._convert_to_record_crossmatch(obj)
-            records.append(record)
+        records = self._convert_to_record_crossmatch(processed_objects)
 
         return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
 
-    def _convert_to_record_crossmatch(self, obj: model.RecordCrossmatch) -> adminapi.RecordCrossmatch:
-        metadata = adminapi.RecordCrossmatchMetadata()
-        if isinstance(obj.processing_result, model.CIResultObjectExisting):
-            metadata.pgc = obj.processing_result.pgc
-        elif isinstance(obj.processing_result, model.CIResultObjectCollision):
-            metadata.possible_matches = list(obj.processing_result.pgcs) if obj.processing_result.pgcs else None
-
-        catalogs = adminapi.Catalogs()
-
+    def _convert_to_record_crossmatch(self, records: list[model.RecordCrossmatch]) -> list[adminapi.RecordCrossmatch]:
+        record_ids = [obj.record.id for obj in records]
         layer1_data = self.layer1_repo.query_records(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
-            record_ids=[obj.record.id],
+            record_ids=record_ids,
         )
+        layer1_data_map = {rec.id: rec for rec in layer1_data}
 
-        if len(layer1_data) != 1:
-            raise RuntimeError(f"expected 1 record, got {len(layer1_data)}")
+        result = []
+        for obj in records:
+            metadata = adminapi.RecordCrossmatchMetadata()
+            if isinstance(obj.processing_result, model.CIResultObjectExisting):
+                metadata.pgc = obj.processing_result.pgc
+            elif isinstance(obj.processing_result, model.CIResultObjectCollision):
+                metadata.possible_matches = list(obj.processing_result.pgcs) if obj.processing_result.pgcs else None
 
-        record = layer1_data[0]
+            catalogs = adminapi.Catalogs()
 
-        if (icrs := record.get(model.ICRSCatalogObject)) is not None:
-            catalogs.coordinates = icrs_to_response(icrs)
+            record = layer1_data_map.get(obj.record.id)
+            if record is None:
+                raise RuntimeError(f"expected 1 record for id {obj.record.id}, got none")
 
-        if (designation := record.get(model.DesignationCatalogObject)) is not None:
-            catalogs.designation = adminapi.Designation(name=designation.designation)
+            if (icrs := record.get(model.ICRSCatalogObject)) is not None:
+                catalogs.coordinates = icrs_to_response(icrs)
 
-        if (redshift := record.get(model.RedshiftCatalogObject)) is not None:
-            catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
+            if (designation := record.get(model.DesignationCatalogObject)) is not None:
+                catalogs.designation = adminapi.Designation(name=designation.designation)
 
-        status = enums.RecordCrossmatchStatus.UNPROCESSED
+            if (redshift := record.get(model.RedshiftCatalogObject)) is not None:
+                catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
-        if (t := type(obj.processing_result)) in status_map:
-            status = status_map[t]
+            status = enums.RecordCrossmatchStatus.UNPROCESSED
 
-        return adminapi.RecordCrossmatch(
-            record_id=obj.record.id,
-            status=status,
-            metadata=metadata,
-            catalogs=catalogs,
-        )
+            if (t := type(obj.processing_result)) in status_map:
+                status = status_map[t]
+
+            result.append(
+                adminapi.RecordCrossmatch(
+                    record_id=obj.record.id,
+                    status=status,
+                    metadata=metadata,
+                    catalogs=catalogs,
+                )
+            )
+
+        return result
 
     def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
         processed_objects = self.layer0_repo.get_processed_records(
@@ -144,7 +148,7 @@ class CrossmatchManager:
             raise NotFoundError(entity=r.record_id, entity_name="record")
 
         obj = processed_objects[0]
-        crossmatch_record = self._convert_to_record_crossmatch(obj)
+        crossmatch_records = self._convert_to_record_crossmatch([obj])
 
         candidate_pgcs: list[int] = []
 
@@ -154,7 +158,7 @@ class CrossmatchManager:
             candidate_pgcs.append(obj.processing_result.pgc)
 
         response = adminapi.GetRecordCrossmatchResponse(
-            crossmatch=crossmatch_record,
+            crossmatch=crossmatch_records[0],
             candidates=[],
             schema=DATA_SCHEMA,
         )
