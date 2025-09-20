@@ -59,14 +59,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.objects_repo.get_table_statistics(table_name)
 
-    def get_objects(
-        self,
-        limit: int,
-        offset: str | None = None,
-        table_id: int | None = None,
-    ) -> list[model.Layer0Object]:
-        return self.objects_repo.get_objects(limit, offset, table_id)
-
     def get_processed_records(
         self,
         limit: int,

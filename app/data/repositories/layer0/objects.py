@@ -25,42 +25,6 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
-    def get_objects(
-        self,
-        limit: int,
-        offset: str | None = None,
-        table_id: int | None = None,
-    ) -> list[model.Layer0Object]:
-        if table_id is None:
-            raise RuntimeError("no filters specified for object selection")
-
-        params = []
-
-        where_stmnt = ["table_id = %s"]
-        params.append(table_id)
-        if offset is not None:
-            where_stmnt.append("id > %s")
-            params.append(offset)
-
-        rows = self._storage.query(
-            f"""
-            SELECT id, data
-            FROM rawdata.objects
-            WHERE {" AND ".join(where_stmnt)}
-            ORDER BY id
-            LIMIT %s
-            """,
-            params=params + [limit],
-        )
-
-        return [
-            model.Layer0Object(
-                row["id"],
-                json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
-            )
-            for row in rows
-        ]
-
     def get_processed_records(
         self,
         limit: int,

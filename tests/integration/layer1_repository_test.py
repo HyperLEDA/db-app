@@ -31,10 +31,10 @@ class Layer1RepositoryTest(unittest.TestCase):
             model.Layer0TableMeta(
                 "test_table",
                 [
-                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hour),
-                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.hour),
-                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.hour),
-                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.hour),
+                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.Unit("hour")),
+                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.Unit("hour")),
+                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.Unit("hour")),
+                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.Unit("hour")),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,
