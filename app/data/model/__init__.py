@@ -13,7 +13,6 @@ from app.data.model.layer0 import (
     HomogenizationParams,
     HomogenizationRule,
     Layer0CreationResponse,
-    Layer0Object,
     Layer0RawData,
     Layer0TableMeta,
     Modifier,
@@ -33,7 +32,6 @@ from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
-    "Layer0Object",
     "RecordCrossmatch",
     "Layer0RawData",
     "Layer0TableMeta",

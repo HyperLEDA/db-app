@@ -78,12 +78,12 @@ def mark_objects(
         batch_size=batch_size,
     ):
         data = modificator.apply(data)
-        objects = h.apply(data)
+        records = h.apply(data)
 
         layer1_objects = []
-        for obj in objects:
-            for catalog_obj in obj.data:
-                layer1_objects.append(model.Layer1Observation(obj.object_id, catalog_obj))
+        for record in records:
+            for catalog_obj in record.data:
+                layer1_objects.append(model.Layer1Observation(record.id, catalog_obj))
 
         if layer1_objects:
             layer1_repo.save_data(layer1_objects)
@@ -94,6 +94,6 @@ def mark_objects(
         log.info(
             "Processed batch",
             last_object=offset,
-            updated_count=len(objects),
+            updated_count=len(records),
             very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
         )
