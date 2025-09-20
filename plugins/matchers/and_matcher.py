@@ -1,6 +1,6 @@
 from typing import final
 
-from app.data.model import layer0, layer2
+from app.data import model
 from app.domain.unification.crossmatch import CIMatcher
 
 
@@ -10,9 +10,9 @@ class AndMatcher:
         self.matcher1 = matcher1
         self.matcher2 = matcher2
 
-    def __call__(self, object1: layer0.Layer0Object, object2: layer2.Layer2Object) -> float:
-        prob1 = self.matcher1(object1, object2)
-        prob2 = self.matcher2(object1, object2)
+    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+        prob1 = self.matcher1(record1, record2)
+        prob2 = self.matcher2(record1, record2)
         return prob1 * prob2
 
 
