@@ -60,7 +60,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
-        query = f"""SELECT o.id, o.data, c.status, c.metadata
+        query = f"""SELECT o.id, c.status, c.metadata
             {join_tables}
             {where_clause}
             ORDER BY o.id
@@ -88,7 +88,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 model.RecordCrossmatch(
                     model.Record(
                         row["id"],
-                        json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
+                        [],
                     ),
                     ci_result,
                 )
@@ -117,14 +117,16 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         stats_res = errgr.run(
             self._storage.query_one,
             """
-            SELECT MAX(modification_dt) AS modification_dt , COUNT(1) AS cnt
-            FROM rawdata.objects 
+            SELECT COUNT(1) AS cnt, MAX(t.modification_dt) AS modification_dt
+            FROM rawdata.objects AS o
+            JOIN rawdata.tables AS t ON o.table_id = t.id
             WHERE table_id = %s""",
             params=[table_id],
         )
         total_original_rows_res = errgr.run(
             self._storage.query_one, f'SELECT COUNT(1) AS cnt FROM {RAWDATA_SCHEMA}."{table_name}"'
         )
+        errgr.wait()
 
         status_rows = status_rows_res.result()
         stats = stats_res.result()

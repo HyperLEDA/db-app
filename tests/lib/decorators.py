@@ -1,6 +1,8 @@
 import functools
 import time
 
+import requests
+
 from tests.lib import colors
 
 
@@ -28,6 +30,13 @@ def test_logging_decorator(func):
 
             if status == "E" and exception:
                 print(f"    {type(exception).__name__}: {exception}")
+
+                if isinstance(exception, requests.HTTPError) and hasattr(exception, "response"):
+                    try:
+                        response_body = exception.response.text
+                        print(f"    Response body: {response_body}")
+                    except Exception:
+                        print("    Could not extract response body")
 
         return result
 
