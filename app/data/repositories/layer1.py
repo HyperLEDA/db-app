@@ -12,27 +12,33 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[model.Layer1Observation]) -> None:
+    def save_data(self, records: list[model.RecordInfo]) -> None:
         """
-        For each object, saves it to corresponding catalog in the storage.
+        For each record, saves its catalog objects to corresponding tables in the storage.
 
         The insertion is done efficiently - for a single table there will be only one query.
         """
-        table_objects = containers.group_by(objects, lambda obj: obj.catalog_object.layer1_table())
+        # Flatten all catalog objects from all records and group by table
+        all_catalog_objects = []
+        for record in records:
+            for catalog_object in record.data:
+                all_catalog_objects.append((record.id, catalog_object))
+
+        table_objects = containers.group_by(all_catalog_objects, lambda item: item[1].layer1_table())
 
         with self.with_tx():
-            for table, table_objs in table_objects.items():
-                if not table_objs:
+            for table, table_items in table_objects.items():
+                if not table_items:
                     continue
 
                 columns = ["object_id"]
-                columns.extend(table_objs[0].catalog_object.layer1_keys())
+                columns.extend(table_items[0][1].layer1_keys())
 
                 params = []
                 values = []
-                for obj in table_objs:
-                    data = obj.catalog_object.layer1_data()
-                    data["object_id"] = obj.object_id
+                for record_id, catalog_object in table_items:
+                    data = catalog_object.layer1_data()
+                    data["object_id"] = record_id
 
                     params.extend([data[column] for column in columns])
                     values.append(",".join(["%s"] * len(columns)))
@@ -50,7 +56,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 self._logger.debug(
                     "Saved data to layer 1",
                     table=table,
-                    object_count=len(table_objs),
+                    object_count=len(table_items),
                 )
 
     def get_new_observations(

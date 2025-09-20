@@ -80,13 +80,8 @@ def mark_objects(
         data = modificator.apply(data)
         records = h.apply(data)
 
-        layer1_objects = []
-        for record in records:
-            for catalog_obj in record.data:
-                layer1_objects.append(model.Layer1Observation(record.id, catalog_obj))
-
-        if layer1_objects:
-            layer1_repo.save_data(layer1_objects)
+        if records:
+            layer1_repo.save_data(records)
 
         last_uuid = uuid.UUID(offset or "00000000-0000-0000-0000-000000000000")
         max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
