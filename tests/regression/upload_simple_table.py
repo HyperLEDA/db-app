@@ -15,14 +15,14 @@ from tests import lib
 random.seed(time.time())
 
 OBJECTS_NUM = 50
-COORD_RA_CENTER = random.uniform(0, 360)
-COORD_DEC_CENTER = random.uniform(-90, 90)
 COORD_RADIUS = 10
+COORD_RA_CENTER = random.uniform(COORD_RADIUS, 360 - COORD_RADIUS)
+COORD_DEC_CENTER = random.uniform(-90 + COORD_RADIUS, 90 - COORD_RADIUS)
 
 SMALL_CLUSTER_OBJECTS_NUM = 20
-SMALL_CLUSTER_RA_CENTER = random.uniform(0, 360)
-SMALL_CLUSTER_DEC_CENTER = random.uniform(-90, 90)
 SMALL_CLUSTER_RADIUS = 20 / 3600
+SMALL_CLUSTER_RA_CENTER = random.uniform(SMALL_CLUSTER_RADIUS, 360 - SMALL_CLUSTER_RADIUS)
+SMALL_CLUSTER_DEC_CENTER = random.uniform(-90 + SMALL_CLUSTER_RADIUS, 90 - SMALL_CLUSTER_RADIUS)
 
 
 @lib.test_logging_decorator
