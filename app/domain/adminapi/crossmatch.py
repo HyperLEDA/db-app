@@ -89,12 +89,12 @@ class CrossmatchManager:
 
         records = []
         for obj in processed_objects:
-            record = self._convert_to_crossmatch_record(obj)
+            record = self._convert_to_record_crossmatch(obj)
             records.append(record)
 
         return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
 
-    def _convert_to_crossmatch_record(self, obj: model.RecordCrossmatch) -> adminapi.RecordCrossmatch:
+    def _convert_to_record_crossmatch(self, obj: model.RecordCrossmatch) -> adminapi.RecordCrossmatch:
         metadata = adminapi.RecordCrossmatchMetadata()
         if isinstance(obj.processing_result, model.CIResultObjectExisting):
             metadata.pgc = obj.processing_result.pgc
@@ -103,20 +103,23 @@ class CrossmatchManager:
 
         catalogs = adminapi.Catalogs()
 
-        layer1_data = self.layer1_repo.get_objects_by_object_id(
-            [obj.record.id], [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT]
+        layer1_data = self.layer1_repo.query_records(
+            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
+            record_ids=[obj.record.id],
         )
 
-        observations = layer1_data.get(obj.record.id, [])
-        catalog_objects = [obs.catalog_object for obs in observations]
+        if len(layer1_data) != 1:
+            raise RuntimeError(f"expected 1 record, got {len(layer1_data)}")
 
-        if (icrs := model.get_object(catalog_objects, model.ICRSCatalogObject)) is not None:
+        record = layer1_data[0]
+
+        if (icrs := record.get(model.ICRSCatalogObject)) is not None:
             catalogs.coordinates = icrs_to_response(icrs)
 
-        if (designation := model.get_object(catalog_objects, model.DesignationCatalogObject)) is not None:
+        if (designation := record.get(model.DesignationCatalogObject)) is not None:
             catalogs.designation = adminapi.Designation(name=designation.designation)
 
-        if (redshift := model.get_object(catalog_objects, model.RedshiftCatalogObject)) is not None:
+        if (redshift := record.get(model.RedshiftCatalogObject)) is not None:
             catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
         status = enums.RecordCrossmatchStatus.UNPROCESSED
@@ -141,7 +144,7 @@ class CrossmatchManager:
             raise NotFoundError(entity=r.record_id, entity_name="record")
 
         obj = processed_objects[0]
-        crossmatch_record = self._convert_to_crossmatch_record(obj)
+        crossmatch_record = self._convert_to_record_crossmatch(obj)
 
         candidate_pgcs: list[int] = []
 
