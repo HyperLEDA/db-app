@@ -61,7 +61,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
     def get_new_observations(
         self, dt: datetime.datetime, limit: int, offset: int, catalog: model.RawCatalog
-    ) -> list[model.Layer1PGCObservation]:
+    ) -> list[model.RecordInfoWithPGC]:
         """
         Returns all objects that were modified since `dt`.
         `limit` is the number of PGC numbers to select, not the final number of objects.
@@ -89,13 +89,22 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         rows = self._storage.query(query, params=[dt, offset, limit])
 
-        objects: list[model.Layer1PGCObservation] = []
+        record_data: dict[tuple[int, str], list[model.CatalogObject]] = {}
+
         for row in rows:
             object_id = row.pop("object_id")
             pgc = int(row.pop("id"))
             catalog_object = object_cls.from_layer1(row)
 
-            objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
+            key = (pgc, object_id)
+            if key not in record_data:
+                record_data[key] = []
+            record_data[key].append(catalog_object)
+
+        objects: list[model.RecordInfoWithPGC] = []
+        for (pgc, record_id), catalog_objects in record_data.items():
+            record_info = model.RecordInfo(id=record_id, data=catalog_objects)
+            objects.append(model.RecordInfoWithPGC(pgc, record_info))
 
         return objects
 

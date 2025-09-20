@@ -23,10 +23,9 @@ from app.data.model.layer1 import (
     CIResultObjectCollision,
     CIResultObjectExisting,
     CIResultObjectNew,
-    Layer1Observation,
-    Layer1PGCObservation,
     RecordCrossmatch,
     RecordInfo,
+    RecordInfoWithPGC,
 )
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
@@ -43,8 +42,7 @@ __all__ = [
     "CIResultObjectCollision",
     "CIResultObjectExisting",
     "CIResultObjectNew",
-    "Layer1Observation",
-    "Layer1PGCObservation",
+    "RecordInfoWithPGC",
     "RecordInfo",
     "Layer2CatalogObject",
     "Layer2Object",
