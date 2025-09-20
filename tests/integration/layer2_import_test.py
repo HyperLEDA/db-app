@@ -45,14 +45,14 @@ class Layer2ImportTest(unittest.TestCase):
         self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
         self.layer1_repo.save_data(
             [
-                model.RecordInfo(
+                model.Record(
                     id="123",
                     data=[
                         model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2),
                         model.DesignationCatalogObject("test1"),
                     ],
                 ),
-                model.RecordInfo(
+                model.Record(
                     id="124",
                     data=[
                         model.ICRSCatalogObject(ra=14, e_ra=0.2, dec=15, e_dec=0.2),
@@ -90,8 +90,8 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.layer1_repo.save_data(
             [
-                model.RecordInfo("125", [model.DesignationCatalogObject("test3")]),
-                model.RecordInfo("126", [model.DesignationCatalogObject("test3")]),
+                model.Record("125", [model.DesignationCatalogObject("test3")]),
+                model.Record("126", [model.DesignationCatalogObject("test3")]),
             ]
         )
 

@@ -9,7 +9,7 @@ class IgnoreNoNameMatcher:
     def __init__(self, matcher: CIMatcher):
         self.matcher = matcher
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         name1 = record1.get(model.DesignationCatalogObject)
         name2 = record2.get(model.DesignationCatalogObject)
 

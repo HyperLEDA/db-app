@@ -10,7 +10,7 @@ class AndMatcher:
         self.matcher1 = matcher1
         self.matcher2 = matcher2
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         prob1 = self.matcher1(record1, record2)
         prob2 = self.matcher2(record1, record2)
         return prob1 * prob2

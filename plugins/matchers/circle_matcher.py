@@ -12,7 +12,7 @@ class CircleMatcher:
     def __init__(self, radius_arcsec: float):
         self.radius_arcsec = radius_arcsec
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         coords1 = record1.get(model.ICRSCatalogObject)
         coords2 = record2.get(model.ICRSCatalogObject)
 

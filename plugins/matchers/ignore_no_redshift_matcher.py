@@ -9,7 +9,7 @@ class IgnoreNoRedshiftMatcher:
     def __init__(self, matcher: CIMatcher):
         self.matcher = matcher
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         redshift1 = record1.get(model.RedshiftCatalogObject)
         redshift2 = record2.get(model.RedshiftCatalogObject)
 

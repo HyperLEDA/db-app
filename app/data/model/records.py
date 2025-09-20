@@ -22,7 +22,7 @@ CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
 
 
 @dataclass
-class RecordInfo:
+class Record:
     id: str
     data: list[interface.CatalogObject]
 
@@ -36,11 +36,11 @@ class RecordInfo:
 
 @dataclass
 class RecordCrossmatch:
-    record: RecordInfo
+    record: Record
     processing_result: CIResult
 
 
 @dataclass
-class RecordInfoWithPGC:
+class RecordWithPGC:
     pgc: int
-    record: RecordInfo
+    record: Record

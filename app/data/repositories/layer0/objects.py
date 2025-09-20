@@ -86,7 +86,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
             objects.append(
                 model.RecordCrossmatch(
-                    model.RecordInfo(
+                    model.Record(
                         row["id"],
                         json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
                     ),

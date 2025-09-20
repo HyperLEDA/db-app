@@ -14,9 +14,9 @@ from app.data.model.records import (
     CIResultObjectCollision,
     CIResultObjectExisting,
     CIResultObjectNew,
+    Record,
     RecordCrossmatch,
-    RecordInfo,
-    RecordInfoWithPGC,
+    RecordWithPGC,
 )
 from app.data.model.redshift import RedshiftCatalogObject
 from app.data.model.table import (
@@ -42,8 +42,8 @@ __all__ = [
     "CIResultObjectCollision",
     "CIResultObjectExisting",
     "CIResultObjectNew",
-    "RecordInfoWithPGC",
-    "RecordInfo",
+    "RecordWithPGC",
+    "Record",
     "Layer2CatalogObject",
     "Layer2Object",
     "RawCatalog",

@@ -33,7 +33,7 @@ class Homogenization:
 
         return mapping
 
-    def apply(self, data: table.Table) -> list[data_model.RecordInfo]:
+    def apply(self, data: table.Table) -> list[data_model.Record]:
         if len(self.column_rules) == 0:
             raise ValueError("No rules satisfy any of the table columns")
 
@@ -54,7 +54,7 @@ class Homogenization:
             for parameter, value in params.items():
                 catalog_objects[key][parameter] = table.Column(data=[value] * len(data))  # type: ignore
 
-        records: dict[str, data_model.RecordInfo] = {}
+        records: dict[str, data_model.Record] = {}
 
         for (catalog, _), params_map in catalog_objects.items():
             ids = data[repositories.INTERNAL_ID_COLUMN_NAME]
@@ -63,7 +63,7 @@ class Homogenization:
             for i in range(len(ids)):
                 record_id = str(ids[i])
                 if record_id not in records:
-                    records[record_id] = data_model.RecordInfo(record_id, [])
+                    records[record_id] = data_model.Record(record_id, [])
 
                 data_dict = {}
                 for key in params_map:

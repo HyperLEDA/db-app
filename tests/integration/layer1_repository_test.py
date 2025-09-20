@@ -21,9 +21,9 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_icrs(self):
-        objects: list[model.RecordInfo] = [
-            model.RecordInfo("111", [model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)]),
-            model.RecordInfo("112", [model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)]),
+        objects: list[model.Record] = [
+            model.Record("111", [model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)]),
+            model.Record("112", [model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)]),
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")

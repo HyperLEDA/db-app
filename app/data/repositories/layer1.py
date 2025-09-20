@@ -12,13 +12,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, records: list[model.RecordInfo]) -> None:
-        """
-        For each record, saves its catalog objects to corresponding tables in the storage.
-
-        The insertion is done efficiently - for a single table there will be only one query.
-        """
-        # Flatten all catalog objects from all records and group by table
+    def save_data(self, records: list[model.Record]) -> None:
         all_catalog_objects = []
         for record in records:
             for catalog_object in record.data:
@@ -61,7 +55,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
     def get_new_observations(
         self, dt: datetime.datetime, limit: int, offset: int, catalog: model.RawCatalog
-    ) -> list[model.RecordInfoWithPGC]:
+    ) -> list[model.RecordWithPGC]:
         """
         Returns all objects that were modified since `dt`.
         `limit` is the number of PGC numbers to select, not the final number of objects.
@@ -101,10 +95,10 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 record_data[key] = []
             record_data[key].append(catalog_object)
 
-        objects: list[model.RecordInfoWithPGC] = []
+        objects: list[model.RecordWithPGC] = []
         for (pgc, record_id), catalog_objects in record_data.items():
-            record_info = model.RecordInfo(id=record_id, data=catalog_objects)
-            objects.append(model.RecordInfoWithPGC(pgc, record_info))
+            record_info = model.Record(id=record_id, data=catalog_objects)
+            objects.append(model.RecordWithPGC(pgc, record_info))
 
         return objects
 
@@ -115,7 +109,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         table_name: str | None = None,
         offset: str | None = None,
         limit: int | None = None,
-    ) -> list[model.RecordInfo]:
+    ) -> list[model.Record]:
         if not catalogs:
             return []
 
@@ -198,8 +192,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         return self._group_by_record_id(objects, catalogs)
 
-    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.RecordInfo]:
-        """Groups query results by record_id and creates RecordInfo objects."""
+    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.Record]:
         record_data: dict[str, list[model.CatalogObject]] = {}
 
         for row in objects:
@@ -222,6 +215,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         result = []
         for record_id in sorted(record_data.keys()):
-            result.append(model.RecordInfo(id=record_id, data=record_data[record_id]))
+            result.append(model.Record(id=record_id, data=record_data[record_id]))
 
         return result

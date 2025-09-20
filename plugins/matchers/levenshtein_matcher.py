@@ -30,7 +30,7 @@ class LevenshteinMatcher:
     def __init__(self, max_distance: int):
         self.max_distance = max_distance
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         name1 = record1.get(model.DesignationCatalogObject)
         name2 = record2.get(model.DesignationCatalogObject)
 

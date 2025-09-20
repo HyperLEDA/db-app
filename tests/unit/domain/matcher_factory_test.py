@@ -9,7 +9,7 @@ class DummyMatcher:
     def __init__(self, value: float):
         self.value = value
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         return self.value
 
 
@@ -18,7 +18,7 @@ class DummyNestedMatcher:
         self.matcher = matcher
         self.multiplier = multiplier
 
-    def __call__(self, record1: model.RecordInfo, record2: model.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         return self.matcher(record1, record2) * self.multiplier
 
 
