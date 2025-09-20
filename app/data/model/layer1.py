@@ -4,6 +4,25 @@ from app.data.model import interface
 
 
 @dataclass
+class CIResultObjectNew:
+    pass
+
+
+@dataclass
+class CIResultObjectExisting:
+    pgc: int
+
+
+@dataclass
+class CIResultObjectCollision:
+    pgcs: set[int]
+
+
+CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
+
+
+# TODO: remove
+@dataclass
 class Layer1Observation:
     object_id: str
     catalog_object: interface.CatalogObject
@@ -22,6 +41,13 @@ class RecordInfo:
         return None
 
 
+@dataclass
+class RecordCrossmatch:
+    record: RecordInfo
+    processing_result: CIResult
+
+
+# TODO: use RecordInfo directly
 @dataclass
 class Layer1PGCObservation:
     pgc: int

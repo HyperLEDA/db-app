@@ -93,6 +93,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         return objects
 
+    # TODO: remove in favour of metod below
     def get_objects_by_object_id(
         self, object_ids: list[str], catalogs: list[model.RawCatalog]
     ) -> dict[str, list[model.Layer1Observation]]:

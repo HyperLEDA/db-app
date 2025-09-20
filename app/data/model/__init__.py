@@ -9,28 +9,32 @@ from app.data.model.helpers import (
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
 from app.data.model.layer0 import (
-    CIResult,
-    CIResultObjectCollision,
-    CIResultObjectExisting,
-    CIResultObjectNew,
     ColumnDescription,
     HomogenizationParams,
     HomogenizationRule,
     Layer0CreationResponse,
     Layer0Object,
-    Layer0ProcessedObject,
     Layer0RawData,
     Layer0TableMeta,
     Modifier,
     TableStatistics,
 )
-from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation, RecordInfo
+from app.data.model.layer1 import (
+    CIResult,
+    CIResultObjectCollision,
+    CIResultObjectExisting,
+    CIResultObjectNew,
+    Layer1Observation,
+    Layer1PGCObservation,
+    RecordCrossmatch,
+    RecordInfo,
+)
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
     "Layer0Object",
-    "Layer0ProcessedObject",
+    "RecordCrossmatch",
     "Layer0RawData",
     "Layer0TableMeta",
     "Layer0CreationResponse",

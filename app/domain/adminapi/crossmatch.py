@@ -80,7 +80,7 @@ class CrossmatchManager:
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         offset = r.page * r.page_size
 
-        processed_objects = self.layer0_repo.get_processed_objects(
+        processed_objects = self.layer0_repo.get_processed_records(
             table_name=r.table_name,
             limit=r.page_size,
             offset=str(offset) if offset > 0 else None,
@@ -94,7 +94,7 @@ class CrossmatchManager:
 
         return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
 
-    def _convert_to_crossmatch_record(self, obj: model.Layer0ProcessedObject) -> adminapi.RecordCrossmatch:
+    def _convert_to_crossmatch_record(self, obj: model.RecordCrossmatch) -> adminapi.RecordCrossmatch:
         metadata = adminapi.RecordCrossmatchMetadata()
         if isinstance(obj.processing_result, model.CIResultObjectExisting):
             metadata.pgc = obj.processing_result.pgc
@@ -104,10 +104,10 @@ class CrossmatchManager:
         catalogs = adminapi.Catalogs()
 
         layer1_data = self.layer1_repo.get_objects_by_object_id(
-            [obj.object_id], [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT]
+            [obj.record.id], [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT]
         )
 
-        observations = layer1_data.get(obj.object_id, [])
+        observations = layer1_data.get(obj.record.id, [])
         catalog_objects = [obs.catalog_object for obs in observations]
 
         if (icrs := model.get_object(catalog_objects, model.ICRSCatalogObject)) is not None:
@@ -125,16 +125,16 @@ class CrossmatchManager:
             status = status_map[t]
 
         return adminapi.RecordCrossmatch(
-            record_id=obj.object_id,
+            record_id=obj.record.id,
             status=status,
             metadata=metadata,
             catalogs=catalogs,
         )
 
     def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
-        processed_objects = self.layer0_repo.get_processed_objects(
+        processed_objects = self.layer0_repo.get_processed_records(
             limit=1,
-            object_id=r.record_id,
+            record_id=r.record_id,
         )
 
         if not processed_objects:

@@ -35,10 +35,10 @@ class SubmitCrossmatchTask(interface.Task):
         ctx = {"table_name": self.table_name}
 
         for offset, data in containers.read_batches(
-            self.layer0_repository.get_processed_objects,
+            self.layer0_repository.get_processed_records,
             lambda data: len(data) == 0,
             "",
-            lambda d, _: d[-1].object_id,
+            lambda d, _: d[-1].record.id,
             table_name=self.table_name,
             batch_size=self.batch_size,
         ):
@@ -47,9 +47,9 @@ class SubmitCrossmatchTask(interface.Task):
 
                 for obj in data:
                     if isinstance(obj.processing_result, model.CIResultObjectNew):
-                        pgcs[obj.object_id] = None
+                        pgcs[obj.record.id] = None
                     elif isinstance(obj.processing_result, model.CIResultObjectExisting):
-                        pgcs[obj.object_id] = obj.processing_result.pgc
+                        pgcs[obj.record.id] = obj.processing_result.pgc
                     else:
                         continue
 

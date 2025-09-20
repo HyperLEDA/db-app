@@ -61,14 +61,14 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             for row in rows
         ]
 
-    def get_processed_objects(
+    def get_processed_records(
         self,
         limit: int,
         offset: str | None = None,
         table_name: str | None = None,
         status: enums.RecordCrossmatchStatus | None = None,
-        object_id: str | None = None,
-    ) -> list[model.Layer0ProcessedObject]:
+        record_id: str | None = None,
+    ) -> list[model.RecordCrossmatch]:
         params = []
 
         where_stmnt = []
@@ -90,9 +90,9 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             where_stmnt.append("c.status = %s")
             params.append(status)
 
-        if object_id is not None:
+        if record_id is not None:
             where_stmnt.append("o.id = %s")
-            params.append(object_id)
+            params.append(record_id)
 
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
@@ -121,9 +121,11 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
 
             objects.append(
-                model.Layer0ProcessedObject(
-                    row["id"],
-                    json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
+                model.RecordCrossmatch(
+                    model.RecordInfo(
+                        row["id"],
+                        json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
+                    ),
                     ci_result,
                 )
             )
