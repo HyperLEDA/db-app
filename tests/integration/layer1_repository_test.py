@@ -21,9 +21,9 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_icrs(self):
-        objects: list[model.Layer1Observation] = [
-            model.Layer1Observation("111", model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)),
-            model.Layer1Observation("112", model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)),
+        objects: list[model.Record] = [
+            model.Record("111", [model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)]),
+            model.Record("112", [model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)]),
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
@@ -31,19 +31,16 @@ class Layer1RepositoryTest(unittest.TestCase):
             model.Layer0TableMeta(
                 "test_table",
                 [
-                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.hour),
-                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.hour),
-                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.hour),
-                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.hour),
+                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.Unit("hour")),
+                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.Unit("hour")),
+                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.Unit("hour")),
+                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.Unit("hour")),
                 ],
                 bib_id,
                 enums.DataType.REGULAR,
             )
         )
-        self.layer0_repo.upsert_objects(
-            table_resp.table_id,
-            [model.Layer0Object("111", []), model.Layer0Object("112", [])],
-        )
+        self.layer0_repo.register_records(table_resp.table_id, ["111", "112"])
         self.layer1_repo.save_data(objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")

@@ -5,7 +5,6 @@ from typing import Any
 import pandas
 from astropy import units as u
 
-from app.data.model import interface
 from app.lib.storage import enums
 
 
@@ -40,51 +39,6 @@ class Layer0TableMeta:
 class Layer0CreationResponse:
     table_id: int
     created: bool
-
-
-@dataclass
-class Layer0Object:
-    object_id: str
-    data: list[interface.CatalogObject]
-
-    def get[T](self, t: type[T]) -> T | None:
-        for obj in self.data:
-            if isinstance(obj, t):
-                return obj
-
-        return None
-
-
-@dataclass
-class CIResultObjectNew:
-    pass
-
-
-@dataclass
-class CIResultObjectExisting:
-    pgc: int
-
-
-@dataclass
-class CIResultObjectCollision:
-    pgcs: set[int]
-
-
-CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
-
-
-@dataclass
-class Layer0ProcessedObject:
-    object_id: str
-    data: list[interface.CatalogObject]
-    processing_result: CIResult
-
-    def get[T](self, t: type[T]) -> T | None:
-        for obj in self.data:
-            if isinstance(obj, t):
-                return obj
-
-        return None
 
 
 @dataclass

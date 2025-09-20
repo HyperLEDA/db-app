@@ -42,7 +42,7 @@ class Layer2ImportTask(interface.Task):
         self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
 
         for catalog in catalogs:
-            for offset, new_objects in containers.read_batches(
+            for offset, new_records in containers.read_batches(
                 self.layer1_repository.get_new_observations,
                 lambda data: len(data) == 0,
                 0,
@@ -55,24 +55,24 @@ class Layer2ImportTask(interface.Task):
                     "Processing batch",
                     catalog=catalog.value,
                     last_pgc=offset,
-                    batch_size=len(new_objects),
+                    batch_size=len(new_records),
                 )
 
-                objects_by_catalog = containers.group_by(
-                    new_objects, key_func=lambda obj: obj.observation.catalog_object.catalog()
-                )
+                records_by_pgc = containers.group_by(new_records, key_func=lambda record: record.pgc)
+
                 aggregated_objects: list[model.Layer2CatalogObject] = []
 
-                for catalog, objects in objects_by_catalog.items():
-                    objects_by_pgc = containers.group_by(objects, key_func=lambda obj: obj.pgc)
+                for pgc, records in records_by_pgc.items():
+                    catalog_objects = []
+                    for record_with_pgc in records:
+                        for catalog_object in record_with_pgc.record.data:
+                            if catalog_object.catalog() == catalog:
+                                catalog_objects.append(catalog_object)
 
-                    for pgc, objects in objects_by_pgc.items():
-                        catalog_objects = [obj.observation.catalog_object for obj in objects]
-                        aggregated_objects.append(
-                            model.Layer2CatalogObject(
-                                pgc, model.get_catalog_object_type(catalog).aggregate(catalog_objects)
-                            )
-                        )
+                    if catalog_objects:
+                        aggregated_object = model.get_catalog_object_type(catalog).aggregate(catalog_objects)
+                        aggregated_objects.append(model.Layer2CatalogObject(pgc, aggregated_object))
+
                 self.layer2_repository.save_data(aggregated_objects)
 
             self.log.info("Updated catalog", catalog=catalog.value)

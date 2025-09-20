@@ -3,7 +3,7 @@ from typing import final
 from astropy import coordinates
 from astropy import units as u
 
-from app.data.model import icrs, layer0, layer2
+from app.data import model
 from app.domain.unification.crossmatch import CIMatcher
 
 
@@ -12,9 +12,9 @@ class CircleMatcher:
     def __init__(self, radius_arcsec: float):
         self.radius_arcsec = radius_arcsec
 
-    def __call__(self, object1: layer0.Layer0Object, object2: layer2.Layer2Object) -> float:
-        coords1 = object1.get(icrs.ICRSCatalogObject)
-        coords2 = object2.get(icrs.ICRSCatalogObject)
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
+        coords1 = record1.get(model.ICRSCatalogObject)
+        coords2 = record2.get(model.ICRSCatalogObject)
 
         if coords1 is None or coords2 is None:
             return 0.0

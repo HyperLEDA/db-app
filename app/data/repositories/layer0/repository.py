@@ -53,29 +53,21 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 
-    def upsert_objects(self, table_id: int, objects: list[model.Layer0Object]) -> None:
-        return self.objects_repo.upsert_objects(table_id, objects)
+    def register_records(self, table_id: int, record_ids: list[str]) -> None:
+        return self.objects_repo.register_records(table_id, record_ids)
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.objects_repo.get_table_statistics(table_name)
 
-    def get_objects(
-        self,
-        limit: int,
-        offset: str | None = None,
-        table_id: int | None = None,
-    ) -> list[model.Layer0Object]:
-        return self.objects_repo.get_objects(limit, offset, table_id)
-
-    def get_processed_objects(
+    def get_processed_records(
         self,
         limit: int,
         offset: str | None = None,
         table_name: str | None = None,
         status: enums.RecordCrossmatchStatus | None = None,
-        object_id: str | None = None,
-    ) -> list[model.Layer0ProcessedObject]:
-        return self.objects_repo.get_processed_objects(limit, offset, table_name, status, object_id)
+        record_id: str | None = None,
+    ) -> list[model.RecordCrossmatch]:
+        return self.objects_repo.get_processed_records(limit, offset, table_name, status, record_id)
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
         return self.objects_repo.add_crossmatch_result(data)

@@ -12,27 +12,27 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def save_data(self, objects: list[model.Layer1Observation]) -> None:
-        """
-        For each object, saves it to corresponding catalog in the storage.
+    def save_data(self, records: list[model.Record]) -> None:
+        all_catalog_objects = []
+        for record in records:
+            for catalog_object in record.data:
+                all_catalog_objects.append((record.id, catalog_object))
 
-        The insertion is done efficiently - for a single table there will be only one query.
-        """
-        table_objects = containers.group_by(objects, lambda obj: obj.catalog_object.layer1_table())
+        table_objects = containers.group_by(all_catalog_objects, lambda item: item[1].layer1_table())
 
         with self.with_tx():
-            for table, table_objs in table_objects.items():
-                if not table_objs:
+            for table, table_items in table_objects.items():
+                if not table_items:
                     continue
 
                 columns = ["object_id"]
-                columns.extend(table_objs[0].catalog_object.layer1_keys())
+                columns.extend(table_items[0][1].layer1_keys())
 
                 params = []
                 values = []
-                for obj in table_objs:
-                    data = obj.catalog_object.layer1_data()
-                    data["object_id"] = obj.object_id
+                for record_id, catalog_object in table_items:
+                    data = catalog_object.layer1_data()
+                    data["object_id"] = record_id
 
                     params.extend([data[column] for column in columns])
                     values.append(",".join(["%s"] * len(columns)))
@@ -50,12 +50,12 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 self._logger.debug(
                     "Saved data to layer 1",
                     table=table,
-                    object_count=len(table_objs),
+                    object_count=len(table_items),
                 )
 
     def get_new_observations(
         self, dt: datetime.datetime, limit: int, offset: int, catalog: model.RawCatalog
-    ) -> list[model.Layer1PGCObservation]:
+    ) -> list[model.RecordWithPGC]:
         """
         Returns all objects that were modified since `dt`.
         `limit` is the number of PGC numbers to select, not the final number of objects.
@@ -83,43 +83,24 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         rows = self._storage.query(query, params=[dt, offset, limit])
 
-        objects: list[model.Layer1PGCObservation] = []
+        record_data: dict[tuple[int, str], list[model.CatalogObject]] = {}
+
         for row in rows:
             object_id = row.pop("object_id")
             pgc = int(row.pop("id"))
             catalog_object = object_cls.from_layer1(row)
 
-            objects.append(model.Layer1PGCObservation(pgc, model.Layer1Observation(object_id, catalog_object)))
+            key = (pgc, object_id)
+            if key not in record_data:
+                record_data[key] = []
+            record_data[key].append(catalog_object)
+
+        objects: list[model.RecordWithPGC] = []
+        for (pgc, record_id), catalog_objects in record_data.items():
+            record_info = model.Record(id=record_id, data=catalog_objects)
+            objects.append(model.RecordWithPGC(pgc, record_info))
 
         return objects
-
-    def get_objects_by_object_id(
-        self, object_ids: list[str], catalogs: list[model.RawCatalog]
-    ) -> dict[str, list[model.Layer1Observation]]:
-        result: dict[str, list[model.Layer1Observation]] = {obj_id: [] for obj_id in object_ids}
-
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
-            table_name = object_cls.layer1_table()
-
-            if not object_ids:
-                continue
-
-            placeholders = ",".join(["%s"] * len(object_ids))
-            query = f"""
-                SELECT object_id, {", ".join(object_cls.layer1_keys())}
-                FROM {table_name}
-                WHERE object_id IN ({placeholders})
-            """
-
-            rows = self._storage.query(query, params=object_ids)
-
-            for row in rows:
-                object_id = row["object_id"]
-                catalog_object = object_cls.from_layer1(row)
-                result[object_id].append(model.Layer1Observation(object_id, catalog_object))
-
-        return result
 
     def query_records(
         self,
@@ -128,7 +109,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         table_name: str | None = None,
         offset: str | None = None,
         limit: int | None = None,
-    ) -> list[model.RecordInfo]:
+    ) -> list[model.Record]:
         if not catalogs:
             return []
 
@@ -211,8 +192,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         return self._group_by_record_id(objects, catalogs)
 
-    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.RecordInfo]:
-        """Groups query results by record_id and creates RecordInfo objects."""
+    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.Record]:
         record_data: dict[str, list[model.CatalogObject]] = {}
 
         for row in objects:
@@ -235,6 +215,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         result = []
         for record_id in sorted(record_data.keys()):
-            result.append(model.RecordInfo(id=record_id, data=record_data[record_id]))
+            result.append(model.Record(id=record_id, data=record_data[record_id]))
 
         return result

@@ -1,7 +1,6 @@
 import unittest
 
-from app.data.model import layer2
-from app.data.model.layer0 import CIResult, CIResultObjectNew
+from app.data import model
 from app.domain.unification.crossmatch.ci_types import CISolver
 from app.domain.unification.crossmatch.solver import create_solver
 
@@ -10,8 +9,8 @@ class DummySolver:
     def __init__(self, threshold: float):
         self.threshold = threshold
 
-    def __call__(self, objects: list[tuple[layer2.Layer2Object, float]]) -> CIResult:
-        return CIResultObjectNew()
+    def __call__(self, objects: list[tuple[model.Layer2Object, float]]) -> model.CIResult:
+        return model.CIResultObjectNew()
 
 
 class DummyNestedSolver:
@@ -19,7 +18,7 @@ class DummyNestedSolver:
         self.solver1 = solver1
         self.solver2 = solver2
 
-    def __call__(self, objects: list[tuple[layer2.Layer2Object, float]]) -> CIResult:
+    def __call__(self, objects: list[tuple[model.Layer2Object, float]]) -> model.CIResult:
         return self.solver1(objects)
 
 

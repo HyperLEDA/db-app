@@ -8,71 +8,31 @@ from app.lib.web.errors import DatabaseError
 
 
 class Layer0ObjectRepository(postgres.TransactionalPGRepository):
-    def upsert_objects(
-        self,
-        table_id: int,
-        objects: list[model.Layer0Object],
-    ) -> None:
-        if len(objects) == 0:
-            raise RuntimeError("no objects to upsert")
+    def register_records(self, table_id: int, record_ids: list[str]) -> None:
+        if len(record_ids) == 0:
+            raise RuntimeError("no records to upsert")
 
-        query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES "
+        query = "INSERT INTO rawdata.objects (id, table_id) VALUES "
         params = []
         values = []
 
-        for obj in objects:
-            values.append("(%s, %s, %s)")
-            params.extend([obj.object_id, table_id, json.dumps(obj.data, cls=model.CatalogObjectEncoder)])
+        for record_id in record_ids:
+            values.append("(%s, %s)")
+            params.extend([record_id, table_id])
 
         query += ",".join(values)
-        query += " ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, table_id = EXCLUDED.table_id"
+        query += " ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
 
         self._storage.exec(query, params=params)
 
-    def get_objects(
-        self,
-        limit: int,
-        offset: str | None = None,
-        table_id: int | None = None,
-    ) -> list[model.Layer0Object]:
-        if table_id is None:
-            raise RuntimeError("no filters specified for object selection")
-
-        params = []
-
-        where_stmnt = ["table_id = %s"]
-        params.append(table_id)
-        if offset is not None:
-            where_stmnt.append("id > %s")
-            params.append(offset)
-
-        rows = self._storage.query(
-            f"""
-            SELECT id, data
-            FROM rawdata.objects
-            WHERE {" AND ".join(where_stmnt)}
-            ORDER BY id
-            LIMIT %s
-            """,
-            params=params + [limit],
-        )
-
-        return [
-            model.Layer0Object(
-                row["id"],
-                json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
-            )
-            for row in rows
-        ]
-
-    def get_processed_objects(
+    def get_processed_records(
         self,
         limit: int,
         offset: str | None = None,
         table_name: str | None = None,
         status: enums.RecordCrossmatchStatus | None = None,
-        object_id: str | None = None,
-    ) -> list[model.Layer0ProcessedObject]:
+        record_id: str | None = None,
+    ) -> list[model.RecordCrossmatch]:
         params = []
 
         where_stmnt = []
@@ -94,9 +54,9 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             where_stmnt.append("c.status = %s")
             params.append(status)
 
-        if object_id is not None:
+        if record_id is not None:
             where_stmnt.append("o.id = %s")
-            params.append(object_id)
+            params.append(record_id)
 
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
@@ -125,9 +85,11 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
 
             objects.append(
-                model.Layer0ProcessedObject(
-                    row["id"],
-                    json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
+                model.RecordCrossmatch(
+                    model.Record(
+                        row["id"],
+                        json.loads(json.dumps(row["data"]), cls=model.Layer0CatalogObjectDecoder),
+                    ),
                     ci_result,
                 )
             )

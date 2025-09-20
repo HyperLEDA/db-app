@@ -33,7 +33,7 @@ class Homogenization:
 
         return mapping
 
-    def apply(self, data: table.Table) -> list[data_model.Layer0Object]:
+    def apply(self, data: table.Table) -> list[data_model.Record]:
         if len(self.column_rules) == 0:
             raise ValueError("No rules satisfy any of the table columns")
 
@@ -54,16 +54,16 @@ class Homogenization:
             for parameter, value in params.items():
                 catalog_objects[key][parameter] = table.Column(data=[value] * len(data))  # type: ignore
 
-        objects: dict[str, data_model.Layer0Object] = {}
+        records: dict[str, data_model.Record] = {}
 
         for (catalog, _), params_map in catalog_objects.items():
             ids = data[repositories.INTERNAL_ID_COLUMN_NAME]
             catalog_type = data_model.get_catalog_object_type(data_model.RawCatalog(catalog))
 
             for i in range(len(ids)):
-                object_id = str(ids[i])
-                if object_id not in objects:
-                    objects[object_id] = data_model.Layer0Object(object_id, [])
+                record_id = str(ids[i])
+                if record_id not in records:
+                    records[record_id] = data_model.Record(record_id, [])
 
                 data_dict = {}
                 for key in params_map:
@@ -77,12 +77,12 @@ class Homogenization:
                     if not self.ignore_errors:
                         raise e
 
-                    logger.warn("Error creating catalog object", object_id=object_id, error=e, data_dict=data_dict)
+                    logger.warn("Error creating catalog object", object_id=record_id, error=e, data_dict=data_dict)
                     continue
 
-                objects[object_id].data.append(catalog_obj)
+                records[record_id].data.append(catalog_obj)
 
-        return [obj for obj in objects.values() if len(obj.data) > 0]
+        return [obj for obj in records.values() if len(obj.data) > 0]
 
 
 def get_homogenization(
