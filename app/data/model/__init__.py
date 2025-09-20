@@ -8,7 +8,18 @@ from app.data.model.helpers import (
 )
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
-from app.data.model.layer0 import (
+from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.records import (
+    CIResult,
+    CIResultObjectCollision,
+    CIResultObjectExisting,
+    CIResultObjectNew,
+    RecordCrossmatch,
+    RecordInfo,
+    RecordInfoWithPGC,
+)
+from app.data.model.redshift import RedshiftCatalogObject
+from app.data.model.table import (
     ColumnDescription,
     HomogenizationParams,
     HomogenizationRule,
@@ -18,17 +29,6 @@ from app.data.model.layer0 import (
     Modifier,
     TableStatistics,
 )
-from app.data.model.layer1 import (
-    CIResult,
-    CIResultObjectCollision,
-    CIResultObjectExisting,
-    CIResultObjectNew,
-    RecordCrossmatch,
-    RecordInfo,
-    RecordInfoWithPGC,
-)
-from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
-from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
     "RecordCrossmatch",
