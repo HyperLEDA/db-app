@@ -37,9 +37,9 @@ class Layer2ImportTest(unittest.TestCase):
 
     def test_import_two_catalogs(self):
         table_id = self._get_table("test_import_two_catalogs")
-        self.layer0_repo.upsert_objects(
+        self.layer0_repo.register_records(
             table_id,
-            [model.Layer0Object("123", []), model.Layer0Object("124", [])],
+            ["123", "124"],
         )
 
         self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
@@ -70,9 +70,9 @@ class Layer2ImportTest(unittest.TestCase):
     def test_updated_objects(self):
         self.test_import_two_catalogs()
         table_id = self._get_table("test_updated_objects")
-        self.layer0_repo.upsert_objects(
+        self.layer0_repo.register_records(
             table_id,
-            [model.Layer0Object("125", []), model.Layer0Object("126", [])],
+            ["125", "126"],
         )
         self.layer0_repo.upsert_pgc({"125": 1234, "126": 1234})
 

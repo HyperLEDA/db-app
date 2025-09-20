@@ -40,10 +40,7 @@ class Layer1RepositoryTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             )
         )
-        self.layer0_repo.upsert_objects(
-            table_resp.table_id,
-            [model.Layer0Object("111", []), model.Layer0Object("112", [])],
-        )
+        self.layer0_repo.register_records(table_resp.table_id, ["111", "112"])
         self.layer1_repo.save_data(objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
