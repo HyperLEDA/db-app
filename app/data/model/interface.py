@@ -49,10 +49,6 @@ class CatalogObject(abc.ABC):
     def catalog(self) -> RawCatalog:
         pass
 
-    @abc.abstractmethod
-    def layer0_data(self) -> dict[str, Any]:
-        pass
-
     @classmethod
     @abc.abstractmethod
     def from_custom(cls, **kwargs) -> Self:

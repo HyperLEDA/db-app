@@ -19,9 +19,6 @@ class DesignationCatalogObject(interface.CatalogObject):
     def from_custom(cls, design: Any) -> Self:
         return cls(str(design))
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {"design": self.designation}
-
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
         """

@@ -1,8 +1,6 @@
 from app.data.model.bibliography import Bibliography
 from app.data.model.designation import DesignationCatalogObject
 from app.data.model.helpers import (
-    CatalogObjectEncoder,
-    Layer0CatalogObjectDecoder,
     get_catalog_object_type,
     new_catalog_object,
 )
@@ -48,8 +46,6 @@ __all__ = [
     "Layer2Object",
     "RawCatalog",
     "CatalogObject",
-    "CatalogObjectEncoder",
-    "Layer0CatalogObjectDecoder",
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "RedshiftCatalogObject",
