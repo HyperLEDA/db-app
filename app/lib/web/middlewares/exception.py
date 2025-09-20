@@ -36,4 +36,4 @@ class ExceptionMiddleware(middlewares.BaseHTTPMiddleware):
         data = {"type": type(exc).__name__, "error": str(exc)}
         self.logger.exception("Got exception", **data)
 
-        return fastapi.responses.JSONResponse(exc.dict())
+        return fastapi.responses.JSONResponse(exc.dict(), status_code=exc.status())
