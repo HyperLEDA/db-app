@@ -8,24 +8,20 @@ from app.lib.web.errors import DatabaseError
 
 
 class Layer0ObjectRepository(postgres.TransactionalPGRepository):
-    def upsert_objects(
-        self,
-        table_id: int,
-        objects: list[model.Layer0Object],
-    ) -> None:
-        if len(objects) == 0:
-            raise RuntimeError("no objects to upsert")
+    def register_records(self, table_id: int, record_ids: list[str]) -> None:
+        if len(record_ids) == 0:
+            raise RuntimeError("no records to upsert")
 
-        query = "INSERT INTO rawdata.objects (id, table_id, data) VALUES "
+        query = "INSERT INTO rawdata.objects (id, table_id) VALUES "
         params = []
         values = []
 
-        for obj in objects:
-            values.append("(%s, %s, %s)")
-            params.extend([obj.object_id, table_id, json.dumps(obj.data, cls=model.CatalogObjectEncoder)])
+        for record_id in record_ids:
+            values.append("(%s, %s)")
+            params.extend([record_id, table_id])
 
         query += ",".join(values)
-        query += " ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, table_id = EXCLUDED.table_id"
+        query += " ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
 
         self._storage.exec(query, params=params)
 

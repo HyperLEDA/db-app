@@ -53,8 +53,8 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 
-    def upsert_objects(self, table_id: int, objects: list[model.Layer0Object]) -> None:
-        return self.objects_repo.upsert_objects(table_id, objects)
+    def register_records(self, table_id: int, record_ids: list[str]) -> None:
+        return self.objects_repo.register_records(table_id, record_ids)
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.objects_repo.get_table_statistics(table_name)
