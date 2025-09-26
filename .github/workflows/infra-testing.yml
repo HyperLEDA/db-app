@@ -3,10 +3,6 @@ name: Infra testing
 on:
   - push
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test-deployment:
     runs-on: ubuntu-latest
@@ -36,13 +32,7 @@ jobs:
 
       - name: Start server container
         run: |
-          docker run -d \
-            --name test-container \
-            --network host \
-            -v /tmp:/tmp \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -e PUID=1000 \
-            -e PGID=1000 \
+          docker run -d -v /tmp:/tmp -p 2222:22 \
             -e USER_NAME=tester \
             -e SUDO_ACCESS=true \
             -e PUBLIC_KEY_FILE=/tmp/test_key.pub \
@@ -51,7 +41,7 @@ jobs:
 
       - name: Setup and test client
         run: |
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 tester@localhost "echo 'SSH connection successful'"
+          ssh -p 2222 -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 tester@localhost "echo 'SSH connection successful'"
 
       - name: Deploy
         run: |
