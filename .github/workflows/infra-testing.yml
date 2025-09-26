@@ -19,6 +19,8 @@ jobs:
 
       - name: Generate SSH key pair
         run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           ssh-keygen -t rsa -b 4096 -f ~/.ssh/test_key -N "" -C "test@github-actions"
           chmod 600 ~/.ssh/test_key
           chmod 644 ~/.ssh/test_key.pub
@@ -37,14 +39,14 @@ jobs:
             -e PUBLIC_KEY_FILE=/tmp/test_key.pub \
             linuxserver/openssh-server:latest
 
-      - name: Setup client
+      - name: Setup and test client
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
           ssh-keyscan -H localhost >> ~/.ssh/known_hosts
           cp ~/.ssh/test_key.pub /tmp/test_key.pub
           cp ~/.ssh/test_key /tmp/test_key
           chmod 600 /tmp/test_key
+
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 tester@localhost "echo 'SSH connection successful'"
 
       - name: Deploy
         run: |
