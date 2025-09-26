@@ -17,12 +17,6 @@ jobs:
       - name: Install project dependencies
         run: uv sync --all-extras --dev
 
-      - name: Generate SSH key pair for testing
-        run: |
-          ssh-keygen -t rsa -b 4096 -f /tmp/test_key -N "" -C "test@github.com"
-          chmod 600 /tmp/test_key
-          chmod 644 /tmp/test_key.pub
-
       - name: Start server container
         run: |
           docker run -d \
@@ -38,12 +32,10 @@ jobs:
             -e USER_PASSWORD=password \
             linuxserver/openssh-server:latest
 
-      - name: Setup add key to server
+      - name: Setup client
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+          sudo apt-get update && sudo apt-get install -y sshpass
           ssh-keyscan -H localhost >> ~/.ssh/known_hosts
-          ssh-copy-id -f -i /tmp/test_key.pub localhost
 
       - name: Deploy
         run: |
@@ -51,4 +43,4 @@ jobs:
 
       - name: Test endpoint
         run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/test_key tester@localhost "curl -f http://localhost:80/ping"
+          sshpass -p password ssh -o StrictHostKeyChecking=no tester@localhost "curl -f http://localhost:80/ping"
