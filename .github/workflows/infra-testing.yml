@@ -91,19 +91,12 @@ jobs:
           echo "Checking SSH server configuration..."
           docker exec test-container cat /etc/ssh/sshd_config | grep -E "(PubkeyAuthentication|AuthorizedKeysFile|PasswordAuthentication)" || echo "SSH config not found"
 
-          echo "Restarting SSH service..."
-          docker exec test-container service ssh restart || echo "SSH restart failed"
-          sleep 3
+          echo "Enabling public key authentication..."
+          docker exec test-container sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+          docker exec test-container sed -i 's/#PubkeyAuthentication no/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 
-          echo "Waiting for SSH to accept connections..."
-          for i in {1..30}; do
-            if ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes tester@localhost "echo 'test'" > /dev/null 2>&1; then
-              echo "SSH connection successful"
-              break
-            fi
-            echo "Attempt $i/30: SSH connection failed"
-            sleep 2
-          done
+          echo "Restarting SSH service..."
+          docker exec test-container /etc/init.d/ssh restart || docker exec test-container systemctl restart ssh || echo "SSH restart failed"
 
       - name: Setup and test client
         run: |
