@@ -42,6 +42,7 @@ jobs:
             -e USER_NAME=tester \
             -e SUDO_ACCESS=true \
             -e PUBLIC_KEY_FILE=/tmp/test_key.pub \
+            -e SUDO_NOPASSWD=true \
             linuxserver/openssh-server:latest
 
       - name: Wait for SSH server to be ready
@@ -55,6 +56,26 @@ jobs:
             echo "Attempt $i/30: SSH daemon not ready yet"
             sleep 2
           done
+
+          echo "Debugging SSH setup..."
+          echo "Checking if authorized_keys file exists:"
+          docker exec test-container ls -la /home/tester/.ssh/ || echo "SSH directory doesn't exist"
+
+          echo "Checking authorized_keys content:"
+          docker exec test-container cat /home/tester/.ssh/authorized_keys || echo "authorized_keys not found"
+
+          echo "Checking if tester user exists:"
+          docker exec test-container id tester || echo "tester user not found"
+
+          echo "Checking SSH server logs:"
+          docker exec test-container tail -20 /var/log/auth.log || echo "No auth log found"
+
+          echo "Manually setting up SSH keys if needed..."
+          docker exec test-container mkdir -p /home/tester/.ssh
+          docker exec test-container chmod 700 /home/tester/.ssh
+          docker exec test-container cp /tmp/test_key.pub /home/tester/.ssh/authorized_keys
+          docker exec test-container chmod 600 /home/tester/.ssh/authorized_keys
+          docker exec test-container chown -R tester:tester /home/tester/.ssh
 
           echo "Waiting for SSH to accept connections..."
           for i in {1..30}; do
