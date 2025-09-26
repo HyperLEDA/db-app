@@ -57,7 +57,6 @@ class AdminAPICommand(commands.Command):
 class ClientsConfig(config.ConfigSettings):
     model_config = settings.SettingsConfigDict(env_prefix="CLIENTS_")
 
-    enabled: bool
     ads_token: str
 
 
