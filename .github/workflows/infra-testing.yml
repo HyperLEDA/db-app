@@ -3,6 +3,10 @@ name: Infra testing
 on:
   - push
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-deployment:
     runs-on: ubuntu-latest
@@ -44,59 +48,6 @@ jobs:
             -e PUBLIC_KEY_FILE=/tmp/test_key.pub \
             -e SUDO_NOPASSWD=true \
             linuxserver/openssh-server:latest
-
-      - name: Wait for SSH server to be ready
-        run: |
-          echo "Waiting for SSH server to start..."
-          for i in {1..30}; do
-            if docker exec test-container pgrep sshd > /dev/null 2>&1; then
-              echo "SSH daemon is running"
-              break
-            fi
-            echo "Attempt $i/30: SSH daemon not ready yet"
-            sleep 2
-          done
-
-          echo "Debugging SSH setup..."
-          echo "Checking if authorized_keys file exists:"
-          docker exec test-container ls -la /home/tester/.ssh/ || echo "SSH directory doesn't exist"
-
-          echo "Checking authorized_keys content:"
-          docker exec test-container cat /home/tester/.ssh/authorized_keys || echo "authorized_keys not found"
-
-          echo "Checking if tester user exists:"
-          docker exec test-container id tester || echo "tester user not found"
-
-          echo "Checking SSH server logs:"
-          docker exec test-container tail -20 /var/log/auth.log || echo "No auth log found"
-
-          echo "Manually setting up SSH keys if needed..."
-          docker exec test-container mkdir -p /home/tester/.ssh
-          docker exec test-container chmod 700 /home/tester/.ssh
-          docker exec test-container cp /tmp/test_key.pub /home/tester/.ssh/authorized_keys
-          docker exec test-container chmod 600 /home/tester/.ssh/authorized_keys
-          docker exec test-container chown -R tester:tester /home/tester/.ssh
-
-          echo "Verifying SSH key setup..."
-          echo "SSH directory contents:"
-          docker exec test-container ls -la /home/tester/.ssh/
-          echo "Authorized keys content:"
-          docker exec test-container cat /home/tester/.ssh/authorized_keys
-          echo "SSH directory permissions:"
-          docker exec test-container ls -la /home/tester/
-
-          echo "Testing SSH connection with verbose output..."
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes -v tester@localhost "echo 'test'" 2>&1 || echo "SSH connection failed with verbose output above"
-
-          echo "Checking SSH server configuration..."
-          docker exec test-container cat /etc/ssh/sshd_config | grep -E "(PubkeyAuthentication|AuthorizedKeysFile|PasswordAuthentication)" || echo "SSH config not found"
-
-          echo "Enabling public key authentication..."
-          docker exec test-container sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-          docker exec test-container sed -i 's/#PubkeyAuthentication no/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-
-          echo "Restarting SSH service..."
-          docker exec test-container /etc/init.d/ssh restart || docker exec test-container systemctl restart ssh || echo "SSH restart failed"
 
       - name: Setup and test client
         run: |
