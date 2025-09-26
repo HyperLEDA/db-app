@@ -14,5 +14,4 @@ storage:
   password: password
 
 clients:
-  enabled: true
   ads_token: token
