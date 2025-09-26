@@ -1,7 +1,7 @@
 connection:
   host: localhost
   user: tester
-  password: password
+  private_key_filename: /tmp/test_key
 
 remote_base_path: /tmp/hyperleda_test
 configs_env: test
