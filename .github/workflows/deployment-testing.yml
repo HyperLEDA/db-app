@@ -48,21 +48,9 @@ jobs:
             chmod 600 /home/testuser/.ssh/authorized_keys
           "
 
-      - name: Wait for SSH to be ready
-        run: |
-          for i in {1..30}; do
-            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/test_key testuser@localhost "echo 'SSH ready'" 2>/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
-
       - name: Run deployment test
         run: |
-          cd infra
-          uv run python deploy.py settings/dev.yaml
+          uv run python infra/deploy.py infra/configs/dev.yaml
 
       - name: Start services and test /ping endpoints
         run: |
