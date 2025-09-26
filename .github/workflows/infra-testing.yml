@@ -43,6 +43,8 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H localhost >> ~/.ssh/known_hosts
           cp ~/.ssh/test_key.pub /tmp/test_key.pub
+          cp ~/.ssh/test_key /tmp/test_key
+          chmod 600 /tmp/test_key
 
       - name: Deploy
         run: |
