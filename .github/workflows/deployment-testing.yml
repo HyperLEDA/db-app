@@ -1,0 +1,72 @@
+name: Test Deployment
+
+on:
+  - push
+
+jobs:
+  test-deployment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install project dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Generate SSH key pair for testing
+        run: |
+          ssh-keygen -t rsa -b 4096 -f /tmp/test_key -N "" -C "test@github.com"
+          chmod 600 /tmp/test_key
+          chmod 644 /tmp/test_key.pub
+
+      - name: Start SSH server container for testing
+        run: |
+          docker run -d \
+            --name test-container \
+            --network host \
+            -v /tmp:/tmp \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e PUID=1000 \
+            -e PGID=1000 \
+            -e USER_NAME=testuser \
+            -e SUDO_ACCESS=true \
+            -e PASSWORD_ACCESS=true \
+            -e USER_PASSWORD=testpass \
+            linuxserver/openssh-server:latest
+
+      - name: Setup SSH key authentication
+        run: |
+          docker exec test-container bash -c "
+            mkdir -p /home/testuser/.ssh &&
+            cp /tmp/test_key.pub /home/testuser/.ssh/authorized_keys &&
+            chown -R testuser:testuser /home/testuser/.ssh &&
+            chmod 700 /home/testuser/.ssh &&
+            chmod 600 /home/testuser/.ssh/authorized_keys
+          "
+
+      - name: Wait for SSH to be ready
+        run: |
+          for i in {1..30}; do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/test_key testuser@localhost "echo 'SSH ready'" 2>/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run deployment test
+        run: |
+          cd infra
+          uv run python deploy.py settings/dev.yaml
+
+      - name: Start services and test /ping endpoints
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/test_key testuser@localhost "
+            cd /tmp/hyperleda_test &&
+            curl -f http://localhost:80/ping || echo 'Nginx ping failed'
+          "
