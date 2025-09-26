@@ -55,10 +55,9 @@ services:
       - hyperleda-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 5
     depends_on:
       - wait-for-migrate
     logging:
@@ -76,10 +75,10 @@ services:
     networks:
       - hyperleda-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "curl", "-f", "http://localhost:8081/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
       start_period: 30s
     depends_on:
       wait-for-migrate:
@@ -90,11 +89,10 @@ services:
     networks:
       - hyperleda-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 15s
-      timeout: 15s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "curl", "-f", "-LI", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   nginx:
@@ -115,10 +113,9 @@ services:
       - proxynet
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/ping"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      interval: 5s
+      timeout: 5s
+      retries: 5
     logging:
       driver: local
     labels:
