@@ -56,6 +56,10 @@ def get_spec(params: EnvParams) -> deployment.RemoteSpec:
                 "postgres/migrations",
                 "postgres/migrations",
             ),
+            deployment.RemoteFile(
+                "postgres/dockerfile",
+                "postgres/dockerfile"
+            ),
             deployment.RemoteDirectory(
                 "infra/configs/nginx",
                 "configs",

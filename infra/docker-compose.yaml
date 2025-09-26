@@ -10,6 +10,8 @@ services:
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - hyperleda-network
     healthcheck:
       test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
       timeout: 5s
@@ -27,6 +29,8 @@ services:
     depends_on:
       hyperledadb:
         condition: service_healthy
+    networks:
+      - hyperleda-network
 
   wait-for-migrate:
     image: busybox
@@ -34,6 +38,8 @@ services:
       migrate:
         condition: service_completed_successfully
     entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
+    networks:
+      - hyperleda-network
 
   adminapi:
     image: ghcr.io/hyperleda/hyperleda:latest
@@ -45,11 +51,14 @@ services:
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped
+    networks:
+      - hyperleda-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       - wait-for-migrate
     logging:
@@ -60,37 +69,36 @@ services:
     entrypoint: ["uv", "run", "main.py", "dataapi"]
     environment:
       - CONFIG=configs/dataapi.yaml
-      - SERVER_PORT=8081
       - STORAGE_PASSWORD=${POSTGRES_PASSWORD:-password}
     volumes:
       - ./configs:/usr/src/app/configs
     restart: unless-stopped
+    networks:
+      - hyperleda-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
-      - wait-for-migrate
-    logging:
-      driver: local
+      wait-for-migrate:
+        condition: service_completed_successfully
 
   webapp:
     image: ghcr.io/hyperleda/hyperleda-webapp:latest
-    depends_on:
-      dataapi:
-        condition: service_healthy
+    networks:
+      - hyperleda-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "-LI", "http://localhost:3000/"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
 
   nginx:
     image: nginx:latest
-    ports:
-      - "81:80"
     volumes:
       - ./configs/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./logs:/var/log/nginx
@@ -100,12 +108,28 @@ services:
       dataapi:
         condition: service_healthy
       webapp:
-        condition: service_healthy
+        condition: service_completed_successfully
     restart: unless-stopped
+    networks:
+      - hyperleda-network
+      - proxynet
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     logging:
       driver: local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`leda.sao.ru`)"
+      - "traefik.http.routers.nginx.entrypoints=https"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxynet"
+
+networks:
+  hyperleda-network:
+    driver: bridge
+  proxynet:
+    external: true
