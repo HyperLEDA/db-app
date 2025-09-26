@@ -34,7 +34,8 @@ jobs:
 
       - name: Setup client
         run: |
-          sudo apt-get update && sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           ssh-keyscan -H localhost >> ~/.ssh/known_hosts
 
       - name: Deploy
