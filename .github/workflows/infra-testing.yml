@@ -40,6 +40,8 @@ jobs:
 
       - name: Setup add key to server
         run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           ssh-copy-id -f -i /tmp/test_key.pub localhost
 
       - name: Deploy
