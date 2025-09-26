@@ -12,11 +12,6 @@ storage:
   user: hyperleda
   password: fake
 
-queue:
-  endpoint: redis
-  port: 6379
-  queue_name: default
-
 clients:
   enabled: true
   ads_token: fake

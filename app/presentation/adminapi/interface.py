@@ -1,5 +1,4 @@
 import abc
-import datetime
 import enum
 from typing import Annotated, Any
 
@@ -7,21 +6,6 @@ import pydantic
 from astropy import units as u
 
 from app.lib.storage import enums, mapping
-
-
-class GetTaskInfoRequest(pydantic.BaseModel):
-    task_id: int
-
-
-class GetTaskInfoResponse(pydantic.BaseModel):
-    id: int | None
-    task_name: str
-    status: str
-    payload: dict[str, Any]
-    start_time: datetime.datetime | None
-    end_time: datetime.datetime | None
-    message: dict[str, Any] | None
-
 
 DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
@@ -321,10 +305,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_source(self, request: CreateSourceRequest) -> CreateSourceResponse:
-        pass
-
-    @abc.abstractmethod
-    def get_task_info(self, request: GetTaskInfoRequest) -> GetTaskInfoResponse:
         pass
 
     @abc.abstractmethod
