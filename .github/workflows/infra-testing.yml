@@ -1,4 +1,4 @@
-name: Test Deployment
+name: Infra testing
 
 on:
   - push
@@ -23,7 +23,7 @@ jobs:
           chmod 600 /tmp/test_key
           chmod 644 /tmp/test_key.pub
 
-      - name: Start SSH server container for testing
+      - name: Start server container
         run: |
           docker run -d \
             --name test-container \
@@ -32,29 +32,20 @@ jobs:
             -v /var/run/docker.sock:/var/run/docker.sock \
             -e PUID=1000 \
             -e PGID=1000 \
-            -e USER_NAME=testuser \
+            -e USER_NAME=tester \
             -e SUDO_ACCESS=true \
             -e PASSWORD_ACCESS=true \
-            -e USER_PASSWORD=testpass \
+            -e USER_PASSWORD=password \
             linuxserver/openssh-server:latest
 
-      - name: Setup SSH key authentication
+      - name: Setup add key to server
         run: |
-          docker exec test-container bash -c "
-            mkdir -p /home/testuser/.ssh &&
-            cp /tmp/test_key.pub /home/testuser/.ssh/authorized_keys &&
-            chown -R testuser:testuser /home/testuser/.ssh &&
-            chmod 700 /home/testuser/.ssh &&
-            chmod 600 /home/testuser/.ssh/authorized_keys
-          "
+          ssh-copy-id -f -i /tmp/test_key.pub localhost
 
-      - name: Run deployment test
+      - name: Deploy
         run: |
           uv run python infra/deploy.py infra/configs/dev.yaml
 
-      - name: Start services and test /ping endpoints
+      - name: Test endpoint
         run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/test_key testuser@localhost "
-            cd /tmp/hyperleda_test &&
-            curl -f http://localhost:80/ping || echo 'Nginx ping failed'
-          "
+          ssh -o StrictHostKeyChecking=no -i /tmp/test_key tester@localhost "curl -f http://localhost:80/ping"
