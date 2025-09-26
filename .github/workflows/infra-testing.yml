@@ -44,6 +44,28 @@ jobs:
             -e PUBLIC_KEY_FILE=/tmp/test_key.pub \
             linuxserver/openssh-server:latest
 
+      - name: Wait for SSH server to be ready
+        run: |
+          echo "Waiting for SSH server to start..."
+          for i in {1..30}; do
+            if docker exec test-container pgrep sshd > /dev/null 2>&1; then
+              echo "SSH daemon is running"
+              break
+            fi
+            echo "Attempt $i/30: SSH daemon not ready yet"
+            sleep 2
+          done
+
+          echo "Waiting for SSH to accept connections..."
+          for i in {1..30}; do
+            if ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes tester@localhost "echo 'test'" > /dev/null 2>&1; then
+              echo "SSH connection successful"
+              break
+            fi
+            echo "Attempt $i/30: SSH connection failed"
+            sleep 2
+          done
+
       - name: Setup and test client
         run: |
           ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 tester@localhost "echo 'SSH connection successful'"
