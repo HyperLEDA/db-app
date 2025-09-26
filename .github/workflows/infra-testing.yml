@@ -77,6 +77,24 @@ jobs:
           docker exec test-container chmod 600 /home/tester/.ssh/authorized_keys
           docker exec test-container chown -R tester:tester /home/tester/.ssh
 
+          echo "Verifying SSH key setup..."
+          echo "SSH directory contents:"
+          docker exec test-container ls -la /home/tester/.ssh/
+          echo "Authorized keys content:"
+          docker exec test-container cat /home/tester/.ssh/authorized_keys
+          echo "SSH directory permissions:"
+          docker exec test-container ls -la /home/tester/
+
+          echo "Testing SSH connection with verbose output..."
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes -v tester@localhost "echo 'test'" 2>&1 || echo "SSH connection failed with verbose output above"
+
+          echo "Checking SSH server configuration..."
+          docker exec test-container cat /etc/ssh/sshd_config | grep -E "(PubkeyAuthentication|AuthorizedKeysFile|PasswordAuthentication)" || echo "SSH config not found"
+
+          echo "Restarting SSH service..."
+          docker exec test-container service ssh restart || echo "SSH restart failed"
+          sleep 3
+
           echo "Waiting for SSH to accept connections..."
           for i in {1..30}; do
             if ssh -i /tmp/test_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes tester@localhost "echo 'test'" > /dev/null 2>&1; then
