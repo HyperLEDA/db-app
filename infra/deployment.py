@@ -76,7 +76,8 @@ RemoteData = RemoteFile | RemoteContent | RemoteDirectory
 class ConnectionContext:
     host: str
     user: str
-    private_key_filename: str
+    private_key_filename: str | None = None
+    password: str | None = None
 
 
 def _run_command(
@@ -145,10 +146,16 @@ class RemoteSpec:
         return "\n".join(lines)
 
     def apply(self, ctx: ConnectionContext, logger: structlog.stdlib.BoundLogger):
+        connect_kwargs = {}
+        if ctx.private_key_filename:
+            connect_kwargs["key_filename"] = ctx.private_key_filename
+        if ctx.password:
+            connect_kwargs["password"] = ctx.password
+
         self.connection = Connection(
             host=ctx.host,
             user=ctx.user,
-            connect_kwargs={"key_filename": ctx.private_key_filename},
+            connect_kwargs=connect_kwargs,
         )
         self.logger = logger
 
