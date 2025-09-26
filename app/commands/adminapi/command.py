@@ -8,7 +8,7 @@ import yaml
 from app.data import repositories
 from app.domain import adminapi as domain
 from app.lib import auth, clients, commands, config
-from app.lib.storage import postgres, redis
+from app.lib.storage import postgres
 from app.lib.web import middlewares, server
 from app.presentation import adminapi as presentation
 
@@ -30,9 +30,6 @@ class AdminAPICommand(commands.Command):
         self.pg_storage = postgres.PgStorage(cfg.storage, log)
         self.pg_storage.connect()
 
-        self.redis_storage = redis.RedisQueue(cfg.queue, log)
-        self.redis_storage.connect()
-
         authenticator = auth.PostgresAuthenticator(self.pg_storage)
 
         actions = domain.Actions(
@@ -40,7 +37,6 @@ class AdminAPICommand(commands.Command):
             layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
-            queue_repo=repositories.QueueRepository(self.redis_storage, cfg.storage, log),
             authenticator=authenticator,
             clients=clients.Clients(cfg.clients.ads_token),
         )
@@ -54,8 +50,6 @@ class AdminAPICommand(commands.Command):
         self.app.run()
 
     def cleanup(self):
-        if self.redis_storage:
-            self.redis_storage.disconnect()
         if self.pg_storage:
             self.pg_storage.disconnect()
 
@@ -63,14 +57,12 @@ class AdminAPICommand(commands.Command):
 class ClientsConfig(config.ConfigSettings):
     model_config = settings.SettingsConfigDict(env_prefix="CLIENTS_")
 
-    enabled: bool
     ads_token: str
 
 
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
-    queue: redis.QueueConfig
     clients: ClientsConfig
     auth_enabled: bool
 

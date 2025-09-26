@@ -1,7 +1,6 @@
 import abc
 
 INTERNAL_ERROR_CODE = "internal_error"
-LOGICAL_ERROR_CODE = "logical_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
 DATABASE_ERROR = "database_error"

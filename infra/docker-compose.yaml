@@ -35,12 +35,6 @@ services:
         condition: service_completed_successfully
     entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
 
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
   adminapi:
     image: ghcr.io/hyperleda/hyperleda:latest
     entrypoint: ["uv", "run", "main.py", "adminapi"]
@@ -58,7 +52,6 @@ services:
       retries: 5
     depends_on:
       - wait-for-migrate
-      - redis
     logging:
       driver: local
 

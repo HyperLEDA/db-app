@@ -305,10 +305,3 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             return 0, False
 
         return row["id"], True
-
-    def _get_table_name(self, table_id: int) -> str:
-        row = self._storage.query_one(
-            "SELECT table_name FROM rawdata.tables WHERE id = %s",
-            params=[table_id],
-        )
-        return row["table_name"]

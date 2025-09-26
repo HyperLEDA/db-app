@@ -12,7 +12,6 @@ dependencies = [
     "pandas>=2.2.3",
     "psycopg[binary,pool]>=3.2.4",
     "pyyaml>=6.0.2",
-    "redis>=5.2.1",
     "requests>=2.32.3",
     "regex>=2024.11.6",
     "rq>=2.1.0",
@@ -33,7 +32,6 @@ test = [
     "parameterized>=0.9.0",
     "pytest>=8.3.4",
     "testcontainers-postgres>=0.0.1rc1",
-    "testcontainers-redis>=0.0.1rc1",
 ]
 
 [tool.ruff]

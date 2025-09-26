@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -9,7 +8,7 @@ from psycopg.types import enum, numeric
 
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
-from app.lib.web.errors import DatabaseError, InternalError
+from app.lib.web.errors import InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -34,9 +33,7 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
 ]
 
 DEFAULT_ENUMS = [
-    (enums.TaskStatus, "common.task_status"),
     (enums.DataType, "common.datatype"),
-    (enums.RawDataStatus, "rawdata.status"),
     (enums.RecordCrossmatchStatus, "rawdata.crossmatch_status"),
 ]
 
@@ -46,9 +43,6 @@ class PgStorage:
         self._config = cfg
         self._connection: psycopg.Connection | None = None
         self._logger = logger
-
-    def get_config(self) -> config.PgStorageConfig:
-        return self._config
 
     def connect(self) -> None:
         self._connection = psycopg.connect(self._config.get_dsn(), row_factory=rows.dict_row, autocommit=True)
@@ -100,19 +94,6 @@ class PgStorage:
 
         cursor = self._connection.cursor()
         cursor.execute(query, params)
-
-    def execute_many(self, query: str, params: Sequence[Sequence[Any]]):
-        if self._connection is None:
-            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
-
-        log.debug("SQL many", query=query.replace("\n", " "), args=params)
-
-        cursor = self._connection.cursor()
-
-        try:
-            cursor.executemany(query, params)
-        except psycopg.Error as e:
-            raise DatabaseError(f"{type(e).__name__}: {str(e)}") from e
 
     def query(self, query: str, *, params: list[Any] | None = None) -> list[rows.DictRow]:
         if params is None:
