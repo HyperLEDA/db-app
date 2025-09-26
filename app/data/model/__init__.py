@@ -7,6 +7,7 @@ from app.data.model.helpers import (
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.nature import NatureCatalogObject
 from app.data.model.records import (
     CIResult,
     CIResultObjectCollision,
@@ -49,6 +50,7 @@ __all__ = [
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "RedshiftCatalogObject",
+    "NatureCatalogObject",
     "get_catalog_object_type",
     "new_catalog_object",
     "HomogenizationRule",

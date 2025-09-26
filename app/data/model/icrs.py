@@ -71,7 +71,8 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         return cls(ra, dec, e_ra, e_dec)
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 
     def layer1_data(self) -> dict[str, Any]:

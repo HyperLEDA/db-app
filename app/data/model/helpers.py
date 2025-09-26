@@ -1,13 +1,18 @@
-from app.data.model import designation, icrs, interface, redshift
+from app.data.model import designation, icrs, interface, nature, redshift
+
+ALLOWED_CATALOG_OBJECTS = [
+    designation.DesignationCatalogObject,
+    icrs.ICRSCatalogObject,
+    redshift.RedshiftCatalogObject,
+    nature.NatureCatalogObject,
+]
+
+catalog_to_objtype = {t.catalog(): t for t in ALLOWED_CATALOG_OBJECTS}
 
 
 def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.CatalogObject]:
-    if catalog == interface.RawCatalog.DESIGNATION:
-        return designation.DesignationCatalogObject
-    if catalog == interface.RawCatalog.ICRS:
-        return icrs.ICRSCatalogObject
-    if catalog == interface.RawCatalog.REDSHIFT:
-        return redshift.RedshiftCatalogObject
+    if catalog in catalog_to_objtype:
+        return catalog_to_objtype[catalog]
 
     raise ValueError(f"Unknown catalog: {catalog}")
 

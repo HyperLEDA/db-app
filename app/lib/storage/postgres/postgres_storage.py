@@ -38,6 +38,7 @@ DEFAULT_ENUMS = [
     (enums.DataType, "common.datatype"),
     (enums.RawDataStatus, "rawdata.status"),
     (enums.RecordCrossmatchStatus, "rawdata.crossmatch_status"),
+    (enums.Nature, "nature.status"),
 ]
 
 

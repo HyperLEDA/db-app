@@ -49,7 +49,8 @@ class RedshiftCatalogObject(interface.CatalogObject):
 
         return cls(cz, e_cz)
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.REDSHIFT
 
     @classmethod
