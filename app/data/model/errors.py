@@ -1,0 +1,2 @@
+class CatalogObjectCreationError(Exception):
+    pass

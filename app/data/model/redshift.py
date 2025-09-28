@@ -40,9 +40,6 @@ class RedshiftCatalogObject(interface.CatalogObject):
 
         return cls(data_cz, data_e_cz)
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {"cz": self.cz, "e_cz": self.e_cz}
-
     @classmethod
     def aggregate(cls, objects: list[Self]) -> Self:
         e_cz = [obj.e_cz for obj in objects]
@@ -52,7 +49,8 @@ class RedshiftCatalogObject(interface.CatalogObject):
 
         return cls(cz, e_cz)
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.REDSHIFT
 
     @classmethod

@@ -47,14 +47,6 @@ class ICRSCatalogObject(interface.CatalogObject):
             astronomy.to(e_dec, "deg"),
         )
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {
-            "ra": self.ra,
-            "dec": self.dec,
-            "e_ra": self.e_ra,
-            "e_dec": self.e_dec,
-        }
-
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):
             return False
@@ -79,7 +71,8 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         return cls(ra, dec, e_ra, e_dec)
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 
     def layer1_data(self) -> dict[str, Any]:

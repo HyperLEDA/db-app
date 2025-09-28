@@ -33,6 +33,7 @@ class RawCatalog(enum.Enum):
     ICRS = "icrs"
     DESIGNATION = "designation"
     REDSHIFT = "redshift"
+    NATURE = "nature"
 
 
 class CatalogObject(abc.ABC):
@@ -45,12 +46,9 @@ class CatalogObject(abc.ABC):
     def aggregate(cls, objects: list[Self]) -> Self:
         pass
 
+    @classmethod
     @abc.abstractmethod
-    def catalog(self) -> RawCatalog:
-        pass
-
-    @abc.abstractmethod
-    def layer0_data(self) -> dict[str, Any]:
+    def catalog(cls) -> RawCatalog:
         pass
 
     @classmethod

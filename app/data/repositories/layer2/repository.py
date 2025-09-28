@@ -12,12 +12,6 @@ from app.data.repositories.layer2 import params
 from app.lib import containers
 from app.lib.storage import postgres
 
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-]
-
 
 class Layer2Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
