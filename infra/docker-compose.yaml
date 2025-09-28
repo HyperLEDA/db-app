@@ -5,20 +5,24 @@ services:
       POSTGRES_DB: "hyperleda"
       POSTGRES_USER: "hyperleda"
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-    ports:
-      - "5432:5432"
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - hyperleda-network
+      - proxynet
     healthcheck:
       test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
       timeout: 5s
       interval: 5s
       retries: 5
-    logging:
-      driver: local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.hyperledadb.rule=HostSNI(`database.leda.sao.ru`)"
+      - "traefik.tcp.routers.hyperledadb.entrypoints=https"
+      - "traefik.tcp.routers.hyperledadb.tls=true"
+      - "traefik.tcp.services.hyperledadb.loadbalancer.server.port=5432"
+      - "traefik.docker.network=proxynet"
 
   migrate:
     build:
@@ -33,8 +37,6 @@ services:
         condition: service_healthy
     networks:
       - hyperleda-network
-    logging:
-      driver: local
 
   wait-for-migrate:
     image: busybox
