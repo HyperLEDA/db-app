@@ -76,7 +76,8 @@ RemoteData = RemoteFile | RemoteContent | RemoteDirectory
 class ConnectionContext:
     host: str
     user: str
-    private_key_filename: str
+    private_key_filename: str | None = None
+    password: str | None = None
 
 
 def _run_command(
