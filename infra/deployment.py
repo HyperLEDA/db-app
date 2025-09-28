@@ -146,16 +146,10 @@ class RemoteSpec:
         return "\n".join(lines)
 
     def apply(self, ctx: ConnectionContext, logger: structlog.stdlib.BoundLogger):
-        connect_kwargs = {}
-        if ctx.private_key_filename:
-            connect_kwargs["key_filename"] = ctx.private_key_filename
-        if ctx.password:
-            connect_kwargs["password"] = ctx.password
-
         self.connection = Connection(
             host=ctx.host,
             user=ctx.user,
-            connect_kwargs=connect_kwargs,
+            connect_kwargs={"key_filename": ctx.private_key_filename},
         )
         self.logger = logger
 
