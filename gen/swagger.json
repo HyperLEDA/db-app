@@ -486,7 +486,7 @@
       "APIOkResponse_GetRecordCrossmatchResponse_": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetRecordCrossmatchResponse"
+            "$ref": "#/components/schemas/GetRecordCrossmatchResponse-Output"
           }
         },
         "type": "object",
@@ -498,7 +498,7 @@
       "APIOkResponse_GetRecordsCrossmatchResponse_": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetRecordsCrossmatchResponse"
+            "$ref": "#/components/schemas/GetRecordsCrossmatchResponse-Output"
           }
         },
         "type": "object",
@@ -510,7 +510,7 @@
       "APIOkResponse_GetTableResponse_": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetTableResponse"
+            "$ref": "#/components/schemas/GetTableResponse-Output"
           }
         },
         "type": "object",
@@ -675,7 +675,53 @@
         ],
         "title": "CatalogToMark"
       },
-      "Catalogs": {
+      "Catalogs-Input": {
+        "properties": {
+          "designation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Designation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coordinates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redshift": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Redshift"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "velocity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Velocity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Catalogs"
+      },
+      "Catalogs-Output": {
         "properties": {
           "designation": {
             "anyOf": [
@@ -1043,14 +1089,14 @@
         ],
         "title": "GalacticCoordinates"
       },
-      "GetRecordCrossmatchResponse": {
+      "GetRecordCrossmatchResponse-Input": {
         "properties": {
           "crossmatch": {
-            "$ref": "#/components/schemas/RecordCrossmatch"
+            "$ref": "#/components/schemas/RecordCrossmatch-Input"
           },
           "candidates": {
             "items": {
-              "$ref": "#/components/schemas/PGCCandidate"
+              "$ref": "#/components/schemas/PGCCandidate-Input"
             },
             "type": "array",
             "title": "Candidates"
@@ -1067,11 +1113,35 @@
         ],
         "title": "GetRecordCrossmatchResponse"
       },
-      "GetRecordsCrossmatchResponse": {
+      "GetRecordCrossmatchResponse-Output": {
+        "properties": {
+          "crossmatch": {
+            "$ref": "#/components/schemas/RecordCrossmatch-Output"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PGCCandidate-Output"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crossmatch",
+          "candidates",
+          "schema"
+        ],
+        "title": "GetRecordCrossmatchResponse"
+      },
+      "GetRecordsCrossmatchResponse-Input": {
         "properties": {
           "records": {
             "items": {
-              "$ref": "#/components/schemas/RecordCrossmatch"
+              "$ref": "#/components/schemas/RecordCrossmatch-Input"
             },
             "type": "array",
             "title": "Records"
@@ -1087,7 +1157,93 @@
         ],
         "title": "GetRecordsCrossmatchResponse"
       },
-      "GetTableResponse": {
+      "GetRecordsCrossmatchResponse-Output": {
+        "properties": {
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/RecordCrossmatch-Output"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records",
+          "schema"
+        ],
+        "title": "GetRecordsCrossmatchResponse"
+      },
+      "GetTableResponse-Input": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "column_info": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnDescription"
+            },
+            "type": "array",
+            "title": "Column Info"
+          },
+          "rows_num": {
+            "type": "integer",
+            "title": "Rows Num"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "bibliography": {
+            "$ref": "#/components/schemas/Bibliography"
+          },
+          "marking_rules": {
+            "items": {
+              "$ref": "#/components/schemas/MarkingRule"
+            },
+            "type": "array",
+            "title": "Marking Rules"
+          },
+          "statistics": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "propertyNames": {
+                  "$ref": "#/components/schemas/RecordCrossmatchStatus"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statistics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "column_info",
+          "rows_num",
+          "meta",
+          "bibliography",
+          "marking_rules"
+        ],
+        "title": "GetTableResponse"
+      },
+      "GetTableResponse-Output": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1242,14 +1398,31 @@
         ],
         "title": "MarkingRule"
       },
-      "PGCCandidate": {
+      "PGCCandidate-Input": {
         "properties": {
           "pgc": {
             "type": "integer",
             "title": "Pgc"
           },
           "catalogs": {
-            "$ref": "#/components/schemas/Catalogs"
+            "$ref": "#/components/schemas/Catalogs-Input"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pgc",
+          "catalogs"
+        ],
+        "title": "PGCCandidate"
+      },
+      "PGCCandidate-Output": {
+        "properties": {
+          "pgc": {
+            "type": "integer",
+            "title": "Pgc"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/Catalogs-Output"
           }
         },
         "type": "object",
@@ -1345,7 +1518,7 @@
         "type": "object",
         "title": "PatchTableResponse"
       },
-      "RecordCrossmatch": {
+      "RecordCrossmatch-Input": {
         "properties": {
           "record_id": {
             "type": "string",
@@ -1358,7 +1531,32 @@
             "$ref": "#/components/schemas/RecordCrossmatchMetadata"
           },
           "catalogs": {
-            "$ref": "#/components/schemas/Catalogs"
+            "$ref": "#/components/schemas/Catalogs-Input"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_id",
+          "status",
+          "metadata",
+          "catalogs"
+        ],
+        "title": "RecordCrossmatch"
+      },
+      "RecordCrossmatch-Output": {
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "title": "Record Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecordCrossmatchStatus"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RecordCrossmatchMetadata"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/Catalogs-Output"
           }
         },
         "type": "object",
