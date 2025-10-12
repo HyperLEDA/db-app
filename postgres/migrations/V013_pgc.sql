@@ -43,6 +43,8 @@ FROM rawdata.pgc
 ORDER BY rawdata.pgc.id 
 ;
 
+ALTER SEQUENCE common.pgc.id RESTART WITH 6775395 ;
+
 UPDATE rawdata.objects
 SET
   pgc=rawdata.pgc.id
@@ -50,13 +52,6 @@ FROM rawdata.pgc
 WHERE 
   rawdata.pgc.object_id=rawdata.objects.id
 ;
-
-
----------------------------
--- Категория данных переносится в описание наборов данных
----------------------------
-
-ALTER TABLE rawdata.tables DROP COLUMN datatype ;
 
 
 --------------------------------------
@@ -67,6 +62,6 @@ ALTER TABLE rawdata.tables DROP COLUMN datatype ;
 -- 4. Перенести таблицы records и tables в схему layer0
 --------------------------------------
 
-ROLLBACK;
--- COMMIT;
+-- ROLLBACK;
+COMMIT;
 
