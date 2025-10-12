@@ -1,6 +1,6 @@
 BEGIN;
 
-ALTER ROLE dim WITH SUPERUSER ;
+-- ALTER ROLE dim WITH SUPERUSER ;
 
 -------------------------------------------------------------
 -- Сохранять время модификации PGC нет необходимости, 
@@ -43,7 +43,7 @@ FROM rawdata.pgc
 ORDER BY rawdata.pgc.id 
 ;
 
-ALTER SEQUENCE common.pgc.id RESTART WITH 6775395 ;
+ALTER SEQUENCE common.pgc_id_seq RESTART WITH 6775395 ;
 
 UPDATE rawdata.objects
 SET
