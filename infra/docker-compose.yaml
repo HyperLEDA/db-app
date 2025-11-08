@@ -8,6 +8,8 @@ services:
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
     restart: unless-stopped
+    ports:
+      - "5433:5432"
     networks:
       - hyperleda-network
       - proxynet
@@ -19,7 +21,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.tcp.routers.hyperledadb.rule=HostSNI(`database.leda.sao.ru`)"
-      - "traefik.tcp.routers.hyperledadb.entrypoints=https"
+      - "traefik.tcp.routers.hyperledadb.entrypoints=postgres"
       - "traefik.tcp.routers.hyperledadb.tls=true"
       - "traefik.tcp.services.hyperledadb.loadbalancer.server.port=5432"
       - "traefik.docker.network=proxynet"
