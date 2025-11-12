@@ -70,16 +70,16 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         query = f"""SELECT *
         FROM {object_cls.layer1_table()} AS l1
-        JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
-        WHERE id IN (
-            SELECT DISTINCT id
+        JOIN rawdata.objects AS o ON l1.object_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
             FROM {object_cls.layer1_table()} AS l1
-            JOIN rawdata.pgc AS pgc ON l1.object_id = pgc.object_id
-            WHERE modification_time > %s AND pgc.id > %s
-            ORDER BY id
+            JOIN rawdata.objects AS o ON l1.object_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
             LIMIT %s
         )
-        ORDER BY pgc.id ASC"""
+        ORDER BY o.pgc ASC"""
 
         rows = self._storage.query(query, params=[dt, offset, limit])
 
@@ -87,7 +87,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         for row in rows:
             object_id = row.pop("object_id")
-            pgc = int(row.pop("id"))
+            pgc = int(row.pop("pgc"))
             catalog_object = object_cls.from_layer1(row)
 
             key = (pgc, object_id)

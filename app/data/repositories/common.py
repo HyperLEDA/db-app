@@ -38,3 +38,9 @@ class CommonRepository(postgres.TransactionalPGRepository):
         row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id])
 
         return model.Bibliography(**row)
+
+    def register_pgcs(self, pgcs: list[int]):
+        self._storage.exec(
+            f"INSERT INTO common.pgc (id) VALUES {','.join(['(%s)'] * len(pgcs))} ON CONFLICT (id) DO NOTHING",
+            params=pgcs,
+        )

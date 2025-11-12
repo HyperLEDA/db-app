@@ -173,21 +173,36 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         self._storage.exec(query, params=params)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
-        values = []
-        params = []
+        pgcs_to_insert: dict[str, int] = {}
+
+        new_objects = [object_id for object_id, pgc in pgcs.items() if pgc is None]
+
+        if new_objects:
+            result = self._storage.query(
+                f"""INSERT INTO common.pgc 
+                VALUES {",".join(["(DEFAULT)"] * len(new_objects))} 
+                RETURNING id""",
+            )
+
+            ids = [row["id"] for row in result]
+
+            for object_id, pgc_id in zip(new_objects, ids, strict=False):
+                pgcs_to_insert[object_id] = pgc_id
 
         for object_id, pgc in pgcs.items():
-            params.append(object_id)
-            if pgc is None:
-                values.append("(%s, DEFAULT)")
-            else:
-                values.append("(%s, %s)")
-                params.append(pgc)
+            if pgc is not None:
+                pgcs_to_insert[object_id] = pgc
 
-        self._storage.exec(
-            f"""
-            INSERT INTO rawdata.pgc (object_id, id) VALUES {",".join(values)}
-            ON CONFLICT (object_id) DO UPDATE SET id = EXCLUDED.id
-            """,
-            params=params,
-        )
+        if pgcs_to_insert:
+            update_query = "UPDATE rawdata.objects SET pgc = v.pgc FROM (VALUES "
+            params = []
+            values = []
+
+            for object_id, pgc_id in pgcs_to_insert.items():
+                values.append("(%s, %s)")
+                params.extend([object_id, pgc_id])
+
+            update_query += ",".join(values)
+            update_query += ") AS v(object_id, pgc) WHERE rawdata.objects.id = v.object_id"
+
+            self._storage.exec(update_query, params=params)
