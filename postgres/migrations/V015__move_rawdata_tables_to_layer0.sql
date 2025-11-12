@@ -18,7 +18,7 @@ BEGIN
             AND rc.unique_constraint_schema = ccu.constraint_schema
         WHERE tc.constraint_type = 'FOREIGN KEY'
           AND ccu.table_schema = 'rawdata'
-          AND ccu.table_name IN ('objects', 'tables')
+          AND ccu.table_name IN ('objects', 'tables', 'crossmatch')
     ) LOOP
         EXECUTE format('ALTER TABLE %I.%I DROP CONSTRAINT IF EXISTS %I', 
             r.table_schema, r.table_name, r.constraint_name);
@@ -30,8 +30,11 @@ DROP TRIGGER IF EXISTS set_modification_time_on_pgc_update ON rawdata.objects;
 ALTER TABLE rawdata.tables SET SCHEMA layer0;
 ALTER TABLE rawdata.objects SET SCHEMA layer0;
 
--- Recreate foreign key constraints pointing to layer0.objects
-ALTER TABLE rawdata.crossmatch 
+ALTER TYPE rawdata.crossmatch_status SET SCHEMA layer0;
+
+ALTER TABLE rawdata.crossmatch SET SCHEMA layer0;
+
+ALTER TABLE layer0.crossmatch 
 ADD FOREIGN KEY (object_id) REFERENCES layer0.objects(id);
 
 ALTER TABLE icrs.data 

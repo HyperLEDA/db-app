@@ -34,7 +34,7 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
 
 DEFAULT_ENUMS = [
     (enums.DataType, "common.datatype"),
-    (enums.RecordCrossmatchStatus, "rawdata.crossmatch_status"),
+    (enums.RecordCrossmatchStatus, "layer0.crossmatch_status"),
 ]
 
 

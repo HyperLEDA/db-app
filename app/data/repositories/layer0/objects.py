@@ -38,7 +38,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         where_stmnt = []
         join_tables = """
             FROM layer0.objects AS o
-            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            JOIN layer0.crossmatch AS c ON o.id = c.object_id
         """
 
         if table_name is not None:
@@ -108,7 +108,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             self._storage.query,
             """
             SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
-            FROM rawdata.crossmatch AS p
+            FROM layer0.crossmatch AS p
             RIGHT JOIN layer0.objects AS o ON p.object_id = o.id
             WHERE o.table_id = %s
             GROUP BY status""",
@@ -143,7 +143,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         )
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO rawdata.crossmatch (object_id, status, metadata) VALUES "
+        query = "INSERT INTO layer0.crossmatch (object_id, status, metadata) VALUES "
         params = []
         values = []
 
