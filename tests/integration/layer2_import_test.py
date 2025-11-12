@@ -42,6 +42,7 @@ class Layer2ImportTest(unittest.TestCase):
             ["123", "124"],
         )
 
+        self.common_repo.register_pgcs([1234, 1245])
         self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
         self.layer1_repo.save_data(
             [

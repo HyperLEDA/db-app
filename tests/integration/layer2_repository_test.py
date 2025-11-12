@@ -12,6 +12,7 @@ class Layer2RepositoryTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get()
 
+        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
@@ -23,6 +24,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="test2")),
         ]
 
+        self.common_repo.register_pgcs([1, 2])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
@@ -42,6 +44,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)),
         ]
 
+        self.common_repo.register_pgcs([1, 2])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
@@ -65,6 +68,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="test2")),
         ]
 
+        self.common_repo.register_pgcs([1, 2])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
@@ -94,6 +98,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(1, model.DesignationCatalogObject(design="test")),
         ]
 
+        self.common_repo.register_pgcs([1, 2])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
@@ -134,6 +139,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(5, model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)),
         ]
 
+        self.common_repo.register_pgcs([1, 2, 3, 4, 5])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query(
@@ -155,6 +161,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(5, model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)),
         ]
 
+        self.common_repo.register_pgcs([1, 2, 3, 4, 5])
         self.layer2_repo.save_data(objects)
 
         actual = self.layer2_repo.query_batch(
