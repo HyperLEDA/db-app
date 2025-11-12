@@ -12,7 +12,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
 
-        query = "INSERT INTO rawdata.objects (id, table_id) VALUES "
+        query = "INSERT INTO layer0.objects (id, table_id) VALUES "
         params = []
         values = []
 
@@ -37,12 +37,12 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         where_stmnt = []
         join_tables = """
-            FROM rawdata.objects AS o
-            JOIN rawdata.crossmatch AS c ON o.id = c.object_id
+            FROM layer0.objects AS o
+            JOIN layer0.crossmatch AS c ON o.id = c.object_id
         """
 
         if table_name is not None:
-            join_tables += " JOIN rawdata.tables AS t ON o.table_id = t.id"
+            join_tables += " JOIN layer0.tables AS t ON o.table_id = t.id"
             where_stmnt.append("t.table_name = %s")
             params.append(table_name)
 
@@ -108,8 +108,8 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             self._storage.query,
             """
             SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
-            FROM rawdata.crossmatch AS p
-            RIGHT JOIN rawdata.objects AS o ON p.object_id = o.id
+            FROM layer0.crossmatch AS p
+            RIGHT JOIN layer0.objects AS o ON p.object_id = o.id
             WHERE o.table_id = %s
             GROUP BY status""",
             params=[table_id],
@@ -118,8 +118,8 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             self._storage.query_one,
             """
             SELECT COUNT(1) AS cnt, MAX(t.modification_dt) AS modification_dt
-            FROM rawdata.objects AS o
-            JOIN rawdata.tables AS t ON o.table_id = t.id
+            FROM layer0.objects AS o
+            JOIN layer0.tables AS t ON o.table_id = t.id
             WHERE table_id = %s""",
             params=[table_id],
         )
@@ -143,7 +143,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         )
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO rawdata.crossmatch (object_id, status, metadata) VALUES "
+        query = "INSERT INTO layer0.crossmatch (object_id, status, metadata) VALUES "
         params = []
         values = []
 
@@ -194,7 +194,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 pgcs_to_insert[object_id] = pgc
 
         if pgcs_to_insert:
-            update_query = "UPDATE rawdata.objects SET pgc = v.pgc FROM (VALUES "
+            update_query = "UPDATE layer0.objects SET pgc = v.pgc FROM (VALUES "
             params = []
             values = []
 
@@ -203,6 +203,6 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 params.extend([object_id, pgc_id])
 
             update_query += ",".join(values)
-            update_query += ") AS v(object_id, pgc) WHERE rawdata.objects.id = v.object_id"
+            update_query += ") AS v(object_id, pgc) WHERE layer0.objects.id = v.object_id"
 
             self._storage.exec(update_query, params=params)

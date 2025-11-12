@@ -28,13 +28,13 @@ CREATE TABLE {{ schema }}."{{ name }}" (
 """
 
 INSERT_TABLE_REGISTRY_ITEM = """
-INSERT INTO rawdata.tables (bib, table_name, datatype)
+INSERT INTO layer0.tables (bib, table_name, datatype)
 VALUES (%s, %s, %s)
 RETURNING id
 """
 
 GET_RAWDATA_TABLE = """
-SELECT table_name, modification_dt FROM rawdata.tables
+SELECT table_name, modification_dt FROM layer0.tables
 WHERE id = %s
 """
 
@@ -48,6 +48,6 @@ WHERE
 
 FETCH_RAWDATA_REGISTRY = """
 SELECT * 
-FROM rawdata.tables
+FROM layer0.tables
 WHERE table_name=%s
 """

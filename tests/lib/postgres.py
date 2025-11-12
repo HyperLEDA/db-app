@@ -122,11 +122,11 @@ class TestPostgresStorage:
             return
 
         self.storage.exec("TRUNCATE common.bib CASCADE")
-        self.storage.exec("TRUNCATE rawdata.tables CASCADE")
+        self.storage.exec("TRUNCATE layer0.tables CASCADE")
         tables = self.storage.query("""
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'rawdata' AND table_name NOT IN ('tables', 'pgc', 'objects', 'crossmatch')
+            WHERE table_schema = 'rawdata'
             """)
         for table in tables:
             self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
