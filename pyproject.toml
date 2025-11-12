@@ -2,14 +2,14 @@
 name = "hyperleda-backend"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "~=3.13.0"
 dependencies = [
-    "astropy>=7.0.0",
-    "astroquery>=0.4.9.post1",
+    "astropy>=7.1.0",
+    "astroquery>=0.4.10",
     "bcrypt>=4.2.1",
     "click>=8.1.8",
     "jinja2>=3.1.5",
-    "pandas>=2.2.3",
+    "pandas>=2.3.2",
     "psycopg[binary,pool]>=3.2.4",
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
@@ -28,7 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pandas-stubs>=2.2.3.241126",
+    "pandas-stubs>=2.3.2.250827",
     "parameterized>=0.9.0",
     "pytest>=8.3.4",
     "testcontainers-postgres>=0.0.1rc1",
