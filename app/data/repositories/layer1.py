@@ -70,11 +70,11 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         query = f"""SELECT *
         FROM {object_cls.layer1_table()} AS l1
-        JOIN rawdata.objects AS o ON l1.object_id = o.id
+        JOIN layer0.objects AS o ON l1.object_id = o.id
         WHERE o.pgc IN (
             SELECT DISTINCT o.pgc
             FROM {object_cls.layer1_table()} AS l1
-            JOIN rawdata.objects AS o ON l1.object_id = o.id
+            JOIN layer0.objects AS o ON l1.object_id = o.id
             WHERE o.modification_time > %s AND o.pgc > %s
             ORDER BY o.pgc
             LIMIT %s
@@ -156,8 +156,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 join_parts.append(f"FULL OUTER JOIN {alias} USING (object_id)")
 
         if table_name:
-            where_conditions.append("rawdata.objects.table_id = rawdata.tables.id")
-            where_conditions.append("rawdata.tables.table_name = %s")
+            where_conditions.append("layer0.objects.table_id = layer0.tables.id")
+            where_conditions.append("layer0.tables.table_name = %s")
             params.append(table_name)
 
         if offset:
@@ -175,8 +175,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         if table_name:
             coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.object_id" for i in range(len(catalogs))]) + ")"
             query += f"""
-            JOIN rawdata.objects ON {coalesce_expr} = rawdata.objects.id
-            JOIN rawdata.tables ON rawdata.objects.table_id = rawdata.tables.id
+            JOIN layer0.objects ON {coalesce_expr} = layer0.objects.id
+            JOIN layer0.tables ON layer0.objects.table_id = layer0.tables.id
             """
 
         if where_conditions:

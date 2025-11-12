@@ -286,7 +286,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if column_description.ucd is not None:
             column_params["ucd"] = column_description.ucd
 
-        modification_query = "UPDATE rawdata.tables SET modification_dt = now() WHERE id = %s"
+        modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
 
         with self.with_tx():
             self._storage.exec(
@@ -298,7 +298,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def _get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
             row = self._storage.query_one(
-                "SELECT id FROM rawdata.tables WHERE table_name = %s",
+                "SELECT id FROM layer0.tables WHERE table_name = %s",
                 params=[table_name],
             )
         except RuntimeError:
