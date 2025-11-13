@@ -545,9 +545,9 @@
       },
       "AddDataRequest": {
         "properties": {
-          "table_id": {
-            "type": "integer",
-            "title": "Table Id"
+          "table_name": {
+            "type": "string",
+            "title": "Table Name"
           },
           "data": {
             "items": {
@@ -575,7 +575,7 @@
         },
         "type": "object",
         "required": [
-          "table_id",
+          "table_name",
           "data"
         ],
         "title": "AddDataRequest"
