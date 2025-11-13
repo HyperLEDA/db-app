@@ -61,8 +61,6 @@ def mark_objects(
     ignore_homogenization_errors: bool = True,
 ) -> None:
     meta = layer0_repo.fetch_metadata_by_name(table_name)
-    if meta.table_id is None:
-        raise RuntimeError(f"Table {table_name} has no table_id")
 
     h = get_homogenization(layer0_repo, meta, ignore_errors=ignore_homogenization_errors)
     modificator = get_modificator(layer0_repo, meta.table_name)

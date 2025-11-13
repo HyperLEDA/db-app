@@ -79,7 +79,7 @@ class TableUploadManager:
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_id), axis=1)
+        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
         data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self.layer0_repo.with_tx():
@@ -87,13 +87,13 @@ class TableUploadManager:
             errgr.run(
                 self.layer0_repo.insert_raw_data,
                 model.Layer0RawData(
-                    table_id=r.table_id,
+                    table_name=r.table_name,
                     data=data_df,
                 ),
             )
             errgr.run(
                 self.layer0_repo.register_records,
-                r.table_id,
+                r.table_name,
                 record_ids=data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
 
@@ -242,7 +242,7 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
     return res
 
 
-def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
+def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:
         """
         This function applies special algorithm to an iterable to compute stable hash.
@@ -256,7 +256,7 @@ def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
         data = sorted(data, key=lambda t: t[0])
         data_string = json.dumps(data, separators=(",", ":"))
 
-        return _hashfunc(f"{table_id}_{data_string}")
+        return _hashfunc(f"{table_name}_{data_string}")
 
     return _compute_hash
 

@@ -72,14 +72,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         """
 
         if len(data.data) == 0:
-            log.warn("trying to insert 0 rows into the table", table_id=data.table_id)
+            log.warn("trying to insert 0 rows into the table", table_name=data.table_name)
             return
-
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[data.table_id])
-        table_name = row.get("table_name")
-
-        if table_name is None:
-            raise DatabaseError(f"unable to fetch table with id {data.table_id}")
 
         fields = data.data.columns
 
@@ -99,7 +93,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         fields = [f'"{field}"' for field in fields]
 
         query = f"""
-        INSERT INTO rawdata."{table_name}" ({",".join(fields)})
+        INSERT INTO rawdata."{data.table_name}" ({",".join(fields)})
         VALUES {",".join(values)}
         ON CONFLICT DO NOTHING
         """
@@ -168,7 +162,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
     def fetch_raw_data(
         self,
-        table_id: int,
+        table_name: str,
         offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
@@ -176,7 +170,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         limit: int | None = None,
     ) -> model.Layer0RawData:
         """
-        :param table_id: ID of the raw table
+        :param table_name: Name of the raw table
         :param columns: select only given columns
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
@@ -184,12 +178,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param limit: allows to retrieve no more than `limit` rows
         :return: Layer0RawData
         """
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
-        table_name = row.get("table_name")
-
-        if table_name is None:
-            raise DatabaseError(f"unable to fetch table with id {table_id}")
-
         columns_str = ",".join(columns or ["*"])
 
         params = []
@@ -209,17 +197,10 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             params.append(limit)
 
         rows = self._storage.query(query, params=params)
-        return model.Layer0RawData(table_id, pandas.DataFrame(rows))
+        return model.Layer0RawData(table_name, pandas.DataFrame(rows))
 
-    def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
-        row = self._storage.query_one(template.GET_RAWDATA_TABLE, params=[table_id])
-        table_name = row.get("table_name")
-        modification_dt: datetime.datetime | None = row.get("modification_dt")
-
-        if table_name is None:
-            raise DatabaseError(f"unable to fetch table with id {table_id}")
-
-        return self._fetch_metadata_by_name(table_name, modification_dt)
+    def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
+        return self.fetch_metadata_by_name(table_name)
 
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
