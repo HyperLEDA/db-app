@@ -130,26 +130,6 @@ class PatchTableResponse(pydantic.BaseModel):
     pass
 
 
-class CrossIdentification(pydantic.BaseModel):
-    inner_radius_arcsec: float = 1.5
-    outer_radius_arcsec: float = 3
-
-
-class SetTableStatusOverrides(pydantic.BaseModel):
-    id: str
-    pgc: int | None = None
-
-
-class SetTableStatusRequest(pydantic.BaseModel):
-    table_id: int
-    overrides: list[SetTableStatusOverrides] | None = None
-    batch_size: int = 100
-
-
-class SetTableStatusResponse(pydantic.BaseModel):
-    pass
-
-
 class CreateSourceRequest(pydantic.BaseModel):
     title: str
     authors: list[str] = pydantic.Field(examples=[["Ivanov V.", "Johnson H."]])

@@ -101,5 +101,3 @@ def expression_to_filter(expr: expressions.Node) -> tuple[layer2.Filter, layer2.
         )
 
     return parse_function_node(expr)
-
-    return None

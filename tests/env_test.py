@@ -1,6 +1,5 @@
 import sys
 import unittest
-from pathlib import Path
 
 from parameterized import parameterized
 
@@ -8,7 +7,6 @@ import app.commands.adminapi.command as adminapi
 import app.commands.dataapi.command as dataapi
 import app.commands.runtask.command as runtask
 
-REQUIREMENTS_PATH = Path("requirements.txt")
 MINIMAL_PYTHON_VERSION = (3, 10)
 
 
