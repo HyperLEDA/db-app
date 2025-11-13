@@ -57,7 +57,6 @@ def mark_objects(
     layer1_repo: repositories.Layer1Repository,
     table_name: str,
     batch_size: int,
-    cache_enabled: bool = False,
     initial_offset: str | None = None,
     ignore_homogenization_errors: bool = True,
 ) -> None:
