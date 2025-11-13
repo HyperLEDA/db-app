@@ -7,12 +7,12 @@ from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 
-class Layer0ObjectRepository(postgres.TransactionalPGRepository):
+class Layer0RecordRepository(postgres.TransactionalPGRepository):
     def register_records(self, table_id: int, record_ids: list[str]) -> None:
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
 
-        query = "INSERT INTO layer0.objects (id, table_id) VALUES "
+        query = "INSERT INTO layer0.records (id, table_id) VALUES "
         params = []
         values = []
 
@@ -37,8 +37,8 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         where_stmnt = []
         join_tables = """
-            FROM layer0.objects AS o
-            JOIN layer0.crossmatch AS c ON o.id = c.object_id
+            FROM layer0.records AS o
+            JOIN layer0.crossmatch AS c ON o.id = c.record_id
         """
 
         if table_name is not None:
@@ -70,7 +70,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
         rows = self._storage.query(query, params=params)
 
-        objects = []
+        records = []
 
         for row in rows:
             status = row["status"]
@@ -84,7 +84,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             else:
                 ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
 
-            objects.append(
+            records.append(
                 model.RecordCrossmatch(
                     model.Record(
                         row["id"],
@@ -94,7 +94,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
                 )
             )
 
-        return objects
+        return records
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
@@ -109,7 +109,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             """
             SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
             FROM layer0.crossmatch AS p
-            RIGHT JOIN layer0.objects AS o ON p.object_id = o.id
+            RIGHT JOIN layer0.records AS o ON p.record_id = o.id
             WHERE o.table_id = %s
             GROUP BY status""",
             params=[table_id],
@@ -118,7 +118,7 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
             self._storage.query_one,
             """
             SELECT COUNT(1) AS cnt, MAX(t.modification_dt) AS modification_dt
-            FROM layer0.objects AS o
+            FROM layer0.records AS o
             JOIN layer0.tables AS t ON o.table_id = t.id
             WHERE table_id = %s""",
             params=[table_id],
@@ -143,11 +143,11 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
         )
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO layer0.crossmatch (object_id, status, metadata) VALUES "
+        query = "INSERT INTO layer0.crossmatch (record_id, status, metadata) VALUES "
         params = []
         values = []
 
-        for object_id, result in data.items():
+        for record_id, result in data.items():
             values.append("(%s, %s, %s)")
 
             status = None
@@ -165,44 +165,44 @@ class Layer0ObjectRepository(postgres.TransactionalPGRepository):
 
                 meta = {"possible_matches": possible_pgcs}
 
-            params.extend([object_id, status, json.dumps(meta)])
+            params.extend([record_id, status, json.dumps(meta)])
 
         query += ",".join(values)
-        query += " ON CONFLICT (object_id) DO UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata"
+        query += " ON CONFLICT (record_id) DO UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata"
 
         self._storage.exec(query, params=params)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}
 
-        new_objects = [object_id for object_id, pgc in pgcs.items() if pgc is None]
+        new_records = [record_id for record_id, pgc in pgcs.items() if pgc is None]
 
-        if new_objects:
+        if new_records:
             result = self._storage.query(
                 f"""INSERT INTO common.pgc 
-                VALUES {",".join(["(DEFAULT)"] * len(new_objects))} 
+                VALUES {",".join(["(DEFAULT)"] * len(new_records))} 
                 RETURNING id""",
             )
 
             ids = [row["id"] for row in result]
 
-            for object_id, pgc_id in zip(new_objects, ids, strict=False):
-                pgcs_to_insert[object_id] = pgc_id
+            for record_id, pgc_id in zip(new_records, ids, strict=False):
+                pgcs_to_insert[record_id] = pgc_id
 
-        for object_id, pgc in pgcs.items():
+        for record_id, pgc in pgcs.items():
             if pgc is not None:
-                pgcs_to_insert[object_id] = pgc
+                pgcs_to_insert[record_id] = pgc
 
         if pgcs_to_insert:
-            update_query = "UPDATE layer0.objects SET pgc = v.pgc FROM (VALUES "
+            update_query = "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES "
             params = []
             values = []
 
-            for object_id, pgc_id in pgcs_to_insert.items():
+            for record_id, pgc_id in pgcs_to_insert.items():
                 values.append("(%s, %s)")
-                params.extend([object_id, pgc_id])
+                params.extend([record_id, pgc_id])
 
             update_query += ",".join(values)
-            update_query += ") AS v(object_id, pgc) WHERE layer0.objects.id = v.object_id"
+            update_query += ") AS v(record_id, pgc) WHERE layer0.records.id = v.record_id"
 
             self._storage.exec(update_query, params=params)
