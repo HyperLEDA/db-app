@@ -104,10 +104,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             object_cls = model.get_catalog_object_type(catalog)
 
             table_names.append(object_cls.layer2_table())
-            columns.extend([
-                f'{object_cls.layer2_table()}.{column} AS "{catalog.value}|{column}"'
-                for column in object_cls.layer2_keys()
-            ])
+            columns.extend(
+                [
+                    f'{object_cls.layer2_table()}.{column} AS "{catalog.value}|{column}"'
+                    for column in object_cls.layer2_keys()
+                ]
+            )
             columns.append(
                 f"CASE WHEN {object_cls.layer2_table()}.pgc IS NOT NULL "
                 f'THEN true ELSE false END AS "{catalog.value}|_present"'
