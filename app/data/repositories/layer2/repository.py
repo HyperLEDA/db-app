@@ -74,16 +74,16 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     ) -> tuple[str, list[Any]]:
         if not search_params:
             # If no search parameters, return empty result
-            return "SELECT NULL as object_id, NULL as pgc WHERE FALSE", []
+            return "SELECT NULL as record_id, NULL as pgc WHERE FALSE", []
 
         query = """
             WITH search_params AS (
                 SELECT * FROM (
                     VALUES 
                         {values}
-                ) AS t(object_id, search_type, params)
+                ) AS t(record_id, search_type, params)
             ) 
-            SELECT sp.object_id, pgc, {columns}
+            SELECT sp.record_id, pgc, {columns}
             FROM search_params sp
             CROSS JOIN {joined_tables}
             WHERE {conditions}
@@ -93,9 +93,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         values_lines = []
         params = []
 
-        for object_id, sparams in search_params.items():
+        for record_id, sparams in search_params.items():
             values_lines.append("(%s, %s, %s::jsonb)")
-            params.extend([object_id, sparams.name(), json.dumps(sparams.get_params())])
+            params.extend([record_id, sparams.name(), json.dumps(sparams.get_params())])
 
         columns = []
         table_names = []
@@ -144,17 +144,17 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     ) -> dict[str, list[model.Layer2Object]]:
         query, params = self._construct_batch_query(catalogs, search_types, search_params, limit, offset)
 
-        objects = self._storage.query(query, params=params)
+        records = self._storage.query(query, params=params)
 
-        objects_by_id = containers.group_by(objects, key_func=lambda obj: str(obj["object_id"]))
+        records_by_id = containers.group_by(records, key_func=lambda obj: str(obj["record_id"]))
 
         result: dict[str, list[model.Layer2Object]] = {}
 
-        for object_id, objects in objects_by_id.items():
-            if object_id not in result:
-                result[object_id] = []
+        for record_id, records in records_by_id.items():
+            if record_id not in result:
+                result[record_id] = []
 
-            result[object_id].extend(self._group_by_pgc(objects))
+            result[record_id].extend(self._group_by_pgc(records))
 
         return result
 
@@ -168,8 +168,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             # TODO: what if for each pgc there are multiple rows? For example, if
             # the catalog does not have a UNIQUE constraint on pgc.
             obj = pgc_objects[0]
-            if "object_id" in obj:
-                obj.pop("object_id")
+            if "record_id" in obj:
+                obj.pop("record_id")
             if "pgc" in obj:
                 obj.pop("pgc")
 

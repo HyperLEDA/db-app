@@ -120,7 +120,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param columns: select only given columns
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
-        :param offset: allows to retrieve rows starting from the `offset` object_id
+        :param offset: allows to retrieve rows starting from the `offset` record_id
         :param limit: allows to retrieve no more than `limit` rows
         """
 
@@ -180,7 +180,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param columns: select only given columns
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
-        :param offset: allows to retrieve rows starting from the `offset` object_id
+        :param offset: allows to retrieve rows starting from the `offset` record_id
         :param limit: allows to retrieve no more than `limit` rows
         :return: Layer0RawData
         """

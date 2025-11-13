@@ -77,7 +77,7 @@ class Homogenization:
                     if not self.ignore_errors:
                         raise e
 
-                    logger.warn("Error creating catalog object", object_id=record_id, error=e, data_dict=data_dict)
+                    logger.warn("Error creating catalog object", record_id=record_id, error=e, data_dict=data_dict)
                     continue
 
                 records[record_id].data.append(catalog_obj)

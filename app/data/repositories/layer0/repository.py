@@ -2,7 +2,7 @@ import structlog
 from astropy import table
 
 from app.data import model
-from app.data.repositories.layer0 import homogenization, modifiers, objects, tables
+from app.data.repositories.layer0 import homogenization, modifiers, records, tables
 from app.lib.storage import enums, postgres
 
 
@@ -12,7 +12,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         super().__init__(storage)
 
         self.table_repo = tables.Layer0TableRepository(storage)
-        self.objects_repo = objects.Layer0ObjectRepository(storage)
+        self.records_repo = records.Layer0RecordRepository(storage)
         self.homogenization_repo = homogenization.Layer0HomogenizationRepository(storage)
         self.modifier_repo = modifiers.Layer0ModifiersRepository(storage)
 
@@ -54,10 +54,10 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         return self.table_repo.update_column_metadata(table_name, column_description)
 
     def register_records(self, table_id: int, record_ids: list[str]) -> None:
-        return self.objects_repo.register_records(table_id, record_ids)
+        return self.records_repo.register_records(table_id, record_ids)
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
-        return self.objects_repo.get_table_statistics(table_name)
+        return self.records_repo.get_table_statistics(table_name)
 
     def get_processed_records(
         self,
@@ -67,13 +67,13 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         status: enums.RecordCrossmatchStatus | None = None,
         record_id: str | None = None,
     ) -> list[model.RecordCrossmatch]:
-        return self.objects_repo.get_processed_records(limit, offset, table_name, status, record_id)
+        return self.records_repo.get_processed_records(limit, offset, table_name, status, record_id)
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        return self.objects_repo.add_crossmatch_result(data)
+        return self.records_repo.add_crossmatch_result(data)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
-        return self.objects_repo.upsert_pgc(pgcs)
+        return self.records_repo.upsert_pgc(pgcs)
 
     def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
         return self.homogenization_repo.get_homogenization_rules()

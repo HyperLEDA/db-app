@@ -25,14 +25,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 if not table_items:
                     continue
 
-                columns = ["object_id"]
+                columns = ["record_id"]
                 columns.extend(table_items[0][1].layer1_keys())
 
                 params = []
                 values = []
                 for record_id, catalog_object in table_items:
                     data = catalog_object.layer1_data()
-                    data["object_id"] = record_id
+                    data["record_id"] = record_id
 
                     params.extend([data[column] for column in columns])
                     values.append(",".join(["%s"] * len(columns)))
@@ -42,7 +42,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 query = f"""
                 INSERT INTO {table} ({", ".join(columns)}) 
                 VALUES {", ".join([f"({value})" for value in values])}
-                ON CONFLICT (object_id) DO UPDATE SET {on_conflict_update_statement}
+                ON CONFLICT (record_id) DO UPDATE SET {on_conflict_update_statement}
                 """
 
                 self._storage.exec(query, params=params)
@@ -70,11 +70,11 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         query = f"""SELECT *
         FROM {object_cls.layer1_table()} AS l1
-        JOIN layer0.objects AS o ON l1.object_id = o.id
+        JOIN layer0.records AS o ON l1.record_id = o.id
         WHERE o.pgc IN (
             SELECT DISTINCT o.pgc
             FROM {object_cls.layer1_table()} AS l1
-            JOIN layer0.objects AS o ON l1.object_id = o.id
+            JOIN layer0.records AS o ON l1.record_id = o.id
             WHERE o.modification_time > %s AND o.pgc > %s
             ORDER BY o.pgc
             LIMIT %s
@@ -86,21 +86,21 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         record_data: dict[tuple[int, str], list[model.CatalogObject]] = {}
 
         for row in rows:
-            object_id = row.pop("object_id")
+            record_id = row.pop("record_id")
             pgc = int(row.pop("pgc"))
             catalog_object = object_cls.from_layer1(row)
 
-            key = (pgc, object_id)
+            key = (pgc, record_id)
             if key not in record_data:
                 record_data[key] = []
             record_data[key].append(catalog_object)
 
-        objects: list[model.RecordWithPGC] = []
+        records: list[model.RecordWithPGC] = []
         for (pgc, record_id), catalog_objects in record_data.items():
             record_info = model.Record(id=record_id, data=catalog_objects)
-            objects.append(model.RecordWithPGC(pgc, record_info))
+            records.append(model.RecordWithPGC(pgc, record_info))
 
-        return objects
+        return records
 
     def query_records(
         self,
@@ -130,13 +130,13 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             cte_query = f"""
             {alias} AS (
-                SELECT object_id, {", ".join(catalog_columns)}
+                SELECT record_id, {", ".join(catalog_columns)}
                 FROM {table_name_layer1}
             """
 
             cte_where_conditions = []
             if record_ids:
-                cte_where_conditions.append("object_id = ANY(%s)")
+                cte_where_conditions.append("record_id = ANY(%s)")
                 params.append(record_ids)
 
             if cte_where_conditions:
@@ -147,56 +147,56 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
             select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer1_keys()])
             select_parts.append(
-                f'CASE WHEN {alias}.object_id IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
+                f'CASE WHEN {alias}.record_id IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
             )
 
             if i == 0:
                 join_parts.append(f"FROM {alias}")
             else:
-                join_parts.append(f"FULL OUTER JOIN {alias} USING (object_id)")
+                join_parts.append(f"FULL OUTER JOIN {alias} USING (record_id)")
 
         if table_name:
-            where_conditions.append("layer0.objects.table_id = layer0.tables.id")
+            where_conditions.append("layer0.records.table_id = layer0.tables.id")
             where_conditions.append("layer0.tables.table_name = %s")
             params.append(table_name)
 
         if offset:
-            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.object_id" for i in range(len(catalogs))]) + ")"
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(catalogs))]) + ")"
             where_conditions.append(f"{coalesce_expr} > %s")
             params.append(offset)
 
         query = f"""
             WITH {", ".join(cte_parts)}
-            SELECT COALESCE({", ".join([f"t{i}.object_id" for i in range(len(catalogs))])}) AS object_id,
+            SELECT COALESCE({", ".join([f"t{i}.record_id" for i in range(len(catalogs))])}) AS record_id,
                    {", ".join(select_parts)}
             {" ".join(join_parts)}
         """
 
         if table_name:
-            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.object_id" for i in range(len(catalogs))]) + ")"
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(catalogs))]) + ")"
             query += f"""
-            JOIN layer0.objects ON {coalesce_expr} = layer0.objects.id
-            JOIN layer0.tables ON layer0.objects.table_id = layer0.tables.id
+            JOIN layer0.records ON {coalesce_expr} = layer0.records.id
+            JOIN layer0.tables ON layer0.records.table_id = layer0.tables.id
             """
 
         if where_conditions:
             query += f" WHERE {' AND '.join(where_conditions)}"
 
-        query += " ORDER BY object_id"
+        query += " ORDER BY record_id"
 
         if limit:
             query += " LIMIT %s"
             params.append(limit)
 
-        objects = self._storage.query(query, params=params)
+        records = self._storage.query(query, params=params)
 
-        return self._group_by_record_id(objects, catalogs)
+        return self._group_by_record_id(records, catalogs)
 
-    def _group_by_record_id(self, objects: list[dict], catalogs: list[model.RawCatalog]) -> list[model.Record]:
+    def _group_by_record_id(self, records: list[dict], catalogs: list[model.RawCatalog]) -> list[model.Record]:
         record_data: dict[str, list[model.CatalogObject]] = {}
 
-        for row in objects:
-            record_id = row["object_id"]
+        for row in records:
+            record_id = row["record_id"]
             if record_id not in record_data:
                 record_data[record_id] = []
 
