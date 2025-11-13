@@ -8,9 +8,15 @@ from app.lib.web.errors import DatabaseError
 
 
 class Layer0RecordRepository(postgres.TransactionalPGRepository):
-    def register_records(self, table_id: int, record_ids: list[str]) -> None:
+    def register_records(self, table_name: str, record_ids: list[str]) -> None:
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
+
+        table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        if table_id_row is None:
+            raise DatabaseError(f"unable to fetch table with name {table_name}")
+
+        table_id = table_id_row["id"]
 
         query = "INSERT INTO layer0.records (id, table_id) VALUES "
         params = []

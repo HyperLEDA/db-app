@@ -70,7 +70,7 @@ def create_bibliography(session: requests.Session) -> str:
 
 
 @lib.test_logging_decorator
-def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
+def create_table(session: requests.Session, bib_id: str) -> str:
     table_name = f"test_{str(uuid.uuid4())[:8]}"
 
     request_data = adminapi.CreateTableRequest(
@@ -106,15 +106,14 @@ def create_table(session: requests.Session, bib_id: str) -> tuple[int, str]:
 
     response = session.post("/v1/table", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
-    table_id = response.json()["data"]["id"]
 
-    return table_id, table_name
+    return table_name
 
 
 @lib.test_logging_decorator
 def upload_data(
     session: requests.Session,
-    table_id: int,
+    table_name: str,
     objects_num: int,
     ra_center: float,
     dec_center: float,
@@ -132,7 +131,7 @@ def upload_data(
     df = pandas.DataFrame.from_records(synthetic_data)
 
     request_data = adminapi.AddDataRequest(
-        table_id=table_id,
+        table_name=table_name,
         data=df.to_dict("records"),  # type: ignore
     )
 
@@ -357,10 +356,10 @@ def run():
     code = create_bibliography(adminapi)
 
     # ---- Create table with all `new` objects and upload it to layer 2 ----
-    table_id, table_name = create_table(adminapi, code)
+    table_name = create_table(adminapi, code)
     upload_data(
         adminapi,
-        table_id,
+        table_name,
         objects_num=OBJECTS_NUM,
         ra_center=COORD_RA_CENTER,
         dec_center=COORD_DEC_CENTER,
@@ -382,10 +381,10 @@ def run():
     check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
 
     # ---- Create table with all `existing` objects and upload it to layer 2 ----
-    table_id_2, table_name_2 = create_table(adminapi, code)
+    table_name_2 = create_table(adminapi, code)
     upload_data(
         adminapi,
-        table_id_2,
+        table_name_2,
         objects_num=OBJECTS_NUM,
         ra_center=COORD_RA_CENTER,
         dec_center=COORD_DEC_CENTER,
@@ -394,7 +393,7 @@ def run():
     )
     upload_data(
         adminapi,
-        table_id_2,
+        table_name_2,
         objects_num=SMALL_CLUSTER_OBJECTS_NUM,
         ra_center=SMALL_CLUSTER_RA_CENTER,
         dec_center=SMALL_CLUSTER_DEC_CENTER,
@@ -411,10 +410,10 @@ def run():
     layer2_import()
 
     # ---- Create table with `collided` objects ----
-    table_id_3, table_name_3 = create_table(adminapi, code)
+    table_name_3 = create_table(adminapi, code)
     upload_data(
         adminapi,
-        table_id_3,
+        table_name_3,
         objects_num=SMALL_CLUSTER_OBJECTS_NUM // 2,
         ra_center=SMALL_CLUSTER_RA_CENTER,
         dec_center=SMALL_CLUSTER_DEC_CENTER,

@@ -72,10 +72,6 @@ class CrossmatchTask(interface.Task):
         self.solver = crossmatch.create_solver(test_solver_config, solvers)
 
     def run(self):
-        table_meta = self.layer0_repo.fetch_metadata_by_name(self.table_name)
-        if table_meta.table_id is None:
-            raise RuntimeError(f"Table {self.table_name} has no table_id")
-
         ctx = {"table_name": self.table_name}
 
         offset = None

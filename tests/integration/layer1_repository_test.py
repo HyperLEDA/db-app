@@ -27,7 +27,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         ]
 
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.layer0_repo.create_table(
+        _ = self.layer0_repo.create_table(
             model.Layer0TableMeta(
                 "test_table",
                 [
@@ -40,7 +40,7 @@ class Layer1RepositoryTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             )
         )
-        self.layer0_repo.register_records(table_resp.table_id, ["111", "112"])
+        self.layer0_repo.register_records("test_table", ["111", "112"])
         self.layer1_repo.save_data(objects)
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")

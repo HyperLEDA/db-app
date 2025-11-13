@@ -35,17 +35,17 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def fetch_raw_data(
         self,
-        table_id: int,
+        table_name: str,
         offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
         limit: int | None = None,
     ) -> model.Layer0RawData:
-        return self.table_repo.fetch_raw_data(table_id, offset, columns, order_column, order_direction, limit)
+        return self.table_repo.fetch_raw_data(table_name, offset, columns, order_column, order_direction, limit)
 
-    def fetch_metadata(self, table_id: int) -> model.Layer0TableMeta:
-        return self.table_repo.fetch_metadata(table_id)
+    def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
+        return self.table_repo.fetch_metadata(table_name)
 
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata_by_name(table_name)
@@ -53,8 +53,8 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 
-    def register_records(self, table_id: int, record_ids: list[str]) -> None:
-        return self.records_repo.register_records(table_id, record_ids)
+    def register_records(self, table_name: str, record_ids: list[str]) -> None:
+        return self.records_repo.register_records(table_name, record_ids)
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.records_repo.get_table_statistics(table_name)
@@ -88,15 +88,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         return self.homogenization_repo.add_homogenization_params(params)
 
     def get_modifiers(self, table_name: str) -> list[model.Modifier]:
-        meta = self.fetch_metadata_by_name(table_name)
-        if meta.table_id is None:
-            raise RuntimeError(f"{table_name} has no table_id")
-
-        return self.modifier_repo.get_modifiers(meta.table_id)
+        return self.modifier_repo.get_modifiers(table_name)
 
     def add_modifier(self, table_name: str, modifiers: list[model.Modifier]) -> None:
-        meta = self.fetch_metadata_by_name(table_name)
-        if meta.table_id is None:
-            raise RuntimeError(f"{table_name} has no table_id")
-
-        return self.modifier_repo.add_modifiers(meta.table_id, modifiers)
+        return self.modifier_repo.add_modifiers(table_name, modifiers)

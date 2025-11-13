@@ -93,7 +93,7 @@ class CreateTableResponse(pydantic.BaseModel):
 
 
 class AddDataRequest(pydantic.BaseModel):
-    table_id: int
+    table_name: str
     data: list[dict[str, Any]] = pydantic.Field(
         description="""Actual data to append. 
 Keys in this dictionary must be a subset of the columns in the table. If not specified, column will be set to NULL.

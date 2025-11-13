@@ -10,7 +10,7 @@ from app.lib.storage import enums
 
 @dataclass
 class Layer0RawData:
-    table_id: int
+    table_name: str
     data: pandas.DataFrame
 
 

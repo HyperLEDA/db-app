@@ -32,9 +32,9 @@ class LayerTables0RepositoryTest(unittest.TestCase):
             self.bib_id,
         )
 
-        table_resp = self.layer0_repo.create_table(table_meta)
+        _ = self.layer0_repo.create_table(table_meta)
         test_data = pd.DataFrame({"ra": [12.1, 11.1], "dec": [1.0, 2.0]})
-        raw_data = model.Layer0RawData(table_resp.table_id, test_data)
+        raw_data = model.Layer0RawData(table_meta.table_name, test_data)
 
         self.layer0_repo.insert_raw_data(raw_data)
 
