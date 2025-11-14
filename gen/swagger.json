@@ -9,7 +9,7 @@
       "post": {
         "summary": "Add new data to the table",
         "description": "Inserts new data to the table.\nDeduplicates rows based on their contents.\nIf two rows were identical this method will only insert the last one.",
-        "operationId": "add_data_api_v1_table_data_post",
+        "operationId": "add_data",
         "requestBody": {
           "content": {
             "application/json": {
@@ -53,7 +53,7 @@
       "post": {
         "summary": "New internal source entry",
         "description": "Creates new source entry in the database for internal communication and unpublished articles.",
-        "operationId": "create_source_api_v1_source_post",
+        "operationId": "create_source",
         "requestBody": {
           "content": {
             "application/json": {
@@ -97,7 +97,7 @@
       "post": {
         "summary": "Get or create schema for the table.",
         "description": "Creates new schema for the table which can later be used to upload data.\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.",
-        "operationId": "create_table_api_v1_table_post",
+        "operationId": "create_table",
         "security": [
           {
             "APIKeyHeader": []
@@ -139,7 +139,7 @@
       "get": {
         "summary": "Retrieve table information",
         "description": "Fetches details about a specific table using the provided table name",
-        "operationId": "get_table_api_v1_table_get",
+        "operationId": "get_table",
         "parameters": [
           {
             "name": "table_name",
@@ -177,7 +177,7 @@
       "patch": {
         "summary": "Patch table schema",
         "description": "Patch the schema of the table, including column UCDs and units.",
-        "operationId": "patch_table_api_v1_table_patch",
+        "operationId": "patch_table",
         "security": [
           {
             "APIKeyHeader": []
@@ -221,7 +221,7 @@
       "post": {
         "summary": "Login",
         "description": "Authenticates user and returns token",
-        "operationId": "login_api_v1_login_post",
+        "operationId": "login",
         "requestBody": {
           "content": {
             "application/json": {
@@ -260,7 +260,7 @@
       "post": {
         "summary": "New marking rules for the table",
         "description": "Creates new marking rules to map the columns in the table to catalog parameters. \nFor a given table a marking would consist of the mapping between catalog parameters \nand the columns from the original table.\n\nFor example, if one wants to create a marking for a column `object_name` that designates the name of an object,\nthey should create a catalog entry similar to the following:\n```json\n{\n    \"name\": \"designation\",\n    \"parameters\": {\n        \"design\": {\n            \"column_name\": \"object_name\"\n        }\n    }\n}\n```\n\nHere, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`\nvalues are actual names of the columns under question. **For now, only one column per parameter is supported.**\n\nIt is possible to create several catalog entries for a single object, for example - is there are two columns\nthat represent a name of an object. In that case we might want to upload both names to the database so it is\neasier to cross-identify and search these objects later. Another use case might be if there are several columns\nthat represent photometric information in different filters. In that case one might want to create one entry\nfor each of the magnitude columns.\n\nIn that case you can specify several entries into `rules` list with different values of `key`. For example:\n\n```json\n{\n    \"table_name\": \"my_table\",\n    \"rules\": [\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"object_name\"\n                }\n            },\n            \"key\": \"primary_name\"\n        },\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"secondary_object_name\"\n                }\n            },\n            \"key\": \"secondary_name\"\n        }\n    ]\n}\n```\n\nThe result of this would be two entries into the `designation` catalog for each object in the original table.\n\nThis handler also supports additional parameters that are not present in the original table. For example, a\ntable might not have a separate column for astrometric errors but from other sources you know that its error is\n0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the\n`additional_params` field for each catalog:\n\n```json\n{\n    \"name\": \"icrs\",\n    \"parameters\": {\n        \"ra\": {\n            \"column_name\": \"RAJ2000\"\n        },\n        \"dec\": {\n            \"column_name\": \"DEJ2000\"\n        }\n    },\n    \"additional_params\": {\n        \"e_ra\": 0.1,\n        \"e_dec\": 0.5\n    }\n}\n```",
-        "operationId": "create_marking_api_v1_marking_post",
+        "operationId": "create_marking",
         "requestBody": {
           "content": {
             "application/json": {
@@ -304,7 +304,7 @@
       "get": {
         "summary": "Get crossmatch records",
         "description": "Retrieves crossmatch records for a specific table with optional filtering.",
-        "operationId": "get_crossmatch_records_api_v1_records_crossmatch_get",
+        "operationId": "get_crossmatch_records",
         "parameters": [
           {
             "name": "table_name",
@@ -380,7 +380,7 @@
       "get": {
         "summary": "Get record crossmatch details",
         "description": "Retrieves detailed crossmatch information for a specific record.",
-        "operationId": "get_record_crossmatch_api_v1_record_crossmatch_get",
+        "operationId": "get_record_crossmatch",
         "parameters": [
           {
             "name": "record_id",
