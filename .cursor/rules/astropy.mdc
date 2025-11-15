@@ -6,30 +6,16 @@ alwaysApply: true
 
 # Astropy Package Guidelines
 
-## Units Usage
-
-When using astropy units, use runtime units determination instead of direct attribute access.
-
-**Preferred:**
+When using `astropy` units, use runtime units determination instead of direct attribute access. In particular:
 
 ```python
 from astropy import units as u
 
-# Usage
+# prefer
 u.Unit("kpc")
 u.Unit("km/s")
-u.Unit("arcsec")
-```
 
-**Avoid:**
-
-```python
-from astropy import units as u
-
-# Usage
+# avoid
 u.kpc
 u.km / u.s
-u.arcsec
 ```
-
-This approach provides better runtime flexibility and avoids potential linter issues.

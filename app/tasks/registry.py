@@ -1,11 +1,13 @@
 from typing import Any
 
-from app.tasks import crossmatch, interface, layer1_import, layer2_import, process
+import structlog
+
+from app.tasks import crossmatch, interface, layer0_marking, layer2_import, submit_crossmatch
 
 tasks: list[type[interface.Task]] = [
     crossmatch.CrossmatchTask,
-    process.ProcessTask,
-    layer1_import.Layer1ImportTask,
+    layer0_marking.Layer0MarkingTask,
+    submit_crossmatch.SubmitCrossmatchTask,
     layer2_import.Layer2ImportTask,
 ]
 
@@ -16,8 +18,10 @@ def list_tasks() -> list[str]:
     return [task.name() for task in tasks]
 
 
-def get_task(task_name: str, params: dict[str, Any]) -> interface.Task:
+def get_task(task_name: str, logger: structlog.stdlib.BoundLogger, params: dict[str, Any]) -> interface.Task:
     if task_name not in task_by_name:
         raise ValueError(f"Unknown task: {task_name}")
+
+    params["logger"] = logger
 
     return task_by_name[task_name](**params)

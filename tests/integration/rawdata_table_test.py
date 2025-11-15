@@ -63,7 +63,7 @@ class RawDataTableTest(unittest.TestCase):
 
         self.manager.add_data(
             presentation.AddDataRequest(
-                table_id=table_resp.id,
+                table_name="test_table",
                 data=[
                     {"ra": 5.5, "dec": 88},
                     {"ra": 5.0, "dec": -50},
@@ -111,7 +111,7 @@ class RawDataTableTest(unittest.TestCase):
 
         self.manager.add_data(
             presentation.AddDataRequest(
-                table_id=table_resp.id,
+                table_name="test_table",
                 data=[{"ra": 5.5}, {"ra": 5.0}],
             ),
         )
@@ -193,7 +193,7 @@ class RawDataTableTest(unittest.TestCase):
         with self.assertRaises(psycopg.errors.UndefinedColumn):
             self.manager.add_data(
                 presentation.AddDataRequest(
-                    table_id=table_resp.id,
+                    table_name="test_table",
                     data=[{"totally_nonexistent_column": 5.5}],
                 ),
             )
@@ -201,7 +201,7 @@ class RawDataTableTest(unittest.TestCase):
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
         bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        table_resp = self.manager.layer0_repo.create_table(
+        _ = self.manager.layer0_repo.create_table(
             model.Layer0TableMeta(
                 "test_table",
                 [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
@@ -209,12 +209,12 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self.manager.layer0_repo.insert_raw_data(model.Layer0RawData(table_resp.table_id, data))
-        expected = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id)
+        self.manager.layer0_repo.insert_raw_data(model.Layer0RawData("test_table", data))
+        expected = self.manager.layer0_repo.fetch_raw_data("test_table")
 
         self.assertTrue(expected.data.equals(data))
 
-        expected = self.manager.layer0_repo.fetch_raw_data(table_resp.table_id, columns=["col1"])
+        expected = self.manager.layer0_repo.fetch_raw_data("test_table", columns=["col1"])
         self.assertTrue(expected.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
@@ -226,9 +226,9 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        table_resp = self.manager.layer0_repo.create_table(expected)
+        _ = self.manager.layer0_repo.create_table(expected)
 
-        actual = self.manager.layer0_repo.fetch_metadata(table_resp.table_id)
+        actual = self.manager.layer0_repo.fetch_metadata("test_table")
 
         self.assertEqual(expected.table_name, actual.table_name)
         self.assertEqual(expected.column_descriptions, actual.column_descriptions)

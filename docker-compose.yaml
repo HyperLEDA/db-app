@@ -13,11 +13,6 @@ services:
       interval: 5s
       retries: 5
 
-  redis:
-    image: redis:7
-    ports:
-       - "6379:6379"
-
   migrate:
     build: 
       dockerfile: postgres/dockerfile

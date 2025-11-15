@@ -57,9 +57,15 @@ def dataapi(config: str):
     type=str,
     help="Path to input data file",
 )
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    default="info",
+    help="Set the logging level",
+)
 @click.argument("task_args", nargs=-1, type=click.UNPROCESSED)
-def runtask(task_name: str, config: str, input_data: str | None, task_args: tuple[str, ...]):
-    commands.run(RunTaskCommand(task_name, config, input_data, None, task_args))
+def runtask(task_name: str, config: str, input_data: str | None, log_level: str, task_args: tuple[str, ...]):
+    commands.run(RunTaskCommand(task_name, config, input_data, None, task_args, log_level))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())

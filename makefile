@@ -61,6 +61,13 @@ build-docs:
 		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs build
 
+cleanup:
+	rm -rf uv.lock .venv \
+		.pytest_cache .mypy_cache .vizier_cache .ruff_cache \
+		__pycache__ */__pycache__ \
+		.coverage htmlcov site \
+		docs/gen
+
 ## Testing
 
 check:
@@ -95,7 +102,7 @@ fix:
 fix-unsafe:
 	uvx ruff check --config=pyproject.toml --unsafe-fixes --fix
 
-## Deploy
+## Release
 
 GIT_VERSION = `git rev-parse --short master`
 
@@ -106,9 +113,3 @@ image-build:
 image-push:
 	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
 	docker push ghcr.io/hyperleda/hyperleda:latest
-
-deploy-test:
-	uv run infra/deploy.py infra/settings/test.yaml
-
-deploy-prod:
-	uv run infra/deploy.py infra/settings/prod.yaml

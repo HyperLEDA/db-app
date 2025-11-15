@@ -43,10 +43,9 @@ class Layer0RepositoryTest(unittest.TestCase):
         ]
     )
     def test_fetch_raw_data(self, name: str, kwargs: dict, expected_query: str):
-        lib.returns(self.storage_mock.query_one, {"table_name": "ironman"})
         lib.returns(self.storage_mock.query, {"haha": [1, 2]})
 
-        _ = self.repo.fetch_raw_data(10, **kwargs)
+        _ = self.repo.fetch_raw_data("ironman", **kwargs)
         args, _ = self.storage_mock.query.call_args
 
         def transform(s):

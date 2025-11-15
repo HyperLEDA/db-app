@@ -54,12 +54,12 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
                 expected_objects=[
-                    model.Layer0Object(
-                        object_id="id1",
+                    model.Record(
+                        id="id1",
                         data=[model.DesignationCatalogObject(design="obj1")],
                     ),
-                    model.Layer0Object(
-                        object_id="id2",
+                    model.Record(
+                        id="id2",
                         data=[model.DesignationCatalogObject(design="obj2")],
                     ),
                 ],
@@ -81,12 +81,12 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
                 expected_objects=[
-                    model.Layer0Object(
-                        object_id="id1",
+                    model.Record(
+                        id="id1",
                         data=[model.DesignationCatalogObject(design="obj1_s")],
                     ),
-                    model.Layer0Object(
-                        object_id="id2",
+                    model.Record(
+                        id="id2",
                         data=[model.DesignationCatalogObject(design="obj2_s")],
                     ),
                 ],
@@ -113,12 +113,12 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
                 expected_objects=[
-                    model.Layer0Object(
-                        object_id="id1",
+                    model.Record(
+                        id="id1",
                         data=[model.DesignationCatalogObject(design="obj1")],
                     ),
-                    model.Layer0Object(
-                        object_id="id2",
+                    model.Record(
+                        id="id2",
                         data=[model.DesignationCatalogObject(design="obj2")],
                     ),
                 ],
@@ -185,15 +185,15 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
                 expected_objects=[
-                    model.Layer0Object(
-                        object_id="id1",
+                    model.Record(
+                        id="id1",
                         data=[
                             model.ICRSCatalogObject(ra=10.0, dec=30.0, e_ra=0.11, e_dec=0.11),
                             model.DesignationCatalogObject(design="obj1"),
                         ],
                     ),
-                    model.Layer0Object(
-                        object_id="id2",
+                    model.Record(
+                        id="id2",
                         data=[
                             model.ICRSCatalogObject(ra=20.0, dec=40.0, e_ra=0.12, e_dec=0.12),
                             model.DesignationCatalogObject(design="obj2"),
@@ -218,15 +218,15 @@ class HomogenizationTest(unittest.TestCase):
                     ),
                 ],
                 expected_objects=[
-                    model.Layer0Object(
-                        object_id="id1",
+                    model.Record(
+                        id="id1",
                         data=[
                             model.DesignationCatalogObject(design="obj1"),
                             model.DesignationCatalogObject(design="obj1_s"),
                         ],
                     ),
-                    model.Layer0Object(
-                        object_id="id2",
+                    model.Record(
+                        id="id2",
                         data=[
                             model.DesignationCatalogObject(design="obj2"),
                             model.DesignationCatalogObject(design="obj2_s"),
@@ -241,7 +241,7 @@ class HomogenizationTest(unittest.TestCase):
         name: str,
         rules: list[homogenization.Rule],
         params: list[homogenization.Params] | None = None,
-        expected_objects: list[model.Layer0Object] | None = None,
+        expected_objects: list[model.Record] | None = None,
         err_substr: str | None = None,
     ):
         h = homogenization.get_homogenization(rules, params or [], self.table_meta)

@@ -11,12 +11,12 @@ This project uses `uv` for package management. `uv` manages virtual environments
 When running Python scripts or commands, always use `uv run` instead of raw `python` or `python3`:
 
 ```bash
-# Correct - use uv run
+# Correct
 uv run python script.py
 uv run python -c "print('Hello World')"
 uv run python -m pytest
 
-# Incorrect - don't use raw python
+# Incorrect
 python script.py
 python3 script.py
 ```

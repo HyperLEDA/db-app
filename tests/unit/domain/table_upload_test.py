@@ -25,7 +25,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
     def test_add_data(self):
         request = presentation.AddDataRequest(
-            table_id=42,
+            table_name="test_table",
             data=[
                 {
                     "test": "row",
@@ -46,12 +46,12 @@ class TableUploadManagerTest(unittest.TestCase):
         self.assertListEqual(list(request.args[0].data["number"]), [41, 43])
         self.assertListEqual(
             list(request.args[0].data["hyperleda_internal_id"]),
-            ["e75d9505-36d1-26c6-23e9-54f663ce35a2", "27fb0c18-b72b-3457-0bff-56b40182638a"],
+            ["1b4bbb6e-27d8-f7b8-2a5e-3a37b1c3248e", "a62b5fd9-9b6a-964c-406d-3fa4fc3471d7"],
         )
 
     def test_add_data_identical_rows(self):
         request = presentation.AddDataRequest(
-            table_id=42,
+            table_name="test_table",
             data=[
                 {
                     "test": "row",

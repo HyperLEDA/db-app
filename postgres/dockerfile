@@ -1,6 +1,5 @@
-FROM postgis/postgis:17-3.5
+FROM python:3.12-slim-bookworm
 
 RUN apt-get update
-RUN apt-get install python3-pip libpq-dev -y
-RUN apt-get install jq -y
-RUN pip3 install yandex-pgmigrate
+RUN apt-get install jq libpq-dev build-essential -y
+RUN pip install yandex-pgmigrate

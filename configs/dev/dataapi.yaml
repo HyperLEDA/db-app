@@ -7,7 +7,7 @@ storage:
   port: 6432
   dbname: hyperleda
   user: hyperleda
-  password: fake
+  password: password
 
 catalogs:
   velocity:

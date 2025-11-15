@@ -7,41 +7,43 @@ from app.data.model.helpers import (
     new_catalog_object,
 )
 from app.data.model.icrs import ICRSCatalogObject
-from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog
-from app.data.model.layer0 import (
+from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
+from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.records import (
     CIResult,
     CIResultObjectCollision,
     CIResultObjectExisting,
     CIResultObjectNew,
+    Record,
+    RecordCrossmatch,
+    RecordWithPGC,
+)
+from app.data.model.redshift import RedshiftCatalogObject
+from app.data.model.table import (
     ColumnDescription,
     HomogenizationParams,
     HomogenizationRule,
     Layer0CreationResponse,
-    Layer0Object,
-    Layer0ProcessedObject,
     Layer0RawData,
     Layer0TableMeta,
     Modifier,
     TableStatistics,
 )
-from app.data.model.layer1 import Layer1Observation, Layer1PGCObservation
-from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
-from app.data.model.redshift import RedshiftCatalogObject
 
 __all__ = [
-    "Layer0Object",
-    "Layer0ProcessedObject",
+    "RecordCrossmatch",
     "Layer0RawData",
     "Layer0TableMeta",
     "Layer0CreationResponse",
     "ColumnDescription",
     "TableStatistics",
+    "get_object",
     "CIResult",
     "CIResultObjectCollision",
     "CIResultObjectExisting",
     "CIResultObjectNew",
-    "Layer1Observation",
-    "Layer1PGCObservation",
+    "RecordWithPGC",
+    "Record",
     "Layer2CatalogObject",
     "Layer2Object",
     "RawCatalog",

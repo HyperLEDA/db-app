@@ -6,29 +6,18 @@ alwaysApply: true
 
 # Testing Guide
 
-The project provides several different commands depending on your needs:
-
-## Quick Tests
-
-For small features or changes that affect a single component, use:
+The project provides several different commands depending on your needs. For small features or changes that affect a single component, use:
 
 ```bash
 make test
 ```
 
-This command runs:
+This command runs unit tests and style/lint checks.
 
-- Unit tests
-- Style/lint checks
-
-## Fixing Style/Lint Issues
-
-When style/lint check failures are encountered, use:
+When style/lint check failures are encountered, always use:
 
 ```bash
 make fix
 ```
 
-This command automatically fixes most style and linting issues in the codebase.
-
-You can run these commands freely whenever you need to test something.
+You should only fix style/lint issues by yourself if this command shows an error.

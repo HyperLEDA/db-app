@@ -1,9 +1,9 @@
 from typing import Any, Self, final
 
-import astropy.constants
 from astropy import units as u
 
 from app.data.model import interface
+from app.lib import astronomy
 
 
 @final
@@ -21,20 +21,20 @@ class RedshiftCatalogObject(interface.CatalogObject):
         cls,
         cz: u.Quantity | None = None,
         z: float | None = None,
-        e_cz: u.Quantity | float | None = None,
+        e_cz: u.Quantity | None = None,
         e_z: float | None = None,
     ) -> Self:
         if not interface.is_nan(cz):
-            data_cz = cz.to("m/s").value
+            data_cz = astronomy.to(cz, "m/s")
         elif not interface.is_nan(z):
-            data_cz = (z * astropy.constants.c).to("m/s").value
+            data_cz = astronomy.to(z * astronomy.const("c"), "m/s")
         else:
             raise ValueError("neither z nor cz is specified")
 
         if not interface.is_nan(e_cz):
-            data_e_cz = e_cz.to("m/s").value
+            data_e_cz = astronomy.to(e_cz, "m/s")
         elif not interface.is_nan(e_z):
-            data_e_cz = (e_z * astropy.constants.c).to("m/s").value
+            data_e_cz = astronomy.to(e_z * astronomy.const("c"), "m/s")
         else:
             raise ValueError("neither e_z nor e_cz is specified")
 

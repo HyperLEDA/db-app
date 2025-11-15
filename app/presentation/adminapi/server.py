@@ -57,18 +57,24 @@ class API:
         response = self.actions.login(request)
         return server.APIOkResponse(data=response)
 
-    def table_status_stats(
-        self, request: Annotated[interface.TableStatusStatsRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[interface.TableStatusStatsResponse]:
-        response = self.actions.table_status_stats(request)
-        return server.APIOkResponse(data=response)
-
     def create_marking(
         self,
         request: interface.CreateMarkingRequest,
         token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateMarkingResponse]:
         response = self.actions.create_marking(request)
+        return server.APIOkResponse(data=response)
+
+    def get_crossmatch_records(
+        self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.GetRecordsCrossmatchResponse]:
+        response = self.actions.get_crossmatch_records(request)
+        return server.APIOkResponse(data=response)
+
+    def get_record_crossmatch(
+        self, request: Annotated[interface.GetRecordCrossmatchRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.GetRecordCrossmatchResponse]:
+        response = self.actions.get_record_crossmatch(request)
         return server.APIOkResponse(data=response)
 
 
@@ -127,15 +133,6 @@ of the previously created table without any alterations.""",
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
-            ),
-            server.Route(
-                "/v1/table/status/stats",
-                http.HTTPMethod.GET,
-                api.table_status_stats,
-                "Get statistics on table processing",
-                """Accesses the current status of the processing of a given table.
-Returns the distribution of objects by processing status.
-If there are no objects with the given status, it will not be present in the response.""",
             ),
             server.Route(
                 "/v1/marking",
@@ -220,6 +217,20 @@ table might not have a separate column for astrometric errors but from other sou
     }
 }
 ```""",
+            ),
+            server.Route(
+                "/v1/records/crossmatch",
+                http.HTTPMethod.GET,
+                api.get_crossmatch_records,
+                "Get crossmatch records",
+                """Retrieves crossmatch records for a specific table with optional filtering.""",
+            ),
+            server.Route(
+                "/v1/record/crossmatch",
+                http.HTTPMethod.GET,
+                api.get_record_crossmatch,
+                "Get record crossmatch details",
+                """Retrieves detailed crossmatch information for a specific record.""",
             ),
         ]
 

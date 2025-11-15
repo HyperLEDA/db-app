@@ -1,6 +1,6 @@
 from typing import final
 
-from app.data.model import designation, layer0, layer2
+from app.data import model
 from app.domain.unification.crossmatch import CIMatcher
 
 
@@ -30,9 +30,9 @@ class LevenshteinMatcher:
     def __init__(self, max_distance: int):
         self.max_distance = max_distance
 
-    def __call__(self, object1: layer0.Layer0Object, object2: layer2.Layer2Object) -> float:
-        name1 = object1.get(designation.DesignationCatalogObject)
-        name2 = object2.get(designation.DesignationCatalogObject)
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
+        name1 = record1.get(model.DesignationCatalogObject)
+        name2 = record2.get(model.DesignationCatalogObject)
 
         if name1 is None or name2 is None:
             return 0.0

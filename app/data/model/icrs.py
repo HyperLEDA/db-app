@@ -4,6 +4,7 @@ from astropy import coordinates
 from astropy import units as u
 
 from app.data.model import interface
+from app.lib import astronomy
 
 
 @final
@@ -39,7 +40,12 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
 
-        return cls(coords.ra.deg, coords.dec.deg, e_ra.to(u.Unit("deg")).value, e_dec.to(u.Unit("deg")).value)
+        return cls(
+            astronomy.to(coords.ra, "deg"),
+            astronomy.to(coords.dec, "deg"),
+            astronomy.to(e_ra, "deg"),
+            astronomy.to(e_dec, "deg"),
+        )
 
     def layer0_data(self) -> dict[str, Any]:
         return {

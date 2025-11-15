@@ -19,7 +19,7 @@ class Layer2ImportTest(unittest.TestCase):
         cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
-        cls.task = layer2_import.Layer2ImportTask()
+        cls.task = layer2_import.Layer2ImportTask(structlog.get_logger())
         cls.task.prepare(tasks.Config(storage=cls.pg_storage.config))
 
     def tearDown(self):
@@ -36,19 +36,30 @@ class Layer2ImportTest(unittest.TestCase):
         return table_resp.table_id
 
     def test_import_two_catalogs(self):
-        table_id = self._get_table("test_import_two_catalogs")
-        self.layer0_repo.upsert_objects(
-            table_id,
-            [model.Layer0Object("123", []), model.Layer0Object("124", [])],
+        _ = self._get_table("test_import_two_catalogs")
+        self.layer0_repo.register_records(
+            "test_import_two_catalogs",
+            ["123", "124"],
         )
 
+        self.common_repo.register_pgcs([1234, 1245])
         self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
         self.layer1_repo.save_data(
             [
-                model.Layer1Observation("123", model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2)),
-                model.Layer1Observation("124", model.ICRSCatalogObject(ra=14, e_ra=0.2, dec=15, e_dec=0.2)),
-                model.Layer1Observation("123", model.DesignationCatalogObject("test1")),
-                model.Layer1Observation("124", model.DesignationCatalogObject("test2")),
+                model.Record(
+                    id="123",
+                    data=[
+                        model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2),
+                        model.DesignationCatalogObject("test1"),
+                    ],
+                ),
+                model.Record(
+                    id="124",
+                    data=[
+                        model.ICRSCatalogObject(ra=14, e_ra=0.2, dec=15, e_dec=0.2),
+                        model.DesignationCatalogObject("test2"),
+                    ],
+                ),
             ]
         )
 
@@ -69,10 +80,10 @@ class Layer2ImportTest(unittest.TestCase):
 
     def test_updated_objects(self):
         self.test_import_two_catalogs()
-        table_id = self._get_table("test_updated_objects")
-        self.layer0_repo.upsert_objects(
-            table_id,
-            [model.Layer0Object("125", []), model.Layer0Object("126", [])],
+        _ = self._get_table("test_updated_objects")
+        self.layer0_repo.register_records(
+            "test_updated_objects",
+            ["125", "126"],
         )
         self.layer0_repo.upsert_pgc({"125": 1234, "126": 1234})
 
@@ -80,8 +91,8 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.layer1_repo.save_data(
             [
-                model.Layer1Observation("125", model.DesignationCatalogObject("test3")),
-                model.Layer1Observation("126", model.DesignationCatalogObject("test3")),
+                model.Record("125", [model.DesignationCatalogObject("test3")]),
+                model.Record("126", [model.DesignationCatalogObject("test3")]),
             ]
         )
 

@@ -12,7 +12,7 @@ from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
 from app.domain import homogenization
-from app.lib import clients
+from app.lib import clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
@@ -79,16 +79,25 @@ class TableUploadManager:
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_id), axis=1)
+        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
         data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self.layer0_repo.with_tx():
-            self.layer0_repo.insert_raw_data(
+            errgr = concurrency.ErrorGroup()
+            errgr.run(
+                self.layer0_repo.insert_raw_data,
                 model.Layer0RawData(
-                    table_id=r.table_id,
+                    table_name=r.table_name,
                     data=data_df,
                 ),
             )
+            errgr.run(
+                self.layer0_repo.register_records,
+                r.table_name,
+                record_ids=data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist(),
+            )
+
+            errgr.wait()
 
         return adminapi.AddDataResponse()
 
@@ -155,11 +164,16 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        rows_num = self.layer0_repo.get_table_statistics(meta.table_id).total_original_rows
+        table_stats = self.layer0_repo.get_table_statistics(r.table_name)
+        rows_num = table_stats.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
         hom = get_homogenization(self.layer0_repo, meta)
         mapping = hom.get_column_mapping()
+
+        statistics = None
+        if table_stats.statuses:
+            statistics = table_stats.statuses
 
         return adminapi.GetTableResponse(
             id=meta.table_id,
@@ -172,6 +186,7 @@ class TableUploadManager:
                 adminapi.MarkingRule(catalog=catalog.value, key=key, columns=data)
                 for ((catalog, key), data) in mapping.items()
             ],
+            statistics=statistics,
         )
 
 
@@ -217,7 +232,7 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
         res.append(
             adminapi.ColumnDescription(
                 name=col.name,
-                data_type=col.data_type,
+                data_type=adminapi.DatatypeEnum[col.data_type],
                 ucd=col.ucd,
                 unit=col.unit.to_string() if col.unit is not None else None,
                 description=col.description,
@@ -227,7 +242,7 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
     return res
 
 
-def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
+def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:
         """
         This function applies special algorithm to an iterable to compute stable hash.
@@ -241,7 +256,7 @@ def _get_hash_func(table_id: int) -> Callable[[pandas.Series], str]:
         data = sorted(data, key=lambda t: t[0])
         data_string = json.dumps(data, separators=(",", ":"))
 
-        return _hashfunc(f"{table_id}_{data_string}")
+        return _hashfunc(f"{table_name}_{data_string}")
 
     return _compute_hash
 

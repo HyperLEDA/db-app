@@ -1,10 +1,22 @@
 import warnings
 
+from astropy import constants
 from astropy import units as u
 from uncertainties import ufloat
 from uncertainties.umath import cos, sin  # type: ignore
 
 warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
+
+
+def const(const_name: str) -> u.Quantity:
+    return getattr(constants, const_name)
+
+
+def to(value: u.Quantity, unit: str | None = None) -> float:
+    if unit is None:
+        return value.value
+
+    return float(value.to(u.Unit(unit)).value)
 
 
 def velocity_wr_apex(
@@ -45,12 +57,12 @@ def velocity_wr_apex(
     lon_apex = lon_apex.to(u.Unit("rad"))
     lat_apex = lat_apex.to(u.Unit("rad"))
 
-    vel_err_val = vel_err.to(u.Unit("km/s")).value if vel_err is not None else 0.0
-    lon_err_val = lon_err.to(u.Unit("rad")).value if lon_err is not None else 0.0
-    lat_err_val = lat_err.to(u.Unit("rad")).value if lat_err is not None else 0.0
-    vel_apex_err_val = vel_apex_err.to(u.Unit("km/s")).value if vel_apex_err is not None else 0.0
-    lon_apex_err_val = lon_apex_err.to(u.Unit("rad")).value if lon_apex_err is not None else 0.0
-    lat_apex_err_val = lat_apex_err.to(u.Unit("rad")).value if lat_apex_err is not None else 0.0
+    vel_err_val = to(vel_err, "km/s") if vel_err is not None else 0.0
+    lon_err_val = to(lon_err, "rad") if lon_err is not None else 0.0
+    lat_err_val = to(lat_err, "rad") if lat_err is not None else 0.0
+    vel_apex_err_val = to(vel_apex_err, "km/s") if vel_apex_err is not None else 0.0
+    lon_apex_err_val = to(lon_apex_err, "rad") if lon_apex_err is not None else 0.0
+    lat_apex_err_val = to(lat_apex_err, "rad") if lat_apex_err is not None else 0.0
 
     vel_u = ufloat(vel.value, vel_err_val)
     lon_u = ufloat(lon.value, lon_err_val)

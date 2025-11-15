@@ -1,5 +1,4 @@
 import abc
-import datetime
 import enum
 from typing import Annotated, Any
 
@@ -7,21 +6,6 @@ import pydantic
 from astropy import units as u
 
 from app.lib.storage import enums, mapping
-
-
-class GetTaskInfoRequest(pydantic.BaseModel):
-    task_id: int
-
-
-class GetTaskInfoResponse(pydantic.BaseModel):
-    id: int | None
-    task_name: str
-    status: str
-    payload: dict[str, Any]
-    start_time: datetime.datetime | None
-    end_time: datetime.datetime | None
-    message: dict[str, Any] | None
-
 
 DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
@@ -81,6 +65,7 @@ class GetTableResponse(pydantic.BaseModel):
     meta: dict[str, Any]
     bibliography: Bibliography
     marking_rules: list[MarkingRule]
+    statistics: dict[enums.RecordCrossmatchStatus, int] | None = None
 
 
 class CreateTableRequest(pydantic.BaseModel):
@@ -108,7 +93,7 @@ class CreateTableResponse(pydantic.BaseModel):
 
 
 class AddDataRequest(pydantic.BaseModel):
-    table_id: int
+    table_name: str
     data: list[dict[str, Any]] = pydantic.Field(
         description="""Actual data to append. 
 Keys in this dictionary must be a subset of the columns in the table. If not specified, column will be set to NULL.
@@ -142,34 +127,6 @@ class PatchTableRequest(pydantic.BaseModel):
 
 
 class PatchTableResponse(pydantic.BaseModel):
-    pass
-
-
-class CrossIdentification(pydantic.BaseModel):
-    inner_radius_arcsec: float = 1.5
-    outer_radius_arcsec: float = 3
-
-
-class TableStatusStatsRequest(pydantic.BaseModel):
-    table_id: int
-
-
-class TableStatusStatsResponse(pydantic.BaseModel):
-    processing: dict[enums.ObjectCrossmatchStatus, int]
-
-
-class SetTableStatusOverrides(pydantic.BaseModel):
-    id: str
-    pgc: int | None = None
-
-
-class SetTableStatusRequest(pydantic.BaseModel):
-    table_id: int
-    overrides: list[SetTableStatusOverrides] | None = None
-    batch_size: int = 100
-
-
-class SetTableStatusResponse(pydantic.BaseModel):
     pass
 
 
@@ -217,6 +174,98 @@ class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
+class GetRecordsCrossmatchRequest(pydantic.BaseModel):
+    table_name: str
+    status: enums.RecordCrossmatchStatus | None = None
+    page: int = 0
+    page_size: int = 25
+
+
+class RecordCrossmatchMetadata(pydantic.BaseModel):
+    possible_matches: list[int] | None = None
+    pgc: int | None = None
+
+
+class EquatorialCoordinates(pydantic.BaseModel):
+    ra: float
+    dec: float
+    e_ra: float
+    e_dec: float
+
+
+class GalacticCoordinates(pydantic.BaseModel):
+    lon: float
+    lat: float
+    e_lon: float
+    e_lat: float
+
+
+class Coordinates(pydantic.BaseModel):
+    equatorial: EquatorialCoordinates
+    galactic: GalacticCoordinates
+
+
+class Designation(pydantic.BaseModel):
+    name: str
+
+
+class Redshift(pydantic.BaseModel):
+    z: float
+    e_z: float
+
+
+class HeliocentricVelocity(pydantic.BaseModel):
+    v: float
+    e_v: float
+
+
+class Velocity(pydantic.BaseModel):
+    heliocentric: HeliocentricVelocity
+
+
+class Catalogs(pydantic.BaseModel):
+    designation: Designation | None = None
+    coordinates: Coordinates | None = None
+    redshift: Redshift | None = None
+    velocity: Velocity | None = None
+
+
+class RecordCrossmatch(pydantic.BaseModel):
+    record_id: str
+    status: enums.RecordCrossmatchStatus
+    metadata: RecordCrossmatchMetadata
+    catalogs: Catalogs
+
+
+class UnitsSchema(pydantic.BaseModel):
+    coordinates: dict[str, dict[str, str]]
+    velocity: dict[str, dict[str, str]]
+
+
+class Schema(pydantic.BaseModel):
+    units: UnitsSchema
+
+
+class GetRecordsCrossmatchResponse(pydantic.BaseModel):
+    records: list[RecordCrossmatch]
+    schema_: Schema = pydantic.Field(..., alias="schema")
+
+
+class GetRecordCrossmatchRequest(pydantic.BaseModel):
+    record_id: str
+
+
+class PGCCandidate(pydantic.BaseModel):
+    pgc: int
+    catalogs: Catalogs
+
+
+class GetRecordCrossmatchResponse(pydantic.BaseModel):
+    crossmatch: RecordCrossmatch
+    candidates: list[PGCCandidate]
+    schema_: Schema = pydantic.Field(..., alias="schema")
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -239,17 +288,17 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def table_status_stats(self, request: TableStatusStatsRequest) -> TableStatusStatsResponse:
-        pass
-
-    @abc.abstractmethod
-    def get_task_info(self, request: GetTaskInfoRequest) -> GetTaskInfoResponse:
-        pass
-
-    @abc.abstractmethod
     def login(self, request: LoginRequest) -> LoginResponse:
         pass
 
     @abc.abstractmethod
     def create_marking(self, request: CreateMarkingRequest) -> CreateMarkingResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_record_crossmatch(self, request: GetRecordCrossmatchRequest) -> GetRecordCrossmatchResponse:
         pass

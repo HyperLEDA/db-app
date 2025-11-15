@@ -75,6 +75,7 @@ class WebServer:
                 methods=[route.method],
                 summary=route.summary,
                 description=route.description,
+                operation_id=route.handler.__name__,
                 response_model_exclude_none=True,
                 response_model_exclude_unset=True,
             )

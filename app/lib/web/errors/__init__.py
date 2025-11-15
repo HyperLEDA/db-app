@@ -1,7 +1,6 @@
 import abc
 
 INTERNAL_ERROR_CODE = "internal_error"
-LOGICAL_ERROR_CODE = "logical_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
 DATABASE_ERROR = "database_error"
@@ -41,20 +40,6 @@ class InternalError(APIError):
 
     def data(self) -> tuple[str, int, str]:
         return (INTERNAL_ERROR_CODE, 500, str(self.msg))
-
-
-class LogicalError(APIError):
-    """
-    Internal error that shows that something on the backend was logically wrong.
-    For example, integrity of internal database or some invariant was broken.
-    Usually indicates some bug in the code.
-    """
-
-    def __init__(self, message: str | Exception):
-        self.msg = message
-
-    def data(self) -> tuple[str, int, str]:
-        return (LOGICAL_ERROR_CODE, 500, str(self.msg))
 
 
 class RuleValidationError(APIError):

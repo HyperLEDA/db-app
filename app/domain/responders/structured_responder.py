@@ -1,6 +1,5 @@
 from typing import Any
 
-from astropy import constants
 from astropy import coordinates as coords
 from astropy import units as u
 
@@ -60,7 +59,7 @@ class StructuredResponder(interface.ObjectResponder):
         self.config = cfg
 
     def _heliocentric_to_redshift(self, cz: float) -> float:
-        return ((cz * u.Unit("m") / u.Unit("s")) / constants.c).value
+        return astronomy.to((cz * u.Unit("m") / u.Unit("s")) / astronomy.const("c"))
 
     def _equatorial(
         self,
@@ -69,8 +68,8 @@ class StructuredResponder(interface.ObjectResponder):
         e_ra: float,
         e_dec: float,
     ) -> tuple[float, float, float, float]:
-        e_ra = (e_ra * u.Unit("deg")).to(u.Unit("arcsec")).value
-        e_dec = (e_dec * u.Unit("deg")).to(u.Unit("arcsec")).value
+        e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
+        e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
 
         return ra, dec, e_ra, e_dec
 
@@ -82,10 +81,10 @@ class StructuredResponder(interface.ObjectResponder):
 
         # TODO: for simplicity this approach assumes errors in galactic coordinates to be the
         # same, which might not necessarily be true for larger erros.
-        lon = gal.l.to(u.Unit("deg")).value
-        lat = gal.b.to(u.Unit("deg")).value
-        e_lon = (e_ra * u.Unit("deg")).to(u.Unit("arcsec")).value
-        e_lat = (e_dec * u.Unit("deg")).to(u.Unit("arcsec")).value
+        lon = astronomy.to(gal.l, "deg")
+        lat = astronomy.to(gal.b, "deg")
+        e_lon = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
+        e_lat = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
 
         return lon, lat, e_lon, e_lat
 

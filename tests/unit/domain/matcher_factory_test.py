@@ -1,6 +1,6 @@
 import unittest
 
-from app.data.model import layer0, layer2
+from app.data import model
 from app.domain.unification.crossmatch.ci_types import CIMatcher
 from app.domain.unification.crossmatch.matcher import create_matcher
 
@@ -9,7 +9,7 @@ class DummyMatcher:
     def __init__(self, value: float):
         self.value = value
 
-    def __call__(self, object1: layer0.Layer0Object, object2: layer2.Layer2Object) -> float:
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
         return self.value
 
 
@@ -18,8 +18,8 @@ class DummyNestedMatcher:
         self.matcher = matcher
         self.multiplier = multiplier
 
-    def __call__(self, object1: layer0.Layer0Object, object2: layer2.Layer2Object) -> float:
-        return self.matcher(object1, object2) * self.multiplier
+    def __call__(self, record1: model.Record, record2: model.Layer2Object) -> float:
+        return self.matcher(record1, record2) * self.multiplier
 
 
 def dummy_matcher(value: float) -> CIMatcher:
