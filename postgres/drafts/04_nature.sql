@@ -1,5 +1,11 @@
 BEGIN;
 
+--------------------------------------------------
+-- The schema is based on two object type schemas:
+-- SIMBAD Object types: https://simbad.cds.unistra.fr/Pages/guide/otypes.htx
+-- HyperLeda nature of objects: http://atlas.obs-hp.fr/hyperleda/a115/
+--------------------------------------------------
+
 CREATE SCHEMA IF NOT EXISTS nature;
 COMMENT ON SCHEMA nature IS 'Nature of the object';
 
