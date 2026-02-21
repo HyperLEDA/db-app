@@ -13,17 +13,13 @@ from plugins.loader import discover_matchers, discover_solvers
 test_selector_config = {
     "type": "or",
     "filters": [
-        {"type": "coordinates_in_radius", "radius": 100 / 60 / 60},
+        {"type": "coordinates_in_radius", "radius": 30 / 60 / 60},
     ],
 }
 
 test_matcher_config = {
     "type": "and",
-    "matcher1": {
-        "type": "and",
-        "matcher1": {"type": "circle", "radius_arcsec": 100},
-        "matcher2": {"type": "ignore_no_name", "matcher": {"type": "levenshtein", "max_distance": 5}},
-    },
+    "matcher1": {"type": "circle", "radius_arcsec": 20},
     "matcher2": {
         "type": "ignore_no_redshift",
         "matcher": {"type": "velocity_close", "velocity_variance": 1000},
@@ -134,6 +130,8 @@ class CrossmatchTask(interface.Task):
 
             self.log.info(
                 "Completed batch",
+                layer1_selected=len(records),
+                layer2_selected=len(layer2_results),
                 new=f"{new_count / (new_count + existing_count + collision_count) * 100:.01f}%",
                 existing=f"{existing_count / (new_count + existing_count + collision_count) * 100:.01f}%",
                 collision=f"{collision_count / (new_count + existing_count + collision_count) * 100:.01f}%",
