@@ -30,8 +30,15 @@ class ICRSCatalogObject(interface.CatalogObject):
         e_dec: u.Quantity | None = None,
     ) -> Self:
         if not interface.is_nan(ra) and not interface.is_nan(dec):
-            ra_angle = coordinates.Angle(ra)
-            dec_angle = coordinates.Angle(dec)
+            if ra.unit is not None:
+                ra_angle = coordinates.Angle(ra, unit=ra.unit)
+            else:
+                ra_angle = coordinates.Angle(ra)
+
+            if dec.unit is not None:
+                dec_angle = coordinates.Angle(dec, unit=dec.unit)
+            else:
+                dec_angle = coordinates.Angle(dec)
         else:
             raise ValueError("no ra or dec values")
 
