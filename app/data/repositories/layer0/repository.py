@@ -52,6 +52,14 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata_by_name(table_name)
 
+    def search_tables(
+        self,
+        query: str,
+        page_size: int,
+        page: int,
+    ) -> list[model.Layer0TableListItem]:
+        return self.table_repo.search_tables(query, page_size, page)
+
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 

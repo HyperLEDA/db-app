@@ -164,6 +164,37 @@ def start_crossmatch(table_name: str):
 
 
 @lib.test_logging_decorator
+def check_table_list(session: requests.Session, table_name: str):
+    response = session.get("/v1/tables", params={"query": table_name})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "tables" in data
+    tables_list = data["tables"]
+    matching = [t for t in tables_list if t["name"] == table_name]
+    assert len(matching) >= 1, f"Expected at least one table with name {table_name}"
+    for item in tables_list:
+        assert "name" in item
+        assert "description" in item
+        assert "num_entries" in item
+        assert "num_fields" in item
+
+
+@lib.test_logging_decorator
+def check_get_table(session: requests.Session, table_name: str, expected_columns: int, expected_rows: int):
+    request_data = adminapi.GetTableRequest(table_name=table_name)
+    response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    table_info = response.json()["data"]
+    assert "id" in table_info
+    assert "description" in table_info
+    assert "column_info" in table_info
+    assert len(table_info["column_info"]) == expected_columns
+    assert table_info["rows_num"] == expected_rows
+    assert "bibliography" in table_info
+    assert "meta" in table_info
+
+
+@lib.test_logging_decorator
 def check_table_info(session: requests.Session, table_name: str):
     request_data = adminapi.GetTableRequest(table_name=table_name)
 
@@ -366,6 +397,9 @@ def run():
         radius=COORD_RADIUS,
         seed=test_seed,
     )
+
+    check_table_list(adminapi, table_name)
+    check_get_table(adminapi, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
     create_marking(adminapi, table_name)
     start_marking(table_name)
