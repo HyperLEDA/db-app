@@ -1,5 +1,6 @@
 import datetime
 import json
+from dataclasses import dataclass
 
 import numpy as np
 import pandas
@@ -13,6 +14,15 @@ from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
+
+@dataclass
+class QuantityMock:
+    values: pandas.Series
+    unit: u.Unit
+
+    def __getitem__(self, key):
+        return self.values[key]
 
 
 class Layer0TableRepository(postgres.TransactionalPGRepository):
@@ -153,8 +163,9 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                         values = u.Quantity(col.unit.to_physical(values), col.unit.physical_unit)
                     else:
                         values = u.Quantity(values, col.unit)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.warning("Unable to assign unit to column", error=e, column=col.name, unit=col.unit)
+                    values = QuantityMock(values, col.unit)
 
             tbl[col.name] = values
 

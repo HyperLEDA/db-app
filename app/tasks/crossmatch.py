@@ -13,17 +13,13 @@ from plugins.loader import discover_matchers, discover_solvers
 test_selector_config = {
     "type": "or",
     "filters": [
-        {"type": "coordinates_in_radius", "radius": 100 / 60 / 60},
+        {"type": "coordinates_in_radius", "radius": 30 / 60 / 60},
     ],
 }
 
 test_matcher_config = {
     "type": "and",
-    "matcher1": {
-        "type": "and",
-        "matcher1": {"type": "circle", "radius_arcsec": 100},
-        "matcher2": {"type": "ignore_no_name", "matcher": {"type": "levenshtein", "max_distance": 5}},
-    },
+    "matcher1": {"type": "circle", "radius_arcsec": 20},
     "matcher2": {
         "type": "ignore_no_redshift",
         "matcher": {"type": "velocity_close", "velocity_variance": 1000},
@@ -129,15 +125,24 @@ class CrossmatchTask(interface.Task):
 
             offset = records[-1].id
 
+            batch_new = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectNew))
+            batch_existing = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectExisting))
+            batch_collision = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectCollision))
+            total = new_count + existing_count + collision_count
             last_uuid = uuid.UUID(record.id or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
             self.log.info(
                 "Completed batch",
-                new=f"{new_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                existing=f"{existing_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                collision=f"{collision_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                total=new_count + existing_count + collision_count,
+                layer1_selected=len(records),
+                layer2_selected=len(layer2_results),
+                batch_new_count=batch_new,
+                batch_existing_count=batch_existing,
+                batch_collision_count=batch_collision,
+                new=f"{new_count / total * 100:.01f}%",
+                existing=f"{existing_count / total * 100:.01f}%",
+                collision=f"{collision_count / total * 100:.01f}%",
+                total=total,
                 very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
                 **ctx,
             )

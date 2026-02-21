@@ -62,7 +62,8 @@ class RunTaskCommand(commands.Command):
         self.task.run()
 
     def cleanup(self):
-        self.task.cleanup()
+        if hasattr(self, "task"):
+            self.task.cleanup()
 
     def _parse_task_args(self, task_args: tuple[str, ...]) -> dict[str, Any]:
         args_dict = {}

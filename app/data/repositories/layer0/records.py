@@ -1,4 +1,5 @@
 import json
+from collections.abc import Sequence
 
 from app.data import model, template
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
@@ -36,7 +37,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         limit: int,
         offset: str | None = None,
         table_name: str | None = None,
-        status: enums.RecordCrossmatchStatus | None = None,
+        status: Sequence[enums.RecordCrossmatchStatus] | None = None,
         record_id: str | None = None,
     ) -> list[model.RecordCrossmatch]:
         params = []
@@ -57,8 +58,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             params.append(offset)
 
         if status is not None:
-            where_stmnt.append("c.status = %s")
-            params.append(status)
+            statuses = list(status)
+            if statuses:
+                where_stmnt.append("c.status = ANY(%s)")
+                params.append([s.value for s in statuses])
 
         if record_id is not None:
             where_stmnt.append("o.id = %s")

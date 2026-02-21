@@ -5,7 +5,7 @@ import structlog
 
 from app.data import model, repositories
 from app.lib import containers
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.tasks import interface
 
 
@@ -15,7 +15,7 @@ class SubmitCrossmatchTask(interface.Task):
         self,
         logger: structlog.stdlib.BoundLogger,
         table_name: str,
-        batch_size: int,
+        batch_size: int = 500,
     ) -> None:
         self.table_name = table_name
         self.batch_size = batch_size
@@ -40,8 +40,12 @@ class SubmitCrossmatchTask(interface.Task):
             "",
             lambda d, _: d[-1].record.id,
             table_name=self.table_name,
+            status=[enums.RecordCrossmatchStatus.NEW, enums.RecordCrossmatchStatus.EXISTING],
             batch_size=self.batch_size,
         ):
+            batch_new = sum(1 for obj in data if isinstance(obj.processing_result, model.CIResultObjectNew))
+            batch_existing = sum(1 for obj in data if isinstance(obj.processing_result, model.CIResultObjectExisting))
+
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}
 
@@ -62,6 +66,8 @@ class SubmitCrossmatchTask(interface.Task):
                 "Processed batch",
                 last_object=offset,
                 updated=len(data),
+                batch_new_count=batch_new,
+                batch_existing_count=batch_existing,
                 very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
                 **ctx,
             )
