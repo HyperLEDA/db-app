@@ -1,5 +1,6 @@
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import bcrypt
 
@@ -69,6 +70,6 @@ class PostgresAuthenticator(interface.Authenticator):
                 params=[token, datetime.now(UTC)],
             )
         except RuntimeError:
-            return None, False
+            return cast(tuple[user.User, bool], (None, False))
 
         return user.User(token_info["user_id"], token_info["role"]), True

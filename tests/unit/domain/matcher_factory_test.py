@@ -44,6 +44,7 @@ class TestCreateMatcher(unittest.TestCase):
         result = create_matcher(config, available_matchers)
 
         expected = DummyMatcher(0.5)
+        assert isinstance(result, DummyMatcher)
         self.assertEqual(result.value, expected.value)
 
     def test_happy_nested_case(self):
@@ -60,6 +61,9 @@ class TestCreateMatcher(unittest.TestCase):
         result = create_matcher(config, available_matchers)
 
         expected = DummyNestedMatcher(DummyMatcher(0.3), 2.0)
+        assert isinstance(result, DummyNestedMatcher)
+        assert isinstance(result.matcher, DummyMatcher)
+        assert isinstance(expected.matcher, DummyMatcher)
         self.assertEqual(result.multiplier, expected.multiplier)
         self.assertEqual(result.matcher.value, expected.matcher.value)
 
@@ -106,6 +110,11 @@ class TestCreateMatcher(unittest.TestCase):
         result = create_matcher(config, available_matchers)
 
         expected = DummyNestedMatcher(DummyNestedMatcher(DummyMatcher(0.2), 1.5), 3.0)
+        assert isinstance(result, DummyNestedMatcher)
+        assert isinstance(result.matcher, DummyNestedMatcher)
+        assert isinstance(result.matcher.matcher, DummyMatcher)
+        assert isinstance(expected.matcher, DummyNestedMatcher)
+        assert isinstance(expected.matcher.matcher, DummyMatcher)
         self.assertEqual(result.multiplier, expected.multiplier)
         self.assertEqual(result.matcher.multiplier, expected.matcher.multiplier)
         self.assertEqual(result.matcher.matcher.value, expected.matcher.matcher.value)

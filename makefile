@@ -1,16 +1,44 @@
-PYTHON := python
-
-.PHONY: docs
-
-all: test
-
-## General targets
-
 install:
 	uv sync
 
 install-dev:
 	uv sync --all-extras
+
+check:
+	@find . \
+		-name "*.py" \
+		-not -path "./.venv/*" \
+		-not -path "./.git/*" \
+		-exec uv run python -m py_compile {} +
+	@uvx ruff format \
+		--quiet \
+		--config=pyproject.toml \
+		--check
+	@uvx ruff check \
+		--quiet \
+		--config=pyproject.toml
+
+fix:
+	@uvx ruff format \
+		--quiet \
+		--config=pyproject.toml
+	@uvx ruff check \
+		--quiet \
+		--config=pyproject.toml \
+		--fix
+
+# only for mac as this is faster
+build:
+	docker build . \
+		--platform linux/arm64
+
+update-template:
+	copier update \
+		--skip-answered \
+		--conflict inline \
+		--answers-file .template.yaml
+
+## General targets
 
 adminapi:
 	uv run main.py adminapi -c configs/dev/adminapi.yaml
@@ -70,10 +98,6 @@ cleanup:
 
 ## Testing
 
-check:
-	uvx ruff format --config=pyproject.toml --check
-	uvx ruff check --config=pyproject.toml
-
 # pytest is used to run unittest test cases
 test: check
 	uv run pytest --config-file=pyproject.toml tests/env_test.py
@@ -92,15 +116,6 @@ mypy:
 coverage:
 	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
 	uvx coverage html
-
-## Fix code
-
-fix:
-	uvx ruff format --config=pyproject.toml
-	uvx ruff check --config=pyproject.toml --fix
-
-fix-unsafe:
-	uvx ruff check --config=pyproject.toml --unsafe-fixes --fix
 
 ## Release
 
