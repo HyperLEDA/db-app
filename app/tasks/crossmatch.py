@@ -125,6 +125,10 @@ class CrossmatchTask(interface.Task):
 
             offset = records[-1].id
 
+            batch_new = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectNew))
+            batch_existing = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectExisting))
+            batch_collision = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectCollision))
+            total = new_count + existing_count + collision_count
             last_uuid = uuid.UUID(record.id or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
@@ -132,10 +136,13 @@ class CrossmatchTask(interface.Task):
                 "Completed batch",
                 layer1_selected=len(records),
                 layer2_selected=len(layer2_results),
-                new=f"{new_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                existing=f"{existing_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                collision=f"{collision_count / (new_count + existing_count + collision_count) * 100:.01f}%",
-                total=new_count + existing_count + collision_count,
+                batch_new_count=batch_new,
+                batch_existing_count=batch_existing,
+                batch_collision_count=batch_collision,
+                new=f"{new_count / total * 100:.01f}%",
+                existing=f"{existing_count / total * 100:.01f}%",
+                collision=f"{collision_count / total * 100:.01f}%",
+                total=total,
                 very_approximate_progress=f"{last_uuid.int / max_uuid.int * 100:.03f}%",
                 **ctx,
             )
