@@ -94,3 +94,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def add_modifier(self, table_name: str, modifiers: list[model.Modifier]) -> None:
         return self.modifier_repo.add_modifiers(table_name, modifiers)
+
+    def set_modifiers(self, table_name: str, column_name: str, modifiers: list[model.Modifier]) -> None:
+        return self.modifier_repo.set_modifiers(table_name, column_name, modifiers)

@@ -111,19 +111,21 @@ class AddDataResponse(pydantic.BaseModel):
     pass
 
 
-class PatchTableActionTypeChangeUCD(pydantic.BaseModel):
-    column: str
-    ucd: str
+class ModifierSpec(pydantic.BaseModel):
+    modifier_name: str
+    params: dict[str, Any] = {}
 
 
-class PatchTableActionTypeChangeUnit(pydantic.BaseModel):
-    column: str
-    unit: str
+class PatchColumnSpec(pydantic.BaseModel):
+    ucd: str | None = None
+    unit: str | None = None
+    description: str | None = None
+    modifiers: list[ModifierSpec] | None = None
 
 
 class PatchTableRequest(pydantic.BaseModel):
     table_name: str
-    actions: list[PatchTableActionTypeChangeUCD | PatchTableActionTypeChangeUnit]
+    columns: dict[str, PatchColumnSpec]
 
 
 class PatchTableResponse(pydantic.BaseModel):

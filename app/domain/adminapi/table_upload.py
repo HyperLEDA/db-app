@@ -61,19 +61,23 @@ class TableUploadManager:
         columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
 
         with self.layer0_repo.with_tx():
-            for action in r.actions:
-                if isinstance(action, adminapi.PatchTableActionTypeChangeUCD):
-                    column_metadata = columns_by_id[action.column]
-                    column_metadata.ucd = action.ucd
+            for column_name, spec in r.columns.items():
+                if column_name not in columns_by_id:
+                    raise NotFoundError("column", "{column_name}")
 
+                column_metadata = columns_by_id[column_name]
+                if spec.ucd is not None:
+                    column_metadata.ucd = spec.ucd
+                if spec.unit is not None:
+                    column_metadata.unit = units.Unit(spec.unit)
+                if spec.description is not None:
+                    column_metadata.description = spec.description
+                if spec.ucd is not None or spec.unit is not None or spec.description is not None:
                     self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
-                elif isinstance(action, adminapi.PatchTableActionTypeChangeUnit):
-                    column_metadata = columns_by_id[action.column]
-                    column_metadata.unit = units.Unit(action.unit)
 
-                    self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
-                else:
-                    raise RuntimeError(f"unknown action type: {action}")
+                if spec.modifiers is not None:
+                    modifiers = [model.Modifier(column_name, m.modifier_name, m.params) for m in spec.modifiers]
+                    self.layer0_repo.set_modifiers(r.table_name, column_name, modifiers)
 
         return adminapi.PatchTableResponse()
 

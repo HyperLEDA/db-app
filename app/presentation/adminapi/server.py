@@ -125,7 +125,7 @@ of the previously created table without any alterations.""",
                 http.HTTPMethod.PATCH,
                 api.patch_table,
                 "Patch table schema",
-                "Patch the schema of the table, including column UCDs and units.",
+                "Patch the schema of the table",
             ),
             server.Route(
                 "/v1/login",
