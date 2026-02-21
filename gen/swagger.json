@@ -176,7 +176,7 @@
       },
       "patch": {
         "summary": "Patch table schema",
-        "description": "Patch the schema of the table, including column UCDs and units.",
+        "description": "Patch the schema of the table",
         "operationId": "patch_table",
         "security": [
           {
@@ -1242,6 +1242,25 @@
         ],
         "title": "MarkingRule"
       },
+      "ModifierSpec": {
+        "properties": {
+          "modifier_name": {
+            "type": "string",
+            "title": "Modifier Name"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "modifier_name"
+        ],
+        "title": "ModifierSpec"
+      },
       "PGCCandidate": {
         "properties": {
           "pgc": {
@@ -1276,41 +1295,58 @@
         ],
         "title": "ParameterToMark"
       },
-      "PatchTableActionTypeChangeUCD": {
+      "PatchColumnSpec": {
         "properties": {
-          "column": {
-            "type": "string",
-            "title": "Column"
-          },
           "ucd": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Ucd"
-          }
-        },
-        "type": "object",
-        "required": [
-          "column",
-          "ucd"
-        ],
-        "title": "PatchTableActionTypeChangeUCD"
-      },
-      "PatchTableActionTypeChangeUnit": {
-        "properties": {
-          "column": {
-            "type": "string",
-            "title": "Column"
           },
           "unit": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Unit"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "modifiers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ModifierSpec"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modifiers"
           }
         },
         "type": "object",
-        "required": [
-          "column",
-          "unit"
-        ],
-        "title": "PatchTableActionTypeChangeUnit"
+        "title": "PatchColumnSpec"
       },
       "PatchTableRequest": {
         "properties": {
@@ -1318,25 +1354,18 @@
             "type": "string",
             "title": "Table Name"
           },
-          "actions": {
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/PatchTableActionTypeChangeUCD"
-                },
-                {
-                  "$ref": "#/components/schemas/PatchTableActionTypeChangeUnit"
-                }
-              ]
+          "columns": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PatchColumnSpec"
             },
-            "type": "array",
-            "title": "Actions"
+            "type": "object",
+            "title": "Columns"
           }
         },
         "type": "object",
         "required": [
           "table_name",
-          "actions"
+          "columns"
         ],
         "title": "PatchTableRequest"
       },
