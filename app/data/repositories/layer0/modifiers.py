@@ -59,9 +59,7 @@ class Layer0ModifiersRepository(postgres.TransactionalPGRepository):
 
         self._storage.exec(query, params=params)
 
-    def set_modifiers(
-        self, table_name: str, column_name: str, modifiers: list[model.Modifier]
-    ) -> None:
+    def set_modifiers(self, table_name: str, column_name: str, modifiers: list[model.Modifier]) -> None:
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
         if table_id_row is None:
             raise DatabaseError(f"unable to fetch table with name {table_name}")
@@ -82,9 +80,7 @@ class Layer0ModifiersRepository(postgres.TransactionalPGRepository):
         params_list: list[object] = []
         values = []
         for sequence, modifier in enumerate(modifiers):
-            params_list.extend(
-                [table_id, column_name, modifier.modifier_name, json.dumps(modifier.params), sequence]
-            )
+            params_list.extend([table_id, column_name, modifier.modifier_name, json.dumps(modifier.params), sequence])
             values.append("(%s, %s, %s, %s, %s)")
 
         query = (
