@@ -44,6 +44,7 @@ class TestCreateSolver(unittest.TestCase):
         result = create_solver(config, available_solvers)
 
         expected = DummySolver(0.5)
+        assert isinstance(result, DummySolver)
         self.assertEqual(result.threshold, expected.threshold)
 
     def test_happy_nested_case(self):
@@ -60,6 +61,11 @@ class TestCreateSolver(unittest.TestCase):
         result = create_solver(config, available_solvers)
 
         expected = DummyNestedSolver(DummySolver(0.3), DummySolver(0.7))
+        assert isinstance(result, DummyNestedSolver)
+        assert isinstance(result.solver1, DummySolver)
+        assert isinstance(result.solver2, DummySolver)
+        assert isinstance(expected.solver1, DummySolver)
+        assert isinstance(expected.solver2, DummySolver)
         self.assertEqual(result.solver1.threshold, expected.solver1.threshold)
         self.assertEqual(result.solver2.threshold, expected.solver2.threshold)
 

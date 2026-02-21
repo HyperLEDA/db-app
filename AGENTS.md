@@ -16,6 +16,14 @@ make fix
 
 If the check command fails, make sure to always run the fix command first prior to trying to fix changes yourself.
 
+### Running tests
+
+When making any change, make sure it did not break previous functionality by running tests:
+
+```shell
+make test-all
+```
+
 ### Scripts and Python Execution
 
 This project uses `uv` for package management. `uv` manages virtual environments as well, meaning that simple running of `python` command will not work. Always use `uv run` instead of raw `python` or `python3`:

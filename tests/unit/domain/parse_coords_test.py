@@ -31,6 +31,8 @@ class TestParseCoordinates(unittest.TestCase):
     def test_valid_coordinates(self, input_str, expected):
         result = parse_coordinates(input_str)
         self.assertIsInstance(result, coords.SkyCoord)
+        assert result.ra is not None
+        assert result.dec is not None
         self.assertEqual(result.ra.deg, expected.ra.deg)
         self.assertEqual(result.dec.deg, expected.dec.deg)
 

@@ -129,7 +129,7 @@ class CrossmatchTask(interface.Task):
             batch_existing = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectExisting))
             batch_collision = sum(1 for r in results.values() if isinstance(r, model.CIResultObjectCollision))
             total = new_count + existing_count + collision_count
-            last_uuid = uuid.UUID(record.id or "00000000-0000-0000-0000-000000000000")
+            last_uuid = uuid.UUID(records[-1].id or "00000000-0000-0000-0000-000000000000")
             max_uuid = uuid.UUID("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
 
             self.log.info(

@@ -8,5 +8,5 @@ class Role(enum.Enum):
 
 @dataclass
 class User:
-    user_id: str
+    user_id: int
     role: Role
