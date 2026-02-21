@@ -217,6 +217,67 @@
         }
       }
     },
+    "/api/v1/tables": {
+      "get": {
+        "summary": "List tables",
+        "description": "Returns a paginated list of tables matching the search query by name or description",
+        "operationId": "get_table_list",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Query"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_GetTableListResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/login": {
       "post": {
         "summary": "Login",
@@ -506,6 +567,18 @@
           "data"
         ],
         "title": "APIOkResponse[GetRecordsCrossmatchResponse]"
+      },
+      "APIOkResponse_GetTableListResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetTableListResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[GetTableListResponse]"
       },
       "APIOkResponse_GetTableResponse_": {
         "properties": {
@@ -1087,6 +1160,22 @@
         ],
         "title": "GetRecordsCrossmatchResponse"
       },
+      "GetTableListResponse": {
+        "properties": {
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/TableListItem"
+            },
+            "type": "array",
+            "title": "Tables"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tables"
+        ],
+        "title": "GetTableListResponse"
+      },
       "GetTableResponse": {
         "properties": {
           "id": {
@@ -1469,6 +1558,34 @@
           "units"
         ],
         "title": "Schema"
+      },
+      "TableListItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "num_entries": {
+            "type": "integer",
+            "title": "Num Entries"
+          },
+          "num_fields": {
+            "type": "integer",
+            "title": "Num Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "num_entries",
+          "num_fields"
+        ],
+        "title": "TableListItem"
       },
       "UnitsSchema": {
         "properties": {
