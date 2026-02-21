@@ -160,6 +160,20 @@ class TableUploadManager:
 
         return adminapi.CreateMarkingResponse()
 
+    def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
+        items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
+        return adminapi.GetTableListResponse(
+            tables=[
+                adminapi.TableListItem(
+                    name=item.table_name,
+                    description=item.description,
+                    num_entries=item.num_entries,
+                    num_fields=item.num_fields,
+                )
+                for item in items
+            ]
+        )
+
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
 

@@ -36,6 +36,14 @@ class Layer0TableMeta:
 
 
 @dataclass
+class Layer0TableListItem:
+    table_name: str
+    description: str
+    num_entries: int
+    num_fields: int
+
+
+@dataclass
 class Layer0CreationResponse:
     table_id: int
     created: bool

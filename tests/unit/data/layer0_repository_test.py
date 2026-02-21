@@ -55,3 +55,32 @@ class Layer0RepositoryTest(unittest.TestCase):
         expected = transform(expected_query)
 
         self.assertEqual(actual, expected)
+
+    def test_search_tables_calls_query_with_expected_structure(self):
+        self.storage_mock.query.return_value = [
+            {
+                "table_name": "my_table",
+                "description": "A test table",
+                "num_entries": 100,
+                "num_fields": 6,
+            }
+        ]
+
+        result = self.repo.search_tables("my_table", page_size=25, page=1)
+
+        self.storage_mock.query.assert_called_once()
+        query = self.storage_mock.query.call_args[0][0]
+        params = self.storage_mock.query.call_args[1]["params"]
+
+        self.assertIn("layer0.tables", query)
+        self.assertIn("meta.table_info", query)
+        self.assertIn("ILIKE", query)
+        self.assertIn("LIMIT", query)
+        self.assertIn("OFFSET", query)
+        self.assertEqual(params[-2], 25)
+        self.assertEqual(params[-1], 25)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].table_name, "my_table")
+        self.assertEqual(result[0].description, "A test table")
+        self.assertEqual(result[0].num_entries, 100)
+        self.assertEqual(result[0].num_fields, 6)

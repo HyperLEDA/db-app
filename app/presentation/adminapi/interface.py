@@ -51,6 +51,23 @@ class GetTableRequest(pydantic.BaseModel):
     table_name: str
 
 
+class GetTableListRequest(pydantic.BaseModel):
+    query: str = ""
+    page_size: int = 25
+    page: int = 0
+
+
+class TableListItem(pydantic.BaseModel):
+    name: str
+    description: str
+    num_entries: int
+    num_fields: int
+
+
+class GetTableListResponse(pydantic.BaseModel):
+    tables: list[TableListItem]
+
+
 class MarkingRule(pydantic.BaseModel):
     catalog: str
     key: str
@@ -279,6 +296,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_table(self, request: GetTableRequest) -> GetTableResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_table_list(self, request: GetTableListRequest) -> GetTableListResponse:
         pass
 
     @abc.abstractmethod

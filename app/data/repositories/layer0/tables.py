@@ -9,7 +9,7 @@ from astropy import table
 from astropy import units as u
 
 from app.data import model, repositories, template
-from app.data.repositories.layer0.common import RAWDATA_SCHEMA
+from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
 from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
 
@@ -286,6 +286,57 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 params=[RAWDATA_SCHEMA, table_name, column_description.name, json.dumps(column_params)],
             )
             self._storage.exec(modification_query, params=[table_id])
+
+    def search_tables(
+        self,
+        query: str,
+        page_size: int,
+        page: int,
+    ) -> list[model.Layer0TableListItem]:
+        pattern = f"%{query}%" if query else "%"
+        offset = page * page_size
+
+        sql = """
+        SELECT
+            t.table_name,
+            COALESCE(ti.param->>'description', '') AS description,
+            COALESCE(ps.n_live_tup::bigint, 0)::int AS num_entries,
+            (
+                SELECT COUNT(*)::int
+                FROM meta.column_info c
+                WHERE c.schema_name = %s
+                  AND c.table_name = t.table_name
+                  AND c.column_name != %s
+            ) AS num_fields
+        FROM layer0.tables t
+        LEFT JOIN meta.table_info ti
+            ON ti.schema_name = %s AND ti.table_name = t.table_name
+        LEFT JOIN pg_stat_user_tables ps
+            ON ps.schemaname = %s AND ps.relname = t.table_name
+        WHERE t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s
+        ORDER BY t.table_name
+        LIMIT %s OFFSET %s
+        """
+        params = [
+            RAWDATA_SCHEMA,
+            INTERNAL_ID_COLUMN_NAME,
+            RAWDATA_SCHEMA,
+            RAWDATA_SCHEMA,
+            pattern,
+            pattern,
+            page_size,
+            offset,
+        ]
+        rows = self._storage.query(sql, params=params)
+        return [
+            model.Layer0TableListItem(
+                table_name=row["table_name"],
+                description=row["description"] or "",
+                num_entries=int(row["num_entries"]),
+                num_fields=int(row["num_fields"]),
+            )
+            for row in rows
+        ]
 
     def _get_table_id(self, table_name: str) -> tuple[int, bool]:
         try:
