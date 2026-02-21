@@ -72,3 +72,23 @@ The only exception to the above rule is for imports from the `typing` or `collec
 from typing import Any
 from collections.abc import Sequence
 ```
+
+### Exporting symbols
+
+When adding a new exportable function, class, or other symbol, add it to `__all__` inside the `__init__.py` of the corresponding directory. A symbol is deemed exportable only if it is used in other business logic of the project. If it is only used inside the same directory or in tests from the `tests/` directory, it should not be exported through `__all__`.
+
+### Astropy Package Guidelines
+
+When using `astropy` units, use runtime units determination instead of direct attribute access. In particular:
+
+```python
+from astropy import units as u
+
+# prefer
+u.Unit("kpc")
+u.Unit("km/s")
+
+# avoid
+u.kpc
+u.km / u.s
+```

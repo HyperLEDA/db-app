@@ -1,9 +1,0 @@
----
-alwaysApply: true
----
-
-# Python Code Style Guidelines
-
-## Import Guidelines
-
-When adding a new exportable function, class, or other symbol, add it to `__all__` inside the `__init__.py` of the corresponding directory. A symbol is deemed exportable only if it is used in other business logic of the project. If it is only used inside the same directory or in tests from the `tests/` directory, it should not be exported through `__all__`.
