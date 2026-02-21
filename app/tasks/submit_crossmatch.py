@@ -5,7 +5,7 @@ import structlog
 
 from app.data import model, repositories
 from app.lib import containers
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.tasks import interface
 
 
@@ -15,7 +15,7 @@ class SubmitCrossmatchTask(interface.Task):
         self,
         logger: structlog.stdlib.BoundLogger,
         table_name: str,
-        batch_size: int,
+        batch_size: int = 500,
     ) -> None:
         self.table_name = table_name
         self.batch_size = batch_size
@@ -40,6 +40,7 @@ class SubmitCrossmatchTask(interface.Task):
             "",
             lambda d, _: d[-1].record.id,
             table_name=self.table_name,
+            status=[enums.RecordCrossmatchStatus.NEW, enums.RecordCrossmatchStatus.EXISTING],
             batch_size=self.batch_size,
         ):
             with self.layer0_repository.with_tx():

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import structlog
 from astropy import table
 
@@ -64,7 +66,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         limit: int,
         offset: str | None = None,
         table_name: str | None = None,
-        status: enums.RecordCrossmatchStatus | None = None,
+        status: Sequence[enums.RecordCrossmatchStatus] | None = None,
         record_id: str | None = None,
     ) -> list[model.RecordCrossmatch]:
         return self.records_repo.get_processed_records(limit, offset, table_name, status, record_id)
