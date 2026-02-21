@@ -1,11 +1,11 @@
-name: Testing
+name: Static checks & tests
+
 on:
   - push
 
 jobs:
-  test-ubuntu:
+  tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
 
@@ -14,9 +14,11 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Run check
-        run: |
-          make check
+      - name: Install deps
+        run: make install-dev
+
+      - name: Run checks
+        run: make check
 
       - name: Run tests
         run: |
