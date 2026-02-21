@@ -1,0 +1,23 @@
+name: Testing
+on:
+  - push
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Run check
+        run: |
+          make check
+
+      - name: Run tests
+        run: |
+          make test-all

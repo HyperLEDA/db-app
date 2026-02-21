@@ -14,12 +14,6 @@ Use type hints in function and class signatures as much as possible to improve c
 
 Avoid using `Any` in type hints. Prefer more specific types or generic types when possible.
 
-## Code Comments and docstrings
-
-Only add comments to code where non-obvious decisions were made. If the code is straightforward and self-explanatory, do not comment it.
-
-Unless explicitly instructed otherwise, do not write docstrings for functions, classes, or modules.
-
 ## Import Guidelines
 
 When adding a new exportable function, class, or other symbol, add it to `__all__` inside the `__init__.py` of the corresponding directory. A symbol is deemed exportable only if it is used in other business logic of the project. If it is only used inside the same directory or in tests from the `tests/` directory, it should not be exported through `__all__`.
