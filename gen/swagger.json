@@ -176,7 +176,7 @@
       },
       "patch": {
         "summary": "Patch table schema",
-        "description": "Patch the schema of the table",
+        "description": "Patches the schema of the table. Allows updating column metadata (UCD, unit, description) and \nsetting column modifiers. Modifiers are transformations applied to column values during the unification process.\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```\n\n**Example 3**: Set a `map` modifier to convert categorical string values to numeric ones. \nFor instance, mapping morphological types to numeric codes:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"morph_type\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"map\",\n                    \"params\": {\n                        \"mapping\": [\n                            {\"from\": \"E\", \"to\": -5},\n                            {\"from\": \"S0\", \"to\": 0},\n                            {\"from\": \"Sa\", \"to\": 1},\n                            {\"from\": \"Sb\", \"to\": 3}\n                        ],\n                        \"default\": null\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 4**: Set a `format` modifier to reformat string values using a Python format pattern:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"obj_id\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"format\",\n                    \"params\": {\n                        \"pattern\": \"SDSS J{}\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 5**: Set an `add_unit` modifier to override the unit attached to a column during processing:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"velocity\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"add_unit\",\n                    \"params\": {\n                        \"unit\": \"km/s\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 6**: Set a `constant` modifier to replace all values in a column with a fixed value:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"survey\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"constant\",\n                    \"params\": {\n                        \"constant\": \"SDSS\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 7**: Combine metadata updates with modifiers in a single request:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"deg\",\n            \"modifiers\": [\n                {\n                    \"name\": \"add_unit\",\n                    \"params\": {\n                        \"unit\": \"hourangle\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```",
         "operationId": "patch_table",
         "security": [
           {
@@ -1350,9 +1350,9 @@
       },
       "ModifierSpec": {
         "properties": {
-          "modifier_name": {
+          "name": {
             "type": "string",
-            "title": "Modifier Name"
+            "title": "Name"
           },
           "params": {
             "additionalProperties": true,
@@ -1363,7 +1363,7 @@
         },
         "type": "object",
         "required": [
-          "modifier_name"
+          "name"
         ],
         "title": "ModifierSpec"
       },
@@ -1593,6 +1593,11 @@
           "num_fields": {
             "type": "integer",
             "title": "Num Fields"
+          },
+          "modification_dt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Modification Dt"
           }
         },
         "type": "object",
@@ -1600,7 +1605,8 @@
           "name",
           "description",
           "num_entries",
-          "num_fields"
+          "num_fields",
+          "modification_dt"
         ],
         "title": "TableListItem"
       },
