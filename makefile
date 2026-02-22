@@ -104,7 +104,10 @@ test: check
 	uv run pytest --config-file=pyproject.toml tests/unit
 
 test-all: check
-	uv run pytest --config-file=pyproject.toml tests
+	@uv run pytest \
+		--config-file=pyproject.toml \
+		--quiet \
+		tests
 
 test-regression:
 	uv run tests.py regression-tests
