@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, final
 
 import structlog
-import yaml
 
 from app import tasks
 from app.lib import commands
@@ -14,7 +13,6 @@ class RunTaskCommand(commands.Command):
     def __init__(
         self,
         task_name: str,
-        config_path: str,
         input_data_path: str | None = None,
         input_data: dict[str, Any] | None = None,
         task_args: tuple[str, ...] | None = None,
@@ -26,7 +24,6 @@ class RunTaskCommand(commands.Command):
             task_args = ()
 
         self.task_name = task_name
-        self.config_path = config_path
         self.input_data_path = input_data_path
         self.input_data = input_data
         self.task_args = task_args
@@ -40,7 +37,7 @@ class RunTaskCommand(commands.Command):
         """
 
     def prepare(self):
-        cfg = parse_config(self.config_path)
+        cfg = tasks.Config()
 
         input_data = self.input_data
 
@@ -86,12 +83,3 @@ class RunTaskCommand(commands.Command):
                 i += 1
 
         return args_dict
-
-
-def parse_config(path: str) -> tasks.Config:
-    p = Path(path)
-    if not p.is_file():
-        raise FileNotFoundError(f"Config file not found: '{path}'")
-
-    data = yaml.safe_load(p.read_text())
-    return tasks.Config(**data)

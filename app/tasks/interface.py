@@ -5,7 +5,7 @@ from app.lib.storage import postgres
 
 
 class Config(config.ConfigSettings):
-    storage: postgres.PgStorageConfig
+    storage: postgres.PgStorageConfig = postgres.PgStorageConfig()
 
 
 class Task(abc.ABC):

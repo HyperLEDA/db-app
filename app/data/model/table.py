@@ -41,6 +41,7 @@ class Layer0TableListItem:
     description: str
     num_entries: int
     num_fields: int
+    modification_dt: datetime.datetime
 
 
 @dataclass

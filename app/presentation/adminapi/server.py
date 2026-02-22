@@ -138,7 +138,143 @@ of the previously created table without any alterations.""",
                 http.HTTPMethod.PATCH,
                 api.patch_table,
                 "Patch table schema",
-                "Patch the schema of the table",
+                """Patches the schema of the table. Allows updating column metadata (UCD, unit, description) and 
+setting column modifiers. Modifiers are transformations applied to column values during the unification process.
+
+Only provided fields will be updated; omitted fields will remain unchanged.
+
+**Example 1**: Update column metadata (UCD and unit):
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "ra": {
+            "ucd": "pos.eq.ra",
+            "unit": "hourangle"
+        },
+        "dec": {
+            "ucd": "pos.eq.dec",
+            "unit": "deg"
+        }
+    }
+}
+```
+
+**Example 2**: Add a column description:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "vmag": {
+            "description": "Visual magnitude in the V band"
+        }
+    }
+}
+```
+
+**Example 3**: Set a `map` modifier to convert categorical string values to numeric ones. 
+For instance, mapping morphological types to numeric codes:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "morph_type": {
+            "modifiers": [
+                {
+                    "name": "map",
+                    "params": {
+                        "mapping": [
+                            {"from": "E", "to": -5},
+                            {"from": "S0", "to": 0},
+                            {"from": "Sa", "to": 1},
+                            {"from": "Sb", "to": 3}
+                        ],
+                        "default": null
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+**Example 4**: Set a `format` modifier to reformat string values using a Python format pattern:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "obj_id": {
+            "modifiers": [
+                {
+                    "name": "format",
+                    "params": {
+                        "pattern": "SDSS J{}"
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+**Example 5**: Set an `add_unit` modifier to override the unit attached to a column during processing:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "velocity": {
+            "modifiers": [
+                {
+                    "name": "add_unit",
+                    "params": {
+                        "unit": "km/s"
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+**Example 6**: Set a `constant` modifier to replace all values in a column with a fixed value:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "survey": {
+            "modifiers": [
+                {
+                    "name": "constant",
+                    "params": {
+                        "constant": "SDSS"
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+**Example 7**: Combine metadata updates with modifiers in a single request:
+```json
+{
+    "table_name": "my_table",
+    "columns": {
+        "ra": {
+            "ucd": "pos.eq.ra",
+            "unit": "deg",
+            "modifiers": [
+                {
+                    "name": "add_unit",
+                    "params": {
+                        "unit": "hourangle"
+                    }
+                }
+            ]
+        }
+    }
+}
+```""",
             ),
             server.Route(
                 "/v1/login",

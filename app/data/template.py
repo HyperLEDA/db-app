@@ -1,10 +1,19 @@
-import jinja2
+from psycopg import sql
 
 
-def render_query(query_string: str, **kwargs) -> str:
-    tpl = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(query_string)
+def build_create_table_query(schema: str, name: str, fields: list[tuple[str, str, str]]) -> sql.Composed:
+    field_parts = []
+    for field_name, field_type, constraint in fields:
+        parts = [sql.Identifier(field_name), sql.SQL(" "), sql.SQL(field_type)]
+        if constraint:
+            parts.extend([sql.SQL(" "), sql.SQL(constraint)])
+        field_parts.append(sql.Composed(parts))
 
-    return tpl.render(**kwargs)
+    return sql.SQL("CREATE TABLE {}.{} ({})").format(
+        sql.Identifier(schema),
+        sql.Identifier(name),
+        sql.SQL(", ").join(field_parts),
+    )
 
 
 GET_SOURCE_BY_CODE = """
@@ -17,14 +26,6 @@ GET_SOURCE_BY_ID = """
 SELECT id, code, year, author, title FROM common.bib
 WHERE id = %s
 LIMIT 1
-"""
-
-CREATE_TABLE = """
-CREATE TABLE {{ schema }}."{{ name }}" (
-    {% for field_name, field_type, constraint in fields %}
-    "{{field_name}}" {{field_type}} {{constraint}}{% if not loop.last %},{% endif %}
-    {% endfor %}
-)
 """
 
 INSERT_TABLE_REGISTRY_ITEM = """

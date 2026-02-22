@@ -115,8 +115,8 @@ class CreateTableTest(unittest.TestCase):
                 columns={
                     "ra": presentation.PatchColumnSpec(
                         modifiers=[
-                            presentation.ModifierSpec(modifier_name="constant", params={"constant": 1}),
-                            presentation.ModifierSpec(modifier_name="add_unit", params={"unit": "deg"}),
+                            presentation.ModifierSpec(name="constant", params={"constant": 1}),
+                            presentation.ModifierSpec(name="add_unit", params={"unit": "deg"}),
                         ]
                     ),
                 },
