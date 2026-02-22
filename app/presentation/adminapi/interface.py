@@ -254,6 +254,7 @@ class Catalogs(pydantic.BaseModel):
 class RecordCrossmatch(pydantic.BaseModel):
     record_id: str
     status: enums.RecordCrossmatchStatus
+    triage_status: enums.RecordTriageStatus
     metadata: RecordCrossmatchMetadata
     catalogs: Catalogs
 

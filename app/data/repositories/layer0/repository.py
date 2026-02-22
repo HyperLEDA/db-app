@@ -78,9 +78,10 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         offset: str | None = None,
         table_name: str | None = None,
         status: Sequence[enums.RecordCrossmatchStatus] | None = None,
+        triage_status: Sequence[enums.RecordTriageStatus] | None = None,
         record_id: str | None = None,
     ) -> list[model.RecordCrossmatch]:
-        return self.records_repo.get_processed_records(limit, offset, table_name, status, record_id)
+        return self.records_repo.get_processed_records(limit, offset, table_name, status, triage_status, record_id)
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
         return self.records_repo.add_crossmatch_result(data)

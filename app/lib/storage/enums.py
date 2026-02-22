@@ -13,3 +13,8 @@ class RecordCrossmatchStatus(enum.StrEnum):
     NEW = "new"
     COLLIDED = "collided"
     EXISTING = "existing"
+
+
+class RecordTriageStatus(enum.StrEnum):
+    PENDING = "pending"
+    RESOLVED = "resolved"

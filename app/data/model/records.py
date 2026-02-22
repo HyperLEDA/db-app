@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.data.model import interface
+from app.lib.storage import enums
 
 
 @dataclass
@@ -38,6 +39,7 @@ class Record:
 class RecordCrossmatch:
     record: Record
     processing_result: CIResult
+    triage_status: enums.RecordTriageStatus = enums.RecordTriageStatus.PENDING
 
 
 @dataclass

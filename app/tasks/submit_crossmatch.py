@@ -41,6 +41,7 @@ class SubmitCrossmatchTask(interface.Task):
             lambda d, _: d[-1].record.id,
             table_name=self.table_name,
             status=[enums.RecordCrossmatchStatus.NEW, enums.RecordCrossmatchStatus.EXISTING],
+            triage_status=[enums.RecordTriageStatus.RESOLVED],
             batch_size=self.batch_size,
         ):
             batch_new = sum(1 for obj in data if isinstance(obj.processing_result, model.CIResultObjectNew))
