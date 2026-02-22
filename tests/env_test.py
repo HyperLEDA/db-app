@@ -5,7 +5,6 @@ from parameterized import parameterized
 
 import app.commands.adminapi.command as adminapi
 import app.commands.dataapi.command as dataapi
-import app.commands.runtask.command as runtask
 
 MINIMAL_PYTHON_VERSION = (3, 10)
 
@@ -38,11 +37,3 @@ class TestEnvironment(unittest.TestCase):
     )
     def test_parse_dataapi_config(self, path):
         _ = dataapi.parse_config(path)
-
-    @parameterized.expand(
-        [
-            ("configs/dev/tasks.yaml"),
-        ]
-    )
-    def test_parse_runtask_config(self, path):
-        _ = runtask.parse_config(path)

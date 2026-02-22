@@ -45,13 +45,6 @@ def dataapi(config: str):
     type=str,
 )
 @click.option(
-    "-c",
-    "--config",
-    type=str,
-    default=lambda: os.environ.get("CONFIG", ""),
-    help="Path to configuration file",
-)
-@click.option(
     "-i",
     "--input-data",
     type=str,
@@ -64,8 +57,8 @@ def dataapi(config: str):
     help="Set the logging level",
 )
 @click.argument("task_args", nargs=-1, type=click.UNPROCESSED)
-def runtask(task_name: str, config: str, input_data: str | None, log_level: str, task_args: tuple[str, ...]):
-    commands.run(RunTaskCommand(task_name, config, input_data, None, task_args, log_level))
+def runtask(task_name: str, input_data: str | None, log_level: str, task_args: tuple[str, ...]):
+    commands.run(RunTaskCommand(task_name, input_data, None, task_args, log_level))
 
 
 @cli.command(short_help=GenerateSpecCommand.help())

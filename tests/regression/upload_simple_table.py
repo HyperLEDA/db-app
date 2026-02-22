@@ -144,7 +144,6 @@ def start_marking(table_name: str):
     commands.run(
         RunTaskCommand(
             "layer0-marking",
-            "configs/dev/tasks.yaml",
             input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
             log_level="warn",
         ),
@@ -156,7 +155,6 @@ def start_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
             "crossmatch",
-            "configs/dev/tasks.yaml",
             input_data={"table_name": table_name},
             log_level="warn",
         ),
@@ -323,7 +321,6 @@ def submit_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
             "submit-crossmatch",
-            "configs/dev/tasks.yaml",
             input_data={"table_name": table_name, "batch_size": OBJECTS_NUM // 2},
             log_level="warn",
         ),
@@ -335,7 +332,6 @@ def layer2_import():
     commands.run(
         RunTaskCommand(
             "layer2-import",
-            "configs/dev/tasks.yaml",
             input_data={"batch_size": OBJECTS_NUM // 5},
             log_level="warn",
         ),
