@@ -1118,6 +1118,10 @@
       },
       "GetRecordCrossmatchResponse": {
         "properties": {
+          "table_name": {
+            "type": "string",
+            "title": "Table Name"
+          },
           "crossmatch": {
             "$ref": "#/components/schemas/RecordCrossmatch"
           },
@@ -1130,10 +1134,23 @@
           },
           "schema": {
             "$ref": "#/components/schemas/Schema"
+          },
+          "original_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Data"
           }
         },
         "type": "object",
         "required": [
+          "table_name",
           "crossmatch",
           "candidates",
           "schema"
