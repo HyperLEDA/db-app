@@ -79,6 +79,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     ) -> list[model.RecordCrossmatch]:
         return self.records_repo.get_processed_records(limit, offset, table_name, status, record_id)
 
+    def get_table_name_for_record(self, record_id: str) -> str | None:
+        return self.records_repo.get_table_name_for_record(record_id)
+
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
         return self.records_repo.add_crossmatch_result(data)
 

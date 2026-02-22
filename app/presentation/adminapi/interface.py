@@ -280,6 +280,7 @@ class PGCCandidate(pydantic.BaseModel):
 
 
 class GetRecordCrossmatchResponse(pydantic.BaseModel):
+    table_name: str
     crossmatch: RecordCrossmatch
     candidates: list[PGCCandidate]
     schema_: Schema = pydantic.Field(..., alias="schema")

@@ -105,6 +105,18 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
         return records
 
+    def get_table_name_for_record(self, record_id: str) -> str | None:
+        row = self._storage.query_one(
+            """
+            SELECT t.table_name
+            FROM layer0.records AS o
+            JOIN layer0.tables AS t ON o.table_id = t.id
+            WHERE o.id = %s
+            """,
+            params=[record_id],
+        )
+        return row["table_name"] if row else None
+
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
         if table_id_row is None:
