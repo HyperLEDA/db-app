@@ -284,6 +284,7 @@ class GetRecordCrossmatchResponse(pydantic.BaseModel):
     crossmatch: RecordCrossmatch
     candidates: list[PGCCandidate]
     schema_: Schema = pydantic.Field(..., alias="schema")
+    original_data: dict[str, Any] | None = None
 
 
 class Actions(abc.ABC):

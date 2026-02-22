@@ -1,4 +1,4 @@
-from typing import final
+from typing import Any, final
 
 import structlog
 from astropy import coordinates
@@ -149,7 +149,20 @@ class CrossmatchManager:
 
         obj = processed_objects[0]
         crossmatch_records = self._convert_to_record_crossmatch([obj])
-        table_name = self.layer0_repo.get_table_name_for_record(obj.record.id) or ""
+
+        original_data: dict[str, Any] | None = None
+        table_name = ""
+        try:
+            raw_data = self.layer0_repo.fetch_raw_data(record_id=obj.record.id)
+            table_name = raw_data.table_name
+            if not raw_data.data.empty:
+                original_data = raw_data.data.iloc[0].to_dict()
+        except Exception:
+            logger.warning(
+                "Failed to fetch original raw data for record",
+                record_id=obj.record.id,
+                error=True,
+            )
 
         candidate_pgcs: list[int] = []
 
@@ -163,6 +176,7 @@ class CrossmatchManager:
             crossmatch=crossmatch_records[0],
             candidates=[],
             schema=DATA_SCHEMA,
+            original_data=original_data,
         )
 
         if len(candidate_pgcs) == 0:
