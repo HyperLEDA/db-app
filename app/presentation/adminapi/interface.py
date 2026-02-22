@@ -1,4 +1,5 @@
 import abc
+import datetime
 import enum
 from typing import Annotated, Any
 
@@ -62,6 +63,7 @@ class TableListItem(pydantic.BaseModel):
     description: str
     num_entries: int
     num_fields: int
+    modification_dt: datetime.datetime
 
 
 class GetTableListResponse(pydantic.BaseModel):

@@ -326,6 +326,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         sql = """
         SELECT
             t.table_name,
+            t.modification_dt,
             COALESCE(ti.param->>'description', '') AS description,
             COALESCE(ps.n_live_tup::bigint, 0)::int AS num_entries,
             (
@@ -341,7 +342,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         LEFT JOIN pg_stat_user_tables ps
             ON ps.schemaname = %s AND ps.relname = t.table_name
         WHERE t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s
-        ORDER BY t.table_name
+        ORDER BY t.modification_dt DESC
         LIMIT %s OFFSET %s
         """
         params = [
@@ -361,6 +362,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 description=row["description"] or "",
                 num_entries=int(row["num_entries"]),
                 num_fields=int(row["num_fields"]),
+                modification_dt=row["modification_dt"],
             )
             for row in rows
         ]

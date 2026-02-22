@@ -169,6 +169,7 @@ class TableUploadManager:
                     description=item.description,
                     num_entries=item.num_entries,
                     num_fields=item.num_fields,
+                    modification_dt=item.modification_dt,
                 )
                 for item in items
             ]

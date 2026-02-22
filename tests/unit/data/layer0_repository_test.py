@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import uuid
 from unittest import mock
@@ -63,6 +64,7 @@ class Layer0RepositoryTest(unittest.TestCase):
                 "description": "A test table",
                 "num_entries": 100,
                 "num_fields": 6,
+                "modification_dt": datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
             }
         ]
 
