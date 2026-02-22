@@ -1,6 +1,8 @@
 import json
 from collections.abc import Sequence
 
+from psycopg import sql
+
 from app.data import model, template
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.lib import concurrency
@@ -133,7 +135,11 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             params=[table_id],
         )
         total_original_rows_res = errgr.run(
-            self._storage.query_one, f'SELECT COUNT(1) AS cnt FROM {RAWDATA_SCHEMA}."{table_name}"'
+            self._storage.query_one,
+            sql.SQL("SELECT COUNT(1) AS cnt FROM {}.{}").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+            ),
         )
         errgr.wait()
 

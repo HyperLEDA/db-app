@@ -7,6 +7,7 @@ import pandas
 import structlog
 from astropy import table
 from astropy import units as u
+from psycopg import sql
 
 from app.data import model, repositories, template
 from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
@@ -55,8 +56,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             table_id = int(row.get("id"))
 
             self._storage.exec(
-                template.render_query(
-                    template.CREATE_TABLE,
+                template.build_create_table_query(
                     schema=RAWDATA_SCHEMA,
                     name=data.table_name,
                     fields=fields,
@@ -85,7 +85,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             log.warn("trying to insert 0 rows into the table", table_name=data.table_name)
             return
 
-        fields = data.data.columns
+        fields = list(data.data.columns)
 
         values = []
         params = []
@@ -98,15 +98,16 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
                 params.append(value)
 
-            values.append(f"({','.join(['%s'] * len(fields))})")
+            values.append(sql.SQL("({})").format(sql.SQL(",").join([sql.Placeholder()] * len(fields))))
 
-        fields = [f'"{field}"' for field in fields]
+        field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
 
-        query = f"""
-        INSERT INTO rawdata."{data.table_name}" ({",".join(fields)})
-        VALUES {",".join(values)}
-        ON CONFLICT DO NOTHING
-        """
+        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES {} ON CONFLICT DO NOTHING").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(data.table_name),
+            field_identifiers,
+            sql.SQL(",").join(values),
+        )
 
         self._storage.exec(query, params=params)
 
@@ -130,25 +131,39 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         meta = self.fetch_metadata_by_name(table_name)
 
-        columns_str = ",".join(columns or ["*"])
+        if columns:
+            columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
+        else:
+            columns_sql = sql.SQL("*")
 
         params = []
-        query = f"""
-        SELECT {columns_str} FROM {RAWDATA_SCHEMA}."{table_name}"\n
-        """
+        parts: list[sql.Composable] = [
+            sql.SQL("SELECT {} FROM {}.{}").format(
+                columns_sql,
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+            )
+        ]
 
         if offset is not None:
-            query += f"WHERE {repositories.INTERNAL_ID_COLUMN_NAME} > %s\n"
+            parts.append(
+                sql.SQL(" WHERE {} > %s").format(
+                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+                )
+            )
             params.append(offset)
 
         if order_column is not None:
-            query += f"ORDER BY {order_column} {order_direction}\n"
+            if order_direction not in ("asc", "desc"):
+                raise ValueError(f"invalid order direction: {order_direction}")
+            parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
+            parts.append(sql.SQL(order_direction))
 
         if limit is not None:
-            query += "LIMIT %s\n"
+            parts.append(sql.SQL(" LIMIT %s"))
             params.append(limit)
 
-        rows = self._storage.query(query, params=params)
+        rows = self._storage.query(sql.Composed(parts), params=params)
         df = pandas.DataFrame(rows)
         tbl = table.Table()
         if len(df) == 0:
@@ -198,31 +213,53 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if table_name is None:
             raise ValueError("either table_name or record_id must be provided")
 
-        columns_str = ",".join(columns or ["*"])
+        if columns:
+            columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
+        else:
+            columns_sql = sql.SQL("*")
 
         params = []
-        where_stmnt = []
+        where_parts: list[sql.Composable] = []
 
         if offset is not None:
-            where_stmnt.append(f"{repositories.INTERNAL_ID_COLUMN_NAME} > %s")
+            where_parts.append(
+                sql.SQL("{} > %s").format(
+                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+                )
+            )
             params.append(offset)
 
         if record_id is not None:
-            where_stmnt.append(f"{INTERNAL_ID_COLUMN_NAME} = %s")
+            where_parts.append(
+                sql.SQL("{} = %s").format(
+                    sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+                )
+            )
             params.append(record_id)
 
-        where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
+        parts: list[sql.Composable] = [
+            sql.SQL("SELECT {} FROM {}.{}").format(
+                columns_sql,
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+            )
+        ]
 
-        query = f'SELECT {columns_str} FROM {RAWDATA_SCHEMA}."{table_name}" {where_clause}\n'
+        if where_parts:
+            parts.append(sql.SQL(" WHERE "))
+            parts.append(sql.SQL(" AND ").join(where_parts))
 
         if order_column is not None:
-            query += f"ORDER BY {order_column} {order_direction}\n"
+            if order_direction not in ("asc", "desc"):
+                raise ValueError(f"invalid order direction: {order_direction}")
+            parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
+            parts.append(sql.SQL(order_direction))
 
         if limit is not None:
-            query += "LIMIT %s\n"
+            parts.append(sql.SQL(" LIMIT %s"))
             params.append(limit)
 
-        rows = self._storage.query(query, params=params)
+        rows = self._storage.query(sql.Composed(parts), params=params)
         return model.Layer0RawData(table_name, pandas.DataFrame(rows))
 
     def _resolve_table_name(self, record_id: str) -> str | None:

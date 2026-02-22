@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 import psycopg
 import structlog
-from psycopg import rows
+from psycopg import rows, sql
 from psycopg.types import enum, numeric
 
 from app.lib.storage import enums
@@ -84,24 +84,29 @@ class PgStorage:
 
             self._connection.close()
 
-    def exec(self, query: str, *, params: list[Any] | None = None) -> None:
+    def _query_str(self, query: str | sql.SQL | sql.Composed) -> str:
+        if isinstance(query, str):
+            return query
+        return query.as_string(self._connection)
+
+    def exec(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> None:
         if params is None:
             params = []
         if self._connection is None:
             raise RuntimeError("Unable to execute query: connection to Postgres was not established")
 
-        log.debug("SQL query", query=query.replace("\n", " "), args=params)
+        log.debug("SQL query", query=self._query_str(query).replace("\n", " "), args=params)
 
         cursor = self._connection.cursor()
         cursor.execute(query, params)
 
-    def query(self, query: str, *, params: list[Any] | None = None) -> list[rows.DictRow]:
+    def query(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> list[rows.DictRow]:
         if params is None:
             params = []
         if self._connection is None:
             raise RuntimeError("Unable to execute query: connection to Postgres was not established")
 
-        log.debug("SQL query", query=query.replace("\n", " "), args=params)
+        log.debug("SQL query", query=self._query_str(query).replace("\n", " "), args=params)
 
         cursor = self._connection.cursor()
         cursor.execute(query, params)
@@ -111,7 +116,7 @@ class PgStorage:
 
         return result
 
-    def query_one(self, query: str, *, params: list[Any] | None = None) -> rows.DictRow:
+    def query_one(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> rows.DictRow:
         result = self.query(query, params=params)
 
         if len(result) != 1:
