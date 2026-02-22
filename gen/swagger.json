@@ -393,6 +393,22 @@
             }
           },
           {
+            "name": "triage_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordTriageStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Triage Status"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
