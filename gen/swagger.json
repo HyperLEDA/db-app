@@ -1489,6 +1489,9 @@
           "status": {
             "$ref": "#/components/schemas/RecordCrossmatchStatus"
           },
+          "triage_status": {
+            "$ref": "#/components/schemas/RecordTriageStatus"
+          },
           "metadata": {
             "$ref": "#/components/schemas/RecordCrossmatchMetadata"
           },
@@ -1500,6 +1503,7 @@
         "required": [
           "record_id",
           "status",
+          "triage_status",
           "metadata",
           "catalogs"
         ],
@@ -1545,6 +1549,14 @@
           "existing"
         ],
         "title": "RecordCrossmatchStatus"
+      },
+      "RecordTriageStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "resolved"
+        ],
+        "title": "RecordTriageStatus"
       },
       "Redshift": {
         "properties": {
