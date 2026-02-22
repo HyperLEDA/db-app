@@ -198,6 +198,7 @@ class CreateMarkingResponse(pydantic.BaseModel):
 class GetRecordsCrossmatchRequest(pydantic.BaseModel):
     table_name: str
     status: enums.RecordCrossmatchStatus | None = None
+    triage_status: enums.RecordTriageStatus | None = None
     page: int = 0
     page_size: int = 25
 

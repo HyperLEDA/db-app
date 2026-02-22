@@ -85,6 +85,7 @@ class CrossmatchManager:
             limit=r.page_size,
             offset=str(offset) if offset > 0 else None,
             status=[r.status] if r.status is not None else None,
+            triage_status=[r.triage_status] if r.triage_status is not None else None,
         )
 
         records = self._convert_to_record_crossmatch(processed_objects)
