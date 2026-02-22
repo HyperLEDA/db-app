@@ -131,6 +131,7 @@ class CrossmatchManager:
                 adminapi.RecordCrossmatch(
                     record_id=obj.record.id,
                     status=status,
+                    triage_status=obj.triage_status,
                     metadata=metadata,
                     catalogs=catalogs,
                 )

@@ -40,6 +40,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         offset: str | None = None,
         table_name: str | None = None,
         status: Sequence[enums.RecordCrossmatchStatus] | None = None,
+        triage_status: Sequence[enums.RecordTriageStatus] | None = None,
         record_id: str | None = None,
     ) -> list[model.RecordCrossmatch]:
         params = []
@@ -65,13 +66,19 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 where_stmnt.append("c.status = ANY(%s)")
                 params.append([s.value for s in statuses])
 
+        if triage_status is not None:
+            triage_statuses = list(triage_status)
+            if triage_statuses:
+                where_stmnt.append("c.triage_status = ANY(%s)")
+                params.append([s.value for s in triage_statuses])
+
         if record_id is not None:
             where_stmnt.append("o.id = %s")
             params.append(record_id)
 
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
-        query = f"""SELECT o.id, c.status, c.metadata
+        query = f"""SELECT o.id, c.status, c.triage_status, c.metadata
             {join_tables}
             {where_clause}
             ORDER BY o.id
@@ -102,6 +109,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                         [],
                     ),
                     ci_result,
+                    triage_status=row["triage_status"],
                 )
             )
 
@@ -158,32 +166,38 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         )
 
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO layer0.crossmatch (record_id, status, metadata) VALUES "
+        query = "INSERT INTO layer0.crossmatch (record_id, status, triage_status, metadata) VALUES "
         params = []
         values = []
 
         for record_id, result in data.items():
-            values.append("(%s, %s, %s)")
+            values.append("(%s, %s, %s, %s)")
 
             status = None
+            triage = enums.RecordTriageStatus.PENDING
             meta = {}
 
             if isinstance(result, model.CIResultObjectNew):
                 status = enums.RecordCrossmatchStatus.NEW
+                triage = enums.RecordTriageStatus.RESOLVED
                 meta = {}
             elif isinstance(result, model.CIResultObjectExisting):
                 status = enums.RecordCrossmatchStatus.EXISTING
+                triage = enums.RecordTriageStatus.RESOLVED
                 meta = {"pgc": result.pgc}
             else:
                 status = enums.RecordCrossmatchStatus.COLLIDED
                 possible_pgcs = list(result.pgcs)
-
                 meta = {"possible_matches": possible_pgcs}
 
-            params.extend([record_id, status, json.dumps(meta)])
+            params.extend([record_id, status, triage, json.dumps(meta)])
 
         query += ",".join(values)
-        query += " ON CONFLICT (record_id) DO UPDATE SET status = EXCLUDED.status, metadata = EXCLUDED.metadata"
+        query += (
+            " ON CONFLICT (record_id) DO UPDATE SET "
+            "status = EXCLUDED.status, triage_status = EXCLUDED.triage_status, "
+            "metadata = EXCLUDED.metadata"
+        )
 
         self._storage.exec(query, params=params)
 
