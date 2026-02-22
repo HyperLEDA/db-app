@@ -129,7 +129,7 @@ class AddDataResponse(pydantic.BaseModel):
 
 
 class ModifierSpec(pydantic.BaseModel):
-    modifier_name: str
+    name: str
     params: dict[str, Any] = {}
 
 

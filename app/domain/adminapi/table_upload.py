@@ -76,7 +76,7 @@ class TableUploadManager:
                     self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
 
                 if spec.modifiers is not None:
-                    modifiers = [model.Modifier(column_name, m.modifier_name, m.params) for m in spec.modifiers]
+                    modifiers = [model.Modifier(column_name, m.name, m.params) for m in spec.modifiers]
                     self.layer0_repo.set_modifiers(r.table_name, column_name, modifiers)
 
         return adminapi.PatchTableResponse()
