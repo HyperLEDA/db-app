@@ -78,12 +78,12 @@ class CrossmatchManager:
         self.layer2_repo = layer2_repo
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
-        offset = r.page * r.page_size
+        row_offset = r.page * r.page_size
 
         processed_objects = self.layer0_repo.get_processed_records(
             table_name=r.table_name,
             limit=r.page_size,
-            offset=str(offset) if offset > 0 else None,
+            row_offset=row_offset if row_offset > 0 else None,
             status=[r.status] if r.status is not None else None,
             triage_status=[r.triage_status] if r.triage_status is not None else None,
         )
