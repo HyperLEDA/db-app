@@ -20,6 +20,7 @@ class Actions(dataapi.Actions):
         catalog_cfg: responders.CatalogConfig,
     ) -> None:
         self.layer2_repo = layer2_repo
+        self.catalog_cfg = catalog_cfg
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
             layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
@@ -33,8 +34,8 @@ class Actions(dataapi.Actions):
             query.page_size,
             query.page,
         )
-        responder = responders.JSONResponder()
-        pgc_objects = responder.build_response(objects)
+        responder = responders.StructuredResponder(self.catalog_cfg)
+        pgc_objects = responder.build_response(objects).objects
         return dataapi.QueryResponse(objects=pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
