@@ -38,6 +38,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         self,
         limit: int,
         offset: str | None = None,
+        row_offset: int | None = None,
         table_name: str | None = None,
         status: Sequence[enums.RecordCrossmatchStatus] | None = None,
         triage_status: Sequence[enums.RecordTriageStatus] | None = None,
@@ -83,8 +84,11 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             {where_clause}
             ORDER BY o.id
             LIMIT %s"""
-
         params.append(limit)
+
+        if row_offset is not None:
+            query += " OFFSET %s"
+            params.append(row_offset)
 
         rows = self._storage.query(query, params=params)
 
