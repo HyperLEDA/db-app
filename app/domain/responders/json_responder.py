@@ -9,7 +9,7 @@ def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCOb
     response_objects = []
     for obj in objects:
         catalog_data = {o.catalog().value: o.layer2_data() for o in obj.data}
-        response_objects.append(dataapi.PGCObject(obj.pgc, catalog_data))
+        response_objects.append(dataapi.PGCObject(pgc=obj.pgc, catalogs=catalog_data))
 
     return response_objects
 

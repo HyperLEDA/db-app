@@ -11,6 +11,14 @@ from app.presentation.dataapi import interface
 logger = structlog.stdlib.get_logger()
 
 
+def _query_request_dep(
+    q: Annotated[str, fastapi.Query(description="Query string")],
+    page_size: Annotated[int, fastapi.Query(description="Number of objects per page")] = 10,
+    page: Annotated[int, fastapi.Query(description="Page number")] = 0,
+) -> interface.QueryRequest:
+    return interface.QueryRequest(q=q, page_size=page_size, page=page)
+
+
 class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
@@ -23,7 +31,8 @@ class API:
         return server.APIOkResponse(data=response)
 
     def query(
-        self, request: Annotated[interface.QueryRequest, fastapi.Query()]
+        self,
+        request: Annotated[interface.QueryRequest, fastapi.Depends(_query_request_dep)],
     ) -> server.APIOkResponse[interface.QueryResponse]:
         response = self.actions.query(request)
 
@@ -73,18 +82,13 @@ will be used to query.
                 http.HTTPMethod.GET,
                 api.query,
                 "Query data about objects using query string",
-                """Obtains objects using the query string. It is composed of functions and operators.
+                """Obtains objects using a free-form query string.
 
-Allowed functions are:
-- `pgc`: Returns object with the particular PGC number.
-- `name`: Returns objects that are sufficiently similar to the given name.
-- `pos`: Returns objects that are within 1 arcsecond to the given coordinates.
-
-Allowed operators are:
-- `and`: Logical AND operator.
-- `or`: Logical OR operator.
-
-Note that the answer is paginated to improve performance.""",
+The string is interpreted as:
+- A designation (name) search if it does not match a coordinate format; objects with matching designation are returned.
+- Coordinates in HMS/DMS form (e.g. 12h30m49.32s+12d22m33.2s) or J form (e.g. J123049.32+122233.2);
+  objects within 1 arcsecond are returned.
+If the string matches multiple interpretations, results are combined with OR.""",
             ),
             server.Route(
                 "/v1/query/fits",
