@@ -11,6 +11,14 @@ from app.presentation.dataapi import interface
 logger = structlog.stdlib.get_logger()
 
 
+def _query_request_dep(
+    q: Annotated[str, fastapi.Query(description="Query string")],
+    page_size: Annotated[int, fastapi.Query(10, description="Number of objects per page")],
+    page: Annotated[int, fastapi.Query(0, description="Page number")],
+) -> interface.QueryRequest:
+    return interface.QueryRequest(q=q, page_size=page_size, page=page)
+
+
 class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
@@ -23,7 +31,8 @@ class API:
         return server.APIOkResponse(data=response)
 
     def query(
-        self, request: Annotated[interface.QueryRequest, fastapi.Query()]
+        self,
+        request: Annotated[interface.QueryRequest, fastapi.Depends(_query_request_dep)],
     ) -> server.APIOkResponse[interface.QueryResponse]:
         response = self.actions.query(request)
 
