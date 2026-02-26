@@ -394,7 +394,34 @@ table might not have a separate column for astrometric errors but from other sou
                 http.HTTPMethod.POST,
                 api.save_structured_data,
                 "Write structured data to layer 1",
-                "Bulk write columnar data to layer 1 (icrs, designation, redshift). Units required where defined.",
+                """Bulk write columnar data into a layer 1 catalog table. Records are identified by
+internal HyperLEDA IDs (must already be registered there). Use `catalog` to target `icrs`,
+`designation`, or `redshift`. Column names and units are given once; `data` is a 2D array of rows.
+For every column that has unit metadata in the database, the request must include that column in
+`units`.
+
+**Example 1 – designation (no units):**
+```json
+{
+  "catalog": "designation",
+  "columns": ["design"],
+  "units": {},
+  "ids": ["uuid-1", "uuid-2"],
+  "data": [["NGC 1234"], ["NGC 5678"]]
+}
+```
+
+**Example 2 – ICRS (with units, values in degrees):**
+```json
+{
+  "catalog": "icrs",
+  "columns": ["ra", "dec", "e_ra", "e_dec"],
+  "units": {"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+  "ids": ["uuid-1"],
+  "data": [[100.0, 20.0, 0.5, 0.5]]
+}
+```
+""",
             ),
         ]
 
