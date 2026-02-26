@@ -247,6 +247,37 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
 
 
 @lib.test_logging_decorator
+def overwrite_designation_via_structured_and_verify(session: requests.Session, table_name: str):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.NEW,
+        page_size=2,
+    )
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    records = response.json()["data"]["records"]
+    assert len(records) >= 1
+    record_id = records[0]["record_id"]
+
+    overwrite_value = "OVERWRITTEN_STRUCTURED_TEST"
+    structured_request = adminapi.SaveStructuredDataRequest(
+        catalog="designation",
+        columns=["design"],
+        units={},
+        ids=[record_id],
+        data=[[overwrite_value]],
+    )
+    response = session.post("/v1/data/structured", json=structured_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
+    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
+    response.raise_for_status()
+    detail = response.json()["data"]
+    assert detail["crossmatch"]["catalogs"]["designation"]["name"] == overwrite_value
+
+
+@lib.test_logging_decorator
 def check_crossmatch_existing_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
@@ -411,6 +442,7 @@ def run():
 
     check_table_info(adminapi, table_name)
     check_crossmatch_results(adminapi, table_name)
+    overwrite_designation_via_structured_and_verify(adminapi, table_name)
 
     submit_crossmatch(table_name)
     layer2_import()

@@ -130,6 +130,18 @@ class AddDataResponse(pydantic.BaseModel):
     pass
 
 
+class SaveStructuredDataRequest(pydantic.BaseModel):
+    catalog: str
+    columns: list[str]
+    units: dict[str, str] = {}
+    ids: list[str]
+    data: list[list[Any]]
+
+
+class SaveStructuredDataResponse(pydantic.BaseModel):
+    pass
+
+
 class ModifierSpec(pydantic.BaseModel):
     name: str
     params: dict[str, Any] = {}
@@ -330,4 +342,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_record_crossmatch(self, request: GetRecordCrossmatchRequest) -> GetRecordCrossmatchResponse:
+        pass
+
+    @abc.abstractmethod
+    def save_structured_data(self, request: SaveStructuredDataRequest) -> SaveStructuredDataResponse:
         pass

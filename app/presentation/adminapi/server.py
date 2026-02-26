@@ -83,6 +83,14 @@ class API:
         response = self.actions.get_record_crossmatch(request)
         return server.APIOkResponse(data=response)
 
+    def save_structured_data(
+        self,
+        request: interface.SaveStructuredDataRequest,
+        token: str = fastapi.Security(api_key_header),
+    ) -> server.APIOkResponse[interface.SaveStructuredDataResponse]:
+        response = self.actions.save_structured_data(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -380,6 +388,13 @@ table might not have a separate column for astrometric errors but from other sou
                 api.get_record_crossmatch,
                 "Get record crossmatch details",
                 """Retrieves detailed crossmatch information for a specific record.""",
+            ),
+            server.Route(
+                "/v1/data/structured",
+                http.HTTPMethod.POST,
+                api.save_structured_data,
+                "Write structured data to layer 1",
+                "Bulk write columnar data to layer 1 (icrs, designation, redshift). Units required where defined.",
             ),
         ]
 
