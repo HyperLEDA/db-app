@@ -278,6 +278,39 @@ def overwrite_designation_via_structured_and_verify(session: requests.Session, t
 
 
 @lib.test_logging_decorator
+def overwrite_icrs_via_structured_and_verify(session: requests.Session, table_name: str):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.NEW,
+        page_size=3,
+    )
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    records = response.json()["data"]["records"]
+    assert len(records) >= 2
+    record_id = records[1]["record_id"]
+
+    ra, dec, e_ra, e_dec = 100.0, 20.0, 0.5, 0.5
+    structured_request = adminapi.SaveStructuredDataRequest(
+        catalog="icrs",
+        columns=["ra", "dec", "e_ra", "e_dec"],
+        units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+        ids=[record_id],
+        data=[[ra, dec, e_ra, e_dec]],
+    )
+    response = session.post("/v1/data/structured", json=structured_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
+    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
+    response.raise_for_status()
+    detail = response.json()["data"]
+    eq = detail["crossmatch"]["catalogs"]["coordinates"]["equatorial"]
+    assert abs(eq["ra"] - ra) < 1e-6 and abs(eq["dec"] - dec) < 1e-6
+    assert abs(eq["e_ra"] - e_ra) < 1e-6 and abs(eq["e_dec"] - e_dec) < 1e-6
+
+
+@lib.test_logging_decorator
 def check_crossmatch_existing_results(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
@@ -443,6 +476,7 @@ def run():
     check_table_info(adminapi, table_name)
     check_crossmatch_results(adminapi, table_name)
     overwrite_designation_via_structured_and_verify(adminapi, table_name)
+    overwrite_icrs_via_structured_and_verify(adminapi, table_name)
 
     submit_crossmatch(table_name)
     layer2_import()

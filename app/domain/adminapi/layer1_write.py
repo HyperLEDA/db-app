@@ -1,4 +1,3 @@
-import numpy as np
 import psycopg
 from astropy import units as u
 
@@ -22,13 +21,22 @@ class Layer1Writer:
         if missing:
             raise RuleValidationError(f"units required for columns: {', '.join(sorted(missing))}")
 
-        factors = np.ones(len(request.columns))
+        factors: list[float | None] = [None] * len(request.columns)
         for j, col in enumerate(request.columns):
             if col in internal_units and col in request.units:
                 factors[j] = (1.0 * u.Unit(request.units[col])).to(u.Unit(internal_units[col])).value
+            else:
+                factors[j] = None
 
-        data_arr = np.array(request.data)
-        converted = (data_arr * factors).tolist()
+        converted = []
+        for row in request.data:
+            new_row = []
+            for value, factor in zip(row, factors, strict=True):
+                if factor is not None:
+                    new_row.append(float(value) * factor)
+                else:
+                    new_row.append(value)
+            converted.append(new_row)
 
         try:
             self._layer1_repo.save_structured_data(table, request.columns, request.ids, converted)
