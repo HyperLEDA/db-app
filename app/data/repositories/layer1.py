@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 
 import structlog
 
@@ -11,6 +12,29 @@ class Layer1Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
         super().__init__(storage)
+
+    def get_column_units(self, catalog: model.RawCatalog) -> dict[str, str]:
+        object_cls = model.get_catalog_object_type(catalog)
+        schema, table_name = object_cls.layer1_table().split(".")
+        rows = self._storage.query(
+            "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
+            "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
+            params=[schema, table_name],
+        )
+        return {row["column_name"]: row["unit"] for row in rows}
+
+    def save_structured_data(self, table: str, columns: list[str], ids: list[str], data: list[list[Any]]) -> None:
+        all_columns = ["record_id"] + columns
+        placeholders = ",".join(["%s"] * len(all_columns))
+        on_conflict = ", ".join(f"{c} = EXCLUDED.{c}" for c in all_columns)
+        query = (
+            f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) "
+            f"ON CONFLICT (record_id) DO UPDATE SET {on_conflict}"
+        )
+        rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
+        with self.with_tx():
+            cursor = self._storage.get_connection().cursor()
+            cursor.executemany(query, rows)
 
     def save_data(self, records: list[model.Record]) -> None:
         all_catalog_objects = []
