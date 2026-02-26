@@ -493,6 +493,50 @@
         }
       }
     },
+    "/api/v1/data/structured": {
+      "post": {
+        "summary": "Write structured data to layer 1",
+        "description": "Bulk write columnar data into a layer 1 catalog table. Records are identified by\ninternal HyperLEDA IDs (must already be registered there). Use `catalog` to target `icrs`,\n`designation`, or `redshift`. Column names and units are given once; `data` is a 2D array of rows.\nFor every column that has unit metadata in the database, the request must include that column in\n`units`.\n\n**Example 1 \u2013 designation (no units):**\n```json\n{\n  \"catalog\": \"designation\",\n  \"columns\": [\"design\"],\n  \"units\": {},\n  \"ids\": [\"uuid-1\", \"uuid-2\"],\n  \"data\": [[\"NGC 1234\"], [\"NGC 5678\"]]\n}\n```\n\n**Example 2 \u2013 ICRS (with units, values in degrees):**\n```json\n{\n  \"catalog\": \"icrs\",\n  \"columns\": [\"ra\", \"dec\", \"e_ra\", \"e_dec\"],\n  \"units\": {\"ra\": \"deg\", \"dec\": \"deg\", \"e_ra\": \"deg\", \"e_dec\": \"deg\"},\n  \"ids\": [\"uuid-1\"],\n  \"data\": [[100.0, 20.0, 0.5, 0.5]]\n}\n```",
+        "operationId": "save_structured_data",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveStructuredDataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_SaveStructuredDataResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
     "/ping": {
       "get": {
         "summary": "Check that service is up and running",
@@ -631,6 +675,18 @@
           "data"
         ],
         "title": "APIOkResponse[PatchTableResponse]"
+      },
+      "APIOkResponse_SaveStructuredDataResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SaveStructuredDataResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[SaveStructuredDataResponse]"
       },
       "AddDataRequest": {
         "properties": {
@@ -1591,6 +1647,57 @@
           "e_z"
         ],
         "title": "Redshift"
+      },
+      "SaveStructuredDataRequest": {
+        "properties": {
+          "catalog": {
+            "type": "string",
+            "title": "Catalog"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Units",
+            "default": {}
+          },
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ids"
+          },
+          "data": {
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "catalog",
+          "columns",
+          "ids",
+          "data"
+        ],
+        "title": "SaveStructuredDataRequest"
+      },
+      "SaveStructuredDataResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "SaveStructuredDataResponse"
       },
       "Schema": {
         "properties": {

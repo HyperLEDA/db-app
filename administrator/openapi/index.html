@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -535,6 +535,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#post-apiv1datastructured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/v1/data/structured
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#get-ping" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -688,6 +699,17 @@
     <span class="md-ellipsis">
       
         APIOkResponse_PatchTableResponse_
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apiokresponse_savestructureddataresponse_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIOkResponse_SaveStructuredDataResponse_
       
     </span>
   </a>
@@ -1084,6 +1106,28 @@
     <span class="md-ellipsis">
       
         Redshift
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#savestructureddatarequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SaveStructuredDataRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#savestructureddataresponse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SaveStructuredDataResponse
       
     </span>
   </a>
@@ -1686,6 +1730,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#post-apiv1datastructured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/v1/data/structured
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#get-ping" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1839,6 +1894,17 @@
     <span class="md-ellipsis">
       
         APIOkResponse_PatchTableResponse_
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apiokresponse_savestructureddataresponse_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIOkResponse_SaveStructuredDataResponse_
       
     </span>
   </a>
@@ -2235,6 +2301,28 @@
     <span class="md-ellipsis">
       
         Redshift
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#savestructureddatarequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SaveStructuredDataRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#savestructureddataresponse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SaveStructuredDataResponse
       
     </span>
   </a>
@@ -4056,18 +4144,223 @@ specify this in the
 </div>
 <hr class="operation-separator" />
 
+<h3 id="post-apiv1datastructured"><span class="http-post">POST</span> /api/v1/data/structured<a class="headerlink" href="#post-apiv1datastructured" title="Permanent link">#</a></h3>
+<p>Write structured data to layer 1</p>
+<details class="note">
+<summary>Description</summary>
+<p>Bulk write columnar data into a layer 1 catalog table. Records are
+identified by
+internal HyperLEDA IDs (must already be registered there). Use <code>catalog</code> to
+target <code>icrs</code>,
+<code>designation</code>, or <code>redshift</code>. Column names and units are given once; <code>data</code>
+is a 2D array of rows.
+For every column that has unit metadata in the database, the request must
+include that column in
+<code>units</code>.</p>
+<p><strong>Example 1 – designation (no units):</strong>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="p">{</span>
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a><span class="w">  </span><span class="nt">&quot;catalog&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;designation&quot;</span><span class="p">,</span>
+</span><span id="__span-62-3"><a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a><span class="w">  </span><span class="nt">&quot;columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;design&quot;</span><span class="p">],</span>
+</span><span id="__span-62-4"><a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a><span class="w">  </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+</span><span id="__span-62-5"><a id="__codelineno-62-5" name="__codelineno-62-5" href="#__codelineno-62-5"></a><span class="w">  </span><span class="nt">&quot;ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;uuid-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;uuid-2&quot;</span><span class="p">],</span>
+</span><span id="__span-62-6"><a id="__codelineno-62-6" name="__codelineno-62-6" href="#__codelineno-62-6"></a><span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;NGC 1234&quot;</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;NGC 5678&quot;</span><span class="p">]]</span>
+</span><span id="__span-62-7"><a id="__codelineno-62-7" name="__codelineno-62-7" href="#__codelineno-62-7"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<p><strong>Example 2 – ICRS (with units, values in degrees):</strong>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="p">{</span>
+</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a><span class="w">  </span><span class="nt">&quot;catalog&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;icrs&quot;</span><span class="p">,</span>
+</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a><span class="w">  </span><span class="nt">&quot;columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ra&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;dec&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;e_ra&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;e_dec&quot;</span><span class="p">],</span>
+</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a><span class="w">  </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;ra&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deg&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;dec&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deg&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;e_ra&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deg&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;e_dec&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deg&quot;</span><span class="p">},</span>
+</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a><span class="w">  </span><span class="nt">&quot;ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;uuid-1&quot;</span><span class="p">],</span>
+</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a><span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">]]</span>
+</span><span id="__span-63-7"><a id="__codelineno-63-7" name="__codelineno-63-7" href="#__codelineno-63-7"></a><span class="p">}</span>
+</span></code></pre></div></p>
+</details>
+<p><strong>Input parameters</strong></p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>APIKeyHeader</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td>API key</td>
+        </tr>
+    </tbody>
+</table>
+<p class="request-body-title"><strong>Request body</strong></p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="27:1"><input checked="checked" id="__tabbed_27_1" name="__tabbed_27" type="radio" /><div class="tabbed-labels"><label for="__tabbed_27_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="p">{</span>
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a><span class="w">    </span><span class="nt">&quot;catalog&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a><span class="w">    </span><span class="nt">&quot;columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a><span class="w">        </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-64-6"><a id="__codelineno-64-6" name="__codelineno-64-6" href="#__codelineno-64-6"></a><span class="w">    </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+</span><span id="__span-64-7"><a id="__codelineno-64-7" name="__codelineno-64-7" href="#__codelineno-64-7"></a><span class="w">    </span><span class="nt">&quot;ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-64-8"><a id="__codelineno-64-8" name="__codelineno-64-8" href="#__codelineno-64-8"></a><span class="w">        </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-64-9"><a id="__codelineno-64-9" name="__codelineno-64-9" href="#__codelineno-64-9"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-64-10"><a id="__codelineno-64-10" name="__codelineno-64-10" href="#__codelineno-64-10"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-64-11"><a id="__codelineno-64-11" name="__codelineno-64-11" href="#__codelineno-64-11"></a><span class="w">        </span><span class="p">[</span>
+</span><span id="__span-64-12"><a id="__codelineno-64-12" name="__codelineno-64-12" href="#__codelineno-64-12"></a><span class="w">            </span><span class="kc">null</span>
+</span><span id="__span-64-13"><a id="__codelineno-64-13" name="__codelineno-64-13" href="#__codelineno-64-13"></a><span class="w">        </span><span class="p">]</span>
+</span><span id="__span-64-14"><a id="__codelineno-64-14" name="__codelineno-64-14" href="#__codelineno-64-14"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-64-15"><a id="__codelineno-64-15" name="__codelineno-64-15" href="#__codelineno-64-15"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the request body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="p">{</span>
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-3"><a id="__codelineno-65-3" name="__codelineno-65-3" href="#__codelineno-65-3"></a><span class="w">        </span><span class="nt">&quot;catalog&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-4"><a id="__codelineno-65-4" name="__codelineno-65-4" href="#__codelineno-65-4"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-65-5"><a id="__codelineno-65-5" name="__codelineno-65-5" href="#__codelineno-65-5"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Catalog&quot;</span>
+</span><span id="__span-65-6"><a id="__codelineno-65-6" name="__codelineno-65-6" href="#__codelineno-65-6"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-65-7"><a id="__codelineno-65-7" name="__codelineno-65-7" href="#__codelineno-65-7"></a><span class="w">        </span><span class="nt">&quot;columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-8"><a id="__codelineno-65-8" name="__codelineno-65-8" href="#__codelineno-65-8"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-9"><a id="__codelineno-65-9" name="__codelineno-65-9" href="#__codelineno-65-9"></a><span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-65-10"><a id="__codelineno-65-10" name="__codelineno-65-10" href="#__codelineno-65-10"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-65-11"><a id="__codelineno-65-11" name="__codelineno-65-11" href="#__codelineno-65-11"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-65-12"><a id="__codelineno-65-12" name="__codelineno-65-12" href="#__codelineno-65-12"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Columns&quot;</span>
+</span><span id="__span-65-13"><a id="__codelineno-65-13" name="__codelineno-65-13" href="#__codelineno-65-13"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-65-14"><a id="__codelineno-65-14" name="__codelineno-65-14" href="#__codelineno-65-14"></a><span class="w">        </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-15"><a id="__codelineno-65-15" name="__codelineno-65-15" href="#__codelineno-65-15"></a><span class="w">            </span><span class="nt">&quot;additionalProperties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-16"><a id="__codelineno-65-16" name="__codelineno-65-16" href="#__codelineno-65-16"></a><span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-65-17"><a id="__codelineno-65-17" name="__codelineno-65-17" href="#__codelineno-65-17"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-65-18"><a id="__codelineno-65-18" name="__codelineno-65-18" href="#__codelineno-65-18"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-65-19"><a id="__codelineno-65-19" name="__codelineno-65-19" href="#__codelineno-65-19"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Units&quot;</span><span class="p">,</span>
+</span><span id="__span-65-20"><a id="__codelineno-65-20" name="__codelineno-65-20" href="#__codelineno-65-20"></a><span class="w">            </span><span class="nt">&quot;default&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-65-21"><a id="__codelineno-65-21" name="__codelineno-65-21" href="#__codelineno-65-21"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-65-22"><a id="__codelineno-65-22" name="__codelineno-65-22" href="#__codelineno-65-22"></a><span class="w">        </span><span class="nt">&quot;ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-23"><a id="__codelineno-65-23" name="__codelineno-65-23" href="#__codelineno-65-23"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-24"><a id="__codelineno-65-24" name="__codelineno-65-24" href="#__codelineno-65-24"></a><span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+</span><span id="__span-65-25"><a id="__codelineno-65-25" name="__codelineno-65-25" href="#__codelineno-65-25"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-65-26"><a id="__codelineno-65-26" name="__codelineno-65-26" href="#__codelineno-65-26"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-65-27"><a id="__codelineno-65-27" name="__codelineno-65-27" href="#__codelineno-65-27"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Ids&quot;</span>
+</span><span id="__span-65-28"><a id="__codelineno-65-28" name="__codelineno-65-28" href="#__codelineno-65-28"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-65-29"><a id="__codelineno-65-29" name="__codelineno-65-29" href="#__codelineno-65-29"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-30"><a id="__codelineno-65-30" name="__codelineno-65-30" href="#__codelineno-65-30"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-31"><a id="__codelineno-65-31" name="__codelineno-65-31" href="#__codelineno-65-31"></a><span class="w">                </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+</span><span id="__span-65-32"><a id="__codelineno-65-32" name="__codelineno-65-32" href="#__codelineno-65-32"></a><span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span>
+</span><span id="__span-65-33"><a id="__codelineno-65-33" name="__codelineno-65-33" href="#__codelineno-65-33"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-65-34"><a id="__codelineno-65-34" name="__codelineno-65-34" href="#__codelineno-65-34"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-65-35"><a id="__codelineno-65-35" name="__codelineno-65-35" href="#__codelineno-65-35"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Data&quot;</span>
+</span><span id="__span-65-36"><a id="__codelineno-65-36" name="__codelineno-65-36" href="#__codelineno-65-36"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-65-37"><a id="__codelineno-65-37" name="__codelineno-65-37" href="#__codelineno-65-37"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-65-38"><a id="__codelineno-65-38" name="__codelineno-65-38" href="#__codelineno-65-38"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-65-39"><a id="__codelineno-65-39" name="__codelineno-65-39" href="#__codelineno-65-39"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-65-40"><a id="__codelineno-65-40" name="__codelineno-65-40" href="#__codelineno-65-40"></a><span class="w">        </span><span class="s2">&quot;catalog&quot;</span><span class="p">,</span>
+</span><span id="__span-65-41"><a id="__codelineno-65-41" name="__codelineno-65-41" href="#__codelineno-65-41"></a><span class="w">        </span><span class="s2">&quot;columns&quot;</span><span class="p">,</span>
+</span><span id="__span-65-42"><a id="__codelineno-65-42" name="__codelineno-65-42" href="#__codelineno-65-42"></a><span class="w">        </span><span class="s2">&quot;ids&quot;</span><span class="p">,</span>
+</span><span id="__span-65-43"><a id="__codelineno-65-43" name="__codelineno-65-43" href="#__codelineno-65-43"></a><span class="w">        </span><span class="s2">&quot;data&quot;</span>
+</span><span id="__span-65-44"><a id="__codelineno-65-44" name="__codelineno-65-44" href="#__codelineno-65-44"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-65-45"><a id="__codelineno-65-45" name="__codelineno-65-45" href="#__codelineno-65-45"></a><span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SaveStructuredDataRequest&quot;</span>
+</span><span id="__span-65-46"><a id="__codelineno-65-46" name="__codelineno-65-46" href="#__codelineno-65-46"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="28:1"><input checked="checked" id="__tabbed_28_1" name="__tabbed_28" type="radio" /><div class="tabbed-labels"><label for="__tabbed_28_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="p">{</span>
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a><span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the response body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="p">{</span>
+</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-67-3"><a id="__codelineno-67-3" name="__codelineno-67-3" href="#__codelineno-67-3"></a><span class="w">        </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-67-4"><a id="__codelineno-67-4" name="__codelineno-67-4" href="#__codelineno-67-4"></a><span class="w">            </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/SaveStructuredDataResponse&quot;</span>
+</span><span id="__span-67-5"><a id="__codelineno-67-5" name="__codelineno-67-5" href="#__codelineno-67-5"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-67-6"><a id="__codelineno-67-6" name="__codelineno-67-6" href="#__codelineno-67-6"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-67-7"><a id="__codelineno-67-7" name="__codelineno-67-7" href="#__codelineno-67-7"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-67-8"><a id="__codelineno-67-8" name="__codelineno-67-8" href="#__codelineno-67-8"></a><span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-67-9"><a id="__codelineno-67-9" name="__codelineno-67-9" href="#__codelineno-67-9"></a><span class="w">        </span><span class="s2">&quot;data&quot;</span>
+</span><span id="__span-67-10"><a id="__codelineno-67-10" name="__codelineno-67-10" href="#__codelineno-67-10"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-67-11"><a id="__codelineno-67-11" name="__codelineno-67-11" href="#__codelineno-67-11"></a><span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;APIOkResponse[SaveStructuredDataResponse]&quot;</span>
+</span><span id="__span-67-12"><a id="__codelineno-67-12" name="__codelineno-67-12" href="#__codelineno-67-12"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
+<p class="response-title">
+    <strong>Response <span class="response-code code-422">422</span>&nbsp;<span class="status-phrase">Unprocessable Content</span></strong>
+</p>
+
+<div class="tabbed-set tabbed-alternate" data-tabs="29:1"><input checked="checked" id="__tabbed_29_1" name="__tabbed_29" type="radio" /><div class="tabbed-labels"><label for="__tabbed_29_1">application/json</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="language-json highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="p">{</span>
+</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a><span class="w">    </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-68-3"><a id="__codelineno-68-3" name="__codelineno-68-3" href="#__codelineno-68-3"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-68-4"><a id="__codelineno-68-4" name="__codelineno-68-4" href="#__codelineno-68-4"></a><span class="w">            </span><span class="nt">&quot;loc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-68-5"><a id="__codelineno-68-5" name="__codelineno-68-5" href="#__codelineno-68-5"></a><span class="w">                </span><span class="kc">null</span>
+</span><span id="__span-68-6"><a id="__codelineno-68-6" name="__codelineno-68-6" href="#__codelineno-68-6"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-68-7"><a id="__codelineno-68-7" name="__codelineno-68-7" href="#__codelineno-68-7"></a><span class="w">            </span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-68-8"><a id="__codelineno-68-8" name="__codelineno-68-8" href="#__codelineno-68-8"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+</span><span id="__span-68-9"><a id="__codelineno-68-9" name="__codelineno-68-9" href="#__codelineno-68-9"></a><span class="w">            </span><span class="nt">&quot;input&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-68-10"><a id="__codelineno-68-10" name="__codelineno-68-10" href="#__codelineno-68-10"></a><span class="w">            </span><span class="nt">&quot;ctx&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-68-11"><a id="__codelineno-68-11" name="__codelineno-68-11" href="#__codelineno-68-11"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-68-12"><a id="__codelineno-68-12" name="__codelineno-68-12" href="#__codelineno-68-12"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-68-13"><a id="__codelineno-68-13" name="__codelineno-68-13" href="#__codelineno-68-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
+<details class="hint">
+<summary>Schema of the response body</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="p">{</span>
+</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a><span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-69-3"><a id="__codelineno-69-3" name="__codelineno-69-3" href="#__codelineno-69-3"></a><span class="w">        </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-69-4"><a id="__codelineno-69-4" name="__codelineno-69-4" href="#__codelineno-69-4"></a><span class="w">            </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-69-5"><a id="__codelineno-69-5" name="__codelineno-69-5" href="#__codelineno-69-5"></a><span class="w">                </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/components/schemas/ValidationError&quot;</span>
+</span><span id="__span-69-6"><a id="__codelineno-69-6" name="__codelineno-69-6" href="#__codelineno-69-6"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-69-7"><a id="__codelineno-69-7" name="__codelineno-69-7" href="#__codelineno-69-7"></a><span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+</span><span id="__span-69-8"><a id="__codelineno-69-8" name="__codelineno-69-8" href="#__codelineno-69-8"></a><span class="w">            </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Detail&quot;</span>
+</span><span id="__span-69-9"><a id="__codelineno-69-9" name="__codelineno-69-9" href="#__codelineno-69-9"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-69-10"><a id="__codelineno-69-10" name="__codelineno-69-10" href="#__codelineno-69-10"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-69-11"><a id="__codelineno-69-11" name="__codelineno-69-11" href="#__codelineno-69-11"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-69-12"><a id="__codelineno-69-12" name="__codelineno-69-12" href="#__codelineno-69-12"></a><span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;HTTPValidationError&quot;</span>
+</span><span id="__span-69-13"><a id="__codelineno-69-13" name="__codelineno-69-13" href="#__codelineno-69-13"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+</div>
+</div>
+</div>
+<hr class="operation-separator" />
+
 <h3 id="get-ping"><span class="http-get">GET</span> /ping<a class="headerlink" href="#get-ping" title="Permanent link">#</a></h3>
 <p>Check that service is up and running</p>
 <p class="response-title">
     <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
 </p>
 
-<div class="tabbed-set tabbed-alternate" data-tabs="27:1"><input checked="checked" id="__tabbed_27_1" name="__tabbed_27" type="radio" /><div class="tabbed-labels"><label for="__tabbed_27_1">application/json</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="30:1"><input checked="checked" id="__tabbed_30_1" name="__tabbed_30" type="radio" /><div class="tabbed-labels"><label for="__tabbed_30_1">application/json</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <details class="hint">
 <summary>Schema of the response body</summary>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>
 </span></code></pre></div>
 </details>
 </div>
@@ -4252,6 +4545,22 @@ specify this in the
         <tr>
             <td><code>data</code></td>
             <td><a href="#patchtableresponse" class="ref-link">PatchTableResponse</a></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="apiokresponse_savestructureddataresponse_">APIOkResponse_SaveStructuredDataResponse_<a class="headerlink" href="#apiokresponse_savestructureddataresponse_" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>data</code></td>
+            <td><a href="#savestructureddataresponse" class="ref-link">SaveStructuredDataResponse</a></td>
         </tr>
     </tbody>
 </table>
@@ -4966,6 +5275,39 @@ specify this in the
     </tbody>
 </table>
 
+<h3 id="savestructureddatarequest">SaveStructuredDataRequest<a class="headerlink" href="#savestructureddatarequest" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>catalog</code></td>
+            <td><span class="string-type">string</span></td>
+        </tr>
+        <tr>
+            <td><code>columns</code></td>
+            <td>Array&lt;<span class="string-type">string</span>&gt;</td>
+        </tr>
+        <tr>
+            <td><code>data</code></td>
+            <td>Array&lt;Array&lt;&gt;&gt;</td>
+        </tr>
+        <tr>
+            <td><code>ids</code></td>
+            <td>Array&lt;<span class="string-type">string</span>&gt;</td>
+        </tr>
+        <tr>
+            <td><code>units</code></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="savestructureddataresponse">SaveStructuredDataResponse<a class="headerlink" href="#savestructureddataresponse" title="Permanent link">#</a></h3>
 <h3 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">#</a></h3>
 <table>
     <thead>
