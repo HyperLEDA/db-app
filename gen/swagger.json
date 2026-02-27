@@ -451,6 +451,48 @@
             }
           }
         }
+      },
+      "post": {
+        "summary": "Set crossmatch results",
+        "description": "Bulk write crossmatch results. Each entry contains only the fields needed for that status (no nulls).\nAt least one status block must be present.\n\n**Example 1 \u2013 minimal (all new objects):**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] }\n  }\n}\n```\n\n**Example 2 \u2013 mixed statuses:**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] },\n    \"existing\": { \"record_ids\": [\"uuid-3\"], \"pgcs\": [42] },\n    \"collided\": {\n      \"record_ids\": [\"uuid-4\"],\n      \"possible_matches\": [[40, 41, 42]],\n      \"triage_statuses\": [\"resolved\"]\n    }\n  }\n}\n```",
+        "operationId": "set_crossmatch_results",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCrossmatchResultsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_SetCrossmatchResultsResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/record/crossmatch": {
@@ -688,6 +730,18 @@
         ],
         "title": "APIOkResponse[SaveStructuredDataResponse]"
       },
+      "APIOkResponse_SetCrossmatchResultsResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SetCrossmatchResultsResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[SetCrossmatchResultsResponse]"
+      },
       "AddDataRequest": {
         "properties": {
           "table_name": {
@@ -865,6 +919,48 @@
         },
         "type": "object",
         "title": "Catalogs"
+      },
+      "CollidedStatusPayload": {
+        "properties": {
+          "record_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Record Ids"
+          },
+          "possible_matches": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Possible Matches"
+          },
+          "triage_statuses": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordTriageStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Triage Statuses",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_ids",
+          "possible_matches"
+        ],
+        "title": "CollidedStatusPayload"
       },
       "ColumnDescription": {
         "properties": {
@@ -1160,6 +1256,45 @@
         ],
         "title": "EquatorialCoordinates"
       },
+      "ExistingStatusPayload": {
+        "properties": {
+          "record_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Record Ids"
+          },
+          "pgcs": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Pgcs"
+          },
+          "triage_statuses": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordTriageStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Triage Statuses",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_ids",
+          "pgcs"
+        ],
+        "title": "ExistingStatusPayload"
+      },
       "GalacticCoordinates": {
         "properties": {
           "lon": {
@@ -1439,6 +1574,37 @@
         ],
         "title": "ModifierSpec"
       },
+      "NewStatusPayload": {
+        "properties": {
+          "record_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Record Ids"
+          },
+          "triage_statuses": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordTriageStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Triage Statuses",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_ids"
+        ],
+        "title": "NewStatusPayload"
+      },
       "PGCCandidate": {
         "properties": {
           "pgc": {
@@ -1710,6 +1876,59 @@
           "units"
         ],
         "title": "Schema"
+      },
+      "SetCrossmatchResultsRequest": {
+        "properties": {
+          "statuses": {
+            "$ref": "#/components/schemas/StatusesPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "statuses"
+        ],
+        "title": "SetCrossmatchResultsRequest"
+      },
+      "SetCrossmatchResultsResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "SetCrossmatchResultsResponse"
+      },
+      "StatusesPayload": {
+        "properties": {
+          "new": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewStatusPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "existing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExistingStatusPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "collided": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CollidedStatusPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "StatusesPayload"
       },
       "TableListItem": {
         "properties": {
