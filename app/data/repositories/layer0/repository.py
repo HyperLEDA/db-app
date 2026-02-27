@@ -89,6 +89,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
         return self.records_repo.add_crossmatch_result(data)
 
+    def set_crossmatch_results(self, rows: list[list]) -> None:
+        return self.records_repo.set_crossmatch_results(rows)
+
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         return self.records_repo.upsert_pgc(pgcs)
 

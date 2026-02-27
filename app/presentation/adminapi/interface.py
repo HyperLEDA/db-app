@@ -303,6 +303,74 @@ class GetRecordCrossmatchResponse(pydantic.BaseModel):
     original_data: dict[str, Any] | None = None
 
 
+class NewStatusPayload(pydantic.BaseModel):
+    record_ids: list[str]
+    triage_statuses: list[enums.RecordTriageStatus | None] = []
+
+    @pydantic.model_validator(mode="after")
+    def check_triage_length(self) -> "NewStatusPayload":
+        if self.triage_statuses and len(self.triage_statuses) != len(self.record_ids):
+            raise ValueError("triage_statuses must have the same length as record_ids")
+        return self
+
+
+class ExistingStatusPayload(pydantic.BaseModel):
+    record_ids: list[str]
+    pgcs: list[int]
+    triage_statuses: list[enums.RecordTriageStatus | None] = []
+
+    @pydantic.model_validator(mode="after")
+    def check_lengths(self) -> "ExistingStatusPayload":
+        if len(self.pgcs) != len(self.record_ids):
+            raise ValueError("pgcs must have the same length as record_ids")
+        if self.triage_statuses and len(self.triage_statuses) != len(self.record_ids):
+            raise ValueError("triage_statuses must have the same length as record_ids")
+        return self
+
+
+class CollidedStatusPayload(pydantic.BaseModel):
+    record_ids: list[str]
+    possible_matches: list[list[int]]
+    triage_statuses: list[enums.RecordTriageStatus | None] = []
+
+    @pydantic.model_validator(mode="after")
+    def check_lengths_and_non_empty(self) -> "CollidedStatusPayload":
+        if len(self.possible_matches) != len(self.record_ids):
+            raise ValueError("possible_matches must have the same length as record_ids")
+        for i, pm in enumerate(self.possible_matches):
+            if not pm:
+                raise ValueError(f"possible_matches[{i}] must be non-empty (status=collided)")
+        if self.triage_statuses and len(self.triage_statuses) != len(self.record_ids):
+            raise ValueError("triage_statuses must have the same length as record_ids")
+        return self
+
+
+class StatusesPayload(pydantic.BaseModel):
+    new: NewStatusPayload | None = None
+    existing: ExistingStatusPayload | None = None
+    collided: CollidedStatusPayload | None = None
+
+    @pydantic.model_validator(mode="after")
+    def check_at_least_one(self) -> "StatusesPayload":
+        if not any([self.new, self.existing, self.collided]):
+            raise ValueError("at least one of new, existing, collided must be present")
+        if self.new is not None and not self.new.record_ids:
+            raise ValueError("new.record_ids must be non-empty when present")
+        if self.existing is not None and not self.existing.record_ids:
+            raise ValueError("existing.record_ids must be non-empty when present")
+        if self.collided is not None and not self.collided.record_ids:
+            raise ValueError("collided.record_ids must be non-empty when present")
+        return self
+
+
+class SetCrossmatchResultsRequest(pydantic.BaseModel):
+    statuses: StatusesPayload
+
+
+class SetCrossmatchResultsResponse(pydantic.BaseModel):
+    pass
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, request: AddDataRequest) -> AddDataResponse:
@@ -346,4 +414,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def save_structured_data(self, request: SaveStructuredDataRequest) -> SaveStructuredDataResponse:
+        pass
+
+    @abc.abstractmethod
+    def set_crossmatch_results(self, request: SetCrossmatchResultsRequest) -> SetCrossmatchResultsResponse:
         pass
