@@ -247,6 +247,40 @@ def check_crossmatch_results(session: requests.Session, table_name: str):
 
 
 @lib.test_logging_decorator
+def overwrite_triage_via_set_crossmatch_and_verify(session: requests.Session, table_name: str):
+    request_data = adminapi.GetRecordsCrossmatchRequest(
+        table_name=table_name,
+        status=enums.RecordCrossmatchStatus.NEW,
+        page_size=2,
+    )
+    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    records = response.json()["data"]["records"]
+    assert len(records) >= 1
+    record_id = records[0]["record_id"]
+
+    set_request = adminapi.SetCrossmatchResultsRequest(
+        statuses=adminapi.StatusesPayload(
+            new=adminapi.NewStatusPayload(
+                record_ids=[record_id],
+                triage_statuses=[enums.RecordTriageStatus.PENDING],
+            ),
+        ),
+    )
+    response = session.post(
+        "/v1/records/crossmatch",
+        json=set_request.model_dump(mode="json"),
+    )
+    response.raise_for_status()
+
+    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
+    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
+    response.raise_for_status()
+    detail = response.json()["data"]
+    assert detail["crossmatch"]["triage_status"] == enums.RecordTriageStatus.PENDING
+
+
+@lib.test_logging_decorator
 def overwrite_designation_via_structured_and_verify(session: requests.Session, table_name: str):
     request_data = adminapi.GetRecordsCrossmatchRequest(
         table_name=table_name,
@@ -475,6 +509,7 @@ def run():
 
     check_table_info(adminapi, table_name)
     check_crossmatch_results(adminapi, table_name)
+    overwrite_triage_via_set_crossmatch_and_verify(adminapi, table_name)
     overwrite_designation_via_structured_and_verify(adminapi, table_name)
     overwrite_icrs_via_structured_and_verify(adminapi, table_name)
 

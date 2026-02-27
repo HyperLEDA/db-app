@@ -1,5 +1,6 @@
 import json
 from collections.abc import Sequence
+from typing import Any
 
 from psycopg import sql
 
@@ -204,6 +205,20 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         )
 
         self._storage.exec(query, params=params)
+
+    def set_crossmatch_results(self, rows: list[list[Any]]) -> None:
+        if not rows:
+            return
+        query = (
+            "INSERT INTO layer0.crossmatch (record_id, status, triage_status, metadata) "
+            "VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (record_id) DO UPDATE SET "
+            "status = EXCLUDED.status, triage_status = EXCLUDED.triage_status, "
+            "metadata = EXCLUDED.metadata"
+        )
+        with self.with_tx():
+            cursor = self._storage.get_connection().cursor()
+            cursor.executemany(query, rows)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}

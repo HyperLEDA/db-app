@@ -55,3 +55,6 @@ class Actions(adminapi.Actions):
 
     def save_structured_data(self, r: adminapi.SaveStructuredDataRequest) -> adminapi.SaveStructuredDataResponse:
         return self.layer1_writer.save_data(r)
+
+    def set_crossmatch_results(self, r: adminapi.SetCrossmatchResultsRequest) -> adminapi.SetCrossmatchResultsResponse:
+        return self.crossmatch_manager.set_crossmatch_results(r)

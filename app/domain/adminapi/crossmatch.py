@@ -1,3 +1,4 @@
+import json
 from typing import Any, final
 
 import structlog
@@ -76,6 +77,60 @@ class CrossmatchManager:
         self.layer0_repo = layer0_repo
         self.layer1_repo = layer1_repo
         self.layer2_repo = layer2_repo
+
+    def set_crossmatch_results(self, r: adminapi.SetCrossmatchResultsRequest) -> adminapi.SetCrossmatchResultsResponse:
+        rows: list[list[Any]] = []
+        payload = r.statuses
+
+        if payload.new is not None:
+            default_triage = enums.RecordTriageStatus.RESOLVED
+            for i, record_id in enumerate(payload.new.record_ids):
+                triage_override = payload.new.triage_statuses[i] if i < len(payload.new.triage_statuses) else None
+                triage = triage_override if triage_override is not None else default_triage
+                rows.append(
+                    [
+                        record_id,
+                        enums.RecordCrossmatchStatus.NEW.value,
+                        triage.value,
+                        json.dumps({}),
+                    ]
+                )
+
+        if payload.existing is not None:
+            default_triage = enums.RecordTriageStatus.RESOLVED
+            for i, record_id in enumerate(payload.existing.record_ids):
+                triage_override = (
+                    payload.existing.triage_statuses[i] if i < len(payload.existing.triage_statuses) else None
+                )
+                triage = triage_override if triage_override is not None else default_triage
+                rows.append(
+                    [
+                        record_id,
+                        enums.RecordCrossmatchStatus.EXISTING.value,
+                        triage.value,
+                        json.dumps({"pgc": payload.existing.pgcs[i]}),
+                    ]
+                )
+
+        if payload.collided is not None:
+            default_triage = enums.RecordTriageStatus.PENDING
+            for i, record_id in enumerate(payload.collided.record_ids):
+                triage_override = (
+                    payload.collided.triage_statuses[i] if i < len(payload.collided.triage_statuses) else None
+                )
+                triage = triage_override if triage_override is not None else default_triage
+                rows.append(
+                    [
+                        record_id,
+                        enums.RecordCrossmatchStatus.COLLIDED.value,
+                        triage.value,
+                        json.dumps({"possible_matches": payload.collided.possible_matches[i]}),
+                    ]
+                )
+
+        if rows:
+            self.layer0_repo.set_crossmatch_results(rows)
+        return adminapi.SetCrossmatchResultsResponse()
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         row_offset = r.page * r.page_size

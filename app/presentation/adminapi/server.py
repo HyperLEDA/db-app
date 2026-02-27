@@ -91,6 +91,14 @@ class API:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
 
+    def set_crossmatch_results(
+        self,
+        request: interface.SetCrossmatchResultsRequest,
+        token: str = fastapi.Security(api_key_header),
+    ) -> server.APIOkResponse[interface.SetCrossmatchResultsResponse]:
+        response = self.actions.set_crossmatch_results(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -381,6 +389,38 @@ table might not have a separate column for astrometric errors but from other sou
                 api.get_crossmatch_records,
                 "Get crossmatch records",
                 """Retrieves crossmatch records for a specific table with optional filtering.""",
+            ),
+            server.Route(
+                "/v1/records/crossmatch",
+                http.HTTPMethod.POST,
+                api.set_crossmatch_results,
+                "Set crossmatch results",
+                """Bulk write crossmatch results. Each entry contains only the fields needed for that status (no nulls).
+At least one status block must be present.
+
+**Example 1 – minimal (all new objects):**
+```json
+{
+  "statuses": {
+    "new": { "record_ids": ["uuid-1", "uuid-2"] }
+  }
+}
+```
+
+**Example 2 – mixed statuses:**
+```json
+{
+  "statuses": {
+    "new": { "record_ids": ["uuid-1", "uuid-2"] },
+    "existing": { "record_ids": ["uuid-3"], "pgcs": [42] },
+    "collided": {
+      "record_ids": ["uuid-4"],
+      "possible_matches": [[40, 41, 42]],
+      "triage_statuses": ["resolved"]
+    }
+  }
+}
+```""",
             ),
             server.Route(
                 "/v1/record/crossmatch",
