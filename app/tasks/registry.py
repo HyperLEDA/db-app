@@ -2,13 +2,21 @@ from typing import Any
 
 import structlog
 
-from app.tasks import crossmatch, interface, layer0_marking, layer2_import, submit_crossmatch
+from app.tasks import (
+    crossmatch,
+    interface,
+    layer0_marking,
+    layer2_import,
+    layer2_orphan_cleanup,
+    submit_crossmatch,
+)
 
 tasks: list[type[interface.Task]] = [
     crossmatch.CrossmatchTask,
     layer0_marking.Layer0MarkingTask,
     submit_crossmatch.SubmitCrossmatchTask,
     layer2_import.Layer2ImportTask,
+    layer2_orphan_cleanup.Layer2OrphanCleanupTask,
 ]
 
 task_by_name = {task.name(): task for task in tasks}
