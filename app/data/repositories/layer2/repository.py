@@ -30,6 +30,35 @@ class Layer2Repository(postgres.TransactionalPGRepository):
     def update_last_update_time(self, dt: datetime.datetime):
         self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
 
+    def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
+        result: dict[str, list[int]] = {}
+        for catalog in catalogs:
+            object_cls = model.get_catalog_object_type(catalog)
+            layer2_table = object_cls.layer2_table()
+            layer1_table = object_cls.layer1_table()
+            query = f"""
+                SELECT l2.pgc FROM {layer2_table} l2
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM layer0.records r
+                    INNER JOIN {layer1_table} l1 ON l1.record_id = r.id
+                    WHERE r.pgc = l2.pgc
+                )
+            """
+            rows = self._storage.query(query)
+            result[layer2_table] = [int(row["pgc"]) for row in rows]
+        return result
+
+    def remove_pgcs(self, catalogs: list[model.RawCatalog], pgcs: list[int]) -> None:
+        if not pgcs:
+            return
+
+        for catalog in catalogs:
+            object_cls = model.get_catalog_object_type(catalog)
+            layer2_table = object_cls.layer2_table()
+            query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
+            self._storage.exec(query, params=[pgcs])
+
     def save_data(self, objects: list[model.Layer2CatalogObject]):
         objects_by_table: dict[str, list[model.Layer2CatalogObject]] = {}
         for obj in objects:
