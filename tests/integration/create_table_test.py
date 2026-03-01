@@ -88,7 +88,7 @@ class CreateTableTest(unittest.TestCase):
             ),
         )
 
-    def test_create_table_with_patch_modifiers(self):
+    def test_create_table_with_patch_metadata(self):
         source_code = self.source_manager.create_source(
             presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
@@ -114,19 +114,16 @@ class CreateTableTest(unittest.TestCase):
                 table_name=table_name,
                 columns={
                     "ra": presentation.PatchColumnSpec(
-                        modifiers=[
-                            presentation.ModifierSpec(name="constant", params={"constant": 1}),
-                            presentation.ModifierSpec(name="add_unit", params={"unit": "deg"}),
-                        ]
+                        ucd="pos.eq.ra",
+                        unit="deg",
+                        description="Right ascension",
                     ),
                 },
             ),
         )
 
-        modifiers = self.layer0_repo.get_modifiers(table_name)
-        self.assertEqual(len(modifiers), 2)
-        self.assertEqual(modifiers[0].column_name, "ra")
-        self.assertEqual(modifiers[0].modifier_name, "constant")
-        self.assertEqual(modifiers[0].params, {"constant": 1})
-        self.assertEqual(modifiers[1].modifier_name, "add_unit")
-        self.assertEqual(modifiers[1].params, {"unit": "deg"})
+        meta = self.layer0_repo.fetch_metadata(table_name)
+        ra_col = next(c for c in meta.column_descriptions if c.name == "ra")
+        self.assertEqual(ra_col.ucd, "pos.eq.ra")
+        self.assertEqual(str(ra_col.unit), "deg")
+        self.assertEqual(ra_col.description, "Right ascension")

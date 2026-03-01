@@ -26,37 +26,6 @@ SMALL_CLUSTER_DEC_CENTER = random.uniform(-90 + SMALL_CLUSTER_RADIUS, 90 - SMALL
 
 
 @lib.test_logging_decorator
-def create_marking(session: requests.Session, table_name: str):
-    request_data = adminapi.CreateMarkingRequest(
-        table_name=table_name,
-        catalogs=[
-            adminapi.CatalogToMark(
-                name="icrs",
-                parameters={
-                    "ra": adminapi.ParameterToMark(column_name="ra"),
-                    "dec": adminapi.ParameterToMark(column_name="dec"),
-                    "e_ra": adminapi.ParameterToMark(column_name="e_ra"),
-                    "e_dec": adminapi.ParameterToMark(column_name="e_dec"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-            adminapi.CatalogToMark(
-                name="designation",
-                parameters={
-                    "design": adminapi.ParameterToMark(column_name="name"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-        ],
-    )
-
-    response = session.post("/v1/marking", json=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-
-@lib.test_logging_decorator
 def create_bibliography(session: requests.Session) -> str:
     request_data = adminapi.CreateSourceRequest(
         authors=["Doe, J."],
@@ -492,7 +461,6 @@ def run():
     check_table_list(adminapi, table_name)
     check_get_table(adminapi, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
-    create_marking(adminapi, table_name)
     start_crossmatch(table_name)
 
     check_table_info(adminapi, table_name)
@@ -530,7 +498,6 @@ def run():
         seed=random.randint(0, 1000000),
     )
 
-    create_marking(adminapi, table_name_2)
     start_crossmatch(table_name_2)
 
     check_crossmatch_existing_results(adminapi, table_name_2)
@@ -549,7 +516,6 @@ def run():
         seed=random.randint(0, 1000000),
     )
 
-    create_marking(adminapi, table_name_3)
     start_crossmatch(table_name_3)
 
     check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)

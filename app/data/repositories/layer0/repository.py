@@ -4,7 +4,7 @@ import structlog
 from astropy import table
 
 from app.data import model
-from app.data.repositories.layer0 import homogenization, modifiers, records, tables
+from app.data.repositories.layer0 import records, tables
 from app.lib.storage import enums, postgres
 
 
@@ -15,8 +15,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         self.table_repo = tables.Layer0TableRepository(storage)
         self.records_repo = records.Layer0RecordRepository(storage)
-        self.homogenization_repo = homogenization.Layer0HomogenizationRepository(storage)
-        self.modifier_repo = modifiers.Layer0ModifiersRepository(storage)
 
     def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         return self.table_repo.create_table(data)
@@ -94,24 +92,3 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         return self.records_repo.upsert_pgc(pgcs)
-
-    def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
-        return self.homogenization_repo.get_homogenization_rules()
-
-    def get_homogenization_params(self) -> list[model.HomogenizationParams]:
-        return self.homogenization_repo.get_homogenization_params()
-
-    def add_homogenization_rules(self, rules: list[model.HomogenizationRule]) -> None:
-        return self.homogenization_repo.add_homogenization_rules(rules)
-
-    def add_homogenization_params(self, params: list[model.HomogenizationParams]) -> None:
-        return self.homogenization_repo.add_homogenization_params(params)
-
-    def get_modifiers(self, table_name: str) -> list[model.Modifier]:
-        return self.modifier_repo.get_modifiers(table_name)
-
-    def add_modifier(self, table_name: str, modifiers: list[model.Modifier]) -> None:
-        return self.modifier_repo.add_modifiers(table_name, modifiers)
-
-    def set_modifiers(self, table_name: str, column_name: str, modifiers: list[model.Modifier]) -> None:
-        return self.modifier_repo.set_modifiers(table_name, column_name, modifiers)
