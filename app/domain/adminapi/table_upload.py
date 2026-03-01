@@ -63,7 +63,7 @@ class TableUploadManager:
         with self.layer0_repo.with_tx():
             for column_name, spec in r.columns.items():
                 if column_name not in columns_by_id:
-                    raise NotFoundError("column", "{column_name}")
+                    raise NotFoundError("column", column_name)
 
                 column_metadata = columns_by_id[column_name]
                 if spec.ucd is not None:

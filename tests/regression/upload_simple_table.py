@@ -140,17 +140,6 @@ def upload_data(
 
 
 @lib.test_logging_decorator
-def start_marking(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "layer0-marking",
-            input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
-            log_level="warn",
-        ),
-    )
-
-
-@lib.test_logging_decorator
 def start_crossmatch(table_name: str):
     commands.run(
         RunTaskCommand(
@@ -504,7 +493,6 @@ def run():
     check_get_table(adminapi, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
     create_marking(adminapi, table_name)
-    start_marking(table_name)
     start_crossmatch(table_name)
 
     check_table_info(adminapi, table_name)
@@ -543,7 +531,6 @@ def run():
     )
 
     create_marking(adminapi, table_name_2)
-    start_marking(table_name_2)
     start_crossmatch(table_name_2)
 
     check_crossmatch_existing_results(adminapi, table_name_2)
@@ -563,7 +550,6 @@ def run():
     )
 
     create_marking(adminapi, table_name_3)
-    start_marking(table_name_3)
     start_crossmatch(table_name_3)
 
     check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)
