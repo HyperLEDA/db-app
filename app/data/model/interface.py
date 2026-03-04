@@ -33,6 +33,7 @@ class RawCatalog(enum.Enum):
     ICRS = "icrs"
     DESIGNATION = "designation"
     REDSHIFT = "redshift"
+    NATURE = "nature"
 
 
 class CatalogObject(abc.ABC):

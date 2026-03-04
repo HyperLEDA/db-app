@@ -14,8 +14,6 @@ COMMENT ON TYPE nature.object_class IS '{
     "err" : "Different errors in data"
 }';
 
-
-
 CREATE TABLE nature.object_type (
   type_name	Text	PRIMARY KEY
 , objclass	nature.object_class	NOT NULL
@@ -62,7 +60,6 @@ INSERT INTO nature.object_type VALUES
 
 , ('!', 'err', 'Not an object (error in catalogue, artifact, plate defect, transient/moving object, etc.)')
 , ('PoG', 'err', 'Part of a Galaxy');
-
 
 CREATE TABLE nature.data (
   record_id	Text PRIMARY KEY REFERENCES layer0.records(id)

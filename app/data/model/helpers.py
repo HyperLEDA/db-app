@@ -1,6 +1,6 @@
 import json
 
-from app.data.model import designation, icrs, interface, redshift
+from app.data.model import designation, icrs, interface, nature, redshift
 
 
 class CatalogObjectEncoder(json.JSONEncoder):
@@ -34,6 +34,8 @@ def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.Cat
         return icrs.ICRSCatalogObject
     if catalog == interface.RawCatalog.REDSHIFT:
         return redshift.RedshiftCatalogObject
+    if catalog == interface.RawCatalog.NATURE:
+        return nature.NatureCatalogObject
 
     raise ValueError(f"Unknown catalog: {catalog}")
 
