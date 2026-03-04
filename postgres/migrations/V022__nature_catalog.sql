@@ -70,4 +70,11 @@ CREATE TABLE nature.data (
 , objtype	Text NOT NULL REFERENCES nature.objectType(objtype)
 );
 SELECT meta.setparams('nature', 'data', 'record_id', '{"description": "Record identifier"}');
-SELECT meta.setparams('nature', 'data', 'objtype', '{"description": "Object type (nature) code"}');
+SELECT meta.setparams('nature', 'data', 'objtype', '{"description": "Object type code"}');
+
+CREATE TABLE layer2.nature (
+  pgc integer PRIMARY KEY REFERENCES common.pgc(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  objtype text NOT NULL REFERENCES nature.objectType(objtype)
+);
+SELECT meta.setparams('layer2', 'nature', 'pgc', '{"description": "PGC identifier"}');
+SELECT meta.setparams('layer2', 'nature', 'objtype', '{"description": "Object type code"}');
