@@ -41,6 +41,14 @@ class Layer1Writer:
         try:
             self._layer1_repo.save_structured_data(table, request.columns, request.ids, converted)
         except psycopg.errors.ForeignKeyViolation as e:
-            raise RuleValidationError("one or more record ids do not exist in layer0.records") from e
+            diag = getattr(e, "diag", None)
+            detail = getattr(diag, "message_detail", None) if diag else None
+            constraint = getattr(diag, "constraint_name", None) if diag else None
+            msg = "foreign key violation"
+            if constraint:
+                msg += f": {constraint}"
+            if detail:
+                msg += f" ({detail})"
+            raise RuleValidationError(msg) from e
 
         return adminapi.SaveStructuredDataResponse()
