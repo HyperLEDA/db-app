@@ -71,3 +71,10 @@ class RedshiftRecord:
     record_id: str
     cz: float
     e_cz: float
+
+
+@dataclass
+class DesignationRecord:
+    pgc: int
+    record_id: str
+    design: str

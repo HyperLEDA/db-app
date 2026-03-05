@@ -191,6 +191,31 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             for r in rows
         ]
 
+    def get_new_designation_records(
+        self, dt: datetime.datetime, limit: int, offset: int
+    ) -> list[model.DesignationRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.design
+        FROM designation.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM designation.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.DesignationRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                design=r["design"],
+            )
+            for r in rows
+        ]
+
     def query_records(
         self,
         catalogs: list[model.RawCatalog],
