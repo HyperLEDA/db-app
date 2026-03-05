@@ -167,6 +167,30 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             for r in rows
         ]
 
+    def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.RedshiftRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.cz, l1.e_cz
+        FROM cz.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM cz.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.RedshiftRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                cz=float(r["cz"]),
+                e_cz=float(r["e_cz"]),
+            )
+            for r in rows
+        ]
+
     def query_records(
         self,
         catalogs: list[model.RawCatalog],

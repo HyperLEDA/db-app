@@ -63,3 +63,11 @@ class ICRSRecord:
     e_ra: float
     dec: float
     e_dec: float
+
+
+@dataclass
+class RedshiftRecord:
+    pgc: int
+    record_id: str
+    cz: float
+    e_cz: float

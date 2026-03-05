@@ -7,7 +7,7 @@ import structlog
 from astropy import units as u
 
 from app.data import model, repositories
-from app.lib import containers
+from app.lib import containers, logging
 from app.lib.storage import postgres
 from app.tasks import interface
 
@@ -101,25 +101,13 @@ class Layer2ImportICRSTask(interface.Task):
             )
         self.log.info("Layer 2 ICRS import completed", last_update=last_update_dt.ctime())
 
-        if self.dry_run:
-            self._print_summary(objects_to_save, orphans_to_delete)
-
-    def _print_summary(self, objects_to_save: int, orphans_to_delete: int) -> None:
-        col_desc = "Description"
-        col_count = "Count"
-        width_desc = max(len(col_desc), 30, len("Objects to be saved"), len("Orphans to be deleted"))
-        width_count = max(len(col_count), len(str(objects_to_save)), len(str(orphans_to_delete)))
-        sep = f"+{'-' * (width_desc + 2)}+{'-' * (width_count + 2)}+"
-        lines = [
-            sep,
-            f"| {col_desc:<{width_desc}} | {col_count:>{width_count}} |",
-            sep,
-            f"| {'Objects to be saved':<{width_desc}} | {objects_to_save:>{width_count}} |",
-            f"| {'Orphans to be deleted':<{width_desc}} | {orphans_to_delete:>{width_count}} |",
-            sep,
-        ]
-        for line in lines:
-            print(line)
+        logging.print_table(
+            ("Description", "Count"),
+            [
+                ("Objects to be saved", objects_to_save),
+                ("Orphans to be deleted", orphans_to_delete),
+            ],
+        )
 
     def cleanup(self) -> None:
         self.pg_storage.disconnect()
