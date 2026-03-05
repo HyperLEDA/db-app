@@ -25,10 +25,13 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self._storage = storage
 
     def get_last_update_time(self) -> datetime.datetime:
-        return self._storage.query_one("SELECT dt FROM layer2.last_update")["dt"]
+        return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=["all"])["dt"]
 
     def update_last_update_time(self, dt: datetime.datetime):
-        self._storage.exec("UPDATE layer2.last_update SET dt = %s", params=[dt])
+        self._storage.exec(
+            "UPDATE layer2.last_update SET dt = %s WHERE catalog = %s",
+            params=[dt, "all"],
+        )
 
     def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
