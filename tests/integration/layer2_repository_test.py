@@ -189,9 +189,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         dt_all = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
         dt_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)
         epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
-        self.assertEqual(
-            dt_all if dt_all.tzinfo else dt_all.replace(tzinfo=datetime.UTC), epoch
-        )
+        self.assertEqual(dt_all if dt_all.tzinfo else dt_all.replace(tzinfo=datetime.UTC), epoch)
         self.assertEqual(
             dt_nature if dt_nature.tzinfo else dt_nature.replace(tzinfo=datetime.UTC),
             epoch,
