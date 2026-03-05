@@ -87,7 +87,7 @@ class Layer2ImportTest(unittest.TestCase):
         )
         self.layer0_repo.upsert_pgc({"125": 1234, "126": 1234})
 
-        last_update_dt = self.layer2_repo.get_last_update_time()
+        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
 
         self.layer1_repo.save_data(
             [
@@ -98,7 +98,7 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.layer2_repo.get_last_update_time()
+        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
         actual = self.layer2_repo.query(

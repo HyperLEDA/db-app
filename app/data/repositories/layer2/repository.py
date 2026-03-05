@@ -24,13 +24,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         self._storage = storage
 
-    def get_last_update_time(self) -> datetime.datetime:
-        return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=["all"])["dt"]
+    def get_last_update_time(self, catalog: model.RawCatalog) -> datetime.datetime:
+        return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=[catalog.value])[
+            "dt"
+        ]
 
-    def update_last_update_time(self, dt: datetime.datetime):
+    def update_last_update_time(self, dt: datetime.datetime, catalog: model.RawCatalog) -> None:
         self._storage.exec(
             "UPDATE layer2.last_update SET dt = %s WHERE catalog = %s",
-            params=[dt, "all"],
+            params=[dt, catalog.value],
         )
 
     def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
@@ -95,6 +97,23 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             """
 
             self._storage.exec(query, params=params)
+
+    def save(self, table: str, columns: list[str], pgcs: list[int], data: list[list[Any]]) -> None:
+        if not pgcs:
+            return
+        all_columns = ["pgc"] + columns
+        placeholders = f"({','.join(['%s'] * len(all_columns))})"
+        value_groups = ",".join([placeholders] * len(pgcs))
+        on_conflict = ", ".join([f"{c} = EXCLUDED.{c}" for c in all_columns])
+        query = f"""
+            INSERT INTO {table} ({", ".join(all_columns)})
+            VALUES {value_groups}
+            ON CONFLICT (pgc) DO UPDATE SET {on_conflict}
+        """
+        query_params: list[Any] = []
+        for pgc, row in zip(pgcs, data, strict=True):
+            query_params.extend([pgc, *row])
+        self._storage.exec(query, params=query_params)
 
     def _construct_batch_query(
         self,

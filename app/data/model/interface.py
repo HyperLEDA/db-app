@@ -30,6 +30,7 @@ class RawCatalog(enum.Enum):
     aggregated data on layer 2.
     """
 
+    ALL = "all"
     ICRS = "icrs"
     DESIGNATION = "designation"
     REDSHIFT = "redshift"
