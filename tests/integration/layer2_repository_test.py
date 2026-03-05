@@ -13,10 +13,17 @@ class Layer2RepositoryTest(unittest.TestCase):
         cls.pg_storage = lib.TestPostgresStorage.get()
 
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
         self.pg_storage.clear()
+
+    def _get_table(self, table_name: str) -> int:
+        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
+        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        return table_resp.table_id
 
     def test_one_object(self):
         objects: list[model.Layer2CatalogObject] = [
@@ -176,3 +183,75 @@ class Layer2RepositoryTest(unittest.TestCase):
         )
 
         self.assertEqual(len(actual), 2)
+
+    def test_get_orphaned_pgcs_returns_pgcs_without_layer1_data(self) -> None:
+        self.common_repo.register_pgcs([1, 2])
+        self.layer2_repo.save_data(
+            [
+                model.Layer2CatalogObject(1, model.DesignationCatalogObject(design="a")),
+                model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="b")),
+            ]
+        )
+
+        orphaned = self.layer2_repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+
+        self.assertEqual(orphaned.keys(), {"layer2.designation"})
+        self.assertEqual(set(orphaned["layer2.designation"]), {1, 2})
+
+    def test_get_orphaned_pgcs_returns_empty_when_layer1_present(self) -> None:
+        self._get_table("t1")
+        self.layer0_repo.register_records("t1", ["r1"])
+        self.common_repo.register_pgcs([100])
+        self.layer0_repo.upsert_pgc({"r1": 100})
+        self.layer1_repo.save_data([model.Record("r1", [model.DesignationCatalogObject(design="x")])])
+        self.layer2_repo.save_data([model.Layer2CatalogObject(100, model.DesignationCatalogObject(design="x"))])
+
+        orphaned = self.layer2_repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+
+        self.assertEqual(orphaned, {"layer2.designation": []})
+
+    def test_get_orphaned_pgcs_returns_only_pgcs_without_layer1_data(self) -> None:
+        self._get_table("t1")
+        self.layer0_repo.register_records("t1", ["r1"])
+        self.common_repo.register_pgcs([100, 200])
+        self.layer0_repo.upsert_pgc({"r1": 100})
+        self.layer1_repo.save_data([model.Record("r1", [model.DesignationCatalogObject(design="linked")])])
+        self.layer2_repo.save_data(
+            [
+                model.Layer2CatalogObject(100, model.DesignationCatalogObject(design="linked")),
+                model.Layer2CatalogObject(200, model.DesignationCatalogObject(design="orphan")),
+            ]
+        )
+
+        orphaned = self.layer2_repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+
+        self.assertEqual(orphaned.keys(), {"layer2.designation"})
+        self.assertEqual(set(orphaned["layer2.designation"]), {200})
+
+    def test_remove_pgcs_removes_specified_pgcs(self) -> None:
+        self.common_repo.register_pgcs([1, 2])
+        self.layer2_repo.save_data(
+            [
+                model.Layer2CatalogObject(1, model.DesignationCatalogObject(design="d1")),
+                model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="d2")),
+            ]
+        )
+
+        self.layer2_repo.remove_pgcs([model.RawCatalog.DESIGNATION], [1])
+
+        actual = self.layer2_repo.query(
+            [model.RawCatalog.DESIGNATION],
+            layer2.DesignationEqualsFilter("d1"),
+            layer2.CombinedSearchParams([]),
+            10,
+            0,
+        )
+        self.assertEqual(actual, [])
+        actual = self.layer2_repo.query(
+            [model.RawCatalog.DESIGNATION],
+            layer2.DesignationEqualsFilter("d2"),
+            layer2.CombinedSearchParams([]),
+            10,
+            0,
+        )
+        self.assertEqual(actual, [model.Layer2Object(2, [model.DesignationCatalogObject(design="d2")])])
