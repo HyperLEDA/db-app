@@ -102,18 +102,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         if not pgcs:
             return
         all_columns = ["pgc"] + columns
-        placeholders = f"({','.join(['%s'] * len(all_columns))})"
-        value_groups = ",".join([placeholders] * len(pgcs))
+        placeholders = ",".join(["%s"] * len(all_columns))
         on_conflict = ", ".join([f"{c} = EXCLUDED.{c}" for c in all_columns])
-        query = f"""
-            INSERT INTO {table} ({", ".join(all_columns)})
-            VALUES {value_groups}
-            ON CONFLICT (pgc) DO UPDATE SET {on_conflict}
-        """
-        query_params: list[Any] = []
-        for pgc, row in zip(pgcs, data, strict=True):
-            query_params.extend([pgc, *row])
-        self._storage.exec(query, params=query_params)
+        query = (
+            f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) "
+            f"ON CONFLICT (pgc) DO UPDATE SET {on_conflict}"
+        )
+        rows = [[pgc, *row] for pgc, row in zip(pgcs, data, strict=True)]
+        with self.with_tx():
+            self._storage.execute_batch(query, rows)
 
     def _construct_batch_query(
         self,

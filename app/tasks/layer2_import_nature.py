@@ -14,7 +14,7 @@ class Layer2ImportNatureTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
-        batch_size: int = 10000,
+        batch_size: int = 100000,
         dry_run: bool = False,
     ) -> None:
         self.log = logger

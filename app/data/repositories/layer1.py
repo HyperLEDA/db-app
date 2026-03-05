@@ -33,8 +33,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            cursor = self._storage.get_connection().cursor()
-            cursor.executemany(query, rows)
+            self._storage.execute_batch(query, rows)
 
     def save_data(self, records: list[model.Record]) -> None:
         all_catalog_objects = []

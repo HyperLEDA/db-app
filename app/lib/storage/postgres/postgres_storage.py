@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -100,6 +101,15 @@ class PgStorage:
 
         cursor = self._connection.cursor()
         cursor.execute(query, params)
+
+    def execute_batch(self, query: str, rows: Sequence[Sequence[Any]]) -> None:
+        if self._connection is None:
+            raise RuntimeError("Unable to execute query: connection to Postgres was not established")
+
+        log.debug("SQL execute batch", query=query.replace("\n", " "), num_rows=len(rows))
+
+        cursor = self._connection.cursor()
+        cursor.executemany(query, rows)
 
     def query(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> list[rows.DictRow]:
         if params is None:
