@@ -7,7 +7,10 @@ from app.tasks import (
     interface,
     layer0_marking,
     layer2_import,
+    layer2_import_designation,
+    layer2_import_icrs,
     layer2_import_nature,
+    layer2_import_redshift,
     layer2_orphan_cleanup,
     submit_crossmatch,
 )
@@ -17,7 +20,10 @@ tasks: list[type[interface.Task]] = [
     layer0_marking.Layer0MarkingTask,
     submit_crossmatch.SubmitCrossmatchTask,
     layer2_import.Layer2ImportTask,
+    layer2_import_designation.Layer2ImportDesignationTask,
+    layer2_import_icrs.Layer2ImportICRSTask,
     layer2_import_nature.Layer2ImportNatureTask,
+    layer2_import_redshift.Layer2ImportRedshiftTask,
     layer2_orphan_cleanup.Layer2OrphanCleanupTask,
 ]
 

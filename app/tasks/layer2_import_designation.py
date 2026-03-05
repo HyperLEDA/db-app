@@ -8,9 +8,11 @@ from app.lib import containers, logging
 from app.lib.storage import postgres
 from app.tasks import interface
 
+DESIGNATION_COLUMNS = ["design"]
+
 
 @final
-class Layer2ImportNatureTask(interface.Task):
+class Layer2ImportDesignationTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -23,7 +25,7 @@ class Layer2ImportNatureTask(interface.Task):
 
     @classmethod
     def name(cls) -> str:
-        return "layer2-import-nature"
+        return "layer2-import-designation"
 
     def prepare(self, config: interface.Config) -> None:
         self.pg_storage = postgres.PgStorage(config.storage, self.log)
@@ -32,17 +34,16 @@ class Layer2ImportNatureTask(interface.Task):
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
-        last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.NATURE)
+        last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.DESIGNATION)
         self.log.info(
-            "Starting Layer 2 nature import",
+            "Starting Layer 2 designation import",
             last_update=last_update_dt.ctime(),
             dry_run=self.dry_run,
         )
 
         objects_to_save = 0
-        type_distribution: dict[str, int] = {}
         for offset, records in containers.read_batches(
-            self.layer1_repository.get_new_nature_records,
+            self.layer1_repository.get_new_designation_records,
             lambda data: len(data) == 0,
             0,
             lambda d, _: d[-1].pgc,
@@ -53,17 +54,14 @@ class Layer2ImportNatureTask(interface.Task):
             pgcs: list[int] = []
             data: list[list[str]] = []
             for pgc, pgc_records in records_by_pgc.items():
-                type_counts: dict[str, int] = {}
-                for rec in pgc_records:
-                    type_counts[rec.type_name] = type_counts.get(rec.type_name, 0) + 1
-                max_type = max(type_counts, key=lambda k: type_counts[k])
-                type_distribution[max_type] = type_distribution.get(max_type, 0) + 1
+                catalog_objects = [model.DesignationCatalogObject(design=rec.design) for rec in pgc_records]
+                aggregated = model.DesignationCatalogObject.aggregate(catalog_objects)
                 pgcs.append(pgc)
-                data.append([max_type])
+                data.append([aggregated.designation])
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.nature", ["type_name"], pgcs, data)
+                    self.layer2_repository.save("layer2.designation", DESIGNATION_COLUMNS, pgcs, data)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
@@ -71,27 +69,24 @@ class Layer2ImportNatureTask(interface.Task):
                 total_processed=objects_to_save,
             )
 
-        orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.NATURE])
+        orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
         pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
         orphans_to_delete = len(pgcs_to_remove)
         if pgcs_to_remove and not self.dry_run:
-            self.layer2_repository.remove_pgcs([model.RawCatalog.NATURE], pgcs_to_remove)
+            self.layer2_repository.remove_pgcs([model.RawCatalog.DESIGNATION], pgcs_to_remove)
 
         if not self.dry_run:
             self.layer2_repository.update_last_update_time(
-                datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.NATURE
+                datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.DESIGNATION
             )
-        self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
+        self.log.info("Layer 2 designation import completed", last_update=last_update_dt.ctime())
 
-        type_rows = [(t, c) for t, c in sorted(type_distribution.items())]
         logging.print_table(
             ("Description", "Count"),
             [
                 ("Objects saved", objects_to_save),
                 ("Orphans deleted", orphans_to_delete),
             ],
-            sections=[("Distribution by type", [(f"  {t}", c) for t, c in type_rows])] if type_rows else None,
-            min_column_widths=(30, 0),
         )
 
     def cleanup(self) -> None:

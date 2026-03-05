@@ -15,10 +15,13 @@ from app.data.model.records import (
     CIResultObjectCollision,
     CIResultObjectExisting,
     CIResultObjectNew,
+    DesignationRecord,
+    ICRSRecord,
     NatureRecord,
     Record,
     RecordCrossmatch,
     RecordWithPGC,
+    RedshiftRecord,
 )
 from app.data.model.redshift import RedshiftCatalogObject
 from app.data.model.table import (
@@ -46,7 +49,10 @@ __all__ = [
     "CIResultObjectCollision",
     "CIResultObjectExisting",
     "CIResultObjectNew",
+    "DesignationRecord",
+    "ICRSRecord",
     "NatureRecord",
+    "RedshiftRecord",
     "Record",
     "RecordWithPGC",
     "Layer2CatalogObject",

@@ -76,55 +76,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                     object_count=len(table_items),
                 )
 
-    def get_new_observations(
-        self, dt: datetime.datetime, limit: int, offset: int, catalog: model.RawCatalog
-    ) -> list[model.RecordWithPGC]:
-        """
-        Returns all objects that were modified since `dt`.
-        `limit` is the number of PGC numbers to select, not the final number of objects.
-        As such, this function will return around
-        `limit * (average_number_of_observations_per_PGC)` objects, not `limit`.
-
-        `offset` is the first PGC number from which to start selecting.
-
-        This makes the function safe for aggregation - for each returned PGC all of its objects will be returned.
-        """
-        object_cls = model.get_catalog_object_type(catalog)
-
-        query = f"""SELECT *
-        FROM {object_cls.layer1_table()} AS l1
-        JOIN layer0.records AS o ON l1.record_id = o.id
-        WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM {object_cls.layer1_table()} AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
-            LIMIT %s
-        )
-        ORDER BY o.pgc ASC"""
-
-        rows = self._storage.query(query, params=[dt, offset, limit])
-
-        record_data: dict[tuple[int, str], list[model.CatalogObject]] = {}
-
-        for row in rows:
-            record_id = row.pop("record_id")
-            pgc = int(row.pop("pgc"))
-            catalog_object = object_cls.from_layer1(row)
-
-            key = (pgc, record_id)
-            if key not in record_data:
-                record_data[key] = []
-            record_data[key].append(catalog_object)
-
-        records: list[model.RecordWithPGC] = []
-        for (pgc, record_id), catalog_objects in record_data.items():
-            record_info = model.Record(id=record_id, data=catalog_objects)
-            records.append(model.RecordWithPGC(pgc, record_info))
-
-        return records
-
     def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.NatureRecord]:
         query = """SELECT o.pgc, l1.record_id, l1.type_name
         FROM nature.data AS l1
@@ -140,6 +91,81 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
         return [model.NatureRecord(pgc=int(r["pgc"]), record_id=r["record_id"], type_name=r["type_name"]) for r in rows]
+
+    def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.ICRSRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.ra, l1.e_ra, l1.dec, l1.e_dec
+        FROM icrs.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM icrs.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.ICRSRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                ra=float(r["ra"]),
+                e_ra=float(r["e_ra"]),
+                dec=float(r["dec"]),
+                e_dec=float(r["e_dec"]),
+            )
+            for r in rows
+        ]
+
+    def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.RedshiftRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.cz, l1.e_cz
+        FROM cz.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM cz.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.RedshiftRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                cz=float(r["cz"]),
+                e_cz=float(r["e_cz"]),
+            )
+            for r in rows
+        ]
+
+    def get_new_designation_records(
+        self, dt: datetime.datetime, limit: int, offset: int
+    ) -> list[model.DesignationRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.design
+        FROM designation.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM designation.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.DesignationRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                design=r["design"],
+            )
+            for r in rows
+        ]
 
     def query_records(
         self,

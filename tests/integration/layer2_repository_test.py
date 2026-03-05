@@ -21,6 +21,21 @@ class Layer2RepositoryTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
+    def _save_layer2_data(self, objects: list[model.Layer2CatalogObject]) -> None:
+        by_table: dict[str, list[model.Layer2CatalogObject]] = {}
+        for obj in objects:
+            table = obj.catalog_object.layer2_table()
+            if table not in by_table:
+                by_table[table] = []
+            by_table[table].append(obj)
+        for table, table_objects in by_table.items():
+            if not table_objects:
+                continue
+            columns = table_objects[0].catalog_object.layer2_keys()
+            pgcs = [obj.pgc for obj in table_objects]
+            data = [[obj.catalog_object.layer2_data()[c] for c in columns] for obj in table_objects]
+            self.layer2_repo.save(table, columns, pgcs, data)
+
     def _get_table(self, table_name: str) -> int:
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
@@ -33,7 +48,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.DESIGNATION],
@@ -53,7 +68,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS],
@@ -77,7 +92,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
@@ -107,7 +122,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
@@ -148,7 +163,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2, 3, 4, 5])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query(
             [model.RawCatalog.ICRS],
@@ -170,7 +185,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         ]
 
         self.common_repo.register_pgcs([1, 2, 3, 4, 5])
-        self.layer2_repo.save_data(objects)
+        self._save_layer2_data(objects)
 
         actual = self.layer2_repo.query_batch(
             [model.RawCatalog.ICRS],
@@ -186,10 +201,10 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.assertEqual(len(actual), 2)
 
     def test_get_last_update_time_returns_stored_dt(self) -> None:
-        dt_all = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
+        dt_icrs = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
         dt_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)
         epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
-        self.assertEqual(dt_all if dt_all.tzinfo else dt_all.replace(tzinfo=datetime.UTC), epoch)
+        self.assertEqual(dt_icrs if dt_icrs.tzinfo else dt_icrs.replace(tzinfo=datetime.UTC), epoch)
         self.assertEqual(
             dt_nature if dt_nature.tzinfo else dt_nature.replace(tzinfo=datetime.UTC),
             epoch,
@@ -197,10 +212,10 @@ class Layer2RepositoryTest(unittest.TestCase):
 
     def test_update_last_update_time_updates_stored_dt(self) -> None:
         new_dt = datetime.datetime(2020, 6, 15, 12, 0, 0, tzinfo=datetime.UTC)
-        self.layer2_repo.update_last_update_time(new_dt, model.RawCatalog.ALL)
+        self.layer2_repo.update_last_update_time(new_dt, model.RawCatalog.ICRS)
 
-        got_all = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
-        self.assertEqual(got_all.replace(tzinfo=None), new_dt.replace(tzinfo=None))
+        got_icrs = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        self.assertEqual(got_icrs.replace(tzinfo=None), new_dt.replace(tzinfo=None))
         got_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)
         epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
         self.assertEqual(
@@ -210,7 +225,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
     def test_get_orphaned_pgcs_returns_pgcs_without_layer1_data(self) -> None:
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(
+        self._save_layer2_data(
             [
                 model.Layer2CatalogObject(1, model.DesignationCatalogObject(design="a")),
                 model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="b")),
@@ -228,7 +243,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([100])
         self.layer0_repo.upsert_pgc({"r1": 100})
         self.layer1_repo.save_data([model.Record("r1", [model.DesignationCatalogObject(design="x")])])
-        self.layer2_repo.save_data([model.Layer2CatalogObject(100, model.DesignationCatalogObject(design="x"))])
+        self._save_layer2_data([model.Layer2CatalogObject(100, model.DesignationCatalogObject(design="x"))])
 
         orphaned = self.layer2_repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
 
@@ -240,7 +255,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([100, 200])
         self.layer0_repo.upsert_pgc({"r1": 100})
         self.layer1_repo.save_data([model.Record("r1", [model.DesignationCatalogObject(design="linked")])])
-        self.layer2_repo.save_data(
+        self._save_layer2_data(
             [
                 model.Layer2CatalogObject(100, model.DesignationCatalogObject(design="linked")),
                 model.Layer2CatalogObject(200, model.DesignationCatalogObject(design="orphan")),
@@ -254,7 +269,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
     def test_remove_pgcs_removes_specified_pgcs(self) -> None:
         self.common_repo.register_pgcs([1, 2])
-        self.layer2_repo.save_data(
+        self._save_layer2_data(
             [
                 model.Layer2CatalogObject(1, model.DesignationCatalogObject(design="d1")),
                 model.Layer2CatalogObject(2, model.DesignationCatalogObject(design="d2")),
