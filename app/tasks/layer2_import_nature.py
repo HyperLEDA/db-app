@@ -14,7 +14,7 @@ class Layer2ImportNatureTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
-        batch_size: int = 1500,
+        batch_size: int = 10000,
         dry_run: bool = False,
     ) -> None:
         self.log = logger
@@ -40,6 +40,7 @@ class Layer2ImportNatureTask(interface.Task):
         )
 
         objects_to_save = 0
+        type_distribution: dict[str, int] = {}
         for offset, records in containers.read_batches(
             self.layer1_repository.get_new_nature_records,
             lambda data: len(data) == 0,
@@ -48,11 +49,6 @@ class Layer2ImportNatureTask(interface.Task):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            self.log.info(
-                "Processing batch",
-                last_pgc=offset,
-                batch_size=len(records),
-            )
             records_by_pgc = containers.group_by(records, key_func=lambda r: r.pgc)
             pgcs: list[int] = []
             data: list[list[str]] = []
@@ -61,12 +57,19 @@ class Layer2ImportNatureTask(interface.Task):
                 for rec in pgc_records:
                     type_counts[rec.type_name] = type_counts.get(rec.type_name, 0) + 1
                 max_type = max(type_counts, key=lambda k: type_counts[k])
+                type_distribution[max_type] = type_distribution.get(max_type, 0) + 1
                 pgcs.append(pgc)
                 data.append([max_type])
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:
                     self.layer2_repository.save("layer2.nature", ["type_name"], pgcs, data)
+            self.log.info(
+                "Processed batch",
+                last_pgc=offset,
+                batch_size=len(records),
+                total_processed=objects_to_save,
+            )
 
         orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.NATURE])
         pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
@@ -81,13 +84,29 @@ class Layer2ImportNatureTask(interface.Task):
         self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
 
         if self.dry_run:
-            self._print_summary(objects_to_save, orphans_to_delete)
+            self._print_summary(objects_to_save, orphans_to_delete, type_distribution)
 
-    def _print_summary(self, objects_to_save: int, orphans_to_delete: int) -> None:
+    def _print_summary(
+        self,
+        objects_to_save: int,
+        orphans_to_delete: int,
+        type_distribution: dict[str, int],
+    ) -> None:
         col_desc = "Description"
         col_count = "Count"
-        width_desc = max(len(col_desc), 30)
-        width_count = max(len(col_count), len(str(objects_to_save)), len(str(orphans_to_delete)))
+        type_rows = [(t, c) for t, c in sorted(type_distribution.items())]
+        width_desc = max(
+            len(col_desc),
+            30,
+            len("Distribution by type"),
+            *(len(f"  {t}") for t, _ in type_rows) if type_rows else [0],
+        )
+        width_count = max(
+            len(col_count),
+            len(str(objects_to_save)),
+            len(str(orphans_to_delete)),
+            *(len(str(c)) for _, c in type_rows) if type_rows else [0],
+        )
         sep = f"+{'-' * (width_desc + 2)}+{'-' * (width_count + 2)}+"
         lines = [
             sep,
@@ -97,6 +116,10 @@ class Layer2ImportNatureTask(interface.Task):
             f"| {'Orphans to be deleted':<{width_desc}} | {orphans_to_delete:>{width_count}} |",
             sep,
         ]
+        if type_rows:
+            lines.append(f"| {'Distribution by type':<{width_desc}} | {'':>{width_count}} |")
+            lines.extend([f"| {f'  {t}':<{width_desc}} | {c:>{width_count}} |" for t, c in type_rows])
+            lines.append(sep)
         for line in lines:
             print(line)
 
