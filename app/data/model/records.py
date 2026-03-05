@@ -53,3 +53,13 @@ class NatureRecord:
     pgc: int
     record_id: str
     type_name: str
+
+
+@dataclass
+class ICRSRecord:
+    pgc: int
+    record_id: str
+    ra: float
+    e_ra: float
+    dec: float
+    e_dec: float

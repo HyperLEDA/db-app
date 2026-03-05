@@ -35,6 +35,14 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             params=[dt, catalog.value],
         )
 
+    def get_column_units(self, schema: str, table: str) -> dict[str, str]:
+        rows = self._storage.query(
+            "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
+            "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
+            params=[schema, table],
+        )
+        return {row["column_name"]: row["unit"] for row in rows}
+
     def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
         for catalog in catalogs:

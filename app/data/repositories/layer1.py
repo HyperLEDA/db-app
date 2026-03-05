@@ -141,6 +141,32 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         rows = self._storage.query(query, params=[dt, offset, limit])
         return [model.NatureRecord(pgc=int(r["pgc"]), record_id=r["record_id"], type_name=r["type_name"]) for r in rows]
 
+    def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.ICRSRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.ra, l1.e_ra, l1.dec, l1.e_dec
+        FROM icrs.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM icrs.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [
+            model.ICRSRecord(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                ra=float(r["ra"]),
+                e_ra=float(r["e_ra"]),
+                dec=float(r["dec"]),
+                e_dec=float(r["e_dec"]),
+            )
+            for r in rows
+        ]
+
     def query_records(
         self,
         catalogs: list[model.RawCatalog],
