@@ -1,18 +1,16 @@
-import datetime
 from typing import final
 
 import structlog
 
-from app.data import model, repositories
-from app.lib import containers
+from app.data import repositories
 from app.lib.storage import postgres
-from app.tasks import interface
-
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-]
+from app.tasks import (
+    interface,
+    layer2_import_designation,
+    layer2_import_icrs,
+    layer2_import_nature,
+    layer2_import_redshift,
+)
 
 
 @final
@@ -20,65 +18,42 @@ class Layer2ImportTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
-        batch_size: int = 1500,
+        batch_size: int = 100000,
+        dry_run: bool = False,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
+        self.dry_run = dry_run
 
     @classmethod
     def name(cls) -> str:
         return "layer2-import"
 
-    def prepare(self, config: interface.Config):
+    def prepare(self, config: interface.Config) -> None:
         self.pg_storage = postgres.PgStorage(config.storage, self.log)
         self.pg_storage.connect()
-
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
-    def run(self):
-        last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ALL)
-
-        self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
-
-        for catalog in catalogs:
-            for offset, new_records in containers.read_batches(
-                self.layer1_repository.get_new_observations,
-                lambda data: len(data) == 0,
-                0,
-                lambda d, _: d[-1].pgc,
-                last_update_dt,
+    def run(self) -> None:
+        task_classes = [
+            layer2_import_designation.Layer2ImportDesignationTask,
+            layer2_import_icrs.Layer2ImportICRSTask,
+            layer2_import_redshift.Layer2ImportRedshiftTask,
+            layer2_import_nature.Layer2ImportNatureTask,
+        ]
+        for task_cls in task_classes:
+            task = task_cls(
+                logger=self.log,
                 batch_size=self.batch_size,
-                catalog=catalog,
-            ):
-                self.log.info(
-                    "Processing batch",
-                    catalog=catalog.value,
-                    last_pgc=offset,
-                    batch_size=len(new_records),
-                )
+                dry_run=self.dry_run,
+            )
+            task.pg_storage = self.pg_storage
+            task.layer1_repository = self.layer1_repository
+            task.layer2_repository = self.layer2_repository
+            task.run()
 
-                records_by_pgc = containers.group_by(new_records, key_func=lambda record: record.pgc)
+        self.log.info("Layer 2 import completed")
 
-                aggregated_objects: list[model.Layer2CatalogObject] = []
-
-                for pgc, records in records_by_pgc.items():
-                    catalog_objects = []
-                    for record_with_pgc in records:
-                        for catalog_object in record_with_pgc.record.data:
-                            if catalog_object.catalog() == catalog:
-                                catalog_objects.append(catalog_object)
-
-                    if catalog_objects:
-                        aggregated_object = model.get_catalog_object_type(catalog).aggregate(catalog_objects)
-                        aggregated_objects.append(model.Layer2CatalogObject(pgc, aggregated_object))
-
-                self.layer2_repository.save_data(aggregated_objects)
-
-            self.log.info("Updated catalog", catalog=catalog.value)
-
-        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.ALL)
-        self.log.info("Layer 2 import completed", last_update=last_update_dt.ctime())
-
-    def cleanup(self):
+    def cleanup(self) -> None:
         self.pg_storage.disconnect()
