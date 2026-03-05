@@ -10,8 +10,16 @@ from app.lib import commands
 
 
 @click.group()
-def cli():
-    pass
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    default="info",
+    help="Set the logging level (for runtask and other commands that use it)",
+)
+@click.pass_context
+def cli(ctx: click.Context, log_level: str) -> None:
+    ctx.ensure_object(dict)
+    ctx.obj["log_level"] = log_level
 
 
 @cli.command(short_help=AdminAPICommand.help())
@@ -50,14 +58,15 @@ def dataapi(config: str):
     type=str,
     help="Path to input data file",
 )
-@click.option(
-    "--log-level",
-    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
-    default="info",
-    help="Set the logging level",
-)
+@click.pass_context
 @click.argument("task_args", nargs=-1, type=click.UNPROCESSED)
-def runtask(task_name: str, input_data: str | None, log_level: str, task_args: tuple[str, ...]):
+def runtask(
+    ctx: click.Context,
+    task_name: str,
+    input_data: str | None,
+    task_args: tuple[str, ...],
+) -> None:
+    log_level = (ctx.obj or {}).get("log_level", "info")
     commands.run(RunTaskCommand(task_name, input_data, None, task_args, log_level))
 
 
