@@ -1,3 +1,4 @@
+import datetime
 import unittest
 
 import structlog
@@ -183,6 +184,31 @@ class Layer2RepositoryTest(unittest.TestCase):
         )
 
         self.assertEqual(len(actual), 2)
+
+    def test_get_last_update_time_returns_stored_dt(self) -> None:
+        dt_all = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
+        dt_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)
+        epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
+        self.assertEqual(
+            dt_all if dt_all.tzinfo else dt_all.replace(tzinfo=datetime.UTC), epoch
+        )
+        self.assertEqual(
+            dt_nature if dt_nature.tzinfo else dt_nature.replace(tzinfo=datetime.UTC),
+            epoch,
+        )
+
+    def test_update_last_update_time_updates_stored_dt(self) -> None:
+        new_dt = datetime.datetime(2020, 6, 15, 12, 0, 0, tzinfo=datetime.UTC)
+        self.layer2_repo.update_last_update_time(new_dt, model.RawCatalog.ALL)
+
+        got_all = self.layer2_repo.get_last_update_time(model.RawCatalog.ALL)
+        self.assertEqual(got_all.replace(tzinfo=None), new_dt.replace(tzinfo=None))
+        got_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)
+        epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
+        self.assertEqual(
+            got_nature if got_nature.tzinfo else got_nature.replace(tzinfo=datetime.UTC),
+            epoch,
+        )
 
     def test_get_orphaned_pgcs_returns_pgcs_without_layer1_data(self) -> None:
         self.common_repo.register_pgcs([1, 2])
