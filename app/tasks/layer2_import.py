@@ -37,7 +37,7 @@ class Layer2ImportTask(interface.Task):
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self):
-        last_update_dt = self.layer2_repository.get_last_update_time()
+        last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ALL)
 
         self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
 
@@ -77,7 +77,7 @@ class Layer2ImportTask(interface.Task):
 
             self.log.info("Updated catalog", catalog=catalog.value)
 
-        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
+        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.ALL)
         self.log.info("Layer 2 import completed", last_update=last_update_dt.ctime())
 
     def cleanup(self):

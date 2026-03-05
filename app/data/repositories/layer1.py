@@ -33,8 +33,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            cursor = self._storage.get_connection().cursor()
-            cursor.executemany(query, rows)
+            self._storage.execute_batch(query, rows)
 
     def save_data(self, records: list[model.Record]) -> None:
         all_catalog_objects = []
@@ -125,6 +124,22 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             records.append(model.RecordWithPGC(pgc, record_info))
 
         return records
+
+    def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.NatureRecord]:
+        query = """SELECT o.pgc, l1.record_id, l1.type_name
+        FROM nature.data AS l1
+        JOIN layer0.records AS o ON l1.record_id = o.id
+        WHERE o.pgc IN (
+            SELECT DISTINCT o.pgc
+            FROM nature.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.modification_time > %s AND o.pgc > %s
+            ORDER BY o.pgc
+            LIMIT %s
+        )
+        ORDER BY o.pgc ASC"""
+        rows = self._storage.query(query, params=[dt, offset, limit])
+        return [model.NatureRecord(pgc=int(r["pgc"]), record_id=r["record_id"], type_name=r["type_name"]) for r in rows]
 
     def query_records(
         self,

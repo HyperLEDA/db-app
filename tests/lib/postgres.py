@@ -138,6 +138,7 @@ class TestPostgresStorage:
             self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
 
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'all')")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'nature')")
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage
