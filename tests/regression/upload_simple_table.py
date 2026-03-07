@@ -158,11 +158,35 @@ def get_record_ids(session: requests.Session, table_name: str, expected_count: i
     return [r["id"] for r in records]
 
 
+def get_existing_pgcs(session: requests.Session, min_count: int) -> list[int]:
+    pgcs: list[int] = []
+    page = 0
+    page_size = 100
+    while len(pgcs) < min_count:
+        response = session.get(
+            "/v1/query/simple",
+            params={"name": "NGC", "page_size": page_size, "page": page},
+        )
+        response.raise_for_status()
+        data = response.json()["data"]
+        objects = data.get("objects", [])
+        if not objects:
+            break
+        for obj in objects:
+            if "pgc" in obj:
+                pgcs.append(obj["pgc"])
+        if len(objects) < page_size:
+            break
+        page += 1
+    return pgcs
+
+
 @lib.test_logging_decorator
 def set_crossmatch(
     session: requests.Session,
     record_ids: list[str],
     kind: str,
+    pgcs: list[int] | None = None,
 ):
     if kind == "new":
         request_data = adminapi.SetCrossmatchResultsRequest(
@@ -171,11 +195,14 @@ def set_crossmatch(
             ),
         )
     elif kind == "existing":
+        if pgcs is None:
+            raise ValueError("pgcs must be provided for kind='existing'")
+        pgcs_cycled = [pgcs[i % len(pgcs)] for i in range(len(record_ids))]
         request_data = adminapi.SetCrossmatchResultsRequest(
             statuses=adminapi.StatusesPayload(
                 existing=adminapi.ExistingStatusPayload(
                     record_ids=record_ids,
-                    pgcs=[6775395 + i + 1 for i in range(len(record_ids))],
+                    pgcs=pgcs_cycled,
                 ),
             ),
         )
@@ -185,7 +212,7 @@ def set_crossmatch(
             statuses=adminapi.StatusesPayload(
                 collided=adminapi.CollidedStatusPayload(
                     record_ids=record_ids,
-                    possible_matches=[[6775395 + i + 1] for i in range(len(record_ids))],
+                    possible_matches=[[6775395 + i] for i in range(len(record_ids))],
                 ),
             ),
         )
@@ -581,7 +608,9 @@ def run():
     create_marking(adminapi, table_name_2)
     start_marking(table_name_2)
     record_ids_2 = get_record_ids(adminapi, table_name_2, OBJECTS_NUM + SMALL_CLUSTER_OBJECTS_NUM)
-    set_crossmatch(adminapi, record_ids_2, "existing")
+    existing_pgcs = get_existing_pgcs(dataapi, len(record_ids_2))
+    assert len(existing_pgcs) >= 1, "query API must return at least one PGC to use as existing"
+    set_crossmatch(adminapi, record_ids_2, "existing", pgcs=existing_pgcs)
 
     check_crossmatch_existing_results(adminapi, table_name_2)
     submit_crossmatch(table_name_2)
