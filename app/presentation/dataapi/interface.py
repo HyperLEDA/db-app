@@ -36,11 +36,16 @@ class Designation(pydantic.BaseModel):
     name: str
 
 
+class Nature(pydantic.BaseModel):
+    type_name: str
+
+
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
     coordinates: Coordinates | None = None
     velocity: dict[str, AbsoluteVelocity] | None = None
     redshift: Redshift | None = None
+    nature: Nature | None = None
 
 
 class PGCObject(pydantic.BaseModel):

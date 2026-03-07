@@ -9,6 +9,7 @@ ENABLED_CATALOGS = [
     model.RawCatalog.DESIGNATION,
     model.RawCatalog.ICRS,
     model.RawCatalog.REDSHIFT,
+    model.RawCatalog.NATURE,
 ]
 
 

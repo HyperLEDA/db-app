@@ -80,7 +80,7 @@ class StructuredResponder(interface.ObjectResponder):
         gal = coord.galactic
 
         # TODO: for simplicity this approach assumes errors in galactic coordinates to be the
-        # same, which might not necessarily be true for larger erros.
+        # same, which might not necessarily be true for larger errors.
         lon = astronomy.to(gal.l, "deg")
         lat = astronomy.to(gal.b, "deg")
         e_lon = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
@@ -114,6 +114,9 @@ class StructuredResponder(interface.ObjectResponder):
                     z=self._heliocentric_to_redshift(redshift.cz),
                     e_z=self._heliocentric_to_redshift(redshift.e_cz),
                 )
+
+            if (nature := obj.get(model.NatureCatalogObject)) is not None:
+                catalogs.nature = dataapi.Nature(type_name=nature.type_name)
 
             if icrs is not None and redshift is not None:
                 catalogs.velocity = {}
