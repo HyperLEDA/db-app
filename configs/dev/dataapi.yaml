@@ -9,6 +9,10 @@ storage:
   user: hyperleda
   password: password
 
+tracing:
+  endpoint: localhost:4317
+  enabled: true
+
 catalogs:
   velocity:
     apexes:

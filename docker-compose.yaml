@@ -1,4 +1,10 @@
 services:
+  tracing-collector:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+
   hyperledadb:
     image: postgis/postgis:17-3.5
     environment:

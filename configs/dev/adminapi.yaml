@@ -15,3 +15,7 @@ storage:
 
 clients:
   ads_token: token
+
+tracing:
+  endpoint: localhost:4317
+  enabled: true

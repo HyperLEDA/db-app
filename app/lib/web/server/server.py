@@ -9,6 +9,7 @@ import structlog
 import uvicorn
 from fastapi import exceptions, responses
 from fastapi.middleware import cors
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from starlette.middleware import base as smiddlewares
 
 from app.lib.web import errors, middlewares
@@ -87,6 +88,8 @@ class WebServer:
         )
 
         app.add_exception_handler(exceptions.RequestValidationError, validation_exception_handler)
+
+        FastAPIInstrumentor.instrument_app(app)
 
         self.app = app
         self.config = cfg

@@ -14,3 +14,7 @@ storage:
 
 clients:
   ads_token: fake
+
+tracing:
+  endpoint: tracing-collector:4317
+  enabled: true

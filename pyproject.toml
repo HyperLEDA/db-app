@@ -24,6 +24,11 @@ dependencies = [
     "starlette>=0.47.2",
     "pydantic-settings>=2.10.1",
     "uncertainties>=3.2.3",
+    "opentelemetry-api>=1.40.0",
+    "opentelemetry-sdk>=1.40.0",
+    "opentelemetry-instrumentation-fastapi>=0.61b0",
+    "opentelemetry-instrumentation-psycopg>=0.61b0",
+    "opentelemetry-exporter-otlp>=1.40.0",
 ]
 
 [dependency-groups]
