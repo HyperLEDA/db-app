@@ -195,6 +195,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         order_direction: str = "asc",
         limit: int | None = None,
         record_id: str | None = None,
+        row_offset: int | None = None,
     ) -> model.Layer0RawData:
         """
         :param table_name: Name of the raw table
@@ -204,6 +205,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param offset: allows to retrieve rows starting from the `offset` record_id.
         :param record_id: retrieves only the row with the given record_id. Other filters are still applied.
         :param limit: allows to retrieve no more than `limit` rows.
+        :param row_offset: skip this many rows (use with limit for page-based pagination).
         :return: Layer0RawData
         """
 
@@ -254,10 +256,20 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 raise ValueError(f"invalid order direction: {order_direction}")
             parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
             parts.append(sql.SQL(order_direction))
+        elif row_offset is not None:
+            parts.append(
+                sql.SQL(" ORDER BY {} ").format(
+                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+                )
+            )
 
         if limit is not None:
             parts.append(sql.SQL(" LIMIT %s"))
             params.append(limit)
+
+        if row_offset is not None:
+            parts.append(sql.SQL(" OFFSET %s"))
+            params.append(row_offset)
 
         rows = self._storage.query(sql.Composed(parts), params=params)
         return model.Layer0RawData(table_name, pandas.DataFrame(rows))

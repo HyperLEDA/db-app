@@ -51,6 +51,12 @@ class API:
         response = self.actions.get_table_list(request)
         return server.APIOkResponse(data=response)
 
+    def get_records(
+        self, request: Annotated[interface.GetRecordsRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[interface.GetRecordsResponse]:
+        response = self.actions.get_records(request)
+        return server.APIOkResponse(data=response)
+
     def patch_table(
         self,
         request: interface.PatchTableRequest,
@@ -148,6 +154,13 @@ of the previously created table without any alterations.""",
                 api.get_table_list,
                 "List tables",
                 "Returns a paginated list of tables matching the search query by name or description",
+            ),
+            server.Route(
+                "/v1/records",
+                http.HTTPMethod.GET,
+                api.get_records,
+                "List records",
+                "Returns a paginated list of records for a table with their original data.",
             ),
             server.Route(
                 "/v1/table",
