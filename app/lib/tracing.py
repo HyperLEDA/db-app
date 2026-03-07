@@ -20,9 +20,7 @@ def setup_tracing(service_name: str, cfg: TracingConfig) -> None:
         resource=Resource.create({"service.name": service_name}),
     )
     provider.add_span_processor(
-        BatchSpanProcessor(
-            trace_exporter.OTLPSpanExporter(endpoint=cfg.endpoint, insecure=True)
-        )
+        BatchSpanProcessor(trace_exporter.OTLPSpanExporter(endpoint=cfg.endpoint, insecure=True))
     )
     trace.set_tracer_provider(provider)
 
