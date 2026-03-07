@@ -207,6 +207,21 @@ class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
+class GetRecordsRequest(pydantic.BaseModel):
+    table_name: str
+    page: int = 0
+    page_size: int = 25
+
+
+class Record(pydantic.BaseModel):
+    id: str
+    original_data: dict[str, Any]
+
+
+class GetRecordsResponse(pydantic.BaseModel):
+    records: list[Record]
+
+
 class GetRecordsCrossmatchRequest(pydantic.BaseModel):
     table_name: str
     status: enums.RecordCrossmatchStatus | None = None
@@ -402,6 +417,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def create_marking(self, request: CreateMarkingRequest) -> CreateMarkingResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_records(self, request: GetRecordsRequest) -> GetRecordsResponse:
         pass
 
     @abc.abstractmethod

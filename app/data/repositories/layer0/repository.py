@@ -44,9 +44,10 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         order_direction: str = "asc",
         limit: int | None = None,
         record_id: str | None = None,
+        row_offset: int | None = None,
     ) -> model.Layer0RawData:
         return self.table_repo.fetch_raw_data(
-            table_name, offset, columns, order_column, order_direction, limit, record_id
+            table_name, offset, columns, order_column, order_direction, limit, record_id, row_offset
         )
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
