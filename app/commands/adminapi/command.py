@@ -1,14 +1,16 @@
 from pathlib import Path
 from typing import final
 
+import pydantic
 import pydantic_settings as settings
 import structlog
 import yaml
 
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.lib import auth, clients, commands, config
+from app.lib import auth, clients, commands, config, tracing
 from app.lib.storage import postgres
+from app.lib.tracing import TracingConfig
 from app.lib.web import middlewares, server
 from app.presentation import adminapi as presentation
 
@@ -26,6 +28,8 @@ class AdminAPICommand(commands.Command):
 
     def prepare(self):
         cfg = parse_config(self.config_path)
+
+        tracing.setup_tracing("adminapi", cfg.tracing)
 
         self.pg_storage = postgres.PgStorage(cfg.storage, log)
         self.pg_storage.connect()
@@ -65,6 +69,9 @@ class Config(config.ConfigSettings):
     storage: postgres.PgStorageConfig
     clients: ClientsConfig
     auth_enabled: bool
+    tracing: TracingConfig = pydantic.Field(
+        default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
+    )
 
 
 def parse_config(path: str) -> Config:

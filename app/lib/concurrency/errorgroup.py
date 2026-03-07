@@ -1,3 +1,4 @@
+import contextvars
 import threading
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -23,14 +24,21 @@ class ErrorGroup:
         self._error_lock = threading.Lock()
 
     def run[T, **P](self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> TaskResult[T]:
-        future = self._executor.submit(self._run_with_error_handling, fn, *args, **kwargs)
+        ctx = contextvars.copy_context()
+        future = self._executor.submit(self._run_with_error_handling, ctx, fn, *args, **kwargs)
         self._futures.append(future)
 
         return TaskResult[T](future)
 
-    def _run_with_error_handling[T, **P](self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T | None:
+    def _run_with_error_handling[T, **P](
+        self,
+        ctx: contextvars.Context,
+        fn: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T | None:
         try:
-            return fn(*args, **kwargs)
+            return ctx.run(fn, *args, **kwargs)
         except Exception as e:
             with self._error_lock:
                 if self._error is None:

@@ -1,14 +1,16 @@
 from pathlib import Path
 from typing import final
 
+import pydantic
 import structlog
 import yaml
 
 from app.data import repositories
 from app.domain import dataapi as domain
 from app.domain import responders
-from app.lib import commands, config
+from app.lib import commands, config, tracing
 from app.lib.storage import postgres
+from app.lib.tracing import TracingConfig
 from app.lib.web import server
 from app.presentation import dataapi as presentation
 
@@ -27,6 +29,8 @@ class DataAPICommand(commands.Command):
 
     def prepare(self):
         self.config = parse_config(self.config_path)
+
+        tracing.setup_tracing("dataapi", self.config.tracing)
 
         self.pg_storage = postgres.PgStorage(self.config.storage, log)
         self.pg_storage.connect()
@@ -50,6 +54,9 @@ class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
     catalogs: responders.CatalogConfig
+    tracing: TracingConfig = pydantic.Field(
+        default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
+    )
 
 
 def parse_config(path: str) -> Config:
