@@ -20,10 +20,12 @@ class Layer2ImportTask(interface.Task):
         logger: structlog.stdlib.BoundLogger,
         batch_size: int = 100000,
         dry_run: bool = False,
+        silent: bool = False,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
         self.dry_run = dry_run
+        self.silent = silent
 
     @classmethod
     def name(cls) -> str:
@@ -47,6 +49,7 @@ class Layer2ImportTask(interface.Task):
                 logger=self.log,
                 batch_size=self.batch_size,
                 dry_run=self.dry_run,
+                silent=self.silent,
             )
             task.pg_storage = self.pg_storage
             task.layer1_repository = self.layer1_repository

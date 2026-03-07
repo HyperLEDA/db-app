@@ -30,10 +30,12 @@ class Layer2ImportICRSTask(interface.Task):
         logger: structlog.stdlib.BoundLogger,
         batch_size: int = 100000,
         dry_run: bool = False,
+        silent: bool = False,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
         self.dry_run = dry_run
+        self.silent = silent
 
     @classmethod
     def name(cls) -> str:
@@ -101,13 +103,14 @@ class Layer2ImportICRSTask(interface.Task):
             )
         self.log.info("Layer 2 ICRS import completed", last_update=last_update_dt.ctime())
 
-        logging.print_table(
-            ("Description", "Count"),
-            [
-                ("Objects to be saved", objects_to_save),
-                ("Orphans to be deleted", orphans_to_delete),
-            ],
-        )
+        if not self.silent:
+            logging.print_table(
+                ("Description", "Count"),
+                [
+                    ("Objects to be saved", objects_to_save),
+                    ("Orphans to be deleted", orphans_to_delete),
+                ],
+            )
 
     def cleanup(self) -> None:
         self.pg_storage.disconnect()
