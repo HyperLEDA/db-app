@@ -16,10 +16,12 @@ class Layer2ImportNatureTask(interface.Task):
         logger: structlog.stdlib.BoundLogger,
         batch_size: int = 100000,
         dry_run: bool = False,
+        silent: bool = False,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
         self.dry_run = dry_run
+        self.silent = silent
 
     @classmethod
     def name(cls) -> str:
@@ -83,16 +85,17 @@ class Layer2ImportNatureTask(interface.Task):
             )
         self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
 
-        type_rows = [(t, c) for t, c in sorted(type_distribution.items())]
-        logging.print_table(
-            ("Description", "Count"),
-            [
-                ("Objects saved", objects_to_save),
-                ("Orphans deleted", orphans_to_delete),
-            ],
-            sections=[("Distribution by type", [(f"  {t}", c) for t, c in type_rows])] if type_rows else None,
-            min_column_widths=(30, 0),
-        )
+        if not self.silent:
+            type_rows = [(t, c) for t, c in sorted(type_distribution.items())]
+            logging.print_table(
+                ("Description", "Count"),
+                [
+                    ("Objects saved", objects_to_save),
+                    ("Orphans deleted", orphans_to_delete),
+                ],
+                sections=[("Distribution by type", [(f"  {t}", c) for t, c in type_rows])] if type_rows else None,
+                min_column_widths=(30, 0),
+            )
 
     def cleanup(self) -> None:
         self.pg_storage.disconnect()

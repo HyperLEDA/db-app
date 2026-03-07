@@ -34,11 +34,6 @@ VALUES (%s, %s, %s)
 RETURNING id
 """
 
-GET_RAWDATA_TABLE = """
-SELECT table_name, modification_dt FROM layer0.tables
-WHERE id = %s
-"""
-
 FETCH_TABLE_METADATA = """
 SELECT param
 FROM meta.table_info 

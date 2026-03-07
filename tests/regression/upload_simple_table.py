@@ -150,15 +150,77 @@ def start_marking(table_name: str):
     )
 
 
+def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
+    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=expected_count * 2)
+    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    records = response.json()["data"]["records"]
+    return [r["id"] for r in records]
+
+
+def get_existing_pgcs(session: requests.Session, min_count: int) -> list[int]:
+    pgcs: list[int] = []
+    page = 0
+    page_size = 100
+    while len(pgcs) < min_count:
+        response = session.get(
+            "/v1/query/simple",
+            params={"name": "NGC", "page_size": page_size, "page": page},
+        )
+        response.raise_for_status()
+        data = response.json()["data"]
+        objects = data.get("objects", [])
+        if not objects:
+            break
+        for obj in objects:
+            if "pgc" in obj:
+                pgcs.append(obj["pgc"])
+        if len(objects) < page_size:
+            break
+        page += 1
+    return pgcs
+
+
 @lib.test_logging_decorator
-def start_crossmatch(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "crossmatch",
-            input_data={"table_name": table_name},
-            log_level="warn",
-        ),
+def set_crossmatch(
+    session: requests.Session,
+    record_ids: list[str],
+    kind: str,
+    pgcs: list[int] | None = None,
+):
+    if kind == "new":
+        request_data = adminapi.SetCrossmatchResultsRequest(
+            statuses=adminapi.StatusesPayload(
+                new=adminapi.NewStatusPayload(record_ids=record_ids),
+            ),
+        )
+    elif kind == "existing":
+        if pgcs is None:
+            raise ValueError("pgcs must be provided for kind='existing'")
+        pgcs_cycled = [pgcs[i % len(pgcs)] for i in range(len(record_ids))]
+        request_data = adminapi.SetCrossmatchResultsRequest(
+            statuses=adminapi.StatusesPayload(
+                existing=adminapi.ExistingStatusPayload(
+                    record_ids=record_ids,
+                    pgcs=pgcs_cycled,
+                ),
+            ),
+        )
+    else:
+        assert kind == "collided"
+        request_data = adminapi.SetCrossmatchResultsRequest(
+            statuses=adminapi.StatusesPayload(
+                collided=adminapi.CollidedStatusPayload(
+                    record_ids=record_ids,
+                    possible_matches=[[6775395 + i] for i in range(len(record_ids))],
+                ),
+            ),
+        )
+    response = session.post(
+        "/v1/records/crossmatch",
+        json=request_data.model_dump(mode="json"),
     )
+    response.raise_for_status()
 
 
 @lib.test_logging_decorator
@@ -430,7 +492,7 @@ def layer2_import():
     commands.run(
         RunTaskCommand(
             "layer2-import",
-            input_data={"batch_size": OBJECTS_NUM // 5},
+            input_data={"batch_size": OBJECTS_NUM // 5, "silent": True},
             log_level="warn",
         ),
     )
@@ -505,7 +567,8 @@ def run():
 
     create_marking(adminapi, table_name)
     start_marking(table_name)
-    start_crossmatch(table_name)
+    record_ids = get_record_ids(adminapi, table_name, OBJECTS_NUM)
+    set_crossmatch(adminapi, record_ids, "new")
 
     check_table_info(adminapi, table_name)
     check_crossmatch_results(adminapi, table_name)
@@ -544,7 +607,10 @@ def run():
 
     create_marking(adminapi, table_name_2)
     start_marking(table_name_2)
-    start_crossmatch(table_name_2)
+    record_ids_2 = get_record_ids(adminapi, table_name_2, OBJECTS_NUM + SMALL_CLUSTER_OBJECTS_NUM)
+    existing_pgcs = get_existing_pgcs(dataapi, len(record_ids_2))
+    assert len(existing_pgcs) >= 1, "query API must return at least one PGC to use as existing"
+    set_crossmatch(adminapi, record_ids_2, "existing", pgcs=existing_pgcs)
 
     check_crossmatch_existing_results(adminapi, table_name_2)
     submit_crossmatch(table_name_2)
@@ -564,6 +630,7 @@ def run():
 
     create_marking(adminapi, table_name_3)
     start_marking(table_name_3)
-    start_crossmatch(table_name_3)
+    record_ids_3 = get_record_ids(adminapi, table_name_3, SMALL_CLUSTER_OBJECTS_NUM // 2)
+    set_crossmatch(adminapi, record_ids_3, "collided")
 
     check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)

@@ -5,5 +5,4 @@ WORKDIR /usr/src/app
 COPY pyproject.toml ./
 RUN uv sync
 COPY app app
-COPY plugins plugins
 COPY main.py main.py
