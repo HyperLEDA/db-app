@@ -212,7 +212,7 @@ def set_crossmatch(
             statuses=adminapi.StatusesPayload(
                 collided=adminapi.CollidedStatusPayload(
                     record_ids=record_ids,
-                    possible_matches=[[6775395 + i] for i in range(len(record_ids))],
+                    possible_matches=[[6775395 + i, 6775395 + i + 1000] for i in range(len(record_ids))],
                 ),
             ),
         )
