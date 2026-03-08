@@ -314,6 +314,22 @@
             }
           },
           {
+            "name": "pgc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pgc"
+            }
+          },
+          {
             "name": "upload_status",
             "in": "query",
             "required": false,
@@ -330,19 +346,19 @@
             }
           },
           {
-            "name": "pgc",
+            "name": "triage_status",
             "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "$ref": "#/components/schemas/CrossmatchTriageStatus"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Pgc"
+              "title": "Triage Status"
             }
           }
         ],
@@ -1281,6 +1297,15 @@
         ],
         "title": "CreateTableResponse"
       },
+      "CrossmatchTriageStatus": {
+        "type": "string",
+        "enum": [
+          "unprocessed",
+          "pending",
+          "resolved"
+        ],
+        "title": "CrossmatchTriageStatus"
+      },
       "DataType": {
         "type": "string",
         "enum": [
@@ -1879,13 +1904,17 @@
               }
             ],
             "title": "Pgc"
+          },
+          "crossmatch": {
+            "$ref": "#/components/schemas/RecordCrossmatchInfo"
           }
         },
         "type": "object",
         "required": [
           "id",
           "original_data",
-          "pgc"
+          "pgc",
+          "crossmatch"
         ],
         "title": "Record"
       },
@@ -1917,6 +1946,39 @@
           "catalogs"
         ],
         "title": "RecordCrossmatch"
+      },
+      "RecordCrossmatchCandidate": {
+        "properties": {
+          "pgc": {
+            "type": "integer",
+            "title": "Pgc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pgc"
+        ],
+        "title": "RecordCrossmatchCandidate"
+      },
+      "RecordCrossmatchInfo": {
+        "properties": {
+          "triage_status": {
+            "$ref": "#/components/schemas/CrossmatchTriageStatus"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/RecordCrossmatchCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "triage_status",
+          "candidates"
+        ],
+        "title": "RecordCrossmatchInfo"
       },
       "RecordCrossmatchMetadata": {
         "properties": {

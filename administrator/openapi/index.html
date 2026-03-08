@@ -893,6 +893,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#crossmatchtriagestatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CrossmatchTriageStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#datatype" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1172,6 +1183,28 @@
     <span class="md-ellipsis">
       
         RecordCrossmatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recordcrossmatchcandidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordCrossmatchCandidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recordcrossmatchinfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordCrossmatchInfo
       
     </span>
   </a>
@@ -2275,6 +2308,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#crossmatchtriagestatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CrossmatchTriageStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#datatype" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2554,6 +2598,28 @@
     <span class="md-ellipsis">
       
         RecordCrossmatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recordcrossmatchcandidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordCrossmatchCandidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recordcrossmatchinfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordCrossmatchInfo
       
     </span>
   </a>
@@ -3946,6 +4012,14 @@ For instance, mapping morphological types to numeric codes:
             <td></td>
         </tr>
         <tr>
+            <td class="parameter-name"><code>triage_status</code></td>
+            <td>query</td>
+            <td></td>
+            <td></td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
             <td class="parameter-name"><code>upload_status</code></td>
             <td>query</td>
             <td></td>
@@ -3969,22 +4043,30 @@ For instance, mapping morphological types to numeric codes:
 </span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="w">            </span><span class="p">{</span>
 </span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
 </span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
-</span><span id="__span-39-7"><a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="w">                </span><span class="nt">&quot;pgc&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-39-8"><a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="w">            </span><span class="p">}</span>
-</span><span id="__span-39-9"><a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="w">        </span><span class="p">],</span>
-</span><span id="__span-39-10"><a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a><span class="w">        </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-39-11"><a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-39-12"><a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-</span><span id="__span-39-13"><a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a><span class="w">            </span><span class="p">},</span>
-</span><span id="__span-39-14"><a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a><span class="w">            </span><span class="nt">&quot;unit&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-39-15"><a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-</span><span id="__span-39-16"><a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a><span class="w">            </span><span class="p">},</span>
-</span><span id="__span-39-17"><a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a><span class="w">            </span><span class="nt">&quot;ucd&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-39-18"><a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-</span><span id="__span-39-19"><a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a><span class="w">            </span><span class="p">}</span>
-</span><span id="__span-39-20"><a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-39-21"><a id="__codelineno-39-21" name="__codelineno-39-21" href="#__codelineno-39-21"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-39-22"><a id="__codelineno-39-22" name="__codelineno-39-22" href="#__codelineno-39-22"></a><span class="p">}</span>
+</span><span id="__span-39-7"><a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="w">                </span><span class="nt">&quot;pgc&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-39-8"><a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="w">                </span><span class="nt">&quot;crossmatch&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-9"><a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="w">                    </span><span class="nt">&quot;triage_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unprocessed&quot;</span><span class="p">,</span>
+</span><span id="__span-39-10"><a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a><span class="w">                    </span><span class="nt">&quot;candidates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-39-11"><a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="w">                        </span><span class="p">{</span>
+</span><span id="__span-39-12"><a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a><span class="w">                            </span><span class="nt">&quot;pgc&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-39-13"><a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a><span class="w">                        </span><span class="p">}</span>
+</span><span id="__span-39-14"><a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a><span class="w">                    </span><span class="p">]</span>
+</span><span id="__span-39-15"><a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-39-16"><a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-39-17"><a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a><span class="w">        </span><span class="p">],</span>
+</span><span id="__span-39-18"><a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a><span class="w">        </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-19"><a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a><span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-20"><a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-39-21"><a id="__codelineno-39-21" name="__codelineno-39-21" href="#__codelineno-39-21"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-39-22"><a id="__codelineno-39-22" name="__codelineno-39-22" href="#__codelineno-39-22"></a><span class="w">            </span><span class="nt">&quot;unit&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-23"><a id="__codelineno-39-23" name="__codelineno-39-23" href="#__codelineno-39-23"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-39-24"><a id="__codelineno-39-24" name="__codelineno-39-24" href="#__codelineno-39-24"></a><span class="w">            </span><span class="p">},</span>
+</span><span id="__span-39-25"><a id="__codelineno-39-25" name="__codelineno-39-25" href="#__codelineno-39-25"></a><span class="w">            </span><span class="nt">&quot;ucd&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-26"><a id="__codelineno-39-26" name="__codelineno-39-26" href="#__codelineno-39-26"></a><span class="w">                </span><span class="nt">&quot;original_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-39-27"><a id="__codelineno-39-27" name="__codelineno-39-27" href="#__codelineno-39-27"></a><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-39-28"><a id="__codelineno-39-28" name="__codelineno-39-28" href="#__codelineno-39-28"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-39-29"><a id="__codelineno-39-29" name="__codelineno-39-29" href="#__codelineno-39-29"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-39-30"><a id="__codelineno-39-30" name="__codelineno-39-30" href="#__codelineno-39-30"></a><span class="p">}</span>
 </span></code></pre></div>
 <span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
 <details class="hint">
@@ -5653,6 +5735,8 @@ NaN and NULL are considered to be the same thing.</td>
     </tbody>
 </table>
 
+<h3 id="crossmatchtriagestatus">CrossmatchTriageStatus<a class="headerlink" href="#crossmatchtriagestatus" title="Permanent link">#</a></h3>
+<p><span>Type: </span><span class="string-type">string</span></p>
 <h3 id="datatype">DataType<a class="headerlink" href="#datatype" title="Permanent link">#</a></h3>
 <p><span>Type: </span><span class="string-type">string</span></p>
 <h3 id="datatypeenum">DatatypeEnum<a class="headerlink" href="#datatypeenum" title="Permanent link">#</a></h3>
@@ -6207,6 +6291,11 @@ NaN and NULL are considered to be the same thing.</td>
     </thead>
     <tbody>
         <tr>
+            <td><code>crossmatch</code></td>
+            <td><a href="#recordcrossmatchinfo" class="ref-link">RecordCrossmatchInfo</a></td>
+            <td></td>
+        </tr>
+        <tr>
             <td><code>id</code></td>
             <td><span class="string-type">string</span></td>
             <td></td>
@@ -6257,6 +6346,47 @@ NaN and NULL are considered to be the same thing.</td>
         <tr>
             <td><code>triage_status</code></td>
             <td><a href="#recordtriagestatus" class="ref-link">RecordTriageStatus</a></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="recordcrossmatchcandidate">RecordCrossmatchCandidate<a class="headerlink" href="#recordcrossmatchcandidate" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>pgc</code></td>
+            <td><span class="integer-type">integer</span></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="recordcrossmatchinfo">RecordCrossmatchInfo<a class="headerlink" href="#recordcrossmatchinfo" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>candidates</code></td>
+            <td>Array&lt;<a href="#recordcrossmatchcandidate" class="ref-link">RecordCrossmatchCandidate</a>&gt;</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><code>triage_status</code></td>
+            <td><a href="#crossmatchtriagestatus" class="ref-link">CrossmatchTriageStatus</a></td>
             <td></td>
         </tr>
     </tbody>
