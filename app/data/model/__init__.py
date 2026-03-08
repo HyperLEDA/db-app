@@ -11,15 +11,11 @@ from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, g
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.nature import NatureCatalogObject
 from app.data.model.records import (
-    CIResult,
-    CIResultObjectCollision,
-    CIResultObjectExisting,
-    CIResultObjectNew,
+    CrossmatchRecordRow,
     DesignationRecord,
     ICRSRecord,
     NatureRecord,
     Record,
-    RecordCrossmatch,
     RedshiftRecord,
 )
 from app.data.model.redshift import RedshiftCatalogObject
@@ -37,7 +33,7 @@ from app.data.model.table import (
 )
 
 __all__ = [
-    "RecordCrossmatch",
+    "CrossmatchRecordRow",
     "Layer0RawData",
     "Layer0TableMeta",
     "Layer0CreationResponse",
@@ -45,10 +41,6 @@ __all__ = [
     "ColumnDescription",
     "TableStatistics",
     "get_object",
-    "CIResult",
-    "CIResultObjectCollision",
-    "CIResultObjectExisting",
-    "CIResultObjectNew",
     "DesignationRecord",
     "ICRSRecord",
     "NatureRecord",

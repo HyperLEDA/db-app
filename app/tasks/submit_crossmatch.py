@@ -3,7 +3,7 @@ from typing import final
 
 import structlog
 
-from app.data import model, repositories
+from app.data import repositories
 from app.lib import containers
 from app.lib.storage import enums, postgres
 from app.tasks import interface
@@ -38,23 +38,23 @@ class SubmitCrossmatchTask(interface.Task):
             self.layer0_repository.get_processed_records,
             lambda data: len(data) == 0,
             "",
-            lambda d, _: d[-1].record.id,
+            lambda d, _: d[-1].record_id,
             table_name=self.table_name,
             status=[enums.RecordCrossmatchStatus.NEW, enums.RecordCrossmatchStatus.EXISTING],
             triage_status=[enums.RecordTriageStatus.RESOLVED],
             batch_size=self.batch_size,
         ):
-            batch_new = sum(1 for obj in data if isinstance(obj.processing_result, model.CIResultObjectNew))
-            batch_existing = sum(1 for obj in data if isinstance(obj.processing_result, model.CIResultObjectExisting))
+            batch_new = sum(1 for obj in data if len(obj.candidates) == 0)
+            batch_existing = sum(1 for obj in data if len(obj.candidates) == 1)
 
             with self.layer0_repository.with_tx():
                 pgcs: dict[str, int | None] = {}
 
                 for obj in data:
-                    if isinstance(obj.processing_result, model.CIResultObjectNew):
-                        pgcs[obj.record.id] = None
-                    elif isinstance(obj.processing_result, model.CIResultObjectExisting):
-                        pgcs[obj.record.id] = obj.processing_result.pgc
+                    if len(obj.candidates) == 0:
+                        pgcs[obj.record_id] = None
+                    elif len(obj.candidates) == 1:
+                        pgcs[obj.record_id] = obj.candidates[0]
                     else:
                         continue
 
