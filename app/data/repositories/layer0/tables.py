@@ -76,12 +76,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         return model.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(self, data: model.Layer0RawData) -> None:
-        """
-        This method puts everything in parameters for prepared statement. This should not be a big
-        issue but one would be better off using this function in batches since prepared statements make
-        this quite cheap (excluding network slow down, though).
-        """
-
         if len(data.data) == 0:
             log.warn("trying to insert 0 rows into the table", table_name=data.table_name)
             return
@@ -194,6 +188,9 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         limit: int | None = None,
         record_id: str | None = None,
         row_offset: int | None = None,
+        has_pgc: bool | None = None,
+        pgc_value: int | None = None,
+        include_pgc: bool = False,
     ) -> model.Layer0RawData:
         """
         :param table_name: Name of the raw table
@@ -204,6 +201,9 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param record_id: retrieves only the row with the given record_id. Other filters are still applied.
         :param limit: allows to retrieve no more than `limit` rows.
         :param row_offset: skip this many rows (use with limit for page-based pagination).
+        :param has_pgc: when True only rows with pgc set, when False only without, when None no filter.
+        :param pgc_value: when set, only rows with this pgc in layer0.records.
+        :param include_pgc: when True, join layer0.records and add pgc column to the result.
         :return: Layer0RawData
         """
 
@@ -212,6 +212,16 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         if table_name is None:
             raise ValueError("either table_name or record_id must be provided")
+
+        if include_pgc or has_pgc is not None or pgc_value is not None:
+            return self._fetch_raw_data_with_records_join(
+                table_name=table_name,
+                limit=limit,
+                row_offset=row_offset,
+                order_direction=order_direction,
+                has_pgc=has_pgc,
+                pgc_value=pgc_value,
+            )
 
         if columns:
             columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
@@ -265,6 +275,50 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             parts.append(sql.SQL(" LIMIT %s"))
             params.append(limit)
 
+        if row_offset is not None:
+            parts.append(sql.SQL(" OFFSET %s"))
+            params.append(row_offset)
+
+        rows = self._storage.query(sql.Composed(parts), params=params)
+        return model.Layer0RawData(table_name, pandas.DataFrame(rows))
+
+    def _fetch_raw_data_with_records_join(
+        self,
+        table_name: str,
+        limit: int | None,
+        row_offset: int | None,
+        order_direction: str,
+        has_pgc: bool | None,
+        pgc_value: int | None,
+    ) -> model.Layer0RawData:
+        where_parts: list[str] = []
+        if has_pgc is True:
+            where_parts.append("o.pgc IS NOT NULL")
+        elif has_pgc is False:
+            where_parts.append("o.pgc IS NULL")
+        if pgc_value is not None:
+            where_parts.append("o.pgc = %s")
+
+        params: list[Any] = []
+        if pgc_value is not None:
+            params.append(pgc_value)
+
+        id_col = sql.Identifier(INTERNAL_ID_COLUMN_NAME)
+        parts: list[sql.Composable] = [
+            sql.SQL("SELECT r.*, o.pgc FROM {}.{} AS r JOIN layer0.records AS o ON r.{} = o.id").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+                id_col,
+            ),
+        ]
+        if where_parts:
+            parts.append(sql.SQL(" WHERE "))
+            parts.append(sql.SQL(" AND ").join([sql.SQL(w) for w in where_parts]))
+        parts.append(sql.SQL(" ORDER BY r.{} ").format(id_col))
+        parts.append(sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc"))
+        if limit is not None:
+            parts.append(sql.SQL(" LIMIT %s"))
+            params.append(limit)
         if row_offset is not None:
             parts.append(sql.SQL(" OFFSET %s"))
             params.append(row_offset)

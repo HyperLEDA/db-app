@@ -211,19 +211,42 @@ class TableUploadManager:
         )
 
     def get_records(self, r: adminapi.GetRecordsRequest) -> adminapi.GetRecordsResponse:
+        has_pgc = None
+        if r.upload_status == adminapi.UploadStatus.UPLOADED:
+            has_pgc = True
+        elif r.upload_status == adminapi.UploadStatus.PENDING:
+            has_pgc = False
+
         raw = self.layer0_repo.fetch_raw_data(
             table_name=r.table_name,
             limit=r.page_size,
             row_offset=r.page * r.page_size,
             order_column=repositories.INTERNAL_ID_COLUMN_NAME,
             order_direction="asc",
+            has_pgc=has_pgc,
+            pgc_value=r.pgc,
+            include_pgc=True,
         )
         records_list: list[adminapi.Record] = []
         id_col = repositories.INTERNAL_ID_COLUMN_NAME
+
+        drop_labels = [id_col]
+        if "pgc" in raw.data.columns:
+            drop_labels.append("pgc")
+
         for _, row in raw.data.iterrows():
             record_id = str(row[id_col])
-            original_data = _row_to_serializable_dict(row.drop(labels=[id_col]))
-            records_list.append(adminapi.Record(id=record_id, original_data=original_data))
+            original_data = _row_to_serializable_dict(row.drop(labels=drop_labels))
+            pgc_val = row.get("pgc") if "pgc" in raw.data.columns else None
+
+            if pgc_val is not None and (pandas.isna(pgc_val) or (isinstance(pgc_val, float) and np.isnan(pgc_val))):
+                pgc_val = None
+
+            records_list.append(
+                adminapi.Record(
+                    id=record_id, original_data=original_data, pgc=int(pgc_val) if pgc_val is not None else None
+                )
+            )
         return adminapi.GetRecordsResponse(records=records_list)
 
 
