@@ -97,3 +97,8 @@ class CommonRepository(postgres.TransactionalPGRepository):
                 )
             )
         return TableSchemaInfo(table_description=table_description, columns=columns)
+
+    def get_nature_object_types(self) -> list[dict]:
+        return self._storage.query(
+            "SELECT type_name, description FROM nature.object_type",
+        )

@@ -39,6 +39,7 @@ def _build_catalog_schema(
     icrs_schema: TableSchemaInfo,
     cz_schema: TableSchemaInfo,
     nature_schema: TableSchemaInfo,
+    nature_object_types: dict[str, str],
 ) -> adminapi.RecordCatalogSchema:
     design_desc, _ = _column_meta(designation_schema.columns, "design")
     ra_desc, ra_unit = _column_meta(icrs_schema.columns, "ra")
@@ -75,7 +76,7 @@ def _build_catalog_schema(
         nature=adminapi.RecordNatureCatalogSchema(
             description=adminapi.RecordNatureCatalogDescriptionSchema(
                 type_name=type_name_desc,
-                types={},
+                types=nature_object_types,
             ),
         ),
     )
@@ -311,6 +312,9 @@ class TableUploadManager:
             "nature",
             "data",
         )
+        nature_object_types_task = errgr.run(
+            self.common_repo.get_nature_object_types,
+        )
         errgr.wait()
 
         raw_records = records_task.result()
@@ -319,6 +323,8 @@ class TableUploadManager:
         icrs_schema = icrs_schema_task.result()
         cz_schema = cz_schema_task.result()
         nature_schema = nature_schema_task.result()
+        nature_object_types_rows = nature_object_types_task.result()
+        nature_object_types = {row["type_name"]: row["description"] for row in nature_object_types_rows}
 
         record_ids = [rec.id for rec in raw_records]
 
@@ -401,6 +407,7 @@ class TableUploadManager:
             icrs_schema,
             cz_schema,
             nature_schema,
+            nature_object_types,
         )
         record_schema = adminapi.RecordSchema(
             original_data=adminapi.RecordOriginalDataSchema(
