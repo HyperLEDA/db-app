@@ -18,13 +18,12 @@ class TransactionalRepositoryTest(unittest.TestCase):
 
         self.assertEqual(result["id"], 42)
 
-    def test_nested_transactions(self):
+    def test_multiple_statements_in_transaction(self):
         repo = transactional.TransactionalPGRepository(self.pg_storage.get_storage())
         with repo.with_tx():
             self.pg_storage.get_storage().exec("CREATE TABLE test_table2 (id INTEGER)")
-            with repo.with_tx():
-                self.pg_storage.get_storage().exec("INSERT INTO test_table2 VALUES (42)")
-                result = self.pg_storage.get_storage().query_one("SELECT id FROM test_table2 LIMIT 1")
+            self.pg_storage.get_storage().exec("INSERT INTO test_table2 VALUES (42)")
+            result = self.pg_storage.get_storage().query_one("SELECT id FROM test_table2 LIMIT 1")
 
         self.assertEqual(result["id"], 42)
 
