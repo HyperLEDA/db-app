@@ -230,9 +230,7 @@ class GetRecordsRequest(pydantic.BaseModel):
     def check_exclusive_pgc_filter(self) -> "GetRecordsRequest":
         if self.pgc is not None:
             if any([self.upload_status is not None, self.triage_status is not None]):
-                raise ValueError(
-                    "When pgc filter is specified, no other filters are allowed."
-                )
+                raise ValueError("When pgc filter is specified, no other filters are allowed.")
         return self
 
     @pydantic.model_validator(mode="after")

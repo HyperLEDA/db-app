@@ -344,6 +344,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                     "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
                     "FROM {}.{} AS r "
                     "JOIN layer0.records AS o ON r.{} = o.id "
+                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s) "
                     "JOIN layer0.crossmatch AS c ON o.id = c.record_id"
                 ).format(
                     sql.Identifier(RAWDATA_SCHEMA),
@@ -351,6 +352,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                     id_col,
                 ),
             ]
+            params.insert(0, table_name)
         else:
             params.append(limit)
             params.append(row_offset)
@@ -359,6 +361,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                     "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
                     "FROM {}.{} AS r "
                     "JOIN layer0.records AS o ON r.{} = o.id "
+                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s) "
                     "LEFT JOIN layer0.crossmatch AS c ON o.id = c.record_id"
                 ).format(
                     sql.Identifier(RAWDATA_SCHEMA),
@@ -366,6 +369,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                     id_col,
                 ),
             ]
+            params.insert(0, table_name)
 
         if where_parts:
             parts.append(sql.SQL(" WHERE "))
