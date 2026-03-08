@@ -12,6 +12,7 @@ from astropy import units as u
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
+from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.domain import homogenization
 from app.lib import astronomy, clients, concurrency
@@ -24,6 +25,60 @@ BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-
 FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 
 logger = structlog.stdlib.get_logger()
+
+
+def _column_meta(columns: list[ColumnSchemaInfo], name: str) -> tuple[str, str]:
+    for c in columns:
+        if c.name == name:
+            return (c.description or "", c.unit or "")
+    return ("", "")
+
+
+def _build_catalog_schema(
+    designation_schema: TableSchemaInfo,
+    icrs_schema: TableSchemaInfo,
+    cz_schema: TableSchemaInfo,
+    nature_schema: TableSchemaInfo,
+) -> adminapi.RecordCatalogSchema:
+    design_desc, _ = _column_meta(designation_schema.columns, "design")
+    ra_desc, ra_unit = _column_meta(icrs_schema.columns, "ra")
+    e_ra_desc, e_ra_unit = _column_meta(icrs_schema.columns, "e_ra")
+    dec_desc, dec_unit = _column_meta(icrs_schema.columns, "dec")
+    e_dec_desc, e_dec_unit = _column_meta(icrs_schema.columns, "e_dec")
+    cz_desc, _ = _column_meta(cz_schema.columns, "cz")
+    e_cz_desc, _ = _column_meta(cz_schema.columns, "e_cz")
+    type_name_desc, _ = _column_meta(nature_schema.columns, "type_name")
+    return adminapi.RecordCatalogSchema(
+        designation=adminapi.RecordDesignationCatalogSchema(
+            description=adminapi.RecordDesignationCatalogDescriptionSchema(name=design_desc),
+        ),
+        icrs=adminapi.RecordICRSCatalogSchema(
+            unit=adminapi.RecordICRSCatalogUnitSchema(
+                ra=ra_unit,
+                ra_error=e_ra_unit,
+                dec=dec_unit,
+                dec_error=e_dec_unit,
+            ),
+            description=adminapi.RecordICRSCatalogDescriptionSchema(
+                ra=ra_desc,
+                ra_error=e_ra_desc,
+                dec=dec_desc,
+                dec_error=e_dec_desc,
+            ),
+        ),
+        redshift=adminapi.RecordRedshiftCatalogSchema(
+            description=adminapi.RecordRedshiftCatalogDescriptionSchema(
+                z=cz_desc,
+                z_error=e_cz_desc,
+            ),
+        ),
+        nature=adminapi.RecordNatureCatalogSchema(
+            description=adminapi.RecordNatureCatalogDescriptionSchema(
+                type_name=type_name_desc,
+                types={},
+            ),
+        ),
+    )
 
 
 class TableUploadManager:
@@ -236,10 +291,34 @@ class TableUploadManager:
             RAWDATA_SCHEMA,
             r.table_name,
         )
+        designation_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "designation",
+            "data",
+        )
+        icrs_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "icrs",
+            "data",
+        )
+        cz_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "cz",
+            "data",
+        )
+        nature_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "nature",
+            "data",
+        )
         errgr.wait()
 
         raw_records = records_task.result()
         schema_info = schema_task.result()
+        designation_schema = designation_schema_task.result()
+        icrs_schema = icrs_schema_task.result()
+        cz_schema = cz_schema_task.result()
+        nature_schema = nature_schema_task.result()
 
         record_ids = [rec.id for rec in raw_records]
 
@@ -317,12 +396,19 @@ class TableUploadManager:
             if col.ucd is not None:
                 ucd_data[col.name] = col.ucd
 
+        catalog_schema = _build_catalog_schema(
+            designation_schema,
+            icrs_schema,
+            cz_schema,
+            nature_schema,
+        )
         record_schema = adminapi.RecordSchema(
             original_data=adminapi.RecordOriginalDataSchema(
                 description=description_data,
                 ucd=ucd_data,
                 unit=unit_data,
             ),
+            catalogs=catalog_schema,
         )
         return adminapi.GetRecordsResponse(records=records_list, schema=record_schema)
 
