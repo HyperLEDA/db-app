@@ -222,19 +222,33 @@ class GetRecordsRequest(pydantic.BaseModel):
     table_name: str
     page: int = 0
     page_size: int = 25
-    upload_status: UploadStatus | None = None
     pgc: int | None = None
+    upload_status: UploadStatus | None = None
     triage_status: CrossmatchTriageStatus | None = None
 
     @pydantic.model_validator(mode="after")
-    def check_pending_and_pgc_exclusive(self) -> "GetRecordsRequest":
-        if self.upload_status == UploadStatus.PENDING and self.pgc is not None:
-            raise ValueError("upload_status pending and pgc filter cannot be specified at the same time")
+    def check_exclusive_pgc_filter(self) -> "GetRecordsRequest":
+        if self.pgc is not None:
+            if any([self.upload_status is not None, self.triage_status is not None]):
+                raise ValueError(
+                    "When pgc filter is specified, no other filters are allowed."
+                )
         return self
+
+    @pydantic.model_validator(mode="after")
+    def check_upload_status_and_triage_status(self) -> "GetRecordsRequest":
+        if self.upload_status == UploadStatus.UPLOADED and self.triage_status is not None:
+            raise ValueError("When upload_status is UPLOADED, triage_status is not allowed.")
+        return self
+
+
+class RecordCrossmatchCandidate(pydantic.BaseModel):
+    pgc: int
 
 
 class RecordCrossmatchInfo(pydantic.BaseModel):
     triage_status: CrossmatchTriageStatus
+    candidates: list[RecordCrossmatchCandidate]
 
 
 class Record(pydantic.BaseModel):

@@ -33,6 +33,17 @@ def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
     return out
 
 
+def _crossmatch_metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
+    if metadata is None:
+        return []
+    candidates: list[int] = []
+    if "pgc" in metadata and metadata["pgc"] is not None:
+        candidates.append(int(metadata["pgc"]))
+    if "possible_matches" in metadata and metadata["possible_matches"] is not None:
+        candidates.extend(int(p) for p in metadata["possible_matches"])
+    return candidates
+
+
 @dataclass
 class QuantityMock:
     values: pandas.Series
@@ -298,41 +309,74 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             where_parts.append("o.pgc IS NULL")
         if pgc_value is not None:
             where_parts.append("o.pgc = %s")
-        if triage_status == "unprocessed":
-            where_parts.append("c.record_id IS NULL")
-        elif triage_status in ("pending", "resolved"):
-            where_parts.append("c.triage_status = %s")
 
         params: list[Any] = []
         if pgc_value is not None:
             params.append(pgc_value)
-        if triage_status in ("pending", "resolved"):
-            params.append(triage_status)
-        params.append(limit)
-        params.append(row_offset)
 
         id_col = sql.Identifier(INTERNAL_ID_COLUMN_NAME)
-        parts: list[sql.Composable] = [
-            sql.SQL(
-                "SELECT r.*, o.pgc, c.triage_status FROM {}.{} AS r "
-                "JOIN layer0.records AS o ON r.{} = o.id "
-                "LEFT JOIN layer0.crossmatch AS c ON o.id = c.record_id"
-            ).format(
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-                id_col,
-            ),
-        ]
+        direction = sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc")
+
+        if triage_status == "unprocessed":
+            where_parts.append("NOT EXISTS (SELECT 1 FROM layer0.crossmatch c WHERE c.record_id = o.id)")
+            params.append(limit)
+            params.append(row_offset)
+            parts: list[sql.Composable] = [
+                sql.SQL(
+                    "SELECT r.*, o.pgc "
+                    "FROM {}.{} AS r "
+                    "JOIN layer0.records AS o ON r.{} = o.id "
+                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s)"
+                ).format(
+                    sql.Identifier(RAWDATA_SCHEMA),
+                    sql.Identifier(table_name),
+                    id_col,
+                ),
+            ]
+            params.insert(0, table_name)
+        elif triage_status in ("pending", "resolved"):
+            where_parts.append("c.triage_status = %s")
+            params.append(triage_status)
+            params.append(limit)
+            params.append(row_offset)
+            parts = [
+                sql.SQL(
+                    "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
+                    "FROM {}.{} AS r "
+                    "JOIN layer0.records AS o ON r.{} = o.id "
+                    "JOIN layer0.crossmatch AS c ON o.id = c.record_id"
+                ).format(
+                    sql.Identifier(RAWDATA_SCHEMA),
+                    sql.Identifier(table_name),
+                    id_col,
+                ),
+            ]
+        else:
+            params.append(limit)
+            params.append(row_offset)
+            parts = [
+                sql.SQL(
+                    "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
+                    "FROM {}.{} AS r "
+                    "JOIN layer0.records AS o ON r.{} = o.id "
+                    "LEFT JOIN layer0.crossmatch AS c ON o.id = c.record_id"
+                ).format(
+                    sql.Identifier(RAWDATA_SCHEMA),
+                    sql.Identifier(table_name),
+                    id_col,
+                ),
+            ]
+
         if where_parts:
             parts.append(sql.SQL(" WHERE "))
             parts.append(sql.SQL(" AND ").join([sql.SQL(w) for w in where_parts]))
         parts.append(sql.SQL(" ORDER BY r.{} ").format(id_col))
-        parts.append(sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc"))
+        parts.append(direction)
         parts.append(sql.SQL(" LIMIT %s OFFSET %s"))
 
         rows = self._storage.query(sql.Composed(parts), params=params)
         id_col_name = INTERNAL_ID_COLUMN_NAME
-        drop_labels = [id_col_name, "pgc", "triage_status"]
+        drop_labels = [id_col_name, "pgc", "triage_status", "crossmatch_metadata"]
         result: list[model.TableRecord] = []
         for row in rows:
             record_id = str(row[id_col_name])
@@ -342,12 +386,14 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 pgc_val = None
             raw_triage = row.get("triage_status")
             triage_val = raw_triage if raw_triage is not None else "unprocessed"
+            candidates = _crossmatch_metadata_to_candidates(row.get("crossmatch_metadata"))
             result.append(
                 model.TableRecord(
                     id=record_id,
                     original_data=original_data,
                     pgc=int(pgc_val) if pgc_val is not None else None,
                     triage_status=triage_val,
+                    crossmatch_candidates=candidates,
                 )
             )
         return result

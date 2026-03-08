@@ -266,8 +266,16 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_returns_records_with_pgc(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved"),
-            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=1002, triage_status="pending"),
+            model.TableRecord(
+                id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved", crossmatch_candidates=[1001]
+            ),
+            model.TableRecord(
+                id="rec2",
+                original_data={"name": "B"},
+                pgc=1002,
+                triage_status="pending",
+                crossmatch_candidates=[],
+            ),
         ]
 
         request = presentation.GetRecordsRequest(table_name="t", page=0, page_size=25)
@@ -278,10 +286,15 @@ class GetRecordsTest(unittest.TestCase):
         self.assertEqual(response.records[0].original_data, {"name": "A"})
         self.assertEqual(response.records[0].pgc, 1001)
         self.assertEqual(response.records[0].crossmatch.triage_status, presentation.CrossmatchTriageStatus.RESOLVED)
+        self.assertEqual(
+            response.records[0].crossmatch.candidates,
+            [presentation.RecordCrossmatchCandidate(pgc=1001)],
+        )
         self.assertEqual(response.records[1].id, "rec2")
         self.assertEqual(response.records[1].original_data, {"name": "B"})
         self.assertEqual(response.records[1].pgc, 1002)
         self.assertEqual(response.records[1].crossmatch.triage_status, presentation.CrossmatchTriageStatus.PENDING)
+        self.assertEqual(response.records[1].crossmatch.candidates, [])
 
     def test_get_records_passes_filters_to_fetch_records(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = []
@@ -320,8 +333,20 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_pgc_none_when_missing_or_nan(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved"),
-            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=None, triage_status="unprocessed"),
+            model.TableRecord(
+                id="rec1",
+                original_data={"name": "A"},
+                pgc=1001,
+                triage_status="resolved",
+                crossmatch_candidates=[],
+            ),
+            model.TableRecord(
+                id="rec2",
+                original_data={"name": "B"},
+                pgc=None,
+                triage_status="unprocessed",
+                crossmatch_candidates=[],
+            ),
         ]
 
         response = self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=0, page_size=25))

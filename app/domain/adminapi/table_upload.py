@@ -245,6 +245,7 @@ class TableUploadManager:
                 pgc=rec.pgc,
                 crossmatch=adminapi.RecordCrossmatchInfo(
                     triage_status=adminapi.CrossmatchTriageStatus(rec.triage_status),
+                    candidates=[adminapi.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
                 ),
             )
             for rec in raw_records

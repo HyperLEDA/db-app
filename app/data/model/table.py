@@ -20,6 +20,7 @@ class TableRecord:
     original_data: dict[str, Any]
     pgc: int | None
     triage_status: str
+    crossmatch_candidates: list[int]
 
 
 @dataclass
