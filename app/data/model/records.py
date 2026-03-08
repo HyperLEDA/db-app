@@ -43,12 +43,6 @@ class RecordCrossmatch:
 
 
 @dataclass
-class RecordWithPGC:
-    pgc: int
-    record: Record
-
-
-@dataclass
 class NatureRecord:
     pgc: int
     record_id: str

@@ -20,7 +20,6 @@ from app.data.model.records import (
     NatureRecord,
     Record,
     RecordCrossmatch,
-    RecordWithPGC,
     RedshiftRecord,
 )
 from app.data.model.redshift import RedshiftCatalogObject
@@ -55,7 +54,6 @@ __all__ = [
     "NatureRecord",
     "RedshiftRecord",
     "Record",
-    "RecordWithPGC",
     "Layer2CatalogObject",
     "Layer2Object",
     "TableRecord",
