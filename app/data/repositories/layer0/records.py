@@ -1,4 +1,3 @@
-import json
 from collections.abc import Sequence
 from typing import Any
 
@@ -163,42 +162,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             stats["cnt"],
             total_original_rows,
         )
-
-    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO layer0.crossmatch (record_id, status, triage_status, metadata) VALUES "
-        params = []
-        values = []
-
-        for record_id, result in data.items():
-            values.append("(%s, %s, %s, %s)")
-
-            status = None
-            triage = enums.RecordTriageStatus.PENDING
-            meta = {}
-
-            if isinstance(result, model.CIResultObjectNew):
-                status = enums.RecordCrossmatchStatus.NEW
-                triage = enums.RecordTriageStatus.RESOLVED
-                meta = {}
-            elif isinstance(result, model.CIResultObjectExisting):
-                status = enums.RecordCrossmatchStatus.EXISTING
-                triage = enums.RecordTriageStatus.RESOLVED
-                meta = {"pgc": result.pgc}
-            else:
-                status = enums.RecordCrossmatchStatus.COLLIDED
-                possible_pgcs = list(result.pgcs)
-                meta = {"possible_matches": possible_pgcs}
-
-            params.extend([record_id, status, triage, json.dumps(meta)])
-
-        query += ",".join(values)
-        query += (
-            " ON CONFLICT (record_id) DO UPDATE SET "
-            "status = EXCLUDED.status, triage_status = EXCLUDED.triage_status, "
-            "metadata = EXCLUDED.metadata"
-        )
-
-        self._storage.exec(query, params=params)
 
     def set_crossmatch_results(self, rows: list[list[Any]]) -> None:
         if not rows:

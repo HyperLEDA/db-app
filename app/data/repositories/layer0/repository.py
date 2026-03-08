@@ -108,9 +108,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
             limit, offset, row_offset, table_name, status, triage_status, record_id
         )
 
-    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        return self.records_repo.add_crossmatch_result(data)
-
     def set_crossmatch_results(self, rows: list[list]) -> None:
         return self.records_repo.set_crossmatch_results(rows)
 
