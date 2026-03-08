@@ -22,18 +22,12 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
         table_id = table_id_row["id"]
 
-        query = "INSERT INTO layer0.records (id, table_id) VALUES "
-        params = []
-        values = []
-
-        for record_id in record_ids:
-            values.append("(%s, %s)")
-            params.extend([record_id, table_id])
-
-        query += ",".join(values)
-        query += " ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
-
-        self._storage.exec(query, params=params)
+        query = (
+            "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
+            "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
+        )
+        rows = [[record_id, table_id] for record_id in record_ids]
+        self._storage.execute_batch(query, rows)
 
     def get_processed_records(
         self,

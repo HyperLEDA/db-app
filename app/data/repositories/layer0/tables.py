@@ -1,6 +1,7 @@
 import datetime
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas
@@ -86,30 +87,27 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             return
 
         fields = list(data.data.columns)
+        field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
+        placeholders = sql.SQL(",").join([sql.Placeholder()] * len(fields))
+        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES ({}) ON CONFLICT DO NOTHING").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(data.table_name),
+            field_identifiers,
+            placeholders,
+        )
+        query_str = query.as_string(self._storage.get_connection())
 
-        values = []
-        params = []
-
+        rows: list[list[Any]] = []
         for row in data.data.to_dict(orient="records"):
+            row_values = []
             for field in fields:
                 value = row[field]
                 if type(value) in (int, float) and np.isnan(value):
                     value = None
+                row_values.append(value)
+            rows.append(row_values)
 
-                params.append(value)
-
-            values.append(sql.SQL("({})").format(sql.SQL(",").join([sql.Placeholder()] * len(fields))))
-
-        field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
-
-        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES {} ON CONFLICT DO NOTHING").format(
-            sql.Identifier(RAWDATA_SCHEMA),
-            sql.Identifier(data.table_name),
-            field_identifiers,
-            sql.SQL(",").join(values),
-        )
-
-        self._storage.exec(query, params=params)
+        self._storage.execute_batch(query_str, rows)
 
     def fetch_table(
         self,
