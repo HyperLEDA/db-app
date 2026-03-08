@@ -284,22 +284,14 @@ class Record(pydantic.BaseModel):
     catalogs: RecordCatalogValues
 
 
-class DescriptionSchema(pydantic.BaseModel):
-    original_data: dict[str, str]
-
-
-class UnitSchema(pydantic.BaseModel):
-    original_data: dict[str, str]
-
-
-class UCDSchema(pydantic.BaseModel):
-    original_data: dict[str, str]
+class OriginalDataSchema(pydantic.BaseModel):
+    description: dict[str, str]
+    ucd: dict[str, str]
+    unit: dict[str, str]
 
 
 class RecordSchema(pydantic.BaseModel):
-    description: DescriptionSchema
-    unit: UnitSchema
-    ucd: UCDSchema
+    original_data: OriginalDataSchema
 
 
 class GetRecordsResponse(pydantic.BaseModel):
