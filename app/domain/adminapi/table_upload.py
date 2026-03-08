@@ -8,12 +8,14 @@ import pandas
 import regex
 import structlog
 from astropy import units
+from astropy import units as u
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
+from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.domain import homogenization
-from app.lib import clients, concurrency
+from app.lib import astronomy, clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
@@ -25,15 +27,72 @@ FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
 logger = structlog.stdlib.get_logger()
 
 
+def _column_meta(columns: list[ColumnSchemaInfo], name: str) -> tuple[str, str]:
+    for c in columns:
+        if c.name == name:
+            return (c.description or "", c.unit or "")
+    return ("", "")
+
+
+def _build_catalog_schema(
+    designation_schema: TableSchemaInfo,
+    icrs_schema: TableSchemaInfo,
+    cz_schema: TableSchemaInfo,
+    nature_schema: TableSchemaInfo,
+    nature_object_types: dict[str, str],
+) -> adminapi.RecordCatalogSchema:
+    design_desc, _ = _column_meta(designation_schema.columns, "design")
+    ra_desc, ra_unit = _column_meta(icrs_schema.columns, "ra")
+    e_ra_desc, e_ra_unit = _column_meta(icrs_schema.columns, "e_ra")
+    dec_desc, dec_unit = _column_meta(icrs_schema.columns, "dec")
+    e_dec_desc, e_dec_unit = _column_meta(icrs_schema.columns, "e_dec")
+    cz_desc, _ = _column_meta(cz_schema.columns, "cz")
+    e_cz_desc, _ = _column_meta(cz_schema.columns, "e_cz")
+    type_name_desc, _ = _column_meta(nature_schema.columns, "type_name")
+    return adminapi.RecordCatalogSchema(
+        designation=adminapi.RecordDesignationCatalogSchema(
+            description=adminapi.RecordDesignationCatalogDescriptionSchema(name=design_desc),
+        ),
+        icrs=adminapi.RecordICRSCatalogSchema(
+            unit=adminapi.RecordICRSCatalogUnitSchema(
+                ra=ra_unit,
+                ra_error=e_ra_unit,
+                dec=dec_unit,
+                dec_error=e_dec_unit,
+            ),
+            description=adminapi.RecordICRSCatalogDescriptionSchema(
+                ra=ra_desc,
+                ra_error=e_ra_desc,
+                dec=dec_desc,
+                dec_error=e_dec_desc,
+            ),
+        ),
+        redshift=adminapi.RecordRedshiftCatalogSchema(
+            description=adminapi.RecordRedshiftCatalogDescriptionSchema(
+                z=cz_desc,
+                z_error=e_cz_desc,
+            ),
+        ),
+        nature=adminapi.RecordNatureCatalogSchema(
+            description=adminapi.RecordNatureCatalogDescriptionSchema(
+                type_name=type_name_desc,
+                types=nature_object_types,
+            ),
+        ),
+    )
+
+
 class TableUploadManager:
     def __init__(
         self,
         common_repo: repositories.CommonRepository,
         layer0_repo: repositories.Layer0Repository,
+        layer1_repo: repositories.Layer1Repository,
         clients: clients.Clients,
     ) -> None:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
+        self.layer1_repo = layer1_repo
         self.clients = clients
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
@@ -233,10 +292,64 @@ class TableUploadManager:
             RAWDATA_SCHEMA,
             r.table_name,
         )
+        designation_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "designation",
+            "data",
+        )
+        icrs_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "icrs",
+            "data",
+        )
+        cz_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "cz",
+            "data",
+        )
+        nature_schema_task = errgr.run(
+            self.common_repo.get_schema,
+            "nature",
+            "data",
+        )
+        nature_object_types_task = errgr.run(
+            self.common_repo.get_nature_object_types,
+        )
         errgr.wait()
 
         raw_records = records_task.result()
         schema_info = schema_task.result()
+        designation_schema = designation_schema_task.result()
+        icrs_schema = icrs_schema_task.result()
+        cz_schema = cz_schema_task.result()
+        nature_schema = nature_schema_task.result()
+        nature_object_types_rows = nature_object_types_task.result()
+        nature_object_types = {row["type_name"]: row["description"] for row in nature_object_types_rows}
+
+        record_ids = [rec.id for rec in raw_records]
+
+        catalog_errgr = concurrency.ErrorGroup()
+        designation_task = catalog_errgr.run(
+            self.layer1_repo.get_designation_records,
+            record_ids,
+        )
+        icrs_task = catalog_errgr.run(
+            self.layer1_repo.get_icrs_records,
+            record_ids,
+        )
+        redshift_task = catalog_errgr.run(
+            self.layer1_repo.get_redshift_records,
+            record_ids,
+        )
+        nature_task = catalog_errgr.run(
+            self.layer1_repo.get_nature_records,
+            record_ids,
+        )
+        catalog_errgr.wait()
+        designation_records = designation_task.result()
+        icrs_records = icrs_task.result()
+        redshift_records = redshift_task.result()
+        nature_records = nature_task.result()
 
         records_list = [
             adminapi.Record(
@@ -247,8 +360,33 @@ class TableUploadManager:
                     triage_status=adminapi.CrossmatchTriageStatus(rec.triage_status),
                     candidates=[adminapi.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
                 ),
+                catalogs=adminapi.RecordCatalogValues(
+                    designation=adminapi.RecordDesignationCatalog(name=dr.design) if dr else None,
+                    icrs=adminapi.RecordICRSCatalog(
+                        ra=ir.ra,
+                        ra_error=ir.e_ra,
+                        dec=ir.dec,
+                        dec_error=ir.e_dec,
+                    )
+                    if ir
+                    else None,
+                    redshift=adminapi.RecordRedshiftCatalog(
+                        z=astronomy.to((rr.cz * u.Unit("km/s")) / astronomy.const("c")),
+                        z_error=astronomy.to((rr.e_cz * u.Unit("km/s")) / astronomy.const("c")),
+                    )
+                    if rr
+                    else None,
+                    nature=adminapi.RecordNatureCatalog(type_name=nr.type_name) if nr else None,
+                ),
             )
-            for rec in raw_records
+            for rec, dr, ir, rr, nr in zip(
+                raw_records,
+                designation_records,
+                icrs_records,
+                redshift_records,
+                nature_records,
+                strict=True,
+            )
         ]
 
         description_data: dict[str, str] = {}
@@ -264,10 +402,20 @@ class TableUploadManager:
             if col.ucd is not None:
                 ucd_data[col.name] = col.ucd
 
+        catalog_schema = _build_catalog_schema(
+            designation_schema,
+            icrs_schema,
+            cz_schema,
+            nature_schema,
+            nature_object_types,
+        )
         record_schema = adminapi.RecordSchema(
-            description=adminapi.DescriptionSchema(original_data=description_data),
-            unit=adminapi.UnitSchema(original_data=unit_data),
-            ucd=adminapi.UCDSchema(original_data=ucd_data),
+            original_data=adminapi.RecordOriginalDataSchema(
+                description=description_data,
+                ucd=ucd_data,
+                unit=unit_data,
+            ),
+            catalogs=catalog_schema,
         )
         return adminapi.GetRecordsResponse(records=records_list, schema=record_schema)
 

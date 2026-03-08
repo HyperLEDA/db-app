@@ -19,7 +19,7 @@ class Actions(adminapi.Actions):
     ):
         self.source_manager = sources.SourceManager(common_repo)
         self.login_manager = login.LoginManager(authenticator)
-        self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, clients)
+        self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, layer1_repo, clients)
         self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer1_repo, layer2_repo)
         self.layer1_writer = layer1_write.Layer1Writer(layer1_repo)
 

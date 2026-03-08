@@ -2,6 +2,7 @@ import os
 import random
 import time
 import uuid
+from collections.abc import Sequence
 
 import pandas
 import requests
@@ -19,41 +20,10 @@ COORD_RADIUS = 10
 COORD_RA_CENTER = random.uniform(COORD_RADIUS, 360 - COORD_RADIUS)
 COORD_DEC_CENTER = random.uniform(-90 + COORD_RADIUS, 90 - COORD_RADIUS)
 
-SMALL_CLUSTER_OBJECTS_NUM = 20
-SMALL_CLUSTER_RADIUS = 20 / 3600
-SMALL_CLUSTER_RA_CENTER = random.uniform(SMALL_CLUSTER_RADIUS, 360 - SMALL_CLUSTER_RADIUS)
-SMALL_CLUSTER_DEC_CENTER = random.uniform(-90 + SMALL_CLUSTER_RADIUS, 90 - SMALL_CLUSTER_RADIUS)
-
-
-@lib.test_logging_decorator
-def create_marking(session: requests.Session, table_name: str):
-    request_data = adminapi.CreateMarkingRequest(
-        table_name=table_name,
-        catalogs=[
-            adminapi.CatalogToMark(
-                name="icrs",
-                parameters={
-                    "ra": adminapi.ParameterToMark(column_name="ra"),
-                    "dec": adminapi.ParameterToMark(column_name="dec"),
-                    "e_ra": adminapi.ParameterToMark(column_name="e_ra"),
-                    "e_dec": adminapi.ParameterToMark(column_name="e_dec"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-            adminapi.CatalogToMark(
-                name="designation",
-                parameters={
-                    "design": adminapi.ParameterToMark(column_name="name"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-        ],
-    )
-
-    response = session.post("/v1/marking", json=request_data.model_dump(mode="json"))
-    response.raise_for_status()
+TABLE2_OBJECTS_NUM = 20
+TABLE2_RADIUS = 20 / 3600
+TABLE2_RA_CENTER = random.uniform(TABLE2_RADIUS, 360 - TABLE2_RADIUS)
+TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 
 
 @lib.test_logging_decorator
@@ -150,77 +120,168 @@ def start_marking(table_name: str):
     )
 
 
-def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
-    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=expected_count * 2)
-    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+def get_records(session: requests.Session, table_name: str, page_size: int) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=page_size)
+    response = session.get(
+        "/v1/records",
+        params=request_data.model_dump(mode="json", exclude_none=True),
+    )
     response.raise_for_status()
-    records = response.json()["data"]["records"]
+    return response.json()["data"]["records"]
+
+
+def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
+    records = get_records(session, table_name, expected_count * 2)
     return [r["id"] for r in records]
 
 
-def get_existing_pgcs(session: requests.Session, min_count: int) -> list[int]:
-    pgcs: list[int] = []
-    page = 0
-    page_size = 100
-    while len(pgcs) < min_count:
-        response = session.get(
-            "/v1/query/simple",
-            params={"name": "NGC", "page_size": page_size, "page": page},
-        )
-        response.raise_for_status()
-        data = response.json()["data"]
-        objects = data.get("objects", [])
-        if not objects:
-            break
-        for obj in objects:
-            if "pgc" in obj:
-                pgcs.append(obj["pgc"])
-        if len(objects) < page_size:
-            break
-        page += 1
-    return pgcs
+@lib.test_logging_decorator
+def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -> None:
+    ids = [r["id"] for r in records]
+    orig = [r["original_data"] for r in records]
+
+    designation_request = adminapi.SaveStructuredDataRequest(
+        catalog="designation",
+        columns=["design"],
+        units={},
+        ids=ids,
+        data=[[o["name"]] for o in orig],
+    )
+    response = session.post("/v1/data/structured", json=designation_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+    ra_deg = 15.0
+    icrs_request = adminapi.SaveStructuredDataRequest(
+        catalog="icrs",
+        columns=["ra", "dec", "e_ra", "e_dec"],
+        units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+        ids=ids,
+        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in orig],
+    )
+    response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
+    response.raise_for_status()
 
 
 @lib.test_logging_decorator
-def set_crossmatch(
+def check_layer1_via_records(session: requests.Session, table_name: str, expected_count: int) -> None:
+    records = get_records(session, table_name, expected_count * 2)
+    assert len(records) == expected_count, f"Expected {expected_count} records, got {len(records)}"
+    for record in records:
+        _assert_record_catalogs(record)
+
+
+@lib.test_logging_decorator
+def set_crossmatch_new(
     session: requests.Session,
     record_ids: list[str],
-    kind: str,
-    pgcs: list[int] | None = None,
+    triage_statuses: Sequence[enums.RecordTriageStatus | None],
 ):
-    if kind == "new":
-        request_data = adminapi.SetCrossmatchResultsRequest(
-            statuses=adminapi.StatusesPayload(
-                new=adminapi.NewStatusPayload(record_ids=record_ids),
+    request_data = adminapi.SetCrossmatchResultsRequest(
+        statuses=adminapi.StatusesPayload(
+            new=adminapi.NewStatusPayload(
+                record_ids=record_ids,
+                triage_statuses=list(triage_statuses),
             ),
-        )
-    elif kind == "existing":
-        if pgcs is None:
-            raise ValueError("pgcs must be provided for kind='existing'")
-        pgcs_cycled = [pgcs[i % len(pgcs)] for i in range(len(record_ids))]
-        request_data = adminapi.SetCrossmatchResultsRequest(
-            statuses=adminapi.StatusesPayload(
-                existing=adminapi.ExistingStatusPayload(
-                    record_ids=record_ids,
-                    pgcs=pgcs_cycled,
-                ),
-            ),
-        )
-    else:
-        assert kind == "collided"
-        request_data = adminapi.SetCrossmatchResultsRequest(
-            statuses=adminapi.StatusesPayload(
-                collided=adminapi.CollidedStatusPayload(
-                    record_ids=record_ids,
-                    possible_matches=[[6775395 + i, 6775395 + i + 1000] for i in range(len(record_ids))],
-                ),
-            ),
-        )
+        ),
+    )
     response = session.post(
         "/v1/records/crossmatch",
         json=request_data.model_dump(mode="json"),
     )
     response.raise_for_status()
+
+
+def get_records_by_triage(
+    session: requests.Session,
+    table_name: str,
+    triage_status: adminapi.CrossmatchTriageStatus,
+    page_size: int,
+) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(
+        table_name=table_name,
+        page=0,
+        page_size=page_size,
+        triage_status=triage_status,
+    )
+    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    return response.json()["data"]["records"]
+
+
+def get_records_by_upload_status(
+    session: requests.Session,
+    table_name: str,
+    upload_status: adminapi.UploadStatus,
+    page_size: int,
+) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(
+        table_name=table_name,
+        page=0,
+        page_size=page_size,
+        upload_status=upload_status,
+    )
+    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    return response.json()["data"]["records"]
+
+
+def _assert_record_catalogs(record: dict) -> None:
+    assert record["catalogs"]["icrs"] is not None
+    assert record["catalogs"]["designation"] is not None
+    icrs = record["catalogs"]["icrs"]
+    assert "ra" in icrs and "dec" in icrs and "ra_error" in icrs and "dec_error" in icrs
+    designation = record["catalogs"]["designation"]
+    assert "name" in designation and designation["name"] is not None
+
+
+@lib.test_logging_decorator
+def check_triage_via_records(
+    session: requests.Session,
+    table_name: str,
+    expected_pending: int,
+    expected_resolved: int,
+):
+    pending_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.PENDING, OBJECTS_NUM * 2
+    )
+    resolved_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.RESOLVED, OBJECTS_NUM * 2
+    )
+    assert len(pending_records) == expected_pending, (
+        f"Expected {expected_pending} pending records, got {len(pending_records)}"
+    )
+    assert len(resolved_records) == expected_resolved, (
+        f"Expected {expected_resolved} resolved records, got {len(resolved_records)}"
+    )
+    for record in pending_records + resolved_records:
+        _assert_record_catalogs(record)
+
+
+@lib.test_logging_decorator
+def check_pgc_after_submit_via_records(
+    session: requests.Session,
+    table_name: str,
+    expected_with_pgc: int,
+    expected_without_pgc: int,
+):
+    records_with_pgc = get_records_by_upload_status(
+        session, table_name, adminapi.UploadStatus.UPLOADED, OBJECTS_NUM * 2
+    )
+    pending_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.PENDING, OBJECTS_NUM * 2
+    )
+    assert len(records_with_pgc) == expected_with_pgc, (
+        f"Expected {expected_with_pgc} records with pgc, got {len(records_with_pgc)}"
+    )
+    assert len(pending_records) == expected_without_pgc, (
+        f"Expected {expected_without_pgc} pending records (no pgc), got {len(pending_records)}"
+    )
+    for record in records_with_pgc:
+        assert record.get("pgc") is not None
+        _assert_record_catalogs(record)
+    for record in pending_records:
+        assert record.get("pgc") is None
+        _assert_record_catalogs(record)
 
 
 @lib.test_logging_decorator
@@ -252,228 +313,6 @@ def check_get_table(session: requests.Session, table_name: str, expected_columns
     assert table_info["rows_num"] == expected_rows
     assert "bibliography" in table_info
     assert "meta" in table_info
-
-
-@lib.test_logging_decorator
-def check_table_info(session: requests.Session, table_name: str):
-    request_data = adminapi.GetTableRequest(table_name=table_name)
-
-    response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    table_info = response.json()["data"]
-    if table_info["statistics"] is None:
-        raise ValueError("Processing status is None")
-
-    assert table_info["statistics"]["new"] == OBJECTS_NUM
-
-
-@lib.test_logging_decorator
-def check_crossmatch_results(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.NEW,
-        page_size=OBJECTS_NUM * 2,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-
-    assert len(crossmatch_data["records"]) == OBJECTS_NUM
-
-    first_record = crossmatch_data["records"][0]
-
-    request_data = adminapi.GetRecordCrossmatchRequest(record_id=first_record["record_id"])
-
-    first_record_response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
-    first_record_response.raise_for_status()
-    first_record_detail = first_record_response.json()["data"]
-    assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
-
-    for record in crossmatch_data["records"]:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
-
-
-@lib.test_logging_decorator
-def overwrite_triage_via_set_crossmatch_and_verify(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.NEW,
-        page_size=2,
-    )
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-    records = response.json()["data"]["records"]
-    assert len(records) >= 1
-    record_id = records[0]["record_id"]
-
-    set_request = adminapi.SetCrossmatchResultsRequest(
-        statuses=adminapi.StatusesPayload(
-            new=adminapi.NewStatusPayload(
-                record_ids=[record_id],
-                triage_statuses=[enums.RecordTriageStatus.PENDING],
-            ),
-        ),
-    )
-    response = session.post(
-        "/v1/records/crossmatch",
-        json=set_request.model_dump(mode="json"),
-    )
-    response.raise_for_status()
-
-    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
-    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
-    response.raise_for_status()
-    detail = response.json()["data"]
-    assert detail["crossmatch"]["triage_status"] == enums.RecordTriageStatus.PENDING
-
-
-@lib.test_logging_decorator
-def overwrite_designation_via_structured_and_verify(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.NEW,
-        page_size=2,
-    )
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-    records = response.json()["data"]["records"]
-    assert len(records) >= 1
-    record_id = records[0]["record_id"]
-
-    overwrite_value = "OVERWRITTEN_STRUCTURED_TEST"
-    structured_request = adminapi.SaveStructuredDataRequest(
-        catalog="designation",
-        columns=["design"],
-        units={},
-        ids=[record_id],
-        data=[[overwrite_value]],
-    )
-    response = session.post("/v1/data/structured", json=structured_request.model_dump(mode="json"))
-    response.raise_for_status()
-
-    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
-    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
-    response.raise_for_status()
-    detail = response.json()["data"]
-    assert detail["crossmatch"]["catalogs"]["designation"]["name"] == overwrite_value
-
-
-@lib.test_logging_decorator
-def overwrite_icrs_via_structured_and_verify(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.NEW,
-        page_size=3,
-    )
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-    records = response.json()["data"]["records"]
-    assert len(records) >= 2
-    record_id = records[1]["record_id"]
-
-    ra, dec, e_ra, e_dec = 100.0, 20.0, 0.5, 0.5
-    structured_request = adminapi.SaveStructuredDataRequest(
-        catalog="icrs",
-        columns=["ra", "dec", "e_ra", "e_dec"],
-        units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
-        ids=[record_id],
-        data=[[ra, dec, e_ra, e_dec]],
-    )
-    response = session.post("/v1/data/structured", json=structured_request.model_dump(mode="json"))
-    response.raise_for_status()
-
-    detail_request = adminapi.GetRecordCrossmatchRequest(record_id=record_id)
-    response = session.get("/v1/record/crossmatch", params=detail_request.model_dump(mode="json"))
-    response.raise_for_status()
-    detail = response.json()["data"]
-    eq = detail["crossmatch"]["catalogs"]["coordinates"]["equatorial"]
-    assert abs(eq["ra"] - ra) < 1e-6 and abs(eq["dec"] - dec) < 1e-6
-    assert abs(eq["e_ra"] - e_ra) < 1e-6 and abs(eq["e_dec"] - e_dec) < 1e-6
-
-
-@lib.test_logging_decorator
-def check_crossmatch_existing_results(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.EXISTING,
-        page_size=OBJECTS_NUM * 2,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-    existing_records = crossmatch_data["records"]
-
-    expected_min = int(OBJECTS_NUM * 0.8)
-    assert len(existing_records) >= expected_min, (
-        f"Expected at least {expected_min} existing records, got {len(existing_records)}"
-    )
-
-    for record in existing_records:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-        assert record["metadata"]["pgc"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
-
-
-@lib.test_logging_decorator
-def check_crossmatch_collided_results(session: requests.Session, table_name: str, expected_min_collided: int):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.COLLIDED,
-        page_size=SMALL_CLUSTER_OBJECTS_NUM * 2,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-    collided_records = crossmatch_data["records"]
-
-    assert len(collided_records) >= expected_min_collided, (
-        f"Expected at least {expected_min_collided} collided records, got {len(collided_records)}"
-    )
-
-    for record in collided_records:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
 
 
 @lib.test_logging_decorator
@@ -543,17 +382,17 @@ def get_dataapi_session() -> lib.TestSession:
 
 
 def run():
-    adminapi = get_adminapi_session()
+    adminapi_session = get_adminapi_session()
     dataapi = get_dataapi_session()
 
     test_seed = 42
 
-    code = create_bibliography(adminapi)
+    code = create_bibliography(adminapi_session)
 
-    # ---- Create table with all `new` objects and upload it to layer 2 ----
-    table_name = create_table(adminapi, code)
+    # ---- Table 1: all new rows, mark as resolved via POST /crossmatch, submit ----
+    table_name = create_table(adminapi_session, code)
     upload_data(
-        adminapi,
+        adminapi_session,
         table_name,
         objects_num=OBJECTS_NUM,
         ra_center=COORD_RA_CENTER,
@@ -562,19 +401,19 @@ def run():
         seed=test_seed,
     )
 
-    check_table_list(adminapi, table_name)
-    check_get_table(adminapi, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
+    check_table_list(adminapi_session, table_name)
+    check_get_table(adminapi_session, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
-    create_marking(adminapi, table_name)
-    start_marking(table_name)
-    record_ids = get_record_ids(adminapi, table_name, OBJECTS_NUM)
-    set_crossmatch(adminapi, record_ids, "new")
+    records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
+    fill_layer1_via_structured(adminapi_session, records)
+    check_layer1_via_records(adminapi_session, table_name, OBJECTS_NUM)
 
-    check_table_info(adminapi, table_name)
-    check_crossmatch_results(adminapi, table_name)
-    overwrite_triage_via_set_crossmatch_and_verify(adminapi, table_name)
-    overwrite_designation_via_structured_and_verify(adminapi, table_name)
-    overwrite_icrs_via_structured_and_verify(adminapi, table_name)
+    record_ids = [r["id"] for r in records]
+    set_crossmatch_new(
+        adminapi_session,
+        record_ids,
+        triage_statuses=[enums.RecordTriageStatus.RESOLVED] * len(record_ids),
+    )
 
     submit_crossmatch(table_name)
     layer2_import()
@@ -584,53 +423,37 @@ def run():
     check_dataapi_query(dataapi, "NGC")
     check_dataapi_query(dataapi, " ", page_size=10, page=0)
 
-    # ---- Create table with all `existing` objects and upload it to layer 2 ----
-    table_name_2 = create_table(adminapi, code)
+    # ---- Table 2: smaller cluster, some pending/resolved; check via /records; submit; check pgc ----
+    table_name_2 = create_table(adminapi_session, code)
     upload_data(
-        adminapi,
+        adminapi_session,
         table_name_2,
-        objects_num=OBJECTS_NUM,
-        ra_center=COORD_RA_CENTER,
-        dec_center=COORD_DEC_CENTER,
-        radius=COORD_RADIUS,
-        seed=test_seed,
-    )
-    upload_data(
-        adminapi,
-        table_name_2,
-        objects_num=SMALL_CLUSTER_OBJECTS_NUM,
-        ra_center=SMALL_CLUSTER_RA_CENTER,
-        dec_center=SMALL_CLUSTER_DEC_CENTER,
-        radius=SMALL_CLUSTER_RADIUS,
-        seed=random.randint(0, 1000000),
+        objects_num=TABLE2_OBJECTS_NUM,
+        ra_center=TABLE2_RA_CENTER,
+        dec_center=TABLE2_DEC_CENTER,
+        radius=TABLE2_RADIUS,
+        seed=test_seed + 1,
     )
 
-    create_marking(adminapi, table_name_2)
-    start_marking(table_name_2)
-    record_ids_2 = get_record_ids(adminapi, table_name_2, OBJECTS_NUM + SMALL_CLUSTER_OBJECTS_NUM)
-    existing_pgcs = get_existing_pgcs(dataapi, len(record_ids_2))
-    assert len(existing_pgcs) >= 1, "query API must return at least one PGC to use as existing"
-    set_crossmatch(adminapi, record_ids_2, "existing", pgcs=existing_pgcs)
+    records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
+    fill_layer1_via_structured(adminapi_session, records_2)
+    check_layer1_via_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
 
-    check_crossmatch_existing_results(adminapi, table_name_2)
+    record_ids_2 = [r["id"] for r in records_2]
+
+    n_pending = TABLE2_OBJECTS_NUM // 2
+    n_resolved = TABLE2_OBJECTS_NUM - n_pending
+    set_crossmatch_new(
+        adminapi_session,
+        record_ids_2,
+        triage_statuses=[enums.RecordTriageStatus.PENDING] * n_pending
+        + [enums.RecordTriageStatus.RESOLVED] * n_resolved,
+    )
+
+    check_triage_via_records(adminapi_session, table_name_2, expected_pending=n_pending, expected_resolved=n_resolved)
+
     submit_crossmatch(table_name_2)
-    layer2_import()
 
-    # ---- Create table with `collided` objects ----
-    table_name_3 = create_table(adminapi, code)
-    upload_data(
-        adminapi,
-        table_name_3,
-        objects_num=SMALL_CLUSTER_OBJECTS_NUM // 2,
-        ra_center=SMALL_CLUSTER_RA_CENTER,
-        dec_center=SMALL_CLUSTER_DEC_CENTER,
-        radius=SMALL_CLUSTER_RADIUS,
-        seed=random.randint(0, 1000000),
+    check_pgc_after_submit_via_records(
+        adminapi_session, table_name_2, expected_with_pgc=n_resolved, expected_without_pgc=n_pending
     )
-
-    create_marking(adminapi, table_name_3)
-    start_marking(table_name_3)
-    record_ids_3 = get_record_ids(adminapi, table_name_3, SMALL_CLUSTER_OBJECTS_NUM // 2)
-    set_crossmatch(adminapi, record_ids_3, "collided")
-
-    check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)

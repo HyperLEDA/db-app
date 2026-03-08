@@ -67,7 +67,7 @@ class Layer2ImportICRSTask(interface.Task):
             batch_size=self.batch_size,
         ):
             df = pd.DataFrame(
-                [(r.pgc, r.ra, r.e_ra, r.dec, r.e_dec) for r in records],
+                [(r.pgc, r.data.ra, r.data.e_ra, r.data.dec, r.data.e_dec) for r in records],
                 columns=["pgc"] + ICRS_COLUMNS,
             )
             for col in ICRS_COLUMNS:

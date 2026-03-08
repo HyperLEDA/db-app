@@ -22,6 +22,7 @@ class RawDataTableTest(unittest.TestCase):
         cls.manager = domain.TableUploadManager(
             repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),
             repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
+            repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
             clients.get_mock_clients(),
         )
 

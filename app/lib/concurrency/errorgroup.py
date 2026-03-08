@@ -52,8 +52,7 @@ class ErrorGroup:
                 if self._error is not None:
                     break
         finally:
-            self._executor.shutdown(wait=False)
-
+            self._executor.shutdown(wait=True)
             for future in self._futures:
                 if not future.done():
                     future.cancel()
