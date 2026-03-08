@@ -104,7 +104,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             field_identifiers,
             placeholders,
         )
-        query_str = query.as_string(self._storage.get_connection())
+        query_str = self._storage.query_str(query)
 
         rows: list[list[Any]] = []
         for row in data.data.to_dict(orient="records"):
@@ -420,12 +420,11 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
 
-        with self.with_tx():
-            self._storage.exec(
-                "SELECT meta.setparams(%s, %s, %s, %s::json)",
-                params=[RAWDATA_SCHEMA, table_name, column_description.name, json.dumps(column_params)],
-            )
-            self._storage.exec(modification_query, params=[table_id])
+        self._storage.exec(
+            "SELECT meta.setparams(%s, %s, %s, %s::json)",
+            params=[RAWDATA_SCHEMA, table_name, column_description.name, json.dumps(column_params)],
+        )
+        self._storage.exec(modification_query, params=[table_id])
 
     def search_tables(
         self,
