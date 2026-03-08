@@ -1319,6 +1319,22 @@
         ],
         "title": "DatatypeEnum"
       },
+      "DescriptionSchema": {
+        "properties": {
+          "original_data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Original Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_data"
+        ],
+        "title": "DescriptionSchema"
+      },
       "Designation": {
         "properties": {
           "name": {
@@ -1496,11 +1512,15 @@
             },
             "type": "array",
             "title": "Records"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/RecordSchema"
           }
         },
         "type": "object",
         "required": [
-          "records"
+          "records",
+          "schema"
         ],
         "title": "GetRecordsResponse"
       },
@@ -1939,6 +1959,26 @@
         ],
         "title": "RecordCrossmatchStatus"
       },
+      "RecordSchema": {
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/DescriptionSchema"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UnitSchema"
+          },
+          "ucd": {
+            "$ref": "#/components/schemas/UCDSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "unit",
+          "ucd"
+        ],
+        "title": "RecordSchema"
+      },
       "RecordTriageStatus": {
         "type": "string",
         "enum": [
@@ -2114,6 +2154,38 @@
           "modification_dt"
         ],
         "title": "TableListItem"
+      },
+      "UCDSchema": {
+        "properties": {
+          "original_data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Original Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_data"
+        ],
+        "title": "UCDSchema"
+      },
+      "UnitSchema": {
+        "properties": {
+          "original_data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Original Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_data"
+        ],
+        "title": "UnitSchema"
       },
       "UnitsSchema": {
         "properties": {
