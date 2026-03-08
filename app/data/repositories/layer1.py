@@ -194,6 +194,50 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         by_id = {r["record_id"]: model.DesignationRecord(design=r["design"]) for r in rows}
         return [by_id.get(rid) for rid in record_ids]
 
+    def get_icrs_records(self, record_ids: list[str]) -> list[model.ICRSRecord | None]:
+        if not record_ids:
+            return []
+        rows = self._storage.query(
+            "SELECT record_id, ra, e_ra, dec, e_dec FROM icrs.data WHERE record_id = ANY(%s)",
+            params=[record_ids],
+        )
+        by_id = {
+            r["record_id"]: model.ICRSRecord(
+                ra=float(r["ra"]),
+                e_ra=float(r["e_ra"]),
+                dec=float(r["dec"]),
+                e_dec=float(r["e_dec"]),
+            )
+            for r in rows
+        }
+        return [by_id.get(rid) for rid in record_ids]
+
+    def get_redshift_records(self, record_ids: list[str]) -> list[model.RedshiftRecord | None]:
+        if not record_ids:
+            return []
+        rows = self._storage.query(
+            "SELECT record_id, cz, e_cz FROM cz.data WHERE record_id = ANY(%s)",
+            params=[record_ids],
+        )
+        by_id = {
+            r["record_id"]: model.RedshiftRecord(
+                cz=float(r["cz"]),
+                e_cz=float(r["e_cz"]),
+            )
+            for r in rows
+        }
+        return [by_id.get(rid) for rid in record_ids]
+
+    def get_nature_records(self, record_ids: list[str]) -> list[model.NatureRecord | None]:
+        if not record_ids:
+            return []
+        rows = self._storage.query(
+            "SELECT record_id, type_name FROM nature.data WHERE record_id = ANY(%s)",
+            params=[record_ids],
+        )
+        by_id = {r["record_id"]: model.NatureRecord(type_name=r["type_name"]) for r in rows}
+        return [by_id.get(rid) for rid in record_ids]
+
     def query_records(
         self,
         catalogs: list[model.RawCatalog],

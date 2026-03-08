@@ -8,12 +8,13 @@ import pandas
 import regex
 import structlog
 from astropy import units
+from astropy import units as u
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.domain import homogenization
-from app.lib import clients, concurrency
+from app.lib import astronomy, clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
@@ -241,7 +242,29 @@ class TableUploadManager:
         schema_info = schema_task.result()
 
         record_ids = [rec.id for rec in raw_records]
-        designation_records = self.layer1_repo.get_designation_records(record_ids)
+
+        catalog_errgr = concurrency.ErrorGroup()
+        designation_task = catalog_errgr.run(
+            self.layer1_repo.get_designation_records,
+            record_ids,
+        )
+        icrs_task = catalog_errgr.run(
+            self.layer1_repo.get_icrs_records,
+            record_ids,
+        )
+        redshift_task = catalog_errgr.run(
+            self.layer1_repo.get_redshift_records,
+            record_ids,
+        )
+        nature_task = catalog_errgr.run(
+            self.layer1_repo.get_nature_records,
+            record_ids,
+        )
+        catalog_errgr.wait()
+        designation_records = designation_task.result()
+        icrs_records = icrs_task.result()
+        redshift_records = redshift_task.result()
+        nature_records = nature_task.result()
 
         records_list = [
             adminapi.Record(
@@ -253,10 +276,32 @@ class TableUploadManager:
                     candidates=[adminapi.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
                 ),
                 catalogs=adminapi.RecordCatalogValues(
-                    designation=adminapi.RecordDesignationCatalog(name=dr.design) if dr else None
+                    designation=adminapi.RecordDesignationCatalog(name=dr.design) if dr else None,
+                    icrs=adminapi.RecordICRSCatalog(
+                        ra=ir.ra,
+                        ra_error=ir.e_ra,
+                        dec=ir.dec,
+                        dec_error=ir.e_dec,
+                    )
+                    if ir
+                    else None,
+                    redshift=adminapi.RecordRedshiftCatalog(
+                        z=astronomy.to((rr.cz * u.Unit("km/s")) / astronomy.const("c")),
+                        z_error=astronomy.to((rr.e_cz * u.Unit("km/s")) / astronomy.const("c")),
+                    )
+                    if rr
+                    else None,
+                    nature=adminapi.RecordNatureCatalog(type_name=nr.type_name) if nr else None,
                 ),
             )
-            for rec, dr in zip(raw_records, designation_records, strict=True)
+            for rec, dr, ir, rr, nr in zip(
+                raw_records,
+                designation_records,
+                icrs_records,
+                redshift_records,
+                nature_records,
+                strict=True,
+            )
         ]
 
         description_data: dict[str, str] = {}

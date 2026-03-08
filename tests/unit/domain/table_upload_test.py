@@ -262,6 +262,9 @@ class GetRecordsTest(unittest.TestCase):
     def setUp(self) -> None:
         layer1_repo = mock.MagicMock()
         layer1_repo.get_designation_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        layer1_repo.get_icrs_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        layer1_repo.get_redshift_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        layer1_repo.get_nature_records.side_effect = lambda record_ids: [None] * len(record_ids)
         self.manager = domain.TableUploadManager(
             common_repo=mock.MagicMock(),
             layer0_repo=mock.MagicMock(),

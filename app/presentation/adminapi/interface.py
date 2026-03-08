@@ -271,9 +271,9 @@ class RecordNatureCatalog(pydantic.BaseModel):
 
 class RecordCatalogValues(pydantic.BaseModel):
     designation: RecordDesignationCatalog | None
-    # icrs: RecordICRSCatalog | None
-    # redshift: RecordRedshiftCatalog | None
-    # nature: RecordNatureCatalog | None
+    icrs: RecordICRSCatalog | None
+    redshift: RecordRedshiftCatalog | None
+    nature: RecordNatureCatalog | None
 
 
 class Record(pydantic.BaseModel):
