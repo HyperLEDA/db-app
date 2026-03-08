@@ -1344,22 +1344,6 @@
         ],
         "title": "DatatypeEnum"
       },
-      "DescriptionSchema": {
-        "properties": {
-          "original_data": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Original Data"
-          }
-        },
-        "type": "object",
-        "required": [
-          "original_data"
-        ],
-        "title": "DescriptionSchema"
-      },
       "Designation": {
         "properties": {
           "name": {
@@ -1907,6 +1891,9 @@
           },
           "crossmatch": {
             "$ref": "#/components/schemas/RecordCrossmatchInfo"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/RecordCatalogValues"
           }
         },
         "type": "object",
@@ -1914,9 +1901,86 @@
           "id",
           "original_data",
           "pgc",
-          "crossmatch"
+          "crossmatch",
+          "catalogs"
         ],
         "title": "Record"
+      },
+      "RecordCatalogSchema": {
+        "properties": {
+          "designation": {
+            "$ref": "#/components/schemas/RecordDesignationCatalogSchema"
+          },
+          "icrs": {
+            "$ref": "#/components/schemas/RecordICRSCatalogSchema"
+          },
+          "redshift": {
+            "$ref": "#/components/schemas/RecordRedshiftCatalogSchema"
+          },
+          "nature": {
+            "$ref": "#/components/schemas/RecordNatureCatalogSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "designation",
+          "icrs",
+          "redshift",
+          "nature"
+        ],
+        "title": "RecordCatalogSchema"
+      },
+      "RecordCatalogValues": {
+        "properties": {
+          "designation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordDesignationCatalog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icrs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordICRSCatalog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redshift": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordRedshiftCatalog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordNatureCatalog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "designation",
+          "icrs",
+          "redshift",
+          "nature"
+        ],
+        "title": "RecordCatalogValues"
       },
       "RecordCrossmatch": {
         "properties": {
@@ -2021,23 +2085,284 @@
         ],
         "title": "RecordCrossmatchStatus"
       },
-      "RecordSchema": {
+      "RecordDesignationCatalog": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RecordDesignationCatalog"
+      },
+      "RecordDesignationCatalogDescriptionSchema": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RecordDesignationCatalogDescriptionSchema"
+      },
+      "RecordDesignationCatalogSchema": {
         "properties": {
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "$ref": "#/components/schemas/RecordDesignationCatalogDescriptionSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "title": "RecordDesignationCatalogSchema"
+      },
+      "RecordICRSCatalog": {
+        "properties": {
+          "ra": {
+            "type": "number",
+            "title": "Ra"
           },
+          "ra_error": {
+            "type": "number",
+            "title": "Ra Error"
+          },
+          "dec": {
+            "type": "number",
+            "title": "Dec"
+          },
+          "dec_error": {
+            "type": "number",
+            "title": "Dec Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ra",
+          "ra_error",
+          "dec",
+          "dec_error"
+        ],
+        "title": "RecordICRSCatalog"
+      },
+      "RecordICRSCatalogDescriptionSchema": {
+        "properties": {
+          "ra": {
+            "type": "string",
+            "title": "Ra"
+          },
+          "ra_error": {
+            "type": "string",
+            "title": "Ra Error"
+          },
+          "dec": {
+            "type": "string",
+            "title": "Dec"
+          },
+          "dec_error": {
+            "type": "string",
+            "title": "Dec Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ra",
+          "ra_error",
+          "dec",
+          "dec_error"
+        ],
+        "title": "RecordICRSCatalogDescriptionSchema"
+      },
+      "RecordICRSCatalogSchema": {
+        "properties": {
           "unit": {
-            "$ref": "#/components/schemas/UnitSchema"
+            "$ref": "#/components/schemas/RecordICRSCatalogUnitSchema"
+          },
+          "description": {
+            "$ref": "#/components/schemas/RecordICRSCatalogDescriptionSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unit",
+          "description"
+        ],
+        "title": "RecordICRSCatalogSchema"
+      },
+      "RecordICRSCatalogUnitSchema": {
+        "properties": {
+          "ra": {
+            "type": "string",
+            "title": "Ra"
+          },
+          "ra_error": {
+            "type": "string",
+            "title": "Ra Error"
+          },
+          "dec": {
+            "type": "string",
+            "title": "Dec"
+          },
+          "dec_error": {
+            "type": "string",
+            "title": "Dec Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ra",
+          "ra_error",
+          "dec",
+          "dec_error"
+        ],
+        "title": "RecordICRSCatalogUnitSchema"
+      },
+      "RecordNatureCatalog": {
+        "properties": {
+          "type_name": {
+            "type": "string",
+            "title": "Type Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type_name"
+        ],
+        "title": "RecordNatureCatalog"
+      },
+      "RecordNatureCatalogDescriptionSchema": {
+        "properties": {
+          "type_name": {
+            "type": "string",
+            "title": "Type Name"
+          },
+          "types": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Types",
+            "description": "Mapping of type keys to their descriptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type_name",
+          "types"
+        ],
+        "title": "RecordNatureCatalogDescriptionSchema"
+      },
+      "RecordNatureCatalogSchema": {
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/RecordNatureCatalogDescriptionSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "title": "RecordNatureCatalogSchema"
+      },
+      "RecordOriginalDataSchema": {
+        "properties": {
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Description"
           },
           "ucd": {
-            "$ref": "#/components/schemas/UCDSchema"
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Ucd"
+          },
+          "unit": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Unit"
           }
         },
         "type": "object",
         "required": [
           "description",
-          "unit",
-          "ucd"
+          "ucd",
+          "unit"
+        ],
+        "title": "RecordOriginalDataSchema"
+      },
+      "RecordRedshiftCatalog": {
+        "properties": {
+          "z": {
+            "type": "number",
+            "title": "Z"
+          },
+          "z_error": {
+            "type": "number",
+            "title": "Z Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "z",
+          "z_error"
+        ],
+        "title": "RecordRedshiftCatalog"
+      },
+      "RecordRedshiftCatalogDescriptionSchema": {
+        "properties": {
+          "z": {
+            "type": "string",
+            "title": "Z"
+          },
+          "z_error": {
+            "type": "string",
+            "title": "Z Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "z",
+          "z_error"
+        ],
+        "title": "RecordRedshiftCatalogDescriptionSchema"
+      },
+      "RecordRedshiftCatalogSchema": {
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/RecordRedshiftCatalogDescriptionSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "title": "RecordRedshiftCatalogSchema"
+      },
+      "RecordSchema": {
+        "properties": {
+          "original_data": {
+            "$ref": "#/components/schemas/RecordOriginalDataSchema"
+          },
+          "catalogs": {
+            "$ref": "#/components/schemas/RecordCatalogSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_data",
+          "catalogs"
         ],
         "title": "RecordSchema"
       },
@@ -2216,38 +2541,6 @@
           "modification_dt"
         ],
         "title": "TableListItem"
-      },
-      "UCDSchema": {
-        "properties": {
-          "original_data": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Original Data"
-          }
-        },
-        "type": "object",
-        "required": [
-          "original_data"
-        ],
-        "title": "UCDSchema"
-      },
-      "UnitSchema": {
-        "properties": {
-          "original_data": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Original Data"
-          }
-        },
-        "type": "object",
-        "required": [
-          "original_data"
-        ],
-        "title": "UnitSchema"
       },
       "UnitsSchema": {
         "properties": {
