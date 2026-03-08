@@ -236,15 +236,9 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 pgcs_to_insert[record_id] = pgc
 
         if pgcs_to_insert:
-            update_query = "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES "
-            params = []
-            values = []
-
-            for record_id, pgc_id in pgcs_to_insert.items():
-                values.append("(%s, %s)")
-                params.extend([record_id, pgc_id])
-
-            update_query += ",".join(values)
-            update_query += ") AS v(record_id, pgc) WHERE layer0.records.id = v.record_id"
-
-            self._storage.exec(update_query, params=params)
+            update_query = (
+                "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                "WHERE layer0.records.id = v.record_id"
+            )
+            rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+            self._storage.execute_batch(update_query, rows)
