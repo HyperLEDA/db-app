@@ -11,6 +11,7 @@ from astropy import units
 from astroquery import nasa_ads as ads
 
 from app.data import model, repositories
+from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.domain import homogenization
 from app.lib import clients, concurrency
 from app.lib.storage import enums, mapping
@@ -215,7 +216,9 @@ class TableUploadManager:
         elif r.upload_status == adminapi.UploadStatus.PENDING:
             has_pgc = False
 
-        raw_records = self.layer0_repo.fetch_records(
+        errgr = concurrency.ErrorGroup()
+        records_task = errgr.run(
+            self.layer0_repo.fetch_records,
             table_name=r.table_name,
             limit=r.page_size,
             row_offset=r.page * r.page_size,
@@ -223,6 +226,16 @@ class TableUploadManager:
             has_pgc=has_pgc,
             pgc_value=r.pgc,
         )
+        schema_task = errgr.run(
+            self.common_repo.get_schema,
+            RAWDATA_SCHEMA,
+            r.table_name,
+        )
+        errgr.wait()
+
+        raw_records = records_task.result()
+        schema_info = schema_task.result()
+
         records_list = [
             adminapi.Record(
                 id=rec.id,
@@ -231,7 +244,26 @@ class TableUploadManager:
             )
             for rec in raw_records
         ]
-        return adminapi.GetRecordsResponse(records=records_list)
+
+        description_data: dict[str, str] = {}
+        unit_data: dict[str, str] = {}
+        ucd_data: dict[str, str] = {}
+        for col in schema_info.columns:
+            if col.name in FORBIDDEN_COLUMN_NAMES:
+                continue
+            if col.description is not None:
+                description_data[col.name] = col.description
+            if col.unit is not None:
+                unit_data[col.name] = col.unit
+            if col.ucd is not None:
+                ucd_data[col.name] = col.ucd
+
+        record_schema = adminapi.RecordSchema(
+            description=adminapi.DescriptionSchema(original_data=description_data),
+            unit=adminapi.UnitSchema(original_data=unit_data),
+            ucd=adminapi.UCDSchema(original_data=ucd_data),
+        )
+        return adminapi.GetRecordsResponse(records=records_list, schema=record_schema)
 
 
 def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:

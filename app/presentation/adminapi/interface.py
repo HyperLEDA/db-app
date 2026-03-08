@@ -232,8 +232,27 @@ class Record(pydantic.BaseModel):
     pgc: int | None
 
 
+class DescriptionSchema(pydantic.BaseModel):
+    original_data: dict[str, str]
+
+
+class UnitSchema(pydantic.BaseModel):
+    original_data: dict[str, str]
+
+
+class UCDSchema(pydantic.BaseModel):
+    original_data: dict[str, str]
+
+
+class RecordSchema(pydantic.BaseModel):
+    description: DescriptionSchema
+    unit: UnitSchema
+    ucd: UCDSchema
+
+
 class GetRecordsResponse(pydantic.BaseModel):
     records: list[Record]
+    schema_: RecordSchema = pydantic.Field(..., alias="schema")
 
 
 class GetRecordsCrossmatchRequest(pydantic.BaseModel):
