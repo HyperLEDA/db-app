@@ -27,37 +27,6 @@ TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 
 
 @lib.test_logging_decorator
-def create_marking(session: requests.Session, table_name: str):
-    request_data = adminapi.CreateMarkingRequest(
-        table_name=table_name,
-        catalogs=[
-            adminapi.CatalogToMark(
-                name="icrs",
-                parameters={
-                    "ra": adminapi.ParameterToMark(column_name="ra"),
-                    "dec": adminapi.ParameterToMark(column_name="dec"),
-                    "e_ra": adminapi.ParameterToMark(column_name="e_ra"),
-                    "e_dec": adminapi.ParameterToMark(column_name="e_dec"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-            adminapi.CatalogToMark(
-                name="designation",
-                parameters={
-                    "design": adminapi.ParameterToMark(column_name="name"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-        ],
-    )
-
-    response = session.post("/v1/marking", json=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-
-@lib.test_logging_decorator
 def create_bibliography(session: requests.Session) -> str:
     request_data = adminapi.CreateSourceRequest(
         authors=["Doe, J."],
@@ -151,12 +120,54 @@ def start_marking(table_name: str):
     )
 
 
-def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
-    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=expected_count * 2)
-    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+def get_records(session: requests.Session, table_name: str, page_size: int) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=page_size)
+    response = session.get(
+        "/v1/records",
+        params=request_data.model_dump(mode="json", exclude_none=True),
+    )
     response.raise_for_status()
-    records = response.json()["data"]["records"]
+    return response.json()["data"]["records"]
+
+
+def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
+    records = get_records(session, table_name, expected_count * 2)
     return [r["id"] for r in records]
+
+
+@lib.test_logging_decorator
+def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -> None:
+    ids = [r["id"] for r in records]
+    orig = [r["original_data"] for r in records]
+
+    designation_request = adminapi.SaveStructuredDataRequest(
+        catalog="designation",
+        columns=["design"],
+        units={},
+        ids=ids,
+        data=[[o["name"]] for o in orig],
+    )
+    response = session.post("/v1/data/structured", json=designation_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+    ra_deg = 15.0
+    icrs_request = adminapi.SaveStructuredDataRequest(
+        catalog="icrs",
+        columns=["ra", "dec", "e_ra", "e_dec"],
+        units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+        ids=ids,
+        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in orig],
+    )
+    response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def check_layer1_via_records(session: requests.Session, table_name: str, expected_count: int) -> None:
+    records = get_records(session, table_name, expected_count * 2)
+    assert len(records) == expected_count, f"Expected {expected_count} records, got {len(records)}"
+    for record in records:
+        _assert_record_catalogs(record)
 
 
 @lib.test_logging_decorator
@@ -393,9 +404,11 @@ def run():
     check_table_list(adminapi_session, table_name)
     check_get_table(adminapi_session, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
-    create_marking(adminapi_session, table_name)
-    start_marking(table_name)
-    record_ids = get_record_ids(adminapi_session, table_name, OBJECTS_NUM)
+    records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
+    fill_layer1_via_structured(adminapi_session, records)
+    check_layer1_via_records(adminapi_session, table_name, OBJECTS_NUM)
+
+    record_ids = [r["id"] for r in records]
     set_crossmatch_new(
         adminapi_session,
         record_ids,
@@ -410,7 +423,7 @@ def run():
     check_dataapi_query(dataapi, "NGC")
     check_dataapi_query(dataapi, " ", page_size=10, page=0)
 
-    # ---- Table 2: smaller cluster, some pending, some resolved; check via /records; submit; check pgc via /records ----
+    # ---- Table 2: smaller cluster, some pending/resolved; check via /records; submit; check pgc ----
     table_name_2 = create_table(adminapi_session, code)
     upload_data(
         adminapi_session,
@@ -422,9 +435,11 @@ def run():
         seed=test_seed + 1,
     )
 
-    create_marking(adminapi_session, table_name_2)
-    start_marking(table_name_2)
-    record_ids_2 = get_record_ids(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
+    records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
+    fill_layer1_via_structured(adminapi_session, records_2)
+    check_layer1_via_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
+
+    record_ids_2 = [r["id"] for r in records_2]
 
     n_pending = TABLE2_OBJECTS_NUM // 2
     n_resolved = TABLE2_OBJECTS_NUM - n_pending
