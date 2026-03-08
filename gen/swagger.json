@@ -312,6 +312,38 @@
               "default": 25,
               "title": "Page Size"
             }
+          },
+          {
+            "name": "upload_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UploadStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Upload Status"
+            }
+          },
+          {
+            "name": "pgc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pgc"
+            }
           }
         ],
         "responses": {
@@ -1816,12 +1848,24 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Original Data"
+          },
+          "pgc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pgc"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "original_data"
+          "original_data",
+          "pgc"
         ],
         "title": "Record"
       },
@@ -2100,6 +2144,14 @@
           "velocity"
         ],
         "title": "UnitsSchema"
+      },
+      "UploadStatus": {
+        "type": "string",
+        "enum": [
+          "uploaded",
+          "pending"
+        ],
+        "title": "UploadStatus"
       },
       "ValidationError": {
         "properties": {
