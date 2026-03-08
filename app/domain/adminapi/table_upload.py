@@ -30,10 +30,12 @@ class TableUploadManager:
         self,
         common_repo: repositories.CommonRepository,
         layer0_repo: repositories.Layer0Repository,
+        layer1_repo: repositories.Layer1Repository,
         clients: clients.Clients,
     ) -> None:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
+        self.layer1_repo = layer1_repo
         self.clients = clients
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
@@ -238,6 +240,9 @@ class TableUploadManager:
         raw_records = records_task.result()
         schema_info = schema_task.result()
 
+        record_ids = [rec.id for rec in raw_records]
+        designation_records = self.layer1_repo.get_designation_records(record_ids)
+
         records_list = [
             adminapi.Record(
                 id=rec.id,
@@ -247,8 +252,11 @@ class TableUploadManager:
                     triage_status=adminapi.CrossmatchTriageStatus(rec.triage_status),
                     candidates=[adminapi.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
                 ),
+                catalogs=adminapi.RecordCatalogValues(
+                    designation=adminapi.RecordDesignationCatalog(name=dr.design) if dr else None
+                ),
             )
-            for rec in raw_records
+            for rec, dr in zip(raw_records, designation_records, strict=True)
         ]
 
         description_data: dict[str, str] = {}

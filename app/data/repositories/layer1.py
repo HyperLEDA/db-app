@@ -184,6 +184,16 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             for r in rows
         ]
 
+    def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
+        if not record_ids:
+            return []
+        rows = self._storage.query(
+            "SELECT record_id, design FROM designation.data WHERE record_id = ANY(%s)",
+            params=[record_ids],
+        )
+        by_id = {r["record_id"]: model.DesignationRecord(design=r["design"]) for r in rows}
+        return [by_id.get(rid) for rid in record_ids]
+
     def query_records(
         self,
         catalogs: list[model.RawCatalog],
