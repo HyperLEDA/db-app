@@ -318,7 +318,7 @@ class TableUploadManager:
                 ucd_data[col.name] = col.ucd
 
         record_schema = adminapi.RecordSchema(
-            original_data=adminapi.OriginalDataSchema(
+            original_data=adminapi.RecordOriginalDataSchema(
                 description=description_data,
                 ucd=ucd_data,
                 unit=unit_data,
