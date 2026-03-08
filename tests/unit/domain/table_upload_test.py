@@ -266,8 +266,8 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_returns_records_with_pgc(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.RawTableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
-            model.RawTableRecord(id="rec2", original_data={"name": "B"}, pgc=1002),
+            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
+            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=1002),
         ]
 
         request = presentation.GetRecordsRequest(table_name="t", page=0, page_size=25)
@@ -312,8 +312,8 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_pgc_none_when_missing_or_nan(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.RawTableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
-            model.RawTableRecord(id="rec2", original_data={"name": "B"}, pgc=None),
+            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
+            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=None),
         ]
 
         response = self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=0, page_size=25))

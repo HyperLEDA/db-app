@@ -289,7 +289,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         order_direction: str = "asc",
         has_pgc: bool | None = None,
         pgc_value: int | None = None,
-    ) -> list[model.RawTableRecord]:
+    ) -> list[model.TableRecord]:
         where_parts: list[str] = []
         if has_pgc is True:
             where_parts.append("o.pgc IS NOT NULL")
@@ -322,7 +322,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         rows = self._storage.query(sql.Composed(parts), params=params)
         id_col_name = INTERNAL_ID_COLUMN_NAME
         drop_labels = [id_col_name, "pgc"]
-        result: list[model.RawTableRecord] = []
+        result: list[model.TableRecord] = []
         for row in rows:
             record_id = str(row[id_col_name])
             original_data = _row_to_serializable_dict(row, drop=drop_labels)
@@ -330,7 +330,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             if pgc_val is not None and (pandas.isna(pgc_val) or (isinstance(pgc_val, float) and np.isnan(pgc_val))):
                 pgc_val = None
             result.append(
-                model.RawTableRecord(
+                model.TableRecord(
                     id=record_id,
                     original_data=original_data,
                     pgc=int(pgc_val) if pgc_val is not None else None,

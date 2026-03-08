@@ -15,7 +15,7 @@ class Layer0RawData:
 
 
 @dataclass
-class RawTableRecord:
+class TableRecord:
     id: str
     original_data: dict[str, Any]
     pgc: int | None

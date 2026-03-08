@@ -65,7 +65,7 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         order_direction: str = "asc",
         has_pgc: bool | None = None,
         pgc_value: int | None = None,
-    ) -> list[model.RawTableRecord]:
+    ) -> list[model.TableRecord]:
         return self.table_repo.fetch_records(table_name, limit, row_offset, order_direction, has_pgc, pgc_value)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
