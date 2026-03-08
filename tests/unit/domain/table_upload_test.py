@@ -266,8 +266,8 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_returns_records_with_pgc(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
-            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=1002),
+            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved"),
+            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=1002, triage_status="pending"),
         ]
 
         request = presentation.GetRecordsRequest(table_name="t", page=0, page_size=25)
@@ -277,9 +277,11 @@ class GetRecordsTest(unittest.TestCase):
         self.assertEqual(response.records[0].id, "rec1")
         self.assertEqual(response.records[0].original_data, {"name": "A"})
         self.assertEqual(response.records[0].pgc, 1001)
+        self.assertEqual(response.records[0].crossmatch.triage_status, presentation.CrossmatchTriageStatus.RESOLVED)
         self.assertEqual(response.records[1].id, "rec2")
         self.assertEqual(response.records[1].original_data, {"name": "B"})
         self.assertEqual(response.records[1].pgc, 1002)
+        self.assertEqual(response.records[1].crossmatch.triage_status, presentation.CrossmatchTriageStatus.PENDING)
 
     def test_get_records_passes_filters_to_fetch_records(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = []
@@ -302,6 +304,12 @@ class GetRecordsTest(unittest.TestCase):
         self.assertIsNone(call_kw["has_pgc"])
         self.assertEqual(call_kw["pgc_value"], 42)
 
+        self.manager.get_records(
+            presentation.GetRecordsRequest(table_name="t", triage_status=presentation.CrossmatchTriageStatus.PENDING)
+        )
+        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        self.assertEqual(call_kw["triage_status"], "pending")
+
     def test_get_records_pagination(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = []
 
@@ -312,8 +320,8 @@ class GetRecordsTest(unittest.TestCase):
 
     def test_get_records_pgc_none_when_missing_or_nan(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
-            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
-            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=None),
+            model.TableRecord(id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved"),
+            model.TableRecord(id="rec2", original_data={"name": "B"}, pgc=None, triage_status="unprocessed"),
         ]
 
         response = self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=0, page_size=25))

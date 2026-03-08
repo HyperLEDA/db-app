@@ -216,6 +216,7 @@ class TableUploadManager:
         elif r.upload_status == adminapi.UploadStatus.PENDING:
             has_pgc = False
 
+        triage_filter = r.triage_status.value if r.triage_status is not None else None
         errgr = concurrency.ErrorGroup()
         records_task = errgr.run(
             self.layer0_repo.fetch_records,
@@ -225,6 +226,7 @@ class TableUploadManager:
             order_direction="asc",
             has_pgc=has_pgc,
             pgc_value=r.pgc,
+            triage_status=triage_filter,
         )
         schema_task = errgr.run(
             self.common_repo.get_schema,
@@ -241,6 +243,9 @@ class TableUploadManager:
                 id=rec.id,
                 original_data=rec.original_data,
                 pgc=rec.pgc,
+                crossmatch=adminapi.RecordCrossmatchInfo(
+                    triage_status=adminapi.CrossmatchTriageStatus(rec.triage_status),
+                ),
             )
             for rec in raw_records
         ]

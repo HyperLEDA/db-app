@@ -212,12 +212,19 @@ class UploadStatus(enum.Enum):
     PENDING = "pending"
 
 
+class CrossmatchTriageStatus(enum.Enum):
+    UNPROCESSED = "unprocessed"
+    PENDING = "pending"
+    RESOLVED = "resolved"
+
+
 class GetRecordsRequest(pydantic.BaseModel):
     table_name: str
     page: int = 0
     page_size: int = 25
     upload_status: UploadStatus | None = None
     pgc: int | None = None
+    triage_status: CrossmatchTriageStatus | None = None
 
     @pydantic.model_validator(mode="after")
     def check_pending_and_pgc_exclusive(self) -> "GetRecordsRequest":
@@ -226,10 +233,15 @@ class GetRecordsRequest(pydantic.BaseModel):
         return self
 
 
+class RecordCrossmatchInfo(pydantic.BaseModel):
+    triage_status: CrossmatchTriageStatus
+
+
 class Record(pydantic.BaseModel):
     id: str
     original_data: dict[str, Any]
     pgc: int | None
+    crossmatch: RecordCrossmatchInfo
 
 
 class DescriptionSchema(pydantic.BaseModel):
