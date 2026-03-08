@@ -33,6 +33,7 @@ from app.data.model.table import (
     Layer0TableListItem,
     Layer0TableMeta,
     Modifier,
+    RawTableRecord,
     TableStatistics,
 )
 
@@ -57,6 +58,7 @@ __all__ = [
     "RecordWithPGC",
     "Layer2CatalogObject",
     "Layer2Object",
+    "RawTableRecord",
     "RawCatalog",
     "CatalogObject",
     "CatalogObjectEncoder",

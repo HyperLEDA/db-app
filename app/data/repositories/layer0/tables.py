@@ -1,6 +1,7 @@
 import datetime
 import json
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 import numpy as np
@@ -16,6 +17,20 @@ from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
+
+def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for k, v in row.items():
+        if k in drop:
+            continue
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            out[k] = None
+        elif isinstance(v, (datetime.datetime, date)):
+            out[k] = v.isoformat()
+        else:
+            out[k] = v
+    return out
 
 
 @dataclass
@@ -188,9 +203,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         limit: int | None = None,
         record_id: str | None = None,
         row_offset: int | None = None,
-        has_pgc: bool | None = None,
-        pgc_value: int | None = None,
-        include_pgc: bool = False,
     ) -> model.Layer0RawData:
         """
         :param table_name: Name of the raw table
@@ -201,9 +213,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param record_id: retrieves only the row with the given record_id. Other filters are still applied.
         :param limit: allows to retrieve no more than `limit` rows.
         :param row_offset: skip this many rows (use with limit for page-based pagination).
-        :param has_pgc: when True only rows with pgc set, when False only without, when None no filter.
-        :param pgc_value: when set, only rows with this pgc in layer0.records.
-        :param include_pgc: when True, join layer0.records and add pgc column to the result.
         :return: Layer0RawData
         """
 
@@ -212,16 +221,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         if table_name is None:
             raise ValueError("either table_name or record_id must be provided")
-
-        if include_pgc or has_pgc is not None or pgc_value is not None:
-            return self._fetch_raw_data_with_records_join(
-                table_name=table_name,
-                limit=limit,
-                row_offset=row_offset,
-                order_direction=order_direction,
-                has_pgc=has_pgc,
-                pgc_value=pgc_value,
-            )
 
         if columns:
             columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
@@ -282,15 +281,15 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         rows = self._storage.query(sql.Composed(parts), params=params)
         return model.Layer0RawData(table_name, pandas.DataFrame(rows))
 
-    def _fetch_raw_data_with_records_join(
+    def fetch_records(
         self,
         table_name: str,
-        limit: int | None,
-        row_offset: int | None,
-        order_direction: str,
-        has_pgc: bool | None,
-        pgc_value: int | None,
-    ) -> model.Layer0RawData:
+        limit: int,
+        row_offset: int,
+        order_direction: str = "asc",
+        has_pgc: bool | None = None,
+        pgc_value: int | None = None,
+    ) -> list[model.RawTableRecord]:
         where_parts: list[str] = []
         if has_pgc is True:
             where_parts.append("o.pgc IS NOT NULL")
@@ -302,6 +301,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         params: list[Any] = []
         if pgc_value is not None:
             params.append(pgc_value)
+        params.append(limit)
+        params.append(row_offset)
 
         id_col = sql.Identifier(INTERNAL_ID_COLUMN_NAME)
         parts: list[sql.Composable] = [
@@ -316,15 +317,26 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             parts.append(sql.SQL(" AND ").join([sql.SQL(w) for w in where_parts]))
         parts.append(sql.SQL(" ORDER BY r.{} ").format(id_col))
         parts.append(sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc"))
-        if limit is not None:
-            parts.append(sql.SQL(" LIMIT %s"))
-            params.append(limit)
-        if row_offset is not None:
-            parts.append(sql.SQL(" OFFSET %s"))
-            params.append(row_offset)
+        parts.append(sql.SQL(" LIMIT %s OFFSET %s"))
 
         rows = self._storage.query(sql.Composed(parts), params=params)
-        return model.Layer0RawData(table_name, pandas.DataFrame(rows))
+        id_col_name = INTERNAL_ID_COLUMN_NAME
+        drop_labels = [id_col_name, "pgc"]
+        result: list[model.RawTableRecord] = []
+        for row in rows:
+            record_id = str(row[id_col_name])
+            original_data = _row_to_serializable_dict(row, drop=drop_labels)
+            pgc_val = row.get("pgc")
+            if pgc_val is not None and (pandas.isna(pgc_val) or (isinstance(pgc_val, float) and np.isnan(pgc_val))):
+                pgc_val = None
+            result.append(
+                model.RawTableRecord(
+                    id=record_id,
+                    original_data=original_data,
+                    pgc=int(pgc_val) if pgc_val is not None else None,
+                )
+            )
+        return result
 
     def _resolve_table_name(self, record_id: str) -> str | None:
         rows = self._storage.query(

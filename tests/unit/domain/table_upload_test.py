@@ -2,7 +2,6 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
-import pandas
 from astropy import units
 from parameterized import param, parameterized
 
@@ -266,14 +265,10 @@ class GetRecordsTest(unittest.TestCase):
         )
 
     def test_get_records_returns_records_with_pgc(self) -> None:
-        raw_df = pandas.DataFrame(
-            {
-                repositories.INTERNAL_ID_COLUMN_NAME: ["rec1", "rec2"],
-                "name": ["A", "B"],
-                "pgc": [1001, 1002],
-            }
-        )
-        self.manager.layer0_repo.fetch_raw_data.return_value = model.Layer0RawData(table_name="t", data=raw_df)
+        self.manager.layer0_repo.fetch_records.return_value = [
+            model.RawTableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
+            model.RawTableRecord(id="rec2", original_data={"name": "B"}, pgc=1002),
+        ]
 
         request = presentation.GetRecordsRequest(table_name="t", page=0, page_size=25)
         response = self.manager.get_records(request)
@@ -286,49 +281,40 @@ class GetRecordsTest(unittest.TestCase):
         self.assertEqual(response.records[1].original_data, {"name": "B"})
         self.assertEqual(response.records[1].pgc, 1002)
 
-    def test_get_records_passes_filters_to_fetch_raw_data(self) -> None:
-        self.manager.layer0_repo.fetch_raw_data.return_value = model.Layer0RawData(
-            table_name="t", data=pandas.DataFrame({repositories.INTERNAL_ID_COLUMN_NAME: [], "pgc": []})
-        )
+    def test_get_records_passes_filters_to_fetch_records(self) -> None:
+        self.manager.layer0_repo.fetch_records.return_value = []
 
         self.manager.get_records(
             presentation.GetRecordsRequest(table_name="t", upload_status=presentation.UploadStatus.UPLOADED)
         )
-        call_kw = self.manager.layer0_repo.fetch_raw_data.call_args[1]
+        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], True)
         self.assertIsNone(call_kw["pgc_value"])
-        self.assertTrue(call_kw["include_pgc"])
 
         self.manager.get_records(
             presentation.GetRecordsRequest(table_name="t", upload_status=presentation.UploadStatus.PENDING)
         )
-        call_kw = self.manager.layer0_repo.fetch_raw_data.call_args[1]
+        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], False)
 
         self.manager.get_records(presentation.GetRecordsRequest(table_name="t", pgc=42))
-        call_kw = self.manager.layer0_repo.fetch_raw_data.call_args[1]
+        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIsNone(call_kw["has_pgc"])
         self.assertEqual(call_kw["pgc_value"], 42)
 
     def test_get_records_pagination(self) -> None:
-        self.manager.layer0_repo.fetch_raw_data.return_value = model.Layer0RawData(
-            table_name="t", data=pandas.DataFrame({repositories.INTERNAL_ID_COLUMN_NAME: [], "pgc": []})
-        )
+        self.manager.layer0_repo.fetch_records.return_value = []
 
         self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=2, page_size=10))
-        call_kw = self.manager.layer0_repo.fetch_raw_data.call_args[1]
+        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertEqual(call_kw["row_offset"], 20)
         self.assertEqual(call_kw["limit"], 10)
 
     def test_get_records_pgc_none_when_missing_or_nan(self) -> None:
-        raw_df = pandas.DataFrame(
-            {
-                repositories.INTERNAL_ID_COLUMN_NAME: ["rec1", "rec2"],
-                "name": ["A", "B"],
-                "pgc": [1001, pandas.NA],
-            }
-        )
-        self.manager.layer0_repo.fetch_raw_data.return_value = model.Layer0RawData(table_name="t", data=raw_df)
+        self.manager.layer0_repo.fetch_records.return_value = [
+            model.RawTableRecord(id="rec1", original_data={"name": "A"}, pgc=1001),
+            model.RawTableRecord(id="rec2", original_data={"name": "B"}, pgc=None),
+        ]
 
         response = self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=0, page_size=25))
 
