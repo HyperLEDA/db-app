@@ -1,6 +1,8 @@
 import datetime
 import json
 from dataclasses import dataclass
+from datetime import date
+from typing import Any
 
 import numpy as np
 import pandas
@@ -15,6 +17,20 @@ from app.lib.storage import postgres
 from app.lib.web.errors import DatabaseError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
+
+def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for k, v in row.items():
+        if k in drop:
+            continue
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            out[k] = None
+        elif isinstance(v, (datetime.datetime, date)):
+            out[k] = v.isoformat()
+        else:
+            out[k] = v
+    return out
 
 
 @dataclass
@@ -75,41 +91,32 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         return model.Layer0CreationResponse(table_id, True)
 
     def insert_raw_data(self, data: model.Layer0RawData) -> None:
-        """
-        This method puts everything in parameters for prepared statement. This should not be a big
-        issue but one would be better off using this function in batches since prepared statements make
-        this quite cheap (excluding network slow down, though).
-        """
-
         if len(data.data) == 0:
             log.warn("trying to insert 0 rows into the table", table_name=data.table_name)
             return
 
         fields = list(data.data.columns)
+        field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
+        placeholders = sql.SQL(",").join([sql.Placeholder()] * len(fields))
+        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES ({}) ON CONFLICT DO NOTHING").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(data.table_name),
+            field_identifiers,
+            placeholders,
+        )
+        query_str = query.as_string(self._storage.get_connection())
 
-        values = []
-        params = []
-
+        rows: list[list[Any]] = []
         for row in data.data.to_dict(orient="records"):
+            row_values = []
             for field in fields:
                 value = row[field]
                 if type(value) in (int, float) and np.isnan(value):
                     value = None
+                row_values.append(value)
+            rows.append(row_values)
 
-                params.append(value)
-
-            values.append(sql.SQL("({})").format(sql.SQL(",").join([sql.Placeholder()] * len(fields))))
-
-        field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
-
-        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES {} ON CONFLICT DO NOTHING").format(
-            sql.Identifier(RAWDATA_SCHEMA),
-            sql.Identifier(data.table_name),
-            field_identifiers,
-            sql.SQL(",").join(values),
-        )
-
-        self._storage.exec(query, params=params)
+        self._storage.execute_batch(query_str, rows)
 
     def fetch_table(
         self,
@@ -273,6 +280,63 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         rows = self._storage.query(sql.Composed(parts), params=params)
         return model.Layer0RawData(table_name, pandas.DataFrame(rows))
+
+    def fetch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_offset: int,
+        order_direction: str = "asc",
+        has_pgc: bool | None = None,
+        pgc_value: int | None = None,
+    ) -> list[model.TableRecord]:
+        where_parts: list[str] = []
+        if has_pgc is True:
+            where_parts.append("o.pgc IS NOT NULL")
+        elif has_pgc is False:
+            where_parts.append("o.pgc IS NULL")
+        if pgc_value is not None:
+            where_parts.append("o.pgc = %s")
+
+        params: list[Any] = []
+        if pgc_value is not None:
+            params.append(pgc_value)
+        params.append(limit)
+        params.append(row_offset)
+
+        id_col = sql.Identifier(INTERNAL_ID_COLUMN_NAME)
+        parts: list[sql.Composable] = [
+            sql.SQL("SELECT r.*, o.pgc FROM {}.{} AS r JOIN layer0.records AS o ON r.{} = o.id").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+                id_col,
+            ),
+        ]
+        if where_parts:
+            parts.append(sql.SQL(" WHERE "))
+            parts.append(sql.SQL(" AND ").join([sql.SQL(w) for w in where_parts]))
+        parts.append(sql.SQL(" ORDER BY r.{} ").format(id_col))
+        parts.append(sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc"))
+        parts.append(sql.SQL(" LIMIT %s OFFSET %s"))
+
+        rows = self._storage.query(sql.Composed(parts), params=params)
+        id_col_name = INTERNAL_ID_COLUMN_NAME
+        drop_labels = [id_col_name, "pgc"]
+        result: list[model.TableRecord] = []
+        for row in rows:
+            record_id = str(row[id_col_name])
+            original_data = _row_to_serializable_dict(row, drop=drop_labels)
+            pgc_val = row.get("pgc")
+            if pgc_val is not None and (pandas.isna(pgc_val) or (isinstance(pgc_val, float) and np.isnan(pgc_val))):
+                pgc_val = None
+            result.append(
+                model.TableRecord(
+                    id=record_id,
+                    original_data=original_data,
+                    pgc=int(pgc_val) if pgc_val is not None else None,
+                )
+            )
+        return result
 
     def _resolve_table_name(self, record_id: str) -> str | None:
         rows = self._storage.query(

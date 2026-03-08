@@ -2,10 +2,8 @@ import hashlib
 import json
 import uuid
 from collections.abc import Callable
-from datetime import date, datetime
 
 import astropy.io.votable.ucd as ucd
-import numpy as np
 import pandas
 import regex
 import structlog
@@ -211,32 +209,29 @@ class TableUploadManager:
         )
 
     def get_records(self, r: adminapi.GetRecordsRequest) -> adminapi.GetRecordsResponse:
-        raw = self.layer0_repo.fetch_raw_data(
+        has_pgc = None
+        if r.upload_status == adminapi.UploadStatus.UPLOADED:
+            has_pgc = True
+        elif r.upload_status == adminapi.UploadStatus.PENDING:
+            has_pgc = False
+
+        raw_records = self.layer0_repo.fetch_records(
             table_name=r.table_name,
             limit=r.page_size,
             row_offset=r.page * r.page_size,
-            order_column=repositories.INTERNAL_ID_COLUMN_NAME,
             order_direction="asc",
+            has_pgc=has_pgc,
+            pgc_value=r.pgc,
         )
-        records_list: list[adminapi.Record] = []
-        id_col = repositories.INTERNAL_ID_COLUMN_NAME
-        for _, row in raw.data.iterrows():
-            record_id = str(row[id_col])
-            original_data = _row_to_serializable_dict(row.drop(labels=[id_col]))
-            records_list.append(adminapi.Record(id=record_id, original_data=original_data))
+        records_list = [
+            adminapi.Record(
+                id=rec.id,
+                original_data=rec.original_data,
+                pgc=rec.pgc,
+            )
+            for rec in raw_records
+        ]
         return adminapi.GetRecordsResponse(records=records_list)
-
-
-def _row_to_serializable_dict(row: pandas.Series) -> dict:
-    out: dict = {}
-    for k, v in row.items():
-        if pandas.isna(v) or (isinstance(v, float) and np.isnan(v)):
-            out[k] = None
-        elif isinstance(v, (datetime, date)):
-            out[k] = v.isoformat()
-        else:
-            out[k] = v
-    return out
 
 
 def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:

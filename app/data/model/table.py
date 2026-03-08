@@ -15,6 +15,13 @@ class Layer0RawData:
 
 
 @dataclass
+class TableRecord:
+    id: str
+    original_data: dict[str, Any]
+    pgc: int | None
+
+
+@dataclass
 class ColumnDescription:
     name: str
     data_type: str

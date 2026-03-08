@@ -207,15 +207,29 @@ class CreateMarkingResponse(pydantic.BaseModel):
     pass
 
 
+class UploadStatus(enum.Enum):
+    UPLOADED = "uploaded"
+    PENDING = "pending"
+
+
 class GetRecordsRequest(pydantic.BaseModel):
     table_name: str
     page: int = 0
     page_size: int = 25
+    upload_status: UploadStatus | None = None
+    pgc: int | None = None
+
+    @pydantic.model_validator(mode="after")
+    def check_pending_and_pgc_exclusive(self) -> "GetRecordsRequest":
+        if self.upload_status == UploadStatus.PENDING and self.pgc is not None:
+            raise ValueError("upload_status pending and pgc filter cannot be specified at the same time")
+        return self
 
 
 class Record(pydantic.BaseModel):
     id: str
     original_data: dict[str, Any]
+    pgc: int | None
 
 
 class GetRecordsResponse(pydantic.BaseModel):

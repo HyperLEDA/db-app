@@ -47,8 +47,26 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         row_offset: int | None = None,
     ) -> model.Layer0RawData:
         return self.table_repo.fetch_raw_data(
-            table_name, offset, columns, order_column, order_direction, limit, record_id, row_offset
+            table_name,
+            offset,
+            columns,
+            order_column,
+            order_direction,
+            limit,
+            record_id,
+            row_offset,
         )
+
+    def fetch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_offset: int,
+        order_direction: str = "asc",
+        has_pgc: bool | None = None,
+        pgc_value: int | None = None,
+    ) -> list[model.TableRecord]:
+        return self.table_repo.fetch_records(table_name, limit, row_offset, order_direction, has_pgc, pgc_value)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata(table_name)

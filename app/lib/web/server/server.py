@@ -29,7 +29,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     description: str = ""
 
 
-async def validation_exception_handler(request, exc):
+async def validation_exception_handler(_request, exc):
     err = errors.RuleValidationError(str(exc))
 
     return responses.JSONResponse(err.dict(), status_code=err.status())
