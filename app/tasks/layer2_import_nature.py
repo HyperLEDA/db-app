@@ -57,7 +57,7 @@ class Layer2ImportNatureTask(interface.Task):
             for pgc, pgc_records in records_by_pgc.items():
                 type_counts: dict[str, int] = {}
                 for rec in pgc_records:
-                    type_counts[rec.type_name] = type_counts.get(rec.type_name, 0) + 1
+                    type_counts[rec.data.type_name] = type_counts.get(rec.data.type_name, 0) + 1
                 max_type = max(type_counts, key=lambda k: type_counts[k])
                 type_distribution[max_type] = type_distribution.get(max_type, 0) + 1
                 pgcs.append(pgc)

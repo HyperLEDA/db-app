@@ -249,11 +249,39 @@ class RecordCrossmatchInfo(pydantic.BaseModel):
     candidates: list[RecordCrossmatchCandidate]
 
 
+class RecordDesignationCatalog(pydantic.BaseModel):
+    name: str
+
+
+class RecordICRSCatalog(pydantic.BaseModel):
+    ra: float
+    ra_error: float
+    dec: float
+    dec_error: float
+
+
+class RecordRedshiftCatalog(pydantic.BaseModel):
+    z: float
+    z_error: float
+
+
+class RecordNatureCatalog(pydantic.BaseModel):
+    type_name: str
+
+
+class RecordCatalogValues(pydantic.BaseModel):
+    designation: RecordDesignationCatalog | None
+    icrs: RecordICRSCatalog | None
+    redshift: RecordRedshiftCatalog | None
+    nature: RecordNatureCatalog | None
+
+
 class Record(pydantic.BaseModel):
     id: str
     original_data: dict[str, Any]
     pgc: int | None
     crossmatch: RecordCrossmatchInfo
+    catalogs: RecordCatalogValues
 
 
 class DescriptionSchema(pydantic.BaseModel):

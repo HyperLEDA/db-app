@@ -67,7 +67,7 @@ class Layer2ImportRedshiftTask(interface.Task):
             batch_size=self.batch_size,
         ):
             df = pd.DataFrame(
-                [(r.pgc, r.cz, r.e_cz) for r in records],
+                [(r.pgc, r.data.cz, r.data.e_cz) for r in records],
                 columns=["pgc"] + REDSHIFT_COLUMNS,
             )
             for col in REDSHIFT_COLUMNS:

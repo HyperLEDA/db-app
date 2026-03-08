@@ -76,7 +76,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                     object_count=len(table_items),
                 )
 
-    def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.NatureRecord]:
+    def get_new_nature_records(
+        self, dt: datetime.datetime, limit: int, offset: int
+    ) -> list[model.StructuredData[model.NatureRecord]]:
         query = """SELECT o.pgc, l1.record_id, l1.type_name
         FROM nature.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
@@ -90,9 +92,18 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
-        return [model.NatureRecord(pgc=int(r["pgc"]), record_id=r["record_id"], type_name=r["type_name"]) for r in rows]
+        return [
+            model.StructuredData(
+                pgc=int(r["pgc"]),
+                record_id=r["record_id"],
+                data=model.NatureRecord(type_name=r["type_name"]),
+            )
+            for r in rows
+        ]
 
-    def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.ICRSRecord]:
+    def get_new_icrs_records(
+        self, dt: datetime.datetime, limit: int, offset: int
+    ) -> list[model.StructuredData[model.ICRSRecord]]:
         query = """SELECT o.pgc, l1.record_id, l1.ra, l1.e_ra, l1.dec, l1.e_dec
         FROM icrs.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
@@ -107,18 +118,22 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
         return [
-            model.ICRSRecord(
+            model.StructuredData(
                 pgc=int(r["pgc"]),
                 record_id=r["record_id"],
-                ra=float(r["ra"]),
-                e_ra=float(r["e_ra"]),
-                dec=float(r["dec"]),
-                e_dec=float(r["e_dec"]),
+                data=model.ICRSRecord(
+                    ra=float(r["ra"]),
+                    e_ra=float(r["e_ra"]),
+                    dec=float(r["dec"]),
+                    e_dec=float(r["e_dec"]),
+                ),
             )
             for r in rows
         ]
 
-    def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> list[model.RedshiftRecord]:
+    def get_new_redshift_records(
+        self, dt: datetime.datetime, limit: int, offset: int
+    ) -> list[model.StructuredData[model.RedshiftRecord]]:
         query = """SELECT o.pgc, l1.record_id, l1.cz, l1.e_cz
         FROM cz.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
@@ -133,18 +148,20 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
         return [
-            model.RedshiftRecord(
+            model.StructuredData(
                 pgc=int(r["pgc"]),
                 record_id=r["record_id"],
-                cz=float(r["cz"]),
-                e_cz=float(r["e_cz"]),
+                data=model.RedshiftRecord(
+                    cz=float(r["cz"]),
+                    e_cz=float(r["e_cz"]),
+                ),
             )
             for r in rows
         ]
 
     def get_new_designation_records(
         self, dt: datetime.datetime, limit: int, offset: int
-    ) -> list[model.DesignationRecord]:
+    ) -> list[model.StructuredData[model.DesignationRecord]]:
         query = """SELECT o.pgc, l1.record_id, l1.design
         FROM designation.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
@@ -159,10 +176,10 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
         return [
-            model.DesignationRecord(
+            model.StructuredData(
                 pgc=int(r["pgc"]),
                 record_id=r["record_id"],
-                design=r["design"],
+                data=model.DesignationRecord(design=r["design"]),
             )
             for r in rows
         ]

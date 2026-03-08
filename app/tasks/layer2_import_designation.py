@@ -56,7 +56,7 @@ class Layer2ImportDesignationTask(interface.Task):
             pgcs: list[int] = []
             data: list[list[str]] = []
             for pgc, pgc_records in records_by_pgc.items():
-                catalog_objects = [model.DesignationCatalogObject(design=rec.design) for rec in pgc_records]
+                catalog_objects = [model.DesignationCatalogObject(design=rec.data.design) for rec in pgc_records]
                 aggregated = model.DesignationCatalogObject.aggregate(catalog_objects)
                 pgcs.append(pgc)
                 data.append([aggregated.designation])

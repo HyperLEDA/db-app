@@ -25,16 +25,25 @@ class Record:
 
 
 @dataclass
-class NatureRecord:
+class StructuredData[T]:
     pgc: int
     record_id: str
-    type_name: str
+    data: T
+
+
+# Record classes below represent how data for each particular record is written
+# and read directly to and from the tables. Most likely they will correspond
+# to actual columns for tables. However, this may no necessarily be true for
+# catalogs which have more than one line per record.
+
+
+@dataclass
+class DesignationRecord:
+    design: str
 
 
 @dataclass
 class ICRSRecord:
-    pgc: int
-    record_id: str
     ra: float
     e_ra: float
     dec: float
@@ -43,14 +52,10 @@ class ICRSRecord:
 
 @dataclass
 class RedshiftRecord:
-    pgc: int
-    record_id: str
     cz: float
     e_cz: float
 
 
 @dataclass
-class DesignationRecord:
-    pgc: int
-    record_id: str
-    design: str
+class NatureRecord:
+    type_name: str

@@ -89,8 +89,8 @@ class Layer1RepositoryTest(unittest.TestCase):
 
         self.assertEqual(len(result), 2)
         by_pgc = {r.pgc: r for r in result}
-        self.assertEqual(by_pgc[1001], model.NatureRecord(1001, "rec1", "G"))
-        self.assertEqual(by_pgc[1002], model.NatureRecord(1002, "rec2", "QSO"))
+        self.assertEqual(by_pgc[1001], model.StructuredData(1001, "rec1", model.NatureRecord("G")))
+        self.assertEqual(by_pgc[1002], model.StructuredData(1002, "rec2", model.NatureRecord("QSO")))
 
     def test_get_new_nature_records_returns_empty_when_dt_is_in_future(self) -> None:
         self._insert_nature_data(
@@ -122,12 +122,12 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.assertEqual(len(first_batch), 1)
         self.assertEqual(first_batch[0].pgc, 10)
         self.assertEqual(first_batch[0].record_id, "r1")
-        self.assertEqual(first_batch[0].type_name, "G")
+        self.assertEqual(first_batch[0].data.type_name, "G")
 
         second_batch = self.layer1_repo.get_new_nature_records(dt, limit=1, offset=10)
         self.assertEqual(len(second_batch), 1)
         self.assertEqual(second_batch[0].pgc, 20)
-        self.assertEqual(second_batch[0].type_name, "*")
+        self.assertEqual(second_batch[0].data.type_name, "*")
 
         third_batch = self.layer1_repo.get_new_nature_records(dt, limit=1, offset=20)
         self.assertEqual(len(third_batch), 1)
@@ -152,5 +152,5 @@ class Layer1RepositoryTest(unittest.TestCase):
 
         self.assertEqual(len(result), 2)
         self.assertEqual({r.pgc for r in result}, {99})
-        type_names = {r.type_name for r in result}
+        type_names = {r.data.type_name for r in result}
         self.assertEqual(type_names, {"G", "*"})
