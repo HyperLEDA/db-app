@@ -11,6 +11,24 @@ from app.lib.storage import enums, postgres
 from app.lib.web.errors import DatabaseError
 
 
+def _metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
+    if metadata is None:
+        return []
+    if "pgc" in metadata and metadata["pgc"] is not None:
+        return [int(metadata["pgc"])]
+    if "possible_matches" in metadata and metadata["possible_matches"] is not None:
+        return [int(p) for p in metadata["possible_matches"]]
+    return []
+
+
+def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
+    if len(candidates) == 0:
+        return {}
+    if len(candidates) == 1:
+        return {"pgc": candidates[0]}
+    return {"possible_matches": candidates}
+
+
 class Layer0RecordRepository(postgres.TransactionalPGRepository):
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         if len(record_ids) == 0:
@@ -38,8 +56,8 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         status: Sequence[enums.RecordCrossmatchStatus] | None = None,
         triage_status: Sequence[enums.RecordTriageStatus] | None = None,
         record_id: str | None = None,
-    ) -> list[model.RecordCrossmatch]:
-        params = []
+    ) -> list[model.CrossmatchRecordRow]:
+        params: list[Any] = []
 
         where_stmnt = []
         join_tables = """
@@ -59,8 +77,13 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         if status is not None:
             statuses = list(status)
             if statuses:
-                where_stmnt.append("c.status = ANY(%s)")
-                params.append([s.value for s in statuses])
+                status_values = [s.value for s in statuses]
+                where_stmnt.append(
+                    "((c.metadata::jsonb = '{}'::jsonb AND 'new' = ANY(%s)) OR "
+                    "(c.metadata::jsonb ? 'pgc' AND 'existing' = ANY(%s)) OR "
+                    "(c.metadata::jsonb ? 'possible_matches' AND 'collided' = ANY(%s)))"
+                )
+                params.extend([status_values, status_values, status_values])
 
         if triage_status is not None:
             triage_statuses = list(triage_status)
@@ -74,7 +97,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
         where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
 
-        query = f"""SELECT o.id, c.status, c.triage_status, c.metadata
+        query = f"""SELECT o.id, c.triage_status, c.metadata
             {join_tables}
             {where_clause}
             ORDER BY o.id
@@ -87,32 +110,14 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
         rows = self._storage.query(query, params=params)
 
-        records = []
-
-        for row in rows:
-            status = row["status"]
-            metadata = row["metadata"]
-            ci_result = None
-
-            if status == enums.RecordCrossmatchStatus.NEW:
-                ci_result = model.CIResultObjectNew()
-            elif status == enums.RecordCrossmatchStatus.EXISTING:
-                ci_result = model.CIResultObjectExisting(pgc=metadata["pgc"])
-            else:
-                ci_result = model.CIResultObjectCollision(pgcs=metadata["possible_matches"])
-
-            records.append(
-                model.RecordCrossmatch(
-                    model.Record(
-                        row["id"],
-                        [],
-                    ),
-                    ci_result,
-                    triage_status=row["triage_status"],
-                )
+        return [
+            model.CrossmatchRecordRow(
+                record_id=row["id"],
+                triage_status=row["triage_status"],
+                candidates=_metadata_to_candidates(row["metadata"]),
             )
-
-        return records
+            for row in rows
+        ]
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
@@ -125,11 +130,20 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         status_rows_res = errgr.run(
             self._storage.query,
             """
-            SELECT COALESCE(status, 'unprocessed') AS status, COUNT(1) 
-            FROM layer0.crossmatch AS p
-            RIGHT JOIN layer0.records AS o ON p.record_id = o.id
-            WHERE o.table_id = %s
-            GROUP BY status""",
+            SELECT status_label AS status, COUNT(1)
+            FROM (
+                SELECT CASE
+                    WHEN c.record_id IS NULL THEN 'unprocessed'
+                    WHEN c.metadata::jsonb = '{}'::jsonb THEN 'new'
+                    WHEN c.metadata::jsonb ? 'pgc' THEN 'existing'
+                    WHEN c.metadata::jsonb ? 'possible_matches' THEN 'collided'
+                    ELSE 'unprocessed'
+                END AS status_label
+                FROM layer0.records o
+                LEFT JOIN layer0.crossmatch c ON c.record_id = o.id
+                WHERE o.table_id = %s
+            ) t
+            GROUP BY status_label""",
             params=[table_id],
         )
         stats_res = errgr.run(
@@ -164,55 +178,22 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             total_original_rows,
         )
 
-    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        query = "INSERT INTO layer0.crossmatch (record_id, status, triage_status, metadata) VALUES "
-        params = []
-        values = []
-
-        for record_id, result in data.items():
-            values.append("(%s, %s, %s, %s)")
-
-            status = None
-            triage = enums.RecordTriageStatus.PENDING
-            meta = {}
-
-            if isinstance(result, model.CIResultObjectNew):
-                status = enums.RecordCrossmatchStatus.NEW
-                triage = enums.RecordTriageStatus.RESOLVED
-                meta = {}
-            elif isinstance(result, model.CIResultObjectExisting):
-                status = enums.RecordCrossmatchStatus.EXISTING
-                triage = enums.RecordTriageStatus.RESOLVED
-                meta = {"pgc": result.pgc}
-            else:
-                status = enums.RecordCrossmatchStatus.COLLIDED
-                possible_pgcs = list(result.pgcs)
-                meta = {"possible_matches": possible_pgcs}
-
-            params.extend([record_id, status, triage, json.dumps(meta)])
-
-        query += ",".join(values)
-        query += (
-            " ON CONFLICT (record_id) DO UPDATE SET "
-            "status = EXCLUDED.status, triage_status = EXCLUDED.triage_status, "
-            "metadata = EXCLUDED.metadata"
-        )
-
-        self._storage.exec(query, params=params)
-
-    def set_crossmatch_results(self, rows: list[list[Any]]) -> None:
+    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:
             return
         query = (
-            "INSERT INTO layer0.crossmatch (record_id, status, triage_status, metadata) "
-            "VALUES (%s, %s, %s, %s) "
+            "INSERT INTO layer0.crossmatch (record_id, triage_status, metadata) "
+            "VALUES (%s, %s, %s) "
             "ON CONFLICT (record_id) DO UPDATE SET "
-            "status = EXCLUDED.status, triage_status = EXCLUDED.triage_status, "
-            "metadata = EXCLUDED.metadata"
+            "triage_status = EXCLUDED.triage_status, metadata = EXCLUDED.metadata"
         )
+        db_rows = [
+            (record_id, triage.value, json.dumps(_candidates_to_metadata(candidates)))
+            for record_id, triage, candidates in rows
+        ]
         with self.with_tx():
             cursor = self._storage.get_connection().cursor()
-            cursor.executemany(query, rows)
+            cursor.executemany(query, db_rows)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}

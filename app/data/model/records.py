@@ -5,21 +5,10 @@ from app.lib.storage import enums
 
 
 @dataclass
-class CIResultObjectNew:
-    pass
-
-
-@dataclass
-class CIResultObjectExisting:
-    pgc: int
-
-
-@dataclass
-class CIResultObjectCollision:
-    pgcs: set[int]
-
-
-CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
+class CrossmatchRecordRow:
+    record_id: str
+    triage_status: enums.RecordTriageStatus
+    candidates: list[int]
 
 
 @dataclass
@@ -33,19 +22,6 @@ class Record:
                 return obj
 
         return None
-
-
-@dataclass
-class RecordCrossmatch:
-    record: Record
-    processing_result: CIResult
-    triage_status: enums.RecordTriageStatus = enums.RecordTriageStatus.PENDING
-
-
-@dataclass
-class RecordWithPGC:
-    pgc: int
-    record: Record
 
 
 @dataclass

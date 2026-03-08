@@ -1,4 +1,3 @@
-import json
 from typing import Any, final
 
 import structlog
@@ -13,12 +12,6 @@ from app.lib.web.errors import NotFoundError
 from app.presentation import adminapi
 
 logger = structlog.stdlib.get_logger()
-
-status_map = {
-    model.CIResultObjectNew: enums.RecordCrossmatchStatus.NEW,
-    model.CIResultObjectExisting: enums.RecordCrossmatchStatus.EXISTING,
-    model.CIResultObjectCollision: enums.RecordCrossmatchStatus.COLLIDED,
-}
 
 DATA_SCHEMA = adminapi.Schema(
     units=adminapi.UnitsSchema(
@@ -79,7 +72,7 @@ class CrossmatchManager:
         self.layer2_repo = layer2_repo
 
     def set_crossmatch_results(self, r: adminapi.SetCrossmatchResultsRequest) -> adminapi.SetCrossmatchResultsResponse:
-        rows: list[list[Any]] = []
+        rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []
         payload = r.statuses
 
         if payload.new is not None:
@@ -87,14 +80,7 @@ class CrossmatchManager:
             for i, record_id in enumerate(payload.new.record_ids):
                 triage_override = payload.new.triage_statuses[i] if i < len(payload.new.triage_statuses) else None
                 triage = triage_override if triage_override is not None else default_triage
-                rows.append(
-                    [
-                        record_id,
-                        enums.RecordCrossmatchStatus.NEW.value,
-                        triage.value,
-                        json.dumps({}),
-                    ]
-                )
+                rows.append((record_id, triage, []))
 
         if payload.existing is not None:
             default_triage = enums.RecordTriageStatus.RESOLVED
@@ -103,14 +89,7 @@ class CrossmatchManager:
                     payload.existing.triage_statuses[i] if i < len(payload.existing.triage_statuses) else None
                 )
                 triage = triage_override if triage_override is not None else default_triage
-                rows.append(
-                    [
-                        record_id,
-                        enums.RecordCrossmatchStatus.EXISTING.value,
-                        triage.value,
-                        json.dumps({"pgc": payload.existing.pgcs[i]}),
-                    ]
-                )
+                rows.append((record_id, triage, [payload.existing.pgcs[i]]))
 
         if payload.collided is not None:
             default_triage = enums.RecordTriageStatus.PENDING
@@ -119,14 +98,7 @@ class CrossmatchManager:
                     payload.collided.triage_statuses[i] if i < len(payload.collided.triage_statuses) else None
                 )
                 triage = triage_override if triage_override is not None else default_triage
-                rows.append(
-                    [
-                        record_id,
-                        enums.RecordCrossmatchStatus.COLLIDED.value,
-                        triage.value,
-                        json.dumps({"possible_matches": payload.collided.possible_matches[i]}),
-                    ]
-                )
+                rows.append((record_id, triage, list(payload.collided.possible_matches[i])))
 
         if rows:
             self.layer0_repo.set_crossmatch_results(rows)
@@ -135,7 +107,7 @@ class CrossmatchManager:
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         row_offset = r.page * r.page_size
 
-        processed_objects = self.layer0_repo.get_processed_records(
+        processed_rows = self.layer0_repo.get_processed_records(
             table_name=r.table_name,
             limit=r.page_size,
             row_offset=row_offset if row_offset > 0 else None,
@@ -143,12 +115,19 @@ class CrossmatchManager:
             triage_status=[r.triage_status] if r.triage_status is not None else None,
         )
 
-        records = self._convert_to_record_crossmatch(processed_objects)
+        records = self._convert_to_record_crossmatch(processed_rows)
 
         return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
 
-    def _convert_to_record_crossmatch(self, records: list[model.RecordCrossmatch]) -> list[adminapi.RecordCrossmatch]:
-        record_ids = [obj.record.id for obj in records]
+    def _candidates_to_status(self, candidates: list[int]) -> enums.RecordCrossmatchStatus:
+        if len(candidates) == 0:
+            return enums.RecordCrossmatchStatus.NEW
+        if len(candidates) == 1:
+            return enums.RecordCrossmatchStatus.EXISTING
+        return enums.RecordCrossmatchStatus.COLLIDED
+
+    def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[adminapi.RecordCrossmatch]:
+        record_ids = [row.record_id for row in rows]
         layer1_data = self.layer1_repo.query_records(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
             record_ids=record_ids,
@@ -156,18 +135,18 @@ class CrossmatchManager:
         layer1_data_map = {rec.id: rec for rec in layer1_data}
 
         result = []
-        for obj in records:
+        for row in rows:
             metadata = adminapi.RecordCrossmatchMetadata()
-            if isinstance(obj.processing_result, model.CIResultObjectExisting):
-                metadata.pgc = obj.processing_result.pgc
-            elif isinstance(obj.processing_result, model.CIResultObjectCollision):
-                metadata.possible_matches = list(obj.processing_result.pgcs) if obj.processing_result.pgcs else None
+            if len(row.candidates) == 1:
+                metadata.pgc = row.candidates[0]
+            elif len(row.candidates) > 1:
+                metadata.possible_matches = row.candidates
 
             catalogs = adminapi.Catalogs()
 
-            record = layer1_data_map.get(obj.record.id)
+            record = layer1_data_map.get(row.record_id)
             if record is None:
-                raise RuntimeError(f"expected 1 record for id {obj.record.id}, got none")
+                raise RuntimeError(f"expected 1 record for id {row.record_id}, got none")
 
             if (icrs := record.get(model.ICRSCatalogObject)) is not None:
                 catalogs.coordinates = icrs_to_response(icrs)
@@ -178,16 +157,13 @@ class CrossmatchManager:
             if (redshift := record.get(model.RedshiftCatalogObject)) is not None:
                 catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
-            status = enums.RecordCrossmatchStatus.UNPROCESSED
-
-            if (t := type(obj.processing_result)) in status_map:
-                status = status_map[t]
+            status = self._candidates_to_status(row.candidates)
 
             result.append(
                 adminapi.RecordCrossmatch(
-                    record_id=obj.record.id,
+                    record_id=row.record_id,
                     status=status,
-                    triage_status=obj.triage_status,
+                    triage_status=row.triage_status,
                     metadata=metadata,
                     catalogs=catalogs,
                 )
@@ -196,37 +172,32 @@ class CrossmatchManager:
         return result
 
     def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
-        processed_objects = self.layer0_repo.get_processed_records(
+        processed_rows = self.layer0_repo.get_processed_records(
             limit=1,
             record_id=r.record_id,
         )
 
-        if not processed_objects:
+        if not processed_rows:
             raise NotFoundError(entity=r.record_id, entity_name="record")
 
-        obj = processed_objects[0]
-        crossmatch_records = self._convert_to_record_crossmatch([obj])
+        row = processed_rows[0]
+        crossmatch_records = self._convert_to_record_crossmatch([row])
 
         original_data: dict[str, Any] | None = None
         table_name = ""
         try:
-            raw_data = self.layer0_repo.fetch_raw_data(record_id=obj.record.id)
+            raw_data = self.layer0_repo.fetch_raw_data(record_id=row.record_id)
             table_name = raw_data.table_name
             if not raw_data.data.empty:
                 original_data = raw_data.data.iloc[0].to_dict()
         except Exception:
             logger.warning(
                 "Failed to fetch original raw data for record",
-                record_id=obj.record.id,
+                record_id=row.record_id,
                 error=True,
             )
 
-        candidate_pgcs: list[int] = []
-
-        if isinstance(obj.processing_result, model.CIResultObjectCollision):
-            candidate_pgcs.extend(obj.processing_result.pgcs)
-        elif isinstance(obj.processing_result, model.CIResultObjectExisting):
-            candidate_pgcs.append(obj.processing_result.pgc)
+        candidate_pgcs = list(row.candidates)
 
         response = adminapi.GetRecordCrossmatchResponse(
             table_name=table_name,

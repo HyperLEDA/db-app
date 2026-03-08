@@ -103,15 +103,12 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         status: Sequence[enums.RecordCrossmatchStatus] | None = None,
         triage_status: Sequence[enums.RecordTriageStatus] | None = None,
         record_id: str | None = None,
-    ) -> list[model.RecordCrossmatch]:
+    ) -> list[model.CrossmatchRecordRow]:
         return self.records_repo.get_processed_records(
             limit, offset, row_offset, table_name, status, triage_status, record_id
         )
 
-    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        return self.records_repo.add_crossmatch_result(data)
-
-    def set_crossmatch_results(self, rows: list[list]) -> None:
+    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         return self.records_repo.set_crossmatch_results(rows)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
