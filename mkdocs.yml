@@ -26,7 +26,6 @@ nav:
       - administrator/index.md
       - API: administrator/openapi.md
       - Загрузка таблиц из Vizier: administrator/vizier.md
-      - Разметка данных: administrator/marking.md
       - Описание каталогов: administrator/catalogs.md
   - Документация разработчика:
       - Установка окружения: dev/environment.ru.md
