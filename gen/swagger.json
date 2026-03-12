@@ -176,7 +176,7 @@
       },
       "patch": {
         "summary": "Patch table schema",
-        "description": "Patches the schema of the table. Allows updating column metadata (UCD, unit, description) and \nsetting column modifiers. Modifiers are transformations applied to column values during the unification process.\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```\n\n**Example 3**: Set a `map` modifier to convert categorical string values to numeric ones. \nFor instance, mapping morphological types to numeric codes:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"morph_type\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"map\",\n                    \"params\": {\n                        \"mapping\": [\n                            {\"from\": \"E\", \"to\": -5},\n                            {\"from\": \"S0\", \"to\": 0},\n                            {\"from\": \"Sa\", \"to\": 1},\n                            {\"from\": \"Sb\", \"to\": 3}\n                        ],\n                        \"default\": null\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 4**: Set a `format` modifier to reformat string values using a Python format pattern:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"obj_id\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"format\",\n                    \"params\": {\n                        \"pattern\": \"SDSS J{}\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 5**: Set an `add_unit` modifier to override the unit attached to a column during processing:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"velocity\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"add_unit\",\n                    \"params\": {\n                        \"unit\": \"km/s\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 6**: Set a `constant` modifier to replace all values in a column with a fixed value:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"survey\": {\n            \"modifiers\": [\n                {\n                    \"name\": \"constant\",\n                    \"params\": {\n                        \"constant\": \"SDSS\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```\n\n**Example 7**: Combine metadata updates with modifiers in a single request:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"deg\",\n            \"modifiers\": [\n                {\n                    \"name\": \"add_unit\",\n                    \"params\": {\n                        \"unit\": \"hourangle\"\n                    }\n                }\n            ]\n        }\n    }\n}\n```",
+        "description": "Patches the schema of the table. Allows updating column metadata (UCD, unit, description).\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```",
         "operationId": "patch_table",
         "security": [
           {
@@ -423,50 +423,6 @@
             }
           }
         }
-      }
-    },
-    "/api/v1/marking": {
-      "post": {
-        "summary": "New marking rules for the table",
-        "description": "Creates new marking rules to map the columns in the table to catalog parameters. \nFor a given table a marking would consist of the mapping between catalog parameters \nand the columns from the original table.\n\nFor example, if one wants to create a marking for a column `object_name` that designates the name of an object,\nthey should create a catalog entry similar to the following:\n```json\n{\n    \"name\": \"designation\",\n    \"parameters\": {\n        \"design\": {\n            \"column_name\": \"object_name\"\n        }\n    }\n}\n```\n\nHere, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`\nvalues are actual names of the columns under question. **For now, only one column per parameter is supported.**\n\nIt is possible to create several catalog entries for a single object, for example - is there are two columns\nthat represent a name of an object. In that case we might want to upload both names to the database so it is\neasier to cross-identify and search these objects later. Another use case might be if there are several columns\nthat represent photometric information in different filters. In that case one might want to create one entry\nfor each of the magnitude columns.\n\nIn that case you can specify several entries into `rules` list with different values of `key`. For example:\n\n```json\n{\n    \"table_name\": \"my_table\",\n    \"rules\": [\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"object_name\"\n                }\n            },\n            \"key\": \"primary_name\"\n        },\n        {\n            \"name\": \"designation\",\n            \"parameters\": {\n                \"design\": {\n                    \"column_name\": \"secondary_object_name\"\n                }\n            },\n            \"key\": \"secondary_name\"\n        }\n    ]\n}\n```\n\nThe result of this would be two entries into the `designation` catalog for each object in the original table.\n\nThis handler also supports additional parameters that are not present in the original table. For example, a\ntable might not have a separate column for astrometric errors but from other sources you know that its error is\n0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the\n`additional_params` field for each catalog:\n\n```json\n{\n    \"name\": \"icrs\",\n    \"parameters\": {\n        \"ra\": {\n            \"column_name\": \"RAJ2000\"\n        },\n        \"dec\": {\n            \"column_name\": \"DEJ2000\"\n        }\n    },\n    \"additional_params\": {\n        \"e_ra\": 0.1,\n        \"e_dec\": 0.5\n    }\n}\n```",
-        "operationId": "create_marking",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMarkingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIOkResponse_CreateMarkingResponse_"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
       }
     },
     "/api/v1/records/crossmatch": {
@@ -718,18 +674,6 @@
         ],
         "title": "APIOkResponse[AddDataResponse]"
       },
-      "APIOkResponse_CreateMarkingResponse_": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/CreateMarkingResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "APIOkResponse[CreateMarkingResponse]"
-      },
       "APIOkResponse_CreateSourceResponse_": {
         "properties": {
           "data": {
@@ -935,65 +879,6 @@
         ],
         "title": "Bibliography"
       },
-      "CatalogToMark": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "parameters": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ParameterToMark"
-            },
-            "type": "object",
-            "title": "Parameters",
-            "description": "Map of parameter names to their configurations",
-            "examples": [
-              {
-                "dec": {
-                  "column_name": "dec"
-                },
-                "ra": {
-                  "column_name": "ra"
-                }
-              }
-            ]
-          },
-          "key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Key",
-            "examples": [
-              ""
-            ]
-          },
-          "additional_params": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Additional Params",
-            "default": {}
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "parameters"
-        ],
-        "title": "CatalogToMark"
-      },
       "Catalogs": {
         "properties": {
           "designation": {
@@ -1147,32 +1032,6 @@
           "galactic"
         ],
         "title": "Coordinates"
-      },
-      "CreateMarkingRequest": {
-        "properties": {
-          "table_name": {
-            "type": "string",
-            "title": "Table Name"
-          },
-          "catalogs": {
-            "items": {
-              "$ref": "#/components/schemas/CatalogToMark"
-            },
-            "type": "array",
-            "title": "Catalogs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "table_name",
-          "catalogs"
-        ],
-        "title": "CreateMarkingRequest"
-      },
-      "CreateMarkingResponse": {
-        "properties": {},
-        "type": "object",
-        "title": "CreateMarkingResponse"
       },
       "CreateSourceRequest": {
         "properties": {
@@ -1578,13 +1437,6 @@
           "bibliography": {
             "$ref": "#/components/schemas/Bibliography"
           },
-          "marking_rules": {
-            "items": {
-              "$ref": "#/components/schemas/MarkingRule"
-            },
-            "type": "array",
-            "title": "Marking Rules"
-          },
           "statistics": {
             "anyOf": [
               {
@@ -1610,8 +1462,7 @@
           "column_info",
           "rows_num",
           "meta",
-          "bibliography",
-          "marking_rules"
+          "bibliography"
         ],
         "title": "GetTableResponse"
       },
@@ -1678,51 +1529,6 @@
         ],
         "title": "LoginResponse"
       },
-      "MarkingRule": {
-        "properties": {
-          "catalog": {
-            "type": "string",
-            "title": "Catalog"
-          },
-          "key": {
-            "type": "string",
-            "title": "Key"
-          },
-          "columns": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Columns"
-          }
-        },
-        "type": "object",
-        "required": [
-          "catalog",
-          "key",
-          "columns"
-        ],
-        "title": "MarkingRule"
-      },
-      "ModifierSpec": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "params": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Params",
-            "default": {}
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "ModifierSpec"
-      },
       "NewStatusPayload": {
         "properties": {
           "record_ids": {
@@ -1771,23 +1577,6 @@
         ],
         "title": "PGCCandidate"
       },
-      "ParameterToMark": {
-        "properties": {
-          "column_name": {
-            "type": "string",
-            "title": "Column Name",
-            "description": "Column that this parameter will be mapped to.",
-            "examples": [
-              "ra"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "column_name"
-        ],
-        "title": "ParameterToMark"
-      },
       "PatchColumnSpec": {
         "properties": {
           "ucd": {
@@ -1822,20 +1611,6 @@
               }
             ],
             "title": "Description"
-          },
-          "modifiers": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ModifierSpec"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Modifiers"
           }
         },
         "type": "object",
