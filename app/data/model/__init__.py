@@ -1,11 +1,6 @@
 from app.data.model.bibliography import Bibliography
 from app.data.model.designation import DesignationCatalogObject
-from app.data.model.helpers import (
-    CatalogObjectEncoder,
-    Layer0CatalogObjectDecoder,
-    get_catalog_object_type,
-    new_catalog_object,
-)
+from app.data.model.helpers import get_catalog_object_type
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
@@ -50,14 +45,11 @@ __all__ = [
     "TableRecord",
     "RawCatalog",
     "CatalogObject",
-    "CatalogObjectEncoder",
-    "Layer0CatalogObjectDecoder",
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "RedshiftCatalogObject",
     "NatureCatalogObject",
     "get_catalog_object_type",
-    "new_catalog_object",
     "MeasuredValue",
     "Bibliography",
 ]
