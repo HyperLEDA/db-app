@@ -71,12 +71,6 @@ class GetTableListResponse(pydantic.BaseModel):
     tables: list[TableListItem]
 
 
-class MarkingRule(pydantic.BaseModel):
-    catalog: str
-    key: str
-    columns: dict[str, str]
-
-
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
@@ -84,7 +78,6 @@ class GetTableResponse(pydantic.BaseModel):
     rows_num: int
     meta: dict[str, Any]
     bibliography: Bibliography
-    marking_rules: list[MarkingRule]
     statistics: dict[enums.RecordCrossmatchStatus, int] | None = None
 
 
@@ -143,16 +136,10 @@ class SaveStructuredDataResponse(pydantic.BaseModel):
     pass
 
 
-class ModifierSpec(pydantic.BaseModel):
-    name: str
-    params: dict[str, Any] = {}
-
-
 class PatchColumnSpec(pydantic.BaseModel):
     ucd: str | None = None
     unit: str | None = None
     description: str | None = None
-    modifiers: list[ModifierSpec] | None = None
 
 
 class PatchTableRequest(pydantic.BaseModel):
@@ -183,29 +170,6 @@ class LoginResponse(pydantic.BaseModel):
     token: str = pydantic.Field(
         description="Token used to authenticate user in handlers that require a specific role to access",
     )
-
-
-class ParameterToMark(pydantic.BaseModel):
-    column_name: str = pydantic.Field(description="Column that this parameter will be mapped to.", examples=["ra"])
-
-
-class CatalogToMark(pydantic.BaseModel):
-    name: str
-    parameters: dict[str, ParameterToMark] = pydantic.Field(
-        description="Map of parameter names to their configurations",
-        examples=[{"ra": ParameterToMark(column_name="ra"), "dec": ParameterToMark(column_name="dec")}],
-    )
-    key: str | None = pydantic.Field(default=None, examples=[""])
-    additional_params: dict[str, Any] | None = {}
-
-
-class CreateMarkingRequest(pydantic.BaseModel):
-    table_name: str
-    catalogs: list[CatalogToMark]
-
-
-class CreateMarkingResponse(pydantic.BaseModel):
-    pass
 
 
 class GetRecordsCrossmatchRequest(pydantic.BaseModel):
@@ -399,10 +363,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def login(self, request: LoginRequest) -> LoginResponse:
-        pass
-
-    @abc.abstractmethod
-    def create_marking(self, request: CreateMarkingRequest) -> CreateMarkingResponse:
         pass
 
     @abc.abstractmethod

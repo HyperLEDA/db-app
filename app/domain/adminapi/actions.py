@@ -38,9 +38,6 @@ class Actions(adminapi.Actions):
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         return self.table_upload_manager.patch_table(r)
 
-    def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
-        return self.table_upload_manager.create_marking(r)
-
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         return self.table_upload_manager.get_table(r)
 

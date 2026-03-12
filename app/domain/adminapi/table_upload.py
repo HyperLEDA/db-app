@@ -14,7 +14,6 @@ from astroquery import nasa_ads as ads
 from app.data import model, repositories
 from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
-from app.domain import homogenization
 from app.lib import astronomy, clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
@@ -135,10 +134,6 @@ class TableUploadManager:
                 if spec.ucd is not None or spec.unit is not None or spec.description is not None:
                     self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
 
-                if spec.modifiers is not None:
-                    modifiers = [model.Modifier(column_name, m.name, m.params) for m in spec.modifiers]
-                    self.layer0_repo.set_modifiers(r.table_name, column_name, modifiers)
-
         return adminapi.PatchTableResponse()
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
@@ -164,61 +159,6 @@ class TableUploadManager:
             errgr.wait()
 
         return adminapi.AddDataResponse()
-
-    def create_marking(self, r: adminapi.CreateMarkingRequest) -> adminapi.CreateMarkingResponse:
-        rules = []
-        params = []
-
-        try:
-            meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
-        except RuntimeError as e:
-            raise NotFoundError("table", r.table_name) from e
-
-        columns = set()
-
-        for col in meta.column_descriptions:
-            columns.add(col.name)
-
-        for rule in r.catalogs:
-            for parameter, config in rule.parameters.items():
-                if config.column_name not in columns:
-                    raise NotFoundError("column", config.column_name, f"table '{r.table_name}'")
-
-                filters = {
-                    "table_name": r.table_name,
-                    "column_name": config.column_name,
-                }
-
-                rules.append(
-                    model.HomogenizationRule(
-                        catalog=rule.name,
-                        parameter=parameter,
-                        filters=filters,
-                        key=rule.key or "",
-                    )
-                )
-
-            if rule.additional_params is None:
-                continue
-
-            curr_params = {}
-            for param, value in rule.additional_params.items():
-                curr_params[param] = value
-
-            params.append(
-                model.HomogenizationParams(
-                    catalog=rule.name,
-                    key=rule.key or "",
-                    params=curr_params,
-                )
-            )
-
-        with self.layer0_repo.with_tx():
-            self.layer0_repo.add_homogenization_rules(rules)
-            if len(params) > 0:
-                self.layer0_repo.add_homogenization_params(params)
-
-        return adminapi.CreateMarkingResponse()
 
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
@@ -247,9 +187,6 @@ class TableUploadManager:
         rows_num = table_stats.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
 
-        hom = get_homogenization(self.layer0_repo, meta)
-        mapping = hom.get_column_mapping()
-
         statistics = None
         if table_stats.statuses:
             statistics = table_stats.statuses
@@ -261,10 +198,6 @@ class TableUploadManager:
             rows_num=rows_num,
             meta=metadata,
             bibliography=_bibliography_to_presentation(bibliography),
-            marking_rules=[
-                adminapi.MarkingRule(catalog=catalog.value, key=key, columns=data)
-                for ((catalog, key), data) in mapping.items()
-            ],
             statistics=statistics,
         )
 
@@ -418,34 +351,6 @@ class TableUploadManager:
             catalogs=catalog_schema,
         )
         return adminapi.GetRecordsResponse(records=records_list, schema=record_schema)
-
-
-def new_rule(rule: model.HomogenizationRule) -> homogenization.Rule:
-    return homogenization.Rule(
-        model.RawCatalog(rule.catalog),
-        rule.parameter,
-        homogenization.parse_filters(rule.filters),
-        rule.key or "",
-        rule.priority or 2**32,
-    )
-
-
-def new_params(params: model.HomogenizationParams) -> homogenization.Params:
-    return homogenization.Params(model.RawCatalog(params.catalog), params.key, params.params)
-
-
-def get_homogenization(
-    repo: repositories.Layer0Repository,
-    metadata: model.Layer0TableMeta,
-    **kwargs,
-) -> homogenization.Homogenization:
-    db_rules = repo.get_homogenization_rules()
-    db_params = repo.get_homogenization_params()
-
-    rules = [new_rule(rule) for rule in db_rules]
-    params = [new_params(param) for param in db_params]
-
-    return homogenization.get_homogenization(rules, params, metadata, **kwargs)
 
 
 def _bibliography_to_presentation(bib: model.Bibliography) -> adminapi.Bibliography:
