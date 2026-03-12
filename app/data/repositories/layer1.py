@@ -4,7 +4,6 @@ from typing import Any
 import structlog
 
 from app.data import model
-from app.lib import containers
 from app.lib.storage import postgres
 
 
@@ -34,47 +33,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
             self._storage.execute_batch(query, rows)
-
-    def save_data(self, records: list[model.Record]) -> None:
-        all_catalog_objects = []
-        for record in records:
-            for catalog_object in record.data:
-                all_catalog_objects.append((record.id, catalog_object))
-
-        table_objects = containers.group_by(all_catalog_objects, lambda item: item[1].layer1_table())
-
-        with self.with_tx():
-            for table, table_items in table_objects.items():
-                if not table_items:
-                    continue
-
-                columns = ["record_id"]
-                columns.extend(table_items[0][1].layer1_keys())
-
-                params = []
-                values = []
-                for record_id, catalog_object in table_items:
-                    data = catalog_object.layer1_data()
-                    data["record_id"] = record_id
-
-                    params.extend([data[column] for column in columns])
-                    values.append(",".join(["%s"] * len(columns)))
-
-                on_conflict_update_statement = ", ".join([f"{column} = EXCLUDED.{column}" for column in columns])
-
-                query = f"""
-                INSERT INTO {table} ({", ".join(columns)}) 
-                VALUES {", ".join([f"({value})" for value in values])}
-                ON CONFLICT (record_id) DO UPDATE SET {on_conflict_update_statement}
-                """
-
-                self._storage.exec(query, params=params)
-
-                self._logger.debug(
-                    "Saved data to layer 1",
-                    table=table,
-                    object_count=len(table_items),
-                )
 
     def get_new_nature_records(
         self, dt: datetime.datetime, limit: int, offset: int

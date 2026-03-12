@@ -31,20 +31,21 @@ class Layer1RepositoryTest(unittest.TestCase):
         table_name: str,
         record_ids: list[str],
         pgcs: dict[str, int],
-        records: list[model.Record],
+        rows: list[list[str]],
     ) -> None:
         self._get_table(table_name)
         self.layer0_repo.register_records(table_name, record_ids)
         self.common_repo.register_pgcs(list(pgcs.values()))
         self.layer0_repo.upsert_pgc(pgcs)
-        self.layer1_repo.save_data(records)
+        columns = model.NatureCatalogObject.layer1_keys()
+        self.layer1_repo.save_structured_data(
+            model.NatureCatalogObject.layer1_table(),
+            columns,
+            record_ids,
+            rows,
+        )
 
     def test_icrs(self):
-        objects: list[model.Record] = [
-            model.Record("111", [model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)]),
-            model.Record("112", [model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)]),
-        ]
-
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         _ = self.layer0_repo.create_table(
             model.Layer0TableMeta(
@@ -60,7 +61,13 @@ class Layer1RepositoryTest(unittest.TestCase):
             )
         )
         self.layer0_repo.register_records("test_table", ["111", "112"])
-        self.layer1_repo.save_data(objects)
+        columns = model.ICRSCatalogObject.layer1_keys()
+        self.layer1_repo.save_structured_data(
+            model.ICRSCatalogObject.layer1_table(),
+            columns,
+            ["111", "112"],
+            [[12.1, 0.1, 1, 0.3], [11.1, 0.2, 2, 0.4]],
+        )
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
         self.assertEqual(result, [{"ra": 11.1}, {"ra": 12.1}])
@@ -79,10 +86,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["rec1", "rec2"],
             {"rec1": 1001, "rec2": 1002},
-            [
-                model.Record("rec1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("rec2", [model.NatureCatalogObject(type_name="QSO")]),
-            ],
+            [["G"], ["QSO"]],
         )
 
         result = self.layer1_repo.get_new_nature_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), 10, 0)
@@ -97,7 +101,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["rec1"],
             {"rec1": 1001},
-            [model.Record("rec1", [model.NatureCatalogObject(type_name="G")])],
+            [["G"]],
         )
 
         future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
@@ -110,11 +114,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["r1", "r2", "r3"],
             {"r1": 10, "r2": 20, "r3": 30},
-            [
-                model.Record("r1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("r2", [model.NatureCatalogObject(type_name="*")]),
-                model.Record("r3", [model.NatureCatalogObject(type_name="?")]),
-            ],
+            [["G"], ["*"], ["?"]],
         )
         dt = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
 
@@ -140,10 +140,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["r1", "r2"],
             {"r1": 99, "r2": 99},
-            [
-                model.Record("r1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("r2", [model.NatureCatalogObject(type_name="*")]),
-            ],
+            [["G"], ["*"]],
         )
 
         result = self.layer1_repo.get_new_nature_records(

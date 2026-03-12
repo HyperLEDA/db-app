@@ -41,22 +41,8 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
-    @classmethod
-    @abc.abstractmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        pass
-
     @abc.abstractmethod
     def catalog(self) -> RawCatalog:
-        pass
-
-    @abc.abstractmethod
-    def layer0_data(self) -> dict[str, Any]:
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def from_custom(cls, **kwargs) -> Self:
         pass
 
     @classmethod
@@ -67,10 +53,6 @@ class CatalogObject(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def layer1_keys(cls) -> list[str]:
-        pass
-
-    @abc.abstractmethod
-    def layer1_data(self) -> dict[str, Any]:
         pass
 
     @classmethod

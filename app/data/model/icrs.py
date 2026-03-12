@@ -1,10 +1,6 @@
 from typing import Any, Self, final
 
-from astropy import coordinates
-from astropy import units as u
-
 from app.data.model import interface
-from app.lib import astronomy
 
 
 @final
@@ -21,81 +17,14 @@ class ICRSCatalogObject(interface.CatalogObject):
         self.e_ra = e_ra
         self.e_dec = e_dec
 
-    @classmethod
-    def from_custom(
-        cls,
-        ra: u.Quantity,
-        dec: u.Quantity,
-        e_ra: u.Quantity | None = None,
-        e_dec: u.Quantity | None = None,
-    ) -> Self:
-        if not interface.is_nan(ra) and not interface.is_nan(dec):
-            if ra.unit is not None:
-                ra_angle = coordinates.Angle(ra, unit=ra.unit)
-            else:
-                ra_angle = coordinates.Angle(ra)
-
-            if dec.unit is not None:
-                dec_angle = coordinates.Angle(dec, unit=dec.unit)
-            else:
-                dec_angle = coordinates.Angle(dec)
-        else:
-            raise ValueError("no ra or dec values")
-
-        if e_ra is None or e_dec is None:
-            raise ValueError("no e_ra or e_dec specified")
-
-        coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
-
-        return cls(
-            astronomy.to(coords.ra, "deg"),
-            astronomy.to(coords.dec, "deg"),
-            astronomy.to(e_ra, "deg"),
-            astronomy.to(e_dec, "deg"),
-        )
-
-    def layer0_data(self) -> dict[str, Any]:
-        return {
-            "ra": self.ra,
-            "dec": self.dec,
-            "e_ra": self.e_ra,
-            "e_dec": self.e_dec,
-        }
-
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):
             return False
 
         return self.ra == value.ra and self.e_ra == value.e_ra and self.dec == value.dec and self.e_dec == value.e_dec
 
-    @classmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        """
-        Aggregate coordinates are computed as the mean of all coordinates.
-        Errors are computed as the mean of all errors.
-        """
-        ras = [obj.ra for obj in objects]
-        e_ras = [obj.e_ra for obj in objects]
-        decs = [obj.dec for obj in objects]
-        e_decs = [obj.e_dec for obj in objects]
-
-        ra = sum(ras) / len(ras)
-        e_ra = sum(e_ras) / len(e_ras)
-        dec = sum(decs) / len(decs)
-        e_dec = sum(e_decs) / len(e_decs)
-
-        return cls(ra, dec, e_ra, e_dec)
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
-
-    def layer1_data(self) -> dict[str, Any]:
-        return {
-            "ra": self.ra,
-            "dec": self.dec,
-            "e_ra": self.e_ra,
-            "e_dec": self.e_dec,
-        }
 
     @classmethod
     def layer1_table(cls) -> str:

@@ -44,24 +44,10 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.common_repo.register_pgcs([1234, 1245])
         self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
-        self.layer1_repo.save_data(
-            [
-                model.Record(
-                    id="123",
-                    data=[
-                        model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2),
-                        model.DesignationCatalogObject("test1"),
-                    ],
-                ),
-                model.Record(
-                    id="124",
-                    data=[
-                        model.ICRSCatalogObject(ra=14, e_ra=0.2, dec=15, e_dec=0.2),
-                        model.DesignationCatalogObject("test2"),
-                    ],
-                ),
-            ]
+        self.layer1_repo.save_structured_data(
+            "icrs.data", ["ra", "e_ra", "dec", "e_dec"], ["123", "124"], [[12, 0.2, 13, 0.2], [14, 0.2, 15, 0.2]]
         )
+        self.layer1_repo.save_structured_data("designation.data", ["design"], ["123", "124"], [["test1"], ["test2"]])
 
         self.task.run()
 
@@ -89,12 +75,7 @@ class Layer2ImportTest(unittest.TestCase):
 
         last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
 
-        self.layer1_repo.save_data(
-            [
-                model.Record("125", [model.DesignationCatalogObject("test3")]),
-                model.Record("126", [model.DesignationCatalogObject("test3")]),
-            ]
-        )
+        self.layer1_repo.save_structured_data("designation.data", ["design"], ["125", "126"], [["test3"], ["test3"]])
 
         self.task.run()
 

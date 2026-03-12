@@ -14,31 +14,6 @@ class DesignationCatalogObject(interface.CatalogObject):
 
         return self.designation == value.designation
 
-    @classmethod
-    def from_custom(cls, design: Any) -> Self:
-        return cls(str(design))
-
-    def layer0_data(self) -> dict[str, Any]:
-        return {"design": self.designation}
-
-    @classmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        """
-        Aggregate designation is selected as the most common designation among all objects.
-        """
-        name_counts = {}
-
-        for obj in objects:
-            name_counts[obj.designation] = name_counts.get(obj.designation, 0) + 1
-
-        max_name = ""
-
-        for name, count in name_counts.items():
-            if count > name_counts.get(max_name, 0):
-                max_name = name
-
-        return cls(max_name)
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.DESIGNATION
 
@@ -49,9 +24,6 @@ class DesignationCatalogObject(interface.CatalogObject):
     @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["design"]
-
-    def layer1_data(self) -> dict[str, Any]:
-        return {"design": self.designation}
 
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
