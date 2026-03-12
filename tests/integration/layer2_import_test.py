@@ -51,14 +51,14 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
             layer2.PGCOneOfFilter([1234]),
             layer2.CombinedSearchParams([]),
             10,
             0,
         )
-        expected = model.Layer2Object(
+        expected = model.Layer2CatalogObject(
             1234, [model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2), model.DesignationCatalogObject("test1")]
         )
 
@@ -82,7 +82,7 @@ class Layer2ImportTest(unittest.TestCase):
         new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
             layer2.PGCOneOfFilter([1234]),
             layer2.CombinedSearchParams([]),

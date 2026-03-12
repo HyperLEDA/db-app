@@ -28,7 +28,7 @@ class Actions(dataapi.Actions):
 
     def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
         filters, search_params = search_parsers.query_to_filters(query.q, search_parsers.DEFAULT_PARSERS)
-        objects = self.layer2_repo.query(
+        objects = self.layer2_repo.query_catalogs(
             ENABLED_CATALOGS,
             filters,
             search_params,
@@ -36,7 +36,7 @@ class Actions(dataapi.Actions):
             query.page,
         )
         responder = responders.StructuredResponder(self.catalog_cfg)
-        pgc_objects = responder.build_response(objects).objects
+        pgc_objects = responder.build_response_from_catalog(objects).objects
         return dataapi.QueryResponse(objects=pgc_objects)
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:

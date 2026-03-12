@@ -3,6 +3,14 @@ from app.data.repositories import layer2
 from app.domain import responders
 from app.presentation import dataapi
 
+CATALOGS_FOR_PGC_QUERY = [
+    model.RawCatalog.DESIGNATION,
+    model.RawCatalog.ADDITIONAL_DESIGNATIONS,
+    model.RawCatalog.ICRS,
+    model.RawCatalog.REDSHIFT,
+    model.RawCatalog.NATURE,
+]
+
 
 class ParameterizedQueryManager:
     def __init__(
@@ -40,7 +48,7 @@ class ParameterizedQueryManager:
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         filters, search_params = self._build_filters_and_params(query)
 
-        objects = self.layer2_repo.query(
+        objects = self.layer2_repo.query_catalogs(
             self.enabled_catalogs,
             filters,
             search_params,
@@ -49,26 +57,26 @@ class ParameterizedQueryManager:
         )
 
         responder = responders.FITSResponder()
-        return responder.build_response(objects)
+        return responder.build_response_from_catalog(objects)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
-        filters, search_params = self._build_filters_and_params(query)
-
-        if not query.pgcs:
-            objects = self.layer2_repo.query(
-                self.enabled_catalogs,
-                filters,
-                search_params,
-                query.page_size,
-                query.page,
-            )
-        else:
+        responder = responders.StructuredResponder(self.catalog_config)
+        if query.pgcs:
             objects = self.layer2_repo.query_pgc(
-                self.enabled_catalogs,
+                CATALOGS_FOR_PGC_QUERY,
                 query.pgcs,
                 query.page_size,
                 query.page,
             )
+            return responder.build_response(objects)
 
-        responder = responders.StructuredResponder(self.catalog_config)
-        return responder.build_response(objects)
+        filters, search_params = self._build_filters_and_params(query)
+
+        objects = self.layer2_repo.query_catalogs(
+            self.enabled_catalogs,
+            filters,
+            search_params,
+            query.page_size,
+            query.page,
+        )
+        return responder.build_response_from_catalog(objects)

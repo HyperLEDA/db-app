@@ -5,7 +5,7 @@ from app.domain.responders import interface
 from app.presentation import dataapi
 
 
-def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCObject]:
+def objects_to_response(objects: list[model.Layer2CatalogObject]) -> list[dataapi.PGCObject]:
     response_objects = []
     for obj in objects:
         catalog_data = {o.catalog().value: o.layer2_data() for o in obj.data}
@@ -15,5 +15,5 @@ def objects_to_response(objects: list[model.Layer2Object]) -> list[dataapi.PGCOb
 
 
 class JSONResponder(interface.ObjectResponder):
-    def build_response(self, objects: list[model.Layer2Object]) -> Any:
+    def build_response(self, objects: list[model.Layer2CatalogObject]) -> Any:
         return objects_to_response(objects)

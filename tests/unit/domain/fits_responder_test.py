@@ -10,7 +10,7 @@ from app.domain.responders import fits_responder
 class ExtractObjectDataTest(unittest.TestCase):
     def setUp(self):
         self.objects = [
-            model.Layer2Object(
+            model.Layer2CatalogObject(
                 pgc=1234,
                 data=[
                     model.DesignationCatalogObject(design="Galaxy1"),
@@ -18,7 +18,7 @@ class ExtractObjectDataTest(unittest.TestCase):
                     model.RedshiftCatalogObject(cz=11.8, e_cz=0.2),
                 ],
             ),
-            model.Layer2Object(
+            model.Layer2CatalogObject(
                 pgc=5678,
                 data=[
                     model.DesignationCatalogObject(design="Galaxy2"),
@@ -68,7 +68,7 @@ class ExtractObjectDataTest(unittest.TestCase):
 class CreateFitsHdulTest(unittest.TestCase):
     def setUp(self):
         self.objects = [
-            model.Layer2Object(
+            model.Layer2CatalogObject(
                 pgc=1234,
                 data=[
                     model.DesignationCatalogObject(design="Galaxy1"),
@@ -100,7 +100,7 @@ class CreateFitsHdulTest(unittest.TestCase):
 class FitsResponderTest(unittest.TestCase):
     def setUp(self):
         self.objects = [
-            model.Layer2Object(
+            model.Layer2CatalogObject(
                 pgc=1234,
                 data=[
                     model.DesignationCatalogObject(design="Galaxy1"),
@@ -111,7 +111,7 @@ class FitsResponderTest(unittest.TestCase):
         self.responder = fits_responder.FITSResponder()
 
     def test_build_response(self):
-        fits_data = self.responder.build_response(self.objects)
+        fits_data = self.responder.build_response_from_catalog(self.objects)
 
         self.assertIsInstance(fits_data, bytes)
         self.assertGreater(len(fits_data), 0)

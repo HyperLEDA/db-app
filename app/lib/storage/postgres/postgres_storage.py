@@ -68,8 +68,8 @@ class PgStorage:
         self._logger.debug("connecting to Postgres", endpoint=self._config.endpoint, port=self._config.port)
         self._pool = ConnectionPool(
             self._config.get_dsn(),
-            min_size=2,
-            max_size=10,
+            min_size=10,
+            max_size=30,
             kwargs={"row_factory": rows.dict_row, "autocommit": True},
             configure=self._configure_connection,
         )
