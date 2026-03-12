@@ -10,5 +10,5 @@ class ObjectResponder(ABC):
     """
 
     @abstractmethod
-    def build_response(self, objects: list[model.Layer2Object]) -> Any:
+    def build_response(self, objects: list[model.Layer2CatalogObject]) -> Any:
         pass

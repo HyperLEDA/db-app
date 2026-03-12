@@ -163,14 +163,14 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
-    ) -> dict[str, list[model.Layer2Object]]:
+    ) -> dict[str, list[model.Layer2CatalogObject]]:
         query, params = self._construct_batch_query(catalogs, search_types, search_params, limit, offset)
 
         records = self._storage.query(query, params=params)
 
         records_by_id = containers.group_by(records, key_func=lambda obj: str(obj["record_id"]))
 
-        result: dict[str, list[model.Layer2Object]] = {}
+        result: dict[str, list[model.Layer2CatalogObject]] = {}
 
         for record_id, records in records_by_id.items():
             if record_id not in result:
@@ -180,12 +180,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         return result
 
-    def _group_by_pgc(self, objects: list[rows.DictRow]) -> list[model.Layer2Object]:
+    def _group_by_pgc(self, objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject]:
         objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
         result = []
 
         for pgc, pgc_objects in objects_by_pgc.items():
-            layer2_obj = model.Layer2Object(pgc, [])
+            layer2_obj = model.Layer2CatalogObject(pgc, [])
 
             # TODO: what if for each pgc there are multiple rows? For example, if
             # the catalog does not have a UNIQUE constraint on pgc.
@@ -282,7 +282,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         search_params: params.SearchParams,
         limit: int,
         offset: int,
-    ) -> list[model.Layer2Object]:
+    ) -> list[model.Layer2CatalogObject]:
         res = self.query_batch(catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset)
 
         if "obj" not in res:

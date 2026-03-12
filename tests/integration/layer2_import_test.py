@@ -58,7 +58,7 @@ class Layer2ImportTest(unittest.TestCase):
             10,
             0,
         )
-        expected = model.Layer2Object(
+        expected = model.Layer2CatalogObject(
             1234, [model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2), model.DesignationCatalogObject("test1")]
         )
 

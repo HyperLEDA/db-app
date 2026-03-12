@@ -4,7 +4,7 @@ from app.data.model import interface
 
 
 @dataclass
-class Layer2Object:
+class Layer2CatalogObject:
     pgc: int
     data: list[interface.CatalogObject]
 

@@ -88,7 +88,7 @@ class StructuredResponder(interface.ObjectResponder):
 
         return lon, lat, e_lon, e_lat
 
-    def build_response(self, objects: list[layer2.Layer2Object]) -> Any:
+    def build_response(self, objects: list[layer2.Layer2CatalogObject]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
 
