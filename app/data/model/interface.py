@@ -41,11 +41,6 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
-    @classmethod
-    @abc.abstractmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        pass
-
     @abc.abstractmethod
     def catalog(self) -> RawCatalog:
         pass

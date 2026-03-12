@@ -56,10 +56,16 @@ class Layer2ImportDesignationTask(interface.Task):
             pgcs: list[int] = []
             data: list[list[str]] = []
             for pgc, pgc_records in records_by_pgc.items():
-                catalog_objects = [model.DesignationCatalogObject(design=rec.data.design) for rec in pgc_records]
-                aggregated = model.DesignationCatalogObject.aggregate(catalog_objects)
+                name_counts: dict[str, int] = {}
+                for rec in pgc_records:
+                    d = rec.data.design
+                    name_counts[d] = name_counts.get(d, 0) + 1
+                max_name = ""
+                for name, count in name_counts.items():
+                    if count > name_counts.get(max_name, 0):
+                        max_name = name
                 pgcs.append(pgc)
-                data.append([aggregated.designation])
+                data.append([max_name])
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:

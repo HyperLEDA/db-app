@@ -68,24 +68,6 @@ class ICRSCatalogObject(interface.CatalogObject):
 
         return self.ra == value.ra and self.e_ra == value.e_ra and self.dec == value.dec and self.e_dec == value.e_dec
 
-    @classmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        """
-        Aggregate coordinates are computed as the mean of all coordinates.
-        Errors are computed as the mean of all errors.
-        """
-        ras = [obj.ra for obj in objects]
-        e_ras = [obj.e_ra for obj in objects]
-        decs = [obj.dec for obj in objects]
-        e_decs = [obj.e_dec for obj in objects]
-
-        ra = sum(ras) / len(ras)
-        e_ra = sum(e_ras) / len(e_ras)
-        dec = sum(decs) / len(decs)
-        e_dec = sum(e_decs) / len(e_decs)
-
-        return cls(ra, dec, e_ra, e_dec)
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 

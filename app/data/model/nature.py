@@ -21,19 +21,6 @@ class NatureCatalogObject(interface.CatalogObject):
     def layer0_data(self) -> dict[str, Any]:
         return {"type_name": self.type_name}
 
-    @classmethod
-    def aggregate(cls, objects: list[Self]) -> Self:
-        type_counts: dict[str, int] = {}
-        for obj in objects:
-            type_counts[obj.type_name] = type_counts.get(obj.type_name, 0) + 1
-
-        max_type = ""
-        for name, count in type_counts.items():
-            if count > type_counts.get(max_type, 0):
-                max_type = name
-
-        return cls(max_type)
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.NATURE
 
