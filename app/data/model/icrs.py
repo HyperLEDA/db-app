@@ -1,10 +1,6 @@
 from typing import Any, Self, final
 
-from astropy import coordinates
-from astropy import units as u
-
 from app.data.model import interface
-from app.lib import astronomy
 
 
 @final
@@ -20,39 +16,6 @@ class ICRSCatalogObject(interface.CatalogObject):
         self.dec = dec
         self.e_ra = e_ra
         self.e_dec = e_dec
-
-    @classmethod
-    def from_custom(
-        cls,
-        ra: u.Quantity,
-        dec: u.Quantity,
-        e_ra: u.Quantity | None = None,
-        e_dec: u.Quantity | None = None,
-    ) -> Self:
-        if not interface.is_nan(ra) and not interface.is_nan(dec):
-            if ra.unit is not None:
-                ra_angle = coordinates.Angle(ra, unit=ra.unit)
-            else:
-                ra_angle = coordinates.Angle(ra)
-
-            if dec.unit is not None:
-                dec_angle = coordinates.Angle(dec, unit=dec.unit)
-            else:
-                dec_angle = coordinates.Angle(dec)
-        else:
-            raise ValueError("no ra or dec values")
-
-        if e_ra is None or e_dec is None:
-            raise ValueError("no e_ra or e_dec specified")
-
-        coords = coordinates.ICRS(ra=ra_angle, dec=dec_angle)
-
-        return cls(
-            astronomy.to(coords.ra, "deg"),
-            astronomy.to(coords.dec, "deg"),
-            astronomy.to(e_ra, "deg"),
-            astronomy.to(e_dec, "deg"),
-        )
 
     def layer0_data(self) -> dict[str, Any]:
         return {

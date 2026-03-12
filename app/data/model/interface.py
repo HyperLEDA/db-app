@@ -51,11 +51,6 @@ class CatalogObject(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def from_custom(cls, **kwargs) -> Self:
-        pass
-
-    @classmethod
-    @abc.abstractmethod
     def layer1_table(cls) -> str:
         pass
 

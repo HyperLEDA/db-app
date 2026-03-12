@@ -14,10 +14,6 @@ class DesignationCatalogObject(interface.CatalogObject):
 
         return self.designation == value.designation
 
-    @classmethod
-    def from_custom(cls, design: Any) -> Self:
-        return cls(str(design))
-
     def layer0_data(self) -> dict[str, Any]:
         return {"design": self.designation}
 

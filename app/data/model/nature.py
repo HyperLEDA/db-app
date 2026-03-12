@@ -14,10 +14,6 @@ class NatureCatalogObject(interface.CatalogObject):
 
         return self.type_name == value.type_name
 
-    @classmethod
-    def from_custom(cls, type_name: Any) -> Self:
-        return cls(str(type_name))
-
     def layer0_data(self) -> dict[str, Any]:
         return {"type_name": self.type_name}
 
