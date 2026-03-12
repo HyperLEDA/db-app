@@ -109,17 +109,6 @@ def upload_data(
     response.raise_for_status()
 
 
-@lib.test_logging_decorator
-def start_marking(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "layer0-marking",
-            input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
-            log_level="warn",
-        ),
-    )
-
-
 def get_records(session: requests.Session, table_name: str, page_size: int) -> list[dict]:
     request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=page_size)
     response = session.get(
