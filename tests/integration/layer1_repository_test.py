@@ -37,14 +37,15 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.layer0_repo.register_records(table_name, record_ids)
         self.common_repo.register_pgcs(list(pgcs.values()))
         self.layer0_repo.upsert_pgc(pgcs)
-        self.layer1_repo.save_data(records)
+        columns = model.NatureCatalogObject.layer1_keys()
+        self.layer1_repo.save_structured_data(
+            model.NatureCatalogObject.layer1_table(),
+            columns,
+            [r.id for r in records],
+            [[r.data[0].layer1_data()[c] for c in columns] for r in records],
+        )
 
     def test_icrs(self):
-        objects: list[model.Record] = [
-            model.Record("111", [model.ICRSCatalogObject(ra=12.1, dec=1, e_ra=0.1, e_dec=0.3)]),
-            model.Record("112", [model.ICRSCatalogObject(ra=11.1, dec=2, e_ra=0.2, e_dec=0.4)]),
-        ]
-
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
         _ = self.layer0_repo.create_table(
             model.Layer0TableMeta(
@@ -60,7 +61,13 @@ class Layer1RepositoryTest(unittest.TestCase):
             )
         )
         self.layer0_repo.register_records("test_table", ["111", "112"])
-        self.layer1_repo.save_data(objects)
+        columns = model.ICRSCatalogObject.layer1_keys()
+        self.layer1_repo.save_structured_data(
+            model.ICRSCatalogObject.layer1_table(),
+            columns,
+            ["111", "112"],
+            [[12.1, 0.1, 1, 0.3], [11.1, 0.2, 2, 0.4]],
+        )
 
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
         self.assertEqual(result, [{"ra": 11.1}, {"ra": 12.1}])
