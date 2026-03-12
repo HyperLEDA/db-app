@@ -17,14 +17,6 @@ class ICRSCatalogObject(interface.CatalogObject):
         self.e_ra = e_ra
         self.e_dec = e_dec
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {
-            "ra": self.ra,
-            "dec": self.dec,
-            "e_ra": self.e_ra,
-            "e_dec": self.e_dec,
-        }
-
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ICRSCatalogObject):
             return False
@@ -33,14 +25,6 @@ class ICRSCatalogObject(interface.CatalogObject):
 
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
-
-    def layer1_data(self) -> dict[str, Any]:
-        return {
-            "ra": self.ra,
-            "dec": self.dec,
-            "e_ra": self.e_ra,
-            "e_dec": self.e_dec,
-        }
 
     @classmethod
     def layer1_table(cls) -> str:

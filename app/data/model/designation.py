@@ -14,9 +14,6 @@ class DesignationCatalogObject(interface.CatalogObject):
 
         return self.designation == value.designation
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {"design": self.designation}
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.DESIGNATION
 
@@ -27,9 +24,6 @@ class DesignationCatalogObject(interface.CatalogObject):
     @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["design"]
-
-    def layer1_data(self) -> dict[str, Any]:
-        return {"design": self.designation}
 
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:

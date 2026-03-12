@@ -14,9 +14,6 @@ class NatureCatalogObject(interface.CatalogObject):
 
         return self.type_name == value.type_name
 
-    def layer0_data(self) -> dict[str, Any]:
-        return {"type_name": self.type_name}
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.NATURE
 
@@ -27,9 +24,6 @@ class NatureCatalogObject(interface.CatalogObject):
     @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["type_name"]
-
-    def layer1_data(self) -> dict[str, Any]:
-        return {"type_name": self.type_name}
 
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:

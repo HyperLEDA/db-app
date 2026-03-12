@@ -31,7 +31,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         table_name: str,
         record_ids: list[str],
         pgcs: dict[str, int],
-        records: list[model.Record],
+        rows: list[list[str]],
     ) -> None:
         self._get_table(table_name)
         self.layer0_repo.register_records(table_name, record_ids)
@@ -41,8 +41,8 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.layer1_repo.save_structured_data(
             model.NatureCatalogObject.layer1_table(),
             columns,
-            [r.id for r in records],
-            [[r.data[0].layer1_data()[c] for c in columns] for r in records],
+            record_ids,
+            rows,
         )
 
     def test_icrs(self):
@@ -86,10 +86,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["rec1", "rec2"],
             {"rec1": 1001, "rec2": 1002},
-            [
-                model.Record("rec1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("rec2", [model.NatureCatalogObject(type_name="QSO")]),
-            ],
+            [["G"], ["QSO"]],
         )
 
         result = self.layer1_repo.get_new_nature_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), 10, 0)
@@ -104,7 +101,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["rec1"],
             {"rec1": 1001},
-            [model.Record("rec1", [model.NatureCatalogObject(type_name="G")])],
+            [["G"]],
         )
 
         future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
@@ -117,11 +114,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["r1", "r2", "r3"],
             {"r1": 10, "r2": 20, "r3": 30},
-            [
-                model.Record("r1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("r2", [model.NatureCatalogObject(type_name="*")]),
-                model.Record("r3", [model.NatureCatalogObject(type_name="?")]),
-            ],
+            [["G"], ["*"], ["?"]],
         )
         dt = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
 
@@ -147,10 +140,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             "t1",
             ["r1", "r2"],
             {"r1": 99, "r2": 99},
-            [
-                model.Record("r1", [model.NatureCatalogObject(type_name="G")]),
-                model.Record("r2", [model.NatureCatalogObject(type_name="*")]),
-            ],
+            [["G"], ["*"]],
         )
 
         result = self.layer1_repo.get_new_nature_records(
