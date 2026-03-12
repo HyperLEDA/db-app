@@ -69,14 +69,6 @@ class API:
         response = self.actions.login(request)
         return server.APIOkResponse(data=response)
 
-    def create_marking(
-        self,
-        request: interface.CreateMarkingRequest,
-        token: str = fastapi.Security(api_key_header),
-    ) -> server.APIOkResponse[interface.CreateMarkingResponse]:
-        response = self.actions.create_marking(request)
-        return server.APIOkResponse(data=response)
-
     def get_crossmatch_records(
         self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
     ) -> server.APIOkResponse[interface.GetRecordsCrossmatchResponse]:
@@ -167,8 +159,7 @@ of the previously created table without any alterations.""",
                 http.HTTPMethod.PATCH,
                 api.patch_table,
                 "Patch table schema",
-                """Patches the schema of the table. Allows updating column metadata (UCD, unit, description) and 
-setting column modifiers. Modifiers are transformations applied to column values during the unification process.
+                """Patches the schema of the table. Allows updating column metadata (UCD, unit, description).
 
 Only provided fields will be updated; omitted fields will remain unchanged.
 
@@ -199,110 +190,6 @@ Only provided fields will be updated; omitted fields will remain unchanged.
         }
     }
 }
-```
-
-**Example 3**: Set a `map` modifier to convert categorical string values to numeric ones. 
-For instance, mapping morphological types to numeric codes:
-```json
-{
-    "table_name": "my_table",
-    "columns": {
-        "morph_type": {
-            "modifiers": [
-                {
-                    "name": "map",
-                    "params": {
-                        "mapping": [
-                            {"from": "E", "to": -5},
-                            {"from": "S0", "to": 0},
-                            {"from": "Sa", "to": 1},
-                            {"from": "Sb", "to": 3}
-                        ],
-                        "default": null
-                    }
-                }
-            ]
-        }
-    }
-}
-```
-
-**Example 4**: Set a `format` modifier to reformat string values using a Python format pattern:
-```json
-{
-    "table_name": "my_table",
-    "columns": {
-        "obj_id": {
-            "modifiers": [
-                {
-                    "name": "format",
-                    "params": {
-                        "pattern": "SDSS J{}"
-                    }
-                }
-            ]
-        }
-    }
-}
-```
-
-**Example 5**: Set an `add_unit` modifier to override the unit attached to a column during processing:
-```json
-{
-    "table_name": "my_table",
-    "columns": {
-        "velocity": {
-            "modifiers": [
-                {
-                    "name": "add_unit",
-                    "params": {
-                        "unit": "km/s"
-                    }
-                }
-            ]
-        }
-    }
-}
-```
-
-**Example 6**: Set a `constant` modifier to replace all values in a column with a fixed value:
-```json
-{
-    "table_name": "my_table",
-    "columns": {
-        "survey": {
-            "modifiers": [
-                {
-                    "name": "constant",
-                    "params": {
-                        "constant": "SDSS"
-                    }
-                }
-            ]
-        }
-    }
-}
-```
-
-**Example 7**: Combine metadata updates with modifiers in a single request:
-```json
-{
-    "table_name": "my_table",
-    "columns": {
-        "ra": {
-            "ucd": "pos.eq.ra",
-            "unit": "deg",
-            "modifiers": [
-                {
-                    "name": "add_unit",
-                    "params": {
-                        "unit": "hourangle"
-                    }
-                }
-            ]
-        }
-    }
-}
 ```""",
             ),
             server.Route(
@@ -311,90 +198,6 @@ For instance, mapping morphological types to numeric codes:
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
-            ),
-            server.Route(
-                "/v1/marking",
-                http.HTTPMethod.POST,
-                api.create_marking,
-                "New marking rules for the table",
-                """Creates new marking rules to map the columns in the table to catalog parameters. 
-For a given table a marking would consist of the mapping between catalog parameters 
-and the columns from the original table.
-
-For example, if one wants to create a marking for a column `object_name` that designates the name of an object,
-they should create a catalog entry similar to the following:
-```json
-{
-    "name": "designation",
-    "parameters": {
-        "design": {
-            "column_name": "object_name"
-        }
-    }
-}
-```
-
-Here, `name` respresents the name of the catalog, keys of `parameters` map are parameter names and `column_name`
-values are actual names of the columns under question. **For now, only one column per parameter is supported.**
-
-It is possible to create several catalog entries for a single object, for example - is there are two columns
-that represent a name of an object. In that case we might want to upload both names to the database so it is
-easier to cross-identify and search these objects later. Another use case might be if there are several columns
-that represent photometric information in different filters. In that case one might want to create one entry
-for each of the magnitude columns.
-
-In that case you can specify several entries into `rules` list with different values of `key`. For example:
-
-```json
-{
-    "table_name": "my_table",
-    "rules": [
-        {
-            "name": "designation",
-            "parameters": {
-                "design": {
-                    "column_name": "object_name"
-                }
-            },
-            "key": "primary_name"
-        },
-        {
-            "name": "designation",
-            "parameters": {
-                "design": {
-                    "column_name": "secondary_object_name"
-                }
-            },
-            "key": "secondary_name"
-        }
-    ]
-}
-```
-
-The result of this would be two entries into the `designation` catalog for each object in the original table.
-
-This handler also supports additional parameters that are not present in the original table. For example, a
-table might not have a separate column for astrometric errors but from other sources you know that its error is
-0.1 degrees for right ascension and 0.5 degrees for declination. You can specify this in the
-`additional_params` field for each catalog:
-
-```json
-{
-    "name": "icrs",
-    "parameters": {
-        "ra": {
-            "column_name": "RAJ2000"
-        },
-        "dec": {
-            "column_name": "DEJ2000"
-        }
-    },
-    "additional_params": {
-        "e_ra": 0.1,
-        "e_dec": 0.5
-    }
-}
-```""",
             ),
             server.Route(
                 "/v1/records/crossmatch",

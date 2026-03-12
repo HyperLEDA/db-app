@@ -65,26 +65,3 @@ class TableStatistics:
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int
-
-
-@dataclass
-class HomogenizationRule:
-    catalog: str
-    parameter: str
-    filters: dict[str, str]
-    key: str = ""
-    priority: int | None = None
-
-
-@dataclass
-class HomogenizationParams:
-    catalog: str
-    params: dict[str, Any]
-    key: str = ""
-
-
-@dataclass
-class Modifier:
-    column_name: str
-    modifier_name: str
-    params: dict[str, Any]
