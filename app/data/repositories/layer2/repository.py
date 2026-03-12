@@ -7,6 +7,7 @@ import structlog
 from psycopg import rows
 
 from app.data import model
+from app.data.model.layer2 import Layer2CatalogObject
 from app.data.repositories.layer2 import filters as repofilters
 from app.data.repositories.layer2 import params
 from app.lib import containers
@@ -156,7 +157,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             conditions=" OR ".join(condition_statements),
         ), params
 
-    def query_batch(
+    def query_catalogs_batch(
         self,
         catalogs: list[model.RawCatalog],
         search_types: Mapping[str, repofilters.Filter],
@@ -220,13 +221,13 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         return result
 
-    def query_pgc(
+    def query_catalogs_pgc(
         self,
         catalogs: list[model.RawCatalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ):
+    ) -> list[Layer2CatalogObject]:
         if not catalogs:
             return []
 
@@ -275,7 +276,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         return self._group_by_pgc(objects)
 
-    def query(
+    def query_catalogs(
         self,
         catalogs: list[model.RawCatalog],
         filters: repofilters.Filter,
@@ -283,7 +284,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         limit: int,
         offset: int,
     ) -> list[model.Layer2CatalogObject]:
-        res = self.query_batch(catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset)
+        res = self.query_catalogs_batch(
+            catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset
+        )
 
         if "obj" not in res:
             return []

@@ -40,7 +40,7 @@ class ParameterizedQueryManager:
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         filters, search_params = self._build_filters_and_params(query)
 
-        objects = self.layer2_repo.query(
+        objects = self.layer2_repo.query_catalogs(
             self.enabled_catalogs,
             filters,
             search_params,
@@ -55,7 +55,7 @@ class ParameterizedQueryManager:
         filters, search_params = self._build_filters_and_params(query)
 
         if not query.pgcs:
-            objects = self.layer2_repo.query(
+            objects = self.layer2_repo.query_catalogs(
                 self.enabled_catalogs,
                 filters,
                 search_params,
@@ -63,7 +63,7 @@ class ParameterizedQueryManager:
                 query.page,
             )
         else:
-            objects = self.layer2_repo.query_pgc(
+            objects = self.layer2_repo.query_catalogs_pgc(
                 self.enabled_catalogs,
                 query.pgcs,
                 query.page_size,

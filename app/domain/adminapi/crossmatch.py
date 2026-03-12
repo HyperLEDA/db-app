@@ -210,7 +210,7 @@ class CrossmatchManager:
         if len(candidate_pgcs) == 0:
             return response
 
-        layer2_objects = self.layer2_repo.query_pgc(
+        layer2_objects = self.layer2_repo.query_catalogs_pgc(
             catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
             pgc_numbers=list(candidate_pgcs),
             limit=len(candidate_pgcs),

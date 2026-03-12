@@ -51,7 +51,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
             layer2.DesignationEqualsFilter("test"),
             layer2.CombinedSearchParams([]),
@@ -71,7 +71,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS],
             layer2.ICRSCoordinatesInRadiusFilter(10),
             layer2.ICRSSearchParams(12, 12),
@@ -100,7 +100,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
             layer2.DesignationEqualsFilter("test2"),
             layer2.CombinedSearchParams([]),
@@ -140,7 +140,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
             layer2.AndFilter(
                 [
@@ -181,7 +181,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS],
             layer2.ICRSCoordinatesInRadiusFilter(10),
             layer2.ICRSSearchParams(12, 12),
@@ -203,7 +203,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.common_repo.register_pgcs([1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
-        actual = self.layer2_repo.query_batch(
+        actual = self.layer2_repo.query_catalogs_batch(
             [model.RawCatalog.ICRS],
             {"icrs": layer2.ICRSCoordinatesInRadiusFilter(10)},
             {
@@ -294,7 +294,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         self.layer2_repo.remove_pgcs([model.RawCatalog.DESIGNATION], [1])
 
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
             layer2.DesignationEqualsFilter("d1"),
             layer2.CombinedSearchParams([]),
@@ -302,7 +302,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             0,
         )
         self.assertEqual(actual, [])
-        actual = self.layer2_repo.query(
+        actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
             layer2.DesignationEqualsFilter("d2"),
             layer2.CombinedSearchParams([]),
