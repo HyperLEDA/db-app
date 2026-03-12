@@ -32,6 +32,7 @@ class RawCatalog(enum.Enum):
 
     ICRS = "icrs"
     DESIGNATION = "designation"
+    ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
     NATURE = "nature"
 

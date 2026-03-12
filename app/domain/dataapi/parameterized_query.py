@@ -3,6 +3,14 @@ from app.data.repositories import layer2
 from app.domain import responders
 from app.presentation import dataapi
 
+CATALOGS_FOR_PGC_QUERY = [
+    model.RawCatalog.DESIGNATION,
+    model.RawCatalog.ADDITIONAL_DESIGNATIONS,
+    model.RawCatalog.ICRS,
+    model.RawCatalog.REDSHIFT,
+    model.RawCatalog.NATURE,
+]
+
 
 class ParameterizedQueryManager:
     def __init__(
@@ -55,7 +63,7 @@ class ParameterizedQueryManager:
         responder = responders.StructuredResponder(self.catalog_config)
         if query.pgcs:
             objects = self.layer2_repo.query_pgc(
-                self.enabled_catalogs,
+                CATALOGS_FOR_PGC_QUERY,
                 query.pgcs,
                 query.page_size,
                 query.page,

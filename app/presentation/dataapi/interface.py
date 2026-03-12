@@ -36,12 +36,25 @@ class Designation(pydantic.BaseModel):
     name: str
 
 
+class Source(pydantic.BaseModel):
+    bibcode: str
+    title: str
+    authors: list[str]
+    year: int
+
+
+class AdditionalDesignation(pydantic.BaseModel):
+    name: str
+    source: Source
+
+
 class Nature(pydantic.BaseModel):
     type_name: str
 
 
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
+    additional_designations: list[AdditionalDesignation] | None = None
     coordinates: Coordinates | None = None
     velocity: dict[str, AbsoluteVelocity] | None = None
     redshift: Redshift | None = None
@@ -129,9 +142,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
         if self.pgcs:
             filters = [self.ra, self.dec, self.radius, self.name, self.cz, self.cz_err_percent]
             if any(f is not None for f in filters):
-                raise ValueError(
-                    "When pgcs is specified, no other filters are allowed"
-                )
+                raise ValueError("When pgcs is specified, no other filters are allowed")
         return self
 
 

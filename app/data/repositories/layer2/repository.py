@@ -275,6 +275,34 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             if row.get("type_name") is not None
         }
 
+    def _query_additional_designations(self, pgcs: list[int]) -> dict[int, layer2_model.AdditionalDesignationsCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, design, code, year, author, title FROM layer2.designations "
+            "WHERE pgc = ANY(%s) ORDER BY pgc, design",
+            params=[pgcs],
+        )
+        result: dict[int, list[layer2_model.AdditionalDesignation]] = {}
+        for row in rows:
+            pgc = int(row["pgc"])
+            author_val = row.get("author")
+            authors = (
+                author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
+            )
+            source = layer2_model.Source(
+                bibcode=str(row["code"]) if row.get("code") is not None else "",
+                title=str(row["title"]) if row.get("title") is not None else "",
+                authors=authors,
+                year=int(row["year"]) if row.get("year") is not None else 0,
+            )
+            ad = layer2_model.AdditionalDesignation(
+                name=str(row["design"]) if row.get("design") is not None else "",
+                source=source,
+            )
+            result.setdefault(pgc, []).append(ad)
+        return {pgc: layer2_model.AdditionalDesignationsCatalog(names=names) for pgc, names in result.items()}
+
     def query_pgc(
         self,
         catalogs: list[model.RawCatalog],
@@ -291,12 +319,17 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         errgr = concurrency.ErrorGroup()
         designation_task: concurrency.TaskResult[dict[int, layer2_model.DesignationCatalog]] | None = None
+        additional_designations_task: (
+            concurrency.TaskResult[dict[int, layer2_model.AdditionalDesignationsCatalog]] | None
+        ) = None
         icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
         redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
         nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
 
         if model.RawCatalog.DESIGNATION in catalogs:
             designation_task = errgr.run(self._query_designations, pgcs_page)
+        if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs:
+            additional_designations_task = errgr.run(self._query_additional_designations, pgcs_page)
         if model.RawCatalog.ICRS in catalogs:
             icrs_task = errgr.run(self._query_icrs, pgcs_page)
         if model.RawCatalog.REDSHIFT in catalogs:
@@ -307,12 +340,23 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         errgr.wait()
 
         designation_map = designation_task.result() if designation_task is not None else {}
+        additional_designations_map = (
+            additional_designations_task.result() if additional_designations_task is not None else {}
+        )
         icrs_map = icrs_task.result() if icrs_task is not None else {}
         redshift_map = redshift_task.result() if redshift_task is not None else {}
         nature_map = nature_task.result() if nature_task is not None else {}
 
         return [
-            self._layer2_object_from_maps(pgc, catalogs, designation_map, icrs_map, redshift_map, nature_map)
+            self._layer2_object_from_maps(
+                pgc,
+                catalogs,
+                designation_map,
+                additional_designations_map,
+                icrs_map,
+                redshift_map,
+                nature_map,
+            )
             for pgc in pgcs_page
         ]
 
@@ -321,11 +365,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         pgc: int,
         catalogs: list[model.RawCatalog],
         designation_map: dict[int, layer2_model.DesignationCatalog],
+        additional_designations_map: dict[int, layer2_model.AdditionalDesignationsCatalog],
         icrs_map: dict[int, layer2_model.ICRSCatalog],
         redshift_map: dict[int, layer2_model.RedshiftCatalog],
         nature_map: dict[int, layer2_model.NatureCatalog],
     ) -> Layer2Object:
         designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
+        additional_designations = (
+            additional_designations_map.get(pgc) if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs else None
+        )
         icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
         redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
         nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
@@ -334,6 +382,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             pgc=pgc,
             catalogs=layer2_model.Catalogs(
                 designation=designation,
+                additional_designations=additional_designations,
                 icrs=icrs,
                 redshift=redshift,
                 nature=nature,

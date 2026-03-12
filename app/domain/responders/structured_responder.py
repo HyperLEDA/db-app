@@ -160,6 +160,20 @@ class StructuredResponder(interface.ObjectResponder):
             if obj.catalogs.designation is not None:
                 catalogs.designation = dataapi.Designation(name=obj.catalogs.designation.name)
 
+            if obj.catalogs.additional_designations is not None:
+                catalogs.additional_designations = [
+                    dataapi.AdditionalDesignation(
+                        name=ad.name,
+                        source=dataapi.Source(
+                            bibcode=ad.source.bibcode,
+                            title=ad.source.title,
+                            authors=ad.source.authors,
+                            year=ad.source.year,
+                        ),
+                    )
+                    for ad in obj.catalogs.additional_designations.names
+                ]
+
             icrs = obj.catalogs.icrs
             if icrs is not None:
                 ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
