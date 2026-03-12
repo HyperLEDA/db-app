@@ -3,7 +3,7 @@ from app.data.model.designation import DesignationCatalogObject
 from app.data.model.helpers import get_catalog_object_type
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import CatalogObject, MeasuredValue, RawCatalog, get_object
-from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.layer2 import Layer2Object
 from app.data.model.nature import NatureCatalogObject
 from app.data.model.records import (
     CrossmatchRecordRow,
@@ -40,7 +40,6 @@ __all__ = [
     "RedshiftRecord",
     "Record",
     "StructuredData",
-    "Layer2CatalogObject",
     "Layer2Object",
     "TableRecord",
     "RawCatalog",

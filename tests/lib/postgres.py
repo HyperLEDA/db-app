@@ -135,7 +135,12 @@ class TestPostgresStorage:
             "SELECT table_schema, table_name FROM information_schema.tables "
             "WHERE table_schema = 'layer2' OR table_schema = 'layer0'"
         ):
-            self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
+            try:
+                self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
+            except psycopg.Error as e:
+                logger.warning(
+                    "truncate skipped", schema=table["table_schema"], table=table["table_name"], error=str(e)
+                )
 
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'designation')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'icrs')")
