@@ -52,23 +52,23 @@ class ParameterizedQueryManager:
         return responder.build_response_from_catalog(objects)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
-        filters, search_params = self._build_filters_and_params(query)
-
         responder = responders.StructuredResponder(self.catalog_config)
-        if not query.pgcs:
-            objects = self.layer2_repo.query_catalogs(
+        if query.pgcs:
+            objects = self.layer2_repo.query_pgc(
                 self.enabled_catalogs,
-                filters,
-                search_params,
+                query.pgcs,
                 query.page_size,
                 query.page,
             )
-            return responder.build_response_from_catalog(objects)
+            return responder.build_response(objects)
 
-        objects = self.layer2_repo.query_pgc(
+        filters, search_params = self._build_filters_and_params(query)
+
+        objects = self.layer2_repo.query_catalogs(
             self.enabled_catalogs,
-            query.pgcs,
+            filters,
+            search_params,
             query.page_size,
             query.page,
         )
-        return responder.build_response(objects)
+        return responder.build_response_from_catalog(objects)

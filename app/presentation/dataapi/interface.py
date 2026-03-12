@@ -89,7 +89,7 @@ class Schema(pydantic.BaseModel):
 class QuerySimpleRequest(pydantic.BaseModel):
     pgcs: list[int] | None = pydantic.Field(
         default=None,
-        description="List of PGC numbers. If specified, all other filters will be ignored",
+        description="List of PGC numbers. If specified, no other filters are allowed",
     )
     ra: float | None = pydantic.Field(
         default=None,
@@ -123,6 +123,16 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=0,
         description="Page number",
     )
+
+    @pydantic.model_validator(mode="after")
+    def _pgcs_exclusive_with_filters(self) -> "QuerySimpleRequest":
+        if self.pgcs:
+            filters = [self.ra, self.dec, self.radius, self.name, self.cz, self.cz_err_percent]
+            if any(f is not None for f in filters):
+                raise ValueError(
+                    "When pgcs is specified, no other filters are allowed"
+                )
+        return self
 
 
 class QuerySimpleResponse(pydantic.BaseModel):
