@@ -7,10 +7,11 @@ import structlog
 from psycopg import rows
 
 from app.data import model
-from app.data.model.layer2 import Layer2CatalogObject
+from app.data.model import Layer2CatalogObject, Layer2Object
+from app.data.model import layer2 as layer2_model
 from app.data.repositories.layer2 import filters as repofilters
 from app.data.repositories.layer2 import params
-from app.lib import containers
+from app.lib import concurrency, containers
 from app.lib.storage import postgres
 
 catalogs = [
@@ -220,6 +221,124 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             result.append(layer2_obj)
 
         return result
+
+    def _query_designations(self, pgcs: list[int]) -> dict[int, layer2_model.DesignationCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, design FROM layer2.designation WHERE pgc = ANY(%s) ORDER BY pgc",
+            params=[pgcs],
+        )
+        return {int(row["pgc"]): layer2_model.DesignationCatalog(name=str(row["design"])) for row in rows}
+
+    def _query_icrs(self, pgcs: list[int]) -> dict[int, layer2_model.ICRSCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = ANY(%s) ORDER BY pgc",
+            params=[pgcs],
+        )
+        result: dict[int, layer2_model.ICRSCatalog] = {}
+        for row in rows:
+            if all(row.get(k) is not None for k in ("ra", "e_ra", "dec", "e_dec")):
+                result[int(row["pgc"])] = layer2_model.ICRSCatalog(
+                    ra=float(row["ra"]),
+                    e_ra=float(row["e_ra"]),
+                    dec=float(row["dec"]),
+                    e_dec=float(row["e_dec"]),
+                )
+        return result
+
+    def _query_redshift(self, pgcs: list[int]) -> dict[int, layer2_model.RedshiftCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, cz, e_cz FROM layer2.cz WHERE pgc = ANY(%s) ORDER BY pgc",
+            params=[pgcs],
+        )
+        return {
+            int(row["pgc"]): layer2_model.RedshiftCatalog(cz=float(row["cz"]), e_cz=float(row["e_cz"]))
+            for row in rows
+            if row.get("cz") is not None and row.get("e_cz") is not None
+        }
+
+    def _query_nature(self, pgcs: list[int]) -> dict[int, layer2_model.NatureCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, type_name FROM layer2.nature WHERE pgc = ANY(%s) ORDER BY pgc",
+            params=[pgcs],
+        )
+        return {
+            int(row["pgc"]): layer2_model.NatureCatalog(type_name=str(row["type_name"]))
+            for row in rows
+            if row.get("type_name") is not None
+        }
+
+    def query_pgc(
+        self,
+        catalogs: list[model.RawCatalog],
+        pgc_numbers: list[int],
+        limit: int,
+        offset: int = 0,
+    ) -> list[Layer2Object]:
+        if not catalogs or not pgc_numbers:
+            return []
+
+        pgcs_page = sorted(pgc_numbers)[offset : offset + limit]
+        if not pgcs_page:
+            return []
+
+        errgr = concurrency.ErrorGroup()
+        designation_task: concurrency.TaskResult[dict[int, layer2_model.DesignationCatalog]] | None = None
+        icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
+        redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
+        nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
+
+        if model.RawCatalog.DESIGNATION in catalogs:
+            designation_task = errgr.run(self._query_designations, pgcs_page)
+        if model.RawCatalog.ICRS in catalogs:
+            icrs_task = errgr.run(self._query_icrs, pgcs_page)
+        if model.RawCatalog.REDSHIFT in catalogs:
+            redshift_task = errgr.run(self._query_redshift, pgcs_page)
+        if model.RawCatalog.NATURE in catalogs:
+            nature_task = errgr.run(self._query_nature, pgcs_page)
+
+        errgr.wait()
+
+        designation_map = designation_task.result() if designation_task is not None else {}
+        icrs_map = icrs_task.result() if icrs_task is not None else {}
+        redshift_map = redshift_task.result() if redshift_task is not None else {}
+        nature_map = nature_task.result() if nature_task is not None else {}
+
+        return [
+            self._layer2_object_from_maps(pgc, catalogs, designation_map, icrs_map, redshift_map, nature_map)
+            for pgc in pgcs_page
+        ]
+
+    def _layer2_object_from_maps(
+        self,
+        pgc: int,
+        catalogs: list[model.RawCatalog],
+        designation_map: dict[int, layer2_model.DesignationCatalog],
+        icrs_map: dict[int, layer2_model.ICRSCatalog],
+        redshift_map: dict[int, layer2_model.RedshiftCatalog],
+        nature_map: dict[int, layer2_model.NatureCatalog],
+    ) -> Layer2Object:
+        designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
+        icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
+        redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
+        nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
+
+        return Layer2Object(
+            pgc=pgc,
+            catalogs=layer2_model.Catalogs(
+                designation=designation,
+                icrs=icrs,
+                redshift=redshift,
+                nature=nature,
+            ),
+        )
 
     def query_catalogs_pgc(
         self,

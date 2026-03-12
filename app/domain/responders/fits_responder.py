@@ -87,7 +87,7 @@ def create_fits_hdul(objects: list[model.Layer2CatalogObject]) -> fits.HDUList:
 
 
 class FITSResponder(interface.ObjectResponder):
-    def build_response(self, objects: list[model.Layer2CatalogObject]) -> bytes:
+    def build_response_from_catalog(self, objects: list[model.Layer2CatalogObject]) -> bytes:
         hdul = create_fits_hdul(objects)
 
         with io.BytesIO() as f:

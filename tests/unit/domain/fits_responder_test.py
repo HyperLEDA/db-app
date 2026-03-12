@@ -111,7 +111,7 @@ class FitsResponderTest(unittest.TestCase):
         self.responder = fits_responder.FITSResponder()
 
     def test_build_response(self):
-        fits_data = self.responder.build_response(self.objects)
+        fits_data = self.responder.build_response_from_catalog(self.objects)
 
         self.assertIsInstance(fits_data, bytes)
         self.assertGreater(len(fits_data), 0)

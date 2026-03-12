@@ -49,7 +49,7 @@ class ParameterizedQueryManager:
         )
 
         responder = responders.FITSResponder()
-        return responder.build_response(objects)
+        return responder.build_response_from_catalog(objects)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         filters, search_params = self._build_filters_and_params(query)
@@ -71,4 +71,4 @@ class ParameterizedQueryManager:
             )
 
         responder = responders.StructuredResponder(self.catalog_config)
-        return responder.build_response(objects)
+        return responder.build_response_from_catalog(objects)
