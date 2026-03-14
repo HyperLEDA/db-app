@@ -1,7 +1,7 @@
 BEGIN;
 
-
-CREATE SCHEMA IF NOT EXISTS photsys ;
+CREATE SCHEMA IF NOT EXISTS photometry ;
+COMMENT ON SCHEMA photometry IS 'Catalog of the photometry';
 
 -----------------------------------------------
 --------- Spectral regions --------------------
@@ -21,9 +21,9 @@ CREATE SCHEMA IF NOT EXISTS photsys ;
 -----------------------------------------------
 ---------  Magnitude System Type --------------
 
-CREATE TYPE photsys.MagSysType AS ENUM ( 'Vega', 'AB', 'ST' ) ;
+CREATE TYPE photometry.MagSysType	AS ENUM ( 'Vega', 'AB', 'ST' ) ;
 
-COMMENT ON TYPE photsys.MagSysType	IS '{
+COMMENT ON TYPE photometry.MagSysType	IS '{
 "Vega" : "The Vega magnitude system uses the Vega as the standard star with an apparent magnitude of zero, regardless of the wavelength filter. The spectrum of Vega used to define this system is a composite spectrum of empirical and synthetic spectra (Bohlin & Gilliland, 2004AJ....127.3508B). m(Vega) = -2.5*log10(F/FVega), where F is flux of an object, and FVega is the calibrated spectrum of Vega.",
 "AB" : "The AB magnitude system uses flat reference spectrum in frequency space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic AB magnitude is defined as m(AB) = 8.9 -2.5*log10(Fv[Jy]) = -48.6 -2.5*log10(Fv[erg s^−1 cm^−2 Hz^−1]), where Fv is the spectral flux density.",
 "ST" : "The ST magnitude system uses flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^−1 cm^−2 Angstrom^−1]), where Flambda is the spectral flux density."
@@ -33,20 +33,20 @@ COMMENT ON TYPE photsys.MagSysType	IS '{
 -----------------------------------------------
 --------- Photometric systems -----------------
 
-CREATE TABLE photsys.photsys (
+CREATE TABLE photometry.systems (
   id	Text	PRIMARY KEY
 , description	Text	NOT NULL
 , bibcode	Char(19)	UNIQUE
 , svo_id	Text	UNIQUE
 ) ;
 
-COMMENT ON TABLE photsys.photsys	IS 'Photometric system' ;
-COMMENT ON COLUMN photsys.photsys.id	IS 'Photometric system ID' ;
-COMMENT ON COLUMN photsys.photsys.description	IS 'Description of the photometric system' ;
-COMMENT ON COLUMN photsys.photsys.bibcode	IS '{"description" : "ADS bibcode", "url" : "https://ui.adsabs.harvard.edu/abs/", "ucd" : "meta.ref.url"}' ;
-COMMENT ON COLUMN photsys.photsys.svo_id	IS '{"description" : "Query to the Spanish Virtual Observatory", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?", "ucd" : "meta.ref.url"}' ;
+COMMENT ON TABLE photometry.systems	IS 'Photometric system' ;
+COMMENT ON COLUMN photometry.systems.id	IS 'Photometric system ID' ;
+COMMENT ON COLUMN photometry.systems.description	IS 'Description of the photometric system' ;
+COMMENT ON COLUMN photometry.systems.bibcode	IS '{"description" : "ADS bibcode", "url" : "https://ui.adsabs.harvard.edu/abs/", "ucd" : "meta.ref.url"}' ;
+COMMENT ON COLUMN photometry.systems.svo_id	IS '{"description" : "Query to the Spanish Virtual Observatory", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?", "ucd" : "meta.ref.url"}' ;
 
-INSERT INTO photsys.photsys VALUES
+INSERT INTO photometry.systems VALUES
   ( 'UBVRIJHKL' , 'Johnson UBVRIJHKL photometric system' , '1965CoLPL...3...73J', 'gname=Generic&gname2=Johnson_UBVRIJHKL' )
 , ( 'Cousins' , 'Cousins (Rc,Ic) photometric system' , '1976MmRAS..81...25C', 'gname=Generic&gname2=Cousins' )
 , ( 'Bessell' , 'Bessell photometric system' , '1990PASP..102.1181B', 'gname=Generic&gname2=Bessell' )
@@ -81,76 +81,76 @@ INSERT INTO photsys.photsys VALUES
 
 
 -------------- Filter description ---------------
-CREATE TABLE photsys.bands (
+CREATE TABLE photometry.bands (
   id	text	PRIMARY KEY
 , name	text	NOT NULL
-, photsys	text	NOT NULL	REFERENCES photsys.photsys (id) ON DELETE restrict ON UPDATE cascade
+, photsys	text	NOT NULL	REFERENCES photometry.systems (id) ON DELETE restrict ON UPDATE cascade
 , waveref	real	NOT NULL
 , fwhm	real	NOT NULL
-, relext	real
+, extinction	real
 , svo_id	text	UNIQUE
 ) ;
-CREATE INDEX ON photsys.bands (waveref) ;
-CREATE INDEX ON photsys.bands (name) ;
-CREATE INDEX ON photsys.bands (photsys) ;
+CREATE INDEX ON photometry.bands (waveref) ;
+CREATE INDEX ON photometry.bands (name) ;
+CREATE INDEX ON photometry.bands (photsys) ;
 
-COMMENT ON TABLE photsys.bands	IS 'List of filters' ;
-COMMENT ON COLUMN photsys.bands.id 	IS 'Filter ID' ;
-COMMENT ON COLUMN photsys.bands.name	IS 'Common filter designation' ;
-COMMENT ON COLUMN photsys.bands.photsys	IS 'Photometric system' ;
-COMMENT ON COLUMN photsys.bands.waveref	IS 'The waveref wavelength of the filter transmission' ;
-COMMENT ON COLUMN photsys.bands.fwhm	IS 'The Full Width Half Maximum of the filter transmission' ;
-COMMENT ON COLUMN photsys.bands.relext	IS 'Relative extinction. Ratio between extintion at λref, Af, and visual extintion, Av' ;
-COMMENT ON COLUMN photsys.bands.svo_id	IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.url"}' ;
+COMMENT ON TABLE photometry.bands	IS 'List of filters' ;
+COMMENT ON COLUMN photometry.bands.id 	IS 'Filter ID' ;
+COMMENT ON COLUMN photometry.bands.name	IS 'Common filter designation' ;
+COMMENT ON COLUMN photometry.bands.photsys	IS 'Photometric system' ;
+COMMENT ON COLUMN photometry.bands.waveref	IS 'The reference wavelength of the filter transmission' ;
+COMMENT ON COLUMN photometry.bands.fwhm	IS 'The Full Width Half Maximum of the filter transmission' ;
+COMMENT ON COLUMN photometry.bands.extinction	IS 'Relative extinction. Ratio between extintion at λref, Af, and visual extintion, Av' ;
+COMMENT ON COLUMN photometry.bands.svo_id	IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.url"}' ;
 
 
 -------------- Calibrated properties -----------
-CREATE TABLE photsys.data (
+CREATE TABLE photometry.calib_bands (
   id	text	PRIMARY KEY
-, band	text	NOT NULL	REFERENCES photsys.bands (id) ON DELETE restrict ON UPDATE cascade
-, magsys	photsys.MagSysType
+, band	text	NOT NULL	REFERENCES photometry.bands (id) ON DELETE restrict ON UPDATE cascade
+, magsys	photometry.MagSysType
 , UNIQUE (band,magsys)
 ) ;
 
-COMMENT ON TABLE photsys.data	IS 'List of calibrated bands' ; 
-COMMENT ON COLUMN photsys.data.id	IS 'Calibrated band ID' ;
-COMMENT ON COLUMN photsys.data.band	IS 'Band ID' ;
-COMMENT ON COLUMN photsys.data.magsys	IS 'Magnitude system' ;
+COMMENT ON TABLE photometry.calib_bands	IS 'List of calibrated bands' ; 
+COMMENT ON COLUMN photometry.calib_bands.id	IS 'Calibrated band ID' ;
+COMMENT ON COLUMN photometry.calib_bands.band	IS 'Band ID' ;
+COMMENT ON COLUMN photometry.calib_bands.magsys	IS 'Magnitude system' ;
 
 
-CREATE VIEW photsys.dataview AS
-SELECT
-  d.*
-, b.name
-, b.waveref
-, b.fwhm
-, b.relext
-, b.svo_id
-, b.photsys
-, s.bibcode
-, s.description
-FROM
-  photsys.data AS d
-  LEFT JOIN photsys.bands AS b ON (b.id=d.band)
-  LEFT JOIN photsys.photsys AS s ON (s.id=b.photsys)
-;
-
-COMMENT ON VIEW photsys.dataview	IS 'Band list' ;
-COMMENT ON COLUMN photsys.dataview.id	IS 'Calibrated band ID' ;
-COMMENT ON COLUMN photsys.dataview.band	IS 'Band ID' ;
-COMMENT ON COLUMN photsys.dataview.magsys	IS 'Magnitude system' ;
-COMMENT ON COLUMN photsys.dataview.name	IS '{"description":"Common filter designation","ucd":"instr.bandpass"}' ;
-COMMENT ON COLUMN photsys.dataview.photsys	IS 'Photometric system' ;
-COMMENT ON COLUMN photsys.dataview.waveref	IS '{"description":"Reference wavelength (pivot wavelength) of the filter transmission", "unit":"Angstrom", "ucd":"em.wl"}' ;
-COMMENT ON COLUMN photsys.dataview.fwhm	IS '{"description":"The Full Width Half Maximum of the filter transmission", "unit":"Angstrom", "ucd":"instr.bandwidth" }' ;
-COMMENT ON COLUMN photsys.dataview.relext	IS 'Relative extinction. Ratio between extintion at λref, Af, and visual extintion, Av' ;
-COMMENT ON COLUMN photsys.dataview.svo_id	IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.ivoid;meta.ref.url"}' ;
-COMMENT ON COLUMN photsys.dataview.description	IS 'Description of the photometric system' ;
-COMMENT ON COLUMN photsys.dataview.bibcode	IS '{"description" : "ADS bibcode", "url" : "https://ui.adsabs.harvard.edu/abs/", "ucd" : "meta.ref.url"}' ;
+-- CREATE VIEW photometry.calib_bandsview AS
+-- SELECT
+--   d.*
+-- , b.name
+-- , b.waveref
+-- , b.fwhm
+-- , b.extinction
+-- , b.svo_id
+-- , b.photsys
+-- , s.bibcode
+-- , s.description
+-- FROM
+--   photometry.calib_bands AS d
+--   LEFT JOIN photometry.bands AS b ON (b.id=d.band)
+--   LEFT JOIN photometry.systems AS s ON (s.id=b.photsys)
+-- ;
+-- 
+-- COMMENT ON VIEW photometry.calib_bandsview	IS 'Band list' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.id	IS 'Calibrated band ID' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.band	IS 'Band ID' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.magsys	IS 'Magnitude system' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.name	IS '{"description":"Common filter designation","ucd":"instr.bandpass"}' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.photsys	IS 'Photometric system' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.waveref	IS '{"description":"Reference wavelength (pivot wavelength) of the filter transmission", "unit":"Angstrom", "ucd":"em.wl"}' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.fwhm	IS '{"description":"The Full Width Half Maximum of the filter transmission", "unit":"Angstrom", "ucd":"instr.bandwidth" }' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.extinction	IS 'Relative extinction. Ratio between extintion at λref, Af, and visual extintion, Av' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.svo_id	IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.ivoid;meta.ref.url"}' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.description	IS 'Description of the photometric system' ;
+-- COMMENT ON COLUMN photometry.calib_bandsview.bibcode	IS '{"description" : "ADS bibcode", "url" : "https://ui.adsabs.harvard.edu/abs/", "ucd" : "meta.ref.url"}' ;
 
 
 --------------- DATA -----------------
-COPY photsys.bands (id,name,photsys,waveref,fwhm,relext,svo_id) FROM STDIN;
+COPY photometry.bands (id,name,photsys,waveref,fwhm,extinction,svo_id) FROM STDIN;
 FUV	FUV	GALEX	1535.08	233.93	2.62759	GALEX/GALEX.FUV
 NUV	NUV	GALEX	2300.78	795.19	2.85878	GALEX/GALEX.NUV
 UVW2	UVW2	Swift	2054.61	584.89	2.99964	Swift/UVOT.UVW2
@@ -256,7 +256,7 @@ In	In	GSC2	6793.20	2132.52	0.76550	Palomar/GSC2.In
 \.
 
 
-COPY photsys.data (id,band,magsys) FROM STDIN;
+COPY photometry.calib_bands (id,band,magsys) FROM STDIN;
 FUV	FUV	AB
 NUV	NUV	AB
 UVW2	UVW2	Vega
