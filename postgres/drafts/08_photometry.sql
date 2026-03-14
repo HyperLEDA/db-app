@@ -32,8 +32,9 @@ CREATE TABLE photometry.total (
 , method	photometry.MagMethodType	NOT NULL	CHECK ( method IN ('psf', 'visual', 'asymptotic', 'model', 'petrosian', 'kron') )
 , PRIMARY KEY (record_id, method, band)
 );
-CREATE INDEX IF NOT EXISTS ON photometry.total (band) ;
-CREATE INDEX IF NOT EXISTS ON photometry.total (method) ;
+CREATE INDEX ON photometry.total (record_id) ;
+CREATE INDEX ON photometry.total (band) ;
+CREATE INDEX ON photometry.total (method) ;
 
 COMMENT ON TABLE photometry.total	IS 'Catalog of the total magnitudes';
 COMMENT ON COLUMN photometry.total.record_id	IS 'Record ID';
@@ -49,11 +50,11 @@ CREATE TABLE photometry.isophotal (
 , mag	real	NOT NULL	CHECK ( mag > -1 and mag < 30 )
 , e_mag	real	CHECK ( e_mag > 0 and e_mag < 0.5 )
 , isophote	real	NOT NULL	CHECK ( mag > -1 and mag < 30 )
-, PRIMARY KEY (record_id, method, band, isophote)
+, PRIMARY KEY (record_id, band, isophote)
 );
-CREATE INDEX IF NOT EXISTS ON photometry.total (band) ;
-CREATE INDEX IF NOT EXISTS ON photometry.total (method) ;
-CREATE INDEX IF NOT EXISTS ON photometry.total (isophote) ;
+CREATE INDEX ON photometry.isophotal (record_id) ;
+CREATE INDEX ON photometry.isophotal (band) ;
+CREATE INDEX ON photometry.isophotal (isophote) ;
 
 COMMENT ON TABLE photometry.isophotal	IS 'Catalog of the isophotal magnitudes';
 COMMENT ON COLUMN photometry.isophotal.record_id	IS 'Record ID';
