@@ -98,7 +98,7 @@ COMMENT ON TABLE photsys.bands	IS 'List of filters' ;
 COMMENT ON COLUMN photsys.bands.id 	IS 'Filter ID' ;
 COMMENT ON COLUMN photsys.bands.name	IS 'Common filter designation' ;
 COMMENT ON COLUMN photsys.bands.photsys	IS 'Photometric system' ;
-COMMENT ON COLUMN photsys.bands.waveref	IS 'The waveref wavelength of the filter transmission' ;
+COMMENT ON COLUMN photsys.bands.waveref	IS 'The reference wavelength of the filter transmission' ;
 COMMENT ON COLUMN photsys.bands.fwhm	IS 'The Full Width Half Maximum of the filter transmission' ;
 COMMENT ON COLUMN photsys.bands.relext	IS 'Relative extinction. Ratio between extintion at λref, Af, and visual extintion, Av' ;
 COMMENT ON COLUMN photsys.bands.svo_id	IS '{"description" : "The Spanish Virtual Observatory filter ID", "url" : "http://svo2.cab.inta-csic.es/theory/fps/index.php?id=", "ucd" : "meta.ref.url"}' ;
