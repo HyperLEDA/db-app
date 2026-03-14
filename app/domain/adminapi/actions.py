@@ -2,6 +2,7 @@ from typing import final
 
 from app.data import repositories
 from app.domain.adminapi import crossmatch, layer1_write, login, sources, table_upload
+from app.domain.adminapi.cache_registry import CacheRegistry
 from app.lib import auth, clients
 from app.presentation import adminapi
 
@@ -16,10 +17,13 @@ class Actions(adminapi.Actions):
         layer2_repo: repositories.Layer2Repository,
         authenticator: auth.Authenticator,
         clients: clients.Clients,
+        cache_registry: CacheRegistry,
     ):
         self.source_manager = sources.SourceManager(common_repo)
         self.login_manager = login.LoginManager(authenticator)
-        self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, layer1_repo, clients)
+        self.table_upload_manager = table_upload.TableUploadManager(
+            common_repo, layer0_repo, layer1_repo, clients, cache_registry
+        )
         self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer1_repo, layer2_repo)
         self.layer1_writer = layer1_write.Layer1Writer(layer1_repo)
 

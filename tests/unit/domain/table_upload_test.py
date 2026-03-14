@@ -22,6 +22,7 @@ class TableUploadManagerTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=mock.MagicMock(),
             clients=clients.get_mock_clients(),
+            cache_registry=lib.get_mock_cache_registry(),
         )
 
     def test_add_data(self):
@@ -147,6 +148,7 @@ class GetSourceIDTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=mock.MagicMock(),
             clients=clients.get_mock_clients(),
+            cache_registry=lib.get_mock_cache_registry(),
         )
 
     @parameterized.expand(
@@ -270,6 +272,7 @@ class GetRecordsTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=layer1_repo,
             clients=clients.get_mock_clients(),
+            cache_registry=lib.get_mock_cache_registry(),
         )
 
     def test_get_records_returns_records_with_pgc(self) -> None:

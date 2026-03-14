@@ -20,8 +20,13 @@ class CreateTableTest(unittest.TestCase):
 
         cls.source_manager = domain.SourceManager(cls.common_repo)
         cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cache_registry = lib.get_cache_registry(cls.layer0_repo)
         cls.upload_manager = domain.TableUploadManager(
-            cls.common_repo, cls.layer0_repo, cls.layer1_repo, clients.get_mock_clients()
+            cls.common_repo,
+            cls.layer0_repo,
+            cls.layer1_repo,
+            clients.get_mock_clients(),
+            cache_registry,
         )
 
     def tearDown(self):
