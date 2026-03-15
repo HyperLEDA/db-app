@@ -27,11 +27,11 @@ COMMENT ON COLUMN isophote.data.band	IS '{"description":"Calibrated passband ID"
 COMMENT ON COLUMN isophote.data.isophote	IS '{"description":"Isophote level",, "unit":"mag/arcmin2", "ucd":"phot.mag.sb"}' ;
 COMMENT ON COLUMN isophote.data.mag	IS '{"description":"Isophotal magnitude", "unit":"mag", "ucd":"phot.mag"}';
 COMMENT ON COLUMN isophote.data.e_mag	IS '{"description":"Error of the isophotal magnitude", "unit":"mag", "ucd":"stat.error;phot.mag"}';
-COMMENT ON COLUMN isophote.data.a	IS '{"description":"Semi-major axis length at the given isophote", "unit":"arcsec", "ucd":"phys.angSize.smajAxis"}'
-COMMENT ON COLUMN isophote.data.e_a	IS '{"description":"Error of the semi-major axis length at the given isophote", "unit":"arcsec", "ucd":"stat.error;phys.angSize.smajAxis"}'
-COMMENT ON COLUMN isophote.data.b	IS '{"description":"Semi-minor axis length at the given isophote", "unit":"arcsec", "ucd":"phys.angSize.sminAxis"}'
-COMMENT ON COLUMN isophote.data.e_b	IS '{"description":"Error of the semi-minor axis length at the given isophote", "unit":"arcsec", "ucd":"stat.error;phys.angSize.sminAxis"}'
-COMMENT ON COLUMN isophote.data.pa	IS '{"description":"Position angle (measured east of north)", "unit":"deg", "ucd":"pos.posAng"}'
-COMMENT ON COLUMN isophote.data.e_pa	IS '{"description":"Error of the position angle", "unit":"deg", "ucd":"stat.error;pos.posAng"}'
+COMMENT ON COLUMN isophote.data.a	IS '{"description":"Semi-major axis length at the given isophote", "unit":"arcsec", "ucd":"phys.angSize.smajAxis"}';
+COMMENT ON COLUMN isophote.data.e_a	IS '{"description":"Error of the semi-major axis length at the given isophote", "unit":"arcsec", "ucd":"stat.error;phys.angSize.smajAxis"}';
+COMMENT ON COLUMN isophote.data.b	IS '{"description":"Semi-minor axis length at the given isophote", "unit":"arcsec", "ucd":"phys.angSize.sminAxis"}';
+COMMENT ON COLUMN isophote.data.e_b	IS '{"description":"Error of the semi-minor axis length at the given isophote", "unit":"arcsec", "ucd":"stat.error;phys.angSize.sminAxis"}';
+COMMENT ON COLUMN isophote.data.pa	IS '{"description":"Position angle (measured east of north)", "unit":"deg", "ucd":"pos.posAng"}';
+COMMENT ON COLUMN isophote.data.e_pa	IS '{"description":"Error of the position angle", "unit":"deg", "ucd":"stat.error;pos.posAng"}';
 
 COMMIT;
