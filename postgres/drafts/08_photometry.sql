@@ -20,8 +20,8 @@ BEGIN;
 --     -> Rkron -> aperture -> magKron
 ------------------------------------------------------------------
 
-CREATE TYPE photometry.MagMethodType AS ENUM ( 'psf', 'visual', 'aperture', 'isophotal', 'asymptotic', 'model', 'petrosian', 'kron' ) ;
-COMMENT ON TYPE photometry.MagMethodType IS '{ "psf":"Point Spread Function photometry for the point source", "visual":"Visual estimate", "aperture":"Aperture photometry", "isophotal":"Magnitude measurement inside a specified isophote", "asymptotic":"Asymptotic (extrapolated) magnitude when the aperture size -> Inf", "model":"Best fit model of the light distribution", "petrosian":"Petrosian adaptively scaled aperture", "kron":"Kron adaptively scaled aperture" }' ;
+CREATE TYPE photometry.MagMethodType AS ENUM ( 'psf', 'visual', 'moments', 'aperture', 'isophotal', 'asymptotic', 'model', 'petrosian', 'kron' ) ;
+COMMENT ON TYPE photometry.MagMethodType IS '{ "psf":"Point Spread Function photometry for the point source", "visual":"Visual estimate", "moments":"Second-order moments of the spatial spread of a source profile", "aperture":"Aperture photometry", "isophotal":"Magnitude measurement inside a specified isophote", "asymptotic":"Asymptotic (extrapolated) magnitude when the aperture size -> Inf", "model":"Best fit model of the light distribution", "petrosian":"Petrosian adaptively scaled aperture", "kron":"Kron adaptively scaled aperture" }' ;
 
 
 CREATE TABLE photometry.data (

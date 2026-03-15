@@ -11,7 +11,7 @@ CREATE TABLE isophote.data (
 , e_mag	real	CHECK ( e_mag > 0 and e_mag < 0.5 )
 , a	real	NOT NULL	CHECK (a>0)
 , e_a	real	CHECK (e_a>0)
-, b	real	NOT NULL	CHECK (b>0)
+, b	real	NOT NULL	CHECK (b<=a)
 , e_b	real	CHECK (e_b>0)
 , pa	real	NOT NULL	CHECK (pa>=0 and pa<180)
 , e_pa	real	CHECK (e_pa>0)
