@@ -17,6 +17,10 @@ check:
 	@uvx ruff check \
 		--quiet \
 		--config=pyproject.toml
+	@uv run pytest \
+		--quiet \
+		--config-file=pyproject.toml \
+		tests/env_test.py tests/unit
 
 fix:
 	@uvx ruff format \
@@ -96,10 +100,6 @@ cleanup:
 ## Testing
 
 # pytest is used to run unittest test cases
-test: check
-	uv run pytest --config-file=pyproject.toml tests/env_test.py
-	uv run pytest --config-file=pyproject.toml tests/unit
-
 test-all: check
 	@uv run pytest \
 		--config-file=pyproject.toml \
