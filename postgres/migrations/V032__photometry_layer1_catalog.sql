@@ -1,19 +1,19 @@
 CREATE SCHEMA IF NOT EXISTS photometry ;
 SELECT meta.setparams('photometry', '{"description": "Photometry catalog"}');
 
-CREATE TYPE photometry.MagSysType	AS ENUM ( 'Vega', 'AB', 'ST' ) ;
+CREATE TYPE photometry.mag_sys_type AS ENUM ( 'Vega', 'AB', 'ST' ) ;
 
-COMMENT ON TYPE photometry.MagSysType IS '{
+COMMENT ON TYPE photometry.mag_sys_type IS '{
 "Vega" : "The Vega magnitude system uses Vega as the standard star with an apparent magnitude of zero, regardless of the wavelength filter. The spectrum of Vega used to define this system is a composite spectrum of empirical and synthetic spectra (Bohlin & Gilliland, 2004AJ....127.3508B). m(Vega) = -2.5*log10(F/FVega), where F is the flux of an object and FVega is the calibrated spectrum of Vega.",
 "AB" : "The AB magnitude system uses a flat reference spectrum in frequency space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic AB magnitude is defined as m(AB) = 8.9 -2.5*log10(Fv[Jy]) = -48.6 -2.5*log10(Fv[erg s^−1 cm^−2 Hz^−1]), where Fv is the spectral flux density.",
 "ST" : "The ST magnitude system uses a flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^−1 cm^−2 Angstrom^−1]), where Flambda is the spectral flux density."
 }' ;
 
 CREATE TABLE photometry.systems (
-  id	Text	PRIMARY KEY
-, description	Text	NOT NULL
-, bibcode	Char(19)	UNIQUE
-, svo_id	Text	UNIQUE
+  id	text	PRIMARY KEY
+, description	text	NOT NULL
+, bibcode	char(19)	UNIQUE
+, svo_id	text	UNIQUE
 ) ;
 
 SELECT meta.setparams('photometry', 'systems', '{"description": "Photometric systems"}');
