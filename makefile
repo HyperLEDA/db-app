@@ -5,6 +5,14 @@ install-dev:
 	uv sync --all-extras
 
 check:
+	@output=$$(copier check-update --answers-file .template.yaml 2>&1) || true; \
+	if echo "$$output" | grep -q "up-to-date"; then \
+		true; \
+	elif echo "$$output" | grep -q "New template version"; then \
+		echo "Template update available, run make update-template"; \
+	else \
+		echo "$$output"; \
+	fi
 	@find . \
 		-name "*.py" \
 		-not -path "./.venv/*" \
@@ -17,6 +25,10 @@ check:
 	@uvx ruff check \
 		--quiet \
 		--config=pyproject.toml
+	@uv run pytest \
+		--quiet \
+		--config-file=pyproject.toml \
+		tests/env_test.py tests/unit
 
 fix:
 	@uvx ruff format \
@@ -31,6 +43,15 @@ fix:
 build:
 	docker build . \
 		--platform linux/arm64
+
+new-branch:
+	@read -p "Branch name: " branch_name && \
+	branch_name=$${branch_name// /-} && \
+	base=$$(git remote show origin | sed -n '/HEAD branch/s/.*: //p') && \
+	echo "Selecting $$base branch as default" && \
+	git fetch origin $$base && \
+	git checkout -b $$branch_name origin/$$base && \
+	git push -u origin $$branch_name
 
 update-template:
 	copier update \
@@ -96,10 +117,6 @@ cleanup:
 ## Testing
 
 # pytest is used to run unittest test cases
-test: check
-	uv run pytest --config-file=pyproject.toml tests/env_test.py
-	uv run pytest --config-file=pyproject.toml tests/unit
-
 test-all: check
 	@uv run pytest \
 		--config-file=pyproject.toml \

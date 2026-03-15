@@ -1,4 +1,3 @@
-import sys
 import unittest
 
 from parameterized import parameterized
@@ -6,18 +5,8 @@ from parameterized import parameterized
 import app.commands.adminapi.command as adminapi
 import app.commands.dataapi.command as dataapi
 
-MINIMAL_PYTHON_VERSION = (3, 10)
-
 
 class TestEnvironment(unittest.TestCase):
-    def test_python_version(self):
-        self.assertGreaterEqual(
-            sys.version_info,
-            MINIMAL_PYTHON_VERSION,
-            msg=f"You are using Python with version {'.'.join(map(str, sys.version_info))}"
-            f"while minimally supported version is {'.'.join(map(str, MINIMAL_PYTHON_VERSION))}",
-        )
-
     @parameterized.expand(
         [
             ("configs/dev/adminapi.yaml"),

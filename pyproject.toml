@@ -53,8 +53,14 @@ test = [
     "testcontainers-postgres>=0.0.1rc1",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "-W ignore::DeprecationWarning"
+testpaths = ["tests"]
+
 [tool.ruff]
 line-length = 120
+src = ["."]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -86,18 +92,16 @@ select = [
     "PLE",
     "FLY",
     "NPY201",
-    "ARG001"
+    "ARG001",
+    "PLC0415",
+    "S101",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = [
     "F403", # ignore star imports warning in __init__ files
 ]
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-addopts = "-W ignore::DeprecationWarning"
-testpaths = ["tests"]
+"tests/**" = ["S101"]
 
 [[tool.mypy.overrides]]
 module = "astropy.*"
