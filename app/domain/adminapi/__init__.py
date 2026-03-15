@@ -1,4 +1,5 @@
 from app.domain.adminapi.actions import Actions
+from app.domain.adminapi.cache_registry import CacheRegistry
 from app.domain.adminapi.crossmatch import CrossmatchManager
 from app.domain.adminapi.login import LoginManager
 from app.domain.adminapi.mock import get_mock_actions
@@ -7,6 +8,7 @@ from app.domain.adminapi.table_upload import TableUploadManager
 
 __all__ = [
     "Actions",
+    "CacheRegistry",
     "CrossmatchManager",
     "get_mock_actions",
     "LoginManager",

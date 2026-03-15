@@ -1,3 +1,5 @@
+import threading
+from datetime import timedelta
 from pathlib import Path
 from typing import final
 
@@ -6,9 +8,11 @@ import pydantic_settings as settings
 import structlog
 import yaml
 
-from app.data import repositories
+from app.data import model, repositories
 from app.domain import adminapi as domain
+from app.domain.adminapi import CacheRegistry
 from app.lib import auth, clients, commands, config, tracing
+from app.lib.cache import BackgroundCache
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import middlewares, server
@@ -36,13 +40,31 @@ class AdminAPICommand(commands.Command):
 
         authenticator = auth.PostgresAuthenticator(self.pg_storage)
 
+        layer0_repo = repositories.Layer0Repository(self.pg_storage, log)
+
+        def refresh_rawdata_row_counts() -> model.RawdataTableRowCounts:
+            names = layer0_repo.list_tables()
+            return model.RawdataTableRowCounts(rows_by_table={name: layer0_repo.total_rows(name) for name in names})
+
+        rawdata_row_counts: BackgroundCache[model.RawdataTableRowCounts] = BackgroundCache(
+            name="rawdata_table_row_counts",
+            refresh_func=refresh_rawdata_row_counts,
+            refresh_frequency=timedelta(minutes=1),
+            refresh_timeout=timedelta(seconds=30),
+        )
+        cache_thread = threading.Thread(target=rawdata_row_counts.run, daemon=True)
+        cache_thread.start()
+
+        cache_registry = CacheRegistry(rawdata_row_counts=rawdata_row_counts)
+
         actions = domain.Actions(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
-            layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
+            layer0_repo=layer0_repo,
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
             authenticator=authenticator,
             clients=clients.Clients(cfg.clients.ads_token),
+            cache_registry=cache_registry,
         )
 
         self.app = presentation.Server(actions, cfg.server, log)
