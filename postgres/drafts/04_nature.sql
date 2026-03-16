@@ -15,13 +15,6 @@ CREATE TABLE nature.datasets (
 ) ;
 
 
-CREATE TABLE nature.data (
-  record_id	Text PRIMARY KEY REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
-, objtype	Text NOT NULL REFERENCES nature.objectType(objtype) ON UPDATE cascade ON DELETE restrict
-, dataset_id	Integer NOT NULL REFERENCES nature.datasets(id) ON DELETE restrict ON UPDATE cascade
-) ;
-
-
 CREATE VIEW nature.dataview AS
 SELECT
   r.pgc
