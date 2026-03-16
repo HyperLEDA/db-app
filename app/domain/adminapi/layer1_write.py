@@ -39,7 +39,10 @@ class Layer1Writer:
             converted.append(new_row)
 
         try:
-            self._layer1_repo.save_structured_data(table, request.columns, request.ids, converted)
+            conflict_keys = object_cls.layer1_primary_keys()
+            self._layer1_repo.save_structured_data(
+                table, request.columns, request.ids, converted, conflict_keys=conflict_keys
+            )
         except psycopg.errors.ForeignKeyViolation as e:
             diag = getattr(e, "diag", None)
             detail = getattr(diag, "message_detail", None) if diag else None
