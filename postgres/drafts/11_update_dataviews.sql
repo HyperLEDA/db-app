@@ -12,7 +12,7 @@ SELECT
 , t.status
 
 , t.bib
-, b.code AS bibcode
+, b.code
 , b.year
 , b.author
 , b.title
@@ -42,7 +42,7 @@ SELECT
   d.ra
 , d.dec
 , d.e_ra
-, d._dec
+, d.e_dec
 , r.*
 FROM
   icrs.data AS d
@@ -65,7 +65,7 @@ SELECT
   r.pgc
 , d.design
 , r.bib
-, r.code AS bibcode
+, r.code
 , r.year
 , r.author
 , r.title
