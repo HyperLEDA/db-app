@@ -35,6 +35,7 @@ class RawCatalog(enum.Enum):
     ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
     NATURE = "nature"
+    PHOTOMETRY = "photometry"
 
 
 class CatalogObject(abc.ABC):
@@ -55,6 +56,10 @@ class CatalogObject(abc.ABC):
     @abc.abstractmethod
     def layer1_keys(cls) -> list[str]:
         pass
+
+    @classmethod
+    def layer1_primary_keys(cls) -> list[str]:
+        return ["record_id"]
 
     @classmethod
     @abc.abstractmethod

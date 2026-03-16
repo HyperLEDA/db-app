@@ -22,13 +22,23 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         return {row["column_name"]: row["unit"] for row in rows}
 
-    def save_structured_data(self, table: str, columns: list[str], ids: list[str], data: list[list[Any]]) -> None:
+    def save_structured_data(
+        self,
+        table: str,
+        columns: list[str],
+        ids: list[str],
+        data: list[list[Any]],
+        conflict_keys: list[str] | None = None,
+    ) -> None:
+        if conflict_keys is None:
+            conflict_keys = ["record_id"]
         all_columns = ["record_id"] + columns
         placeholders = ",".join(["%s"] * len(all_columns))
-        on_conflict = ", ".join(f"{c} = EXCLUDED.{c}" for c in all_columns)
+        update_columns = [c for c in all_columns if c not in conflict_keys]
+        on_conflict_set = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_columns)
         query = (
             f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) "
-            f"ON CONFLICT (record_id) DO UPDATE SET {on_conflict}"
+            f"ON CONFLICT ({', '.join(conflict_keys)}) DO UPDATE SET {on_conflict_set}"
         )
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():

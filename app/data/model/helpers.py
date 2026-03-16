@@ -1,4 +1,4 @@
-from app.data.model import designation, icrs, interface, nature, redshift
+from app.data.model import designation, icrs, interface, nature, photometry, redshift
 
 
 def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.CatalogObject]:
@@ -10,5 +10,7 @@ def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.Cat
         return redshift.RedshiftCatalogObject
     if catalog == interface.RawCatalog.NATURE:
         return nature.NatureCatalogObject
+    if catalog == interface.RawCatalog.PHOTOMETRY:
+        return photometry.PhotometryCatalogObject
 
     raise ValueError(f"Unknown catalog: {catalog}")

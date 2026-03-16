@@ -25,6 +25,9 @@ TABLE2_RADIUS = 20 / 3600
 TABLE2_RA_CENTER = random.uniform(TABLE2_RADIUS, 360 - TABLE2_RADIUS)
 TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 
+PHOTOMETRY_BANDS = ["V", "B", "R"]
+PHOTOMETRY_METHOD = "psf"
+
 
 @lib.test_logging_decorator
 def create_bibliography(session: requests.Session) -> str:
@@ -148,6 +151,25 @@ def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -
         data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in orig],
     )
     response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+    phot_ids = []
+    phot_data = []
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            phot_ids.append(rid)
+            mag = random.uniform(5.0, 25.0)
+            e_mag = random.uniform(0.01, 0.3)
+            phot_data.append([band, mag, e_mag, PHOTOMETRY_METHOD])
+
+    photometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="photometry",
+        columns=["band", "mag", "e_mag", "method"],
+        units={"mag": "mag", "e_mag": "mag"},
+        ids=phot_ids,
+        data=phot_data,
+    )
+    response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
     response.raise_for_status()
 
 
