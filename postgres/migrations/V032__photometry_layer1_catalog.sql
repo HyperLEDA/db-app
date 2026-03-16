@@ -5,8 +5,8 @@ CREATE TYPE photometry.mag_sys_type AS ENUM ( 'Vega', 'AB', 'ST' ) ;
 
 COMMENT ON TYPE photometry.mag_sys_type IS '{
   "Vega" : "The Vega magnitude system uses Vega as the standard star with an apparent magnitude of zero, regardless of the wavelength filter. The spectrum of Vega used to define this system is a composite spectrum of empirical and synthetic spectra (Bohlin & Gilliland, 2004AJ....127.3508B). m(Vega) = -2.5*log10(F/FVega), where F is the flux of an object and FVega is the calibrated spectrum of Vega.",
-  "AB" : "The AB magnitude system uses a flat reference spectrum in frequency space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic AB magnitude is defined as m(AB) = 8.9 -2.5*log10(Fv[Jy]) = -48.6 -2.5*log10(Fv[erg s^−1 cm^−2 Hz^−1]), where Fv is the spectral flux density.",
-  "ST" : "The ST magnitude system uses a flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^−1 cm^−2 Angstrom^−1]), where Flambda is the spectral flux density."
+  "AB" : "The AB magnitude system uses a flat reference spectrum in frequency space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic AB magnitude is defined as m(AB) = 8.9 -2.5*log10(Fv[Jy]) = -48.6 -2.5*log10(Fv[erg s^-1 cm^-2 Hz^-1]), where Fv is the spectral flux density.",
+  "ST" : "The ST magnitude system uses a flat reference spectrum in wavelength space. The conversion is chosen such that the V-magnitude corresponds roughly to that in the Johnson system. The monochromatic ST magnitude is defined as m(ST) = -21.1 -2.5*log10(Flambda[erg s^-1 cm^-2 Angstrom^-1]), where Flambda is the spectral flux density."
 }' ;
 
 CREATE TABLE photometry.systems (
@@ -78,10 +78,60 @@ SELECT meta.setparams('photometry', 'bands', 'name', 'description', 'Common filt
 SELECT meta.setparams('photometry', 'bands', 'photsys', 'description', 'Photometric system');
 SELECT meta.setparams('photometry', 'bands', 'waveref', 'description', 'Reference wavelength of the filter transmission');
 SELECT meta.setparams('photometry', 'bands', 'fwhm', 'description', 'Full width at half maximum of the filter transmission');
-SELECT meta.setparams('photometry', 'bands', 'extinction', 'description', 'Relative extinction: ratio between extinction at λref (Af) and visual extinction (Av)');
+SELECT meta.setparams('photometry', 'bands', 'extinction', 'description', 'Relative extinction: ratio between extinction at lambda_ref (Af) and visual extinction (Av)');
 SELECT meta.setparams('photometry', 'bands', 'svo_id', 'description', 'The Spanish Virtual Observatory filter ID');
 SELECT meta.setparams('photometry', 'bands', 'svo_id', 'url', 'http://svo2.cab.inta-csic.es/theory/fps/index.php?id=');
 SELECT meta.setparams('photometry', 'bands', 'svo_id', 'ucd', 'meta.ref.url');
+
+CREATE TYPE photometry.mag_method_type AS ENUM ( 'psf', 'visual', 'moments', 'aperture', 'isophotal', 'asymptotic', 'model', 'petrosian', 'kron' ) ;
+
+COMMENT ON TYPE photometry.mag_method_type IS '{
+  "psf" : "Point Spread Function photometry for the point source",
+  "visual" : "Visual estimate",
+  "moments" : "Second-order moments of the spatial spread of a source profile",
+  "aperture" : "Aperture photometry",
+  "isophotal" : "Magnitude measurement inside a specified isophote",
+  "asymptotic" : "Asymptotic (extrapolated) magnitude when the aperture size -> Inf",
+  "model" : "Best-fit model of the light distribution",
+  "petrosian" : "Petrosian adaptively scaled aperture",
+  "kron" : "Kron adaptively scaled aperture"
+}' ;
+
+CREATE TABLE photometry.calib_bands (
+  id	text	PRIMARY KEY
+, band	text	NOT NULL	REFERENCES photometry.bands (id) ON DELETE restrict ON UPDATE cascade
+, magsys	photometry.mag_sys_type
+, UNIQUE (band,magsys)
+) ;
+
+SELECT meta.setparams('photometry', 'calib_bands', '{"description": "List of calibrated bands"}');
+SELECT meta.setparams('photometry', 'calib_bands', 'id', 'description', 'Calibrated band ID');
+SELECT meta.setparams('photometry', 'calib_bands', 'band', 'description', 'Band ID');
+SELECT meta.setparams('photometry', 'calib_bands', 'magsys', 'description', 'Magnitude system');
+
+CREATE TABLE photometry.data (
+  record_id	text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
+, band	text	NOT NULL	REFERENCES photometry.calib_bands (id) ON DELETE restrict ON UPDATE cascade
+, mag	real	NOT NULL	CHECK ( mag > -1 and mag < 30 )
+, e_mag	real	CHECK ( e_mag > 0 and e_mag < 0.5 )
+, method	photometry.mag_method_type NOT NULL
+, PRIMARY KEY (record_id, method, band)
+) ;
+CREATE INDEX ON photometry.data (record_id) ;
+CREATE INDEX ON photometry.data (band) ;
+CREATE INDEX ON photometry.data (method) ;
+
+SELECT meta.setparams('photometry', 'data', '{"description": "Catalog of total magnitudes"}');
+SELECT meta.setparams('photometry', 'data', 'record_id', 'description', 'Record ID');
+SELECT meta.setparams('photometry', 'data', 'band', 'description', 'Calibrated passband ID');
+SELECT meta.setparams('photometry', 'data', 'band', 'ucd', 'instr.filter');
+SELECT meta.setparams('photometry', 'data', 'mag', 'description', 'Total (PSF, model, asymptotic, etc.) magnitude');
+SELECT meta.setparams('photometry', 'data', 'mag', 'unit', 'mag');
+SELECT meta.setparams('photometry', 'data', 'mag', 'ucd', 'phot.mag');
+SELECT meta.setparams('photometry', 'data', 'e_mag', 'description', 'Error of the total magnitude');
+SELECT meta.setparams('photometry', 'data', 'e_mag', 'unit', 'mag');
+SELECT meta.setparams('photometry', 'data', 'e_mag', 'ucd', 'stat.error;phot.mag');
+SELECT meta.setparams('photometry', 'data', 'method', 'description', 'Photometry method (PSF, Kron, etc.)');
 
 INSERT INTO photometry.bands (id,name,photsys,waveref,fwhm,extinction,svo_id) VALUES
   ('FUV','FUV','GALEX',1535.08,233.93,2.62759,'GALEX/GALEX.FUV'),
@@ -185,19 +235,7 @@ INSERT INTO photometry.bands (id,name,photsys,waveref,fwhm,extinction,svo_id) VA
   ('pv','pv','Holmberg',5500,1000,1.00201,NULL),
   ('Bj','Bj','GSC2',3384.97,1059.59,1.67600,'Palomar/GSC2.Bj'),
   ('Rf','Rf','GSC2',4992.74,647.10,1.13599,'Palomar/GSC2.Rf'),
-  ('In','In','GSC2',6793.20,2132.52,0.76550,'Palomar/GSC2.In')
-
-CREATE TABLE photometry.calib_bands (
-  id	text	PRIMARY KEY
-, band	text	NOT NULL	REFERENCES photometry.bands (id) ON DELETE restrict ON UPDATE cascade
-, magsys	photometry.MagSysType
-, UNIQUE (band,magsys)
-) ;
-
-SELECT meta.setparams('photometry', 'calib_bands', '{"description": "List of calibrated bands"}');
-SELECT meta.setparams('photometry', 'calib_bands', 'id', 'description', 'Calibrated band ID');
-SELECT meta.setparams('photometry', 'calib_bands', 'band', 'description', 'Band ID');
-SELECT meta.setparams('photometry', 'calib_bands', 'magsys', 'description', 'Magnitude system');
+  ('In','In','GSC2',6793.20,2132.52,0.76550,'Palomar/GSC2.In') ;
 
 INSERT INTO photometry.calib_bands (id,band,magsys)
 VALUES
@@ -345,4 +383,4 @@ VALUES
   ('pv', 'pv', 'Vega'),
   ('Bj', 'Bj', 'Vega'),
   ('Rf', 'Rf', 'Vega'),
-  ('In', 'In', 'Vega');
+  ('In', 'In', 'Vega') ;
