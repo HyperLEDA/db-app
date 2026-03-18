@@ -43,6 +43,7 @@ dev = [
     "types-pyyaml>=6.0.12.20241230",
     "types-regex>=2024.11.6.20241221",
     "fabric>=3.2.2",
+    "basedpyright>=1.38.3",
 ]
 
 [project.optional-dependencies]
@@ -96,6 +97,16 @@ select = [
     "PLC0415",
     "S101",
 ]
+
+[tool.basedpyright]
+typeCheckingMode = "off"
+
+reportUnreachable = "error"
+reportIgnoreCommentWithoutRule = "error"
+reportImplicitRelativeImport = "error"
+reportUnsafeMultipleInheritance = "error"
+reportUnusedParameter = "error"
+reportImplicitAbstractClass = "error"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = [

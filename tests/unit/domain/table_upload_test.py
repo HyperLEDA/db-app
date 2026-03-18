@@ -120,7 +120,7 @@ class TableUploadManagerTest(unittest.TestCase):
     )
     def test_create_table(
         self,
-        name: str,
+        _: str,
         request: presentation.CreateTableRequest,
         table_already_existed: bool = False,
         expected_created: bool = True,
@@ -244,7 +244,7 @@ class MappingTest(unittest.TestCase):
     )
     def test_mapping(
         self,
-        name: str,
+        _: str,
         input_columns: list[presentation.ColumnDescription],
         expected: list[model.ColumnDescription] | None = None,
         err_substr: str | None = None,

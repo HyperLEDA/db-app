@@ -44,5 +44,5 @@ class LayerTables0RepositoryTest(unittest.TestCase):
         self.assertEqual(list(fetched_data.columns), ["ra", "dec"])
 
         np.testing.assert_array_equal(fetched_data["ra"], test_data["ra"])
-        self.assertEqual(fetched_data["ra"].unit, u.Unit("hour"))  # type: ignore
+        self.assertEqual(fetched_data["ra"].unit, u.Unit("hour"))
         np.testing.assert_array_equal(fetched_data["dec"], test_data["dec"])
