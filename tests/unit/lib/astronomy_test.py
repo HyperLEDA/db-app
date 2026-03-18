@@ -113,7 +113,7 @@ class AstronomyTest(unittest.TestCase):
     )
     def test_apex_velocity_with_uncertainties(
         self,
-        _: str, # test name
+        _: str,
         vel,
         lon,
         lat,

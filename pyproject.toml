@@ -54,6 +54,9 @@ test = [
     "testcontainers-postgres>=0.0.1rc1",
 ]
 
+[tool.uv]
+config-settings = { editable_mode = "compat" }
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = "-W ignore::DeprecationWarning"
@@ -100,7 +103,36 @@ select = [
 
 [tool.basedpyright]
 typeCheckingMode = "off"
+venvPath = "."
+venv = ".venv"
 
+### warns
+reportDeprecated = "warning"
+reportIncompatibleMethodOverride = "warning"
+
+### pyright issues
+reportGeneralTypeIssues = "error"
+reportFunctionMemberAccess = "error"
+reportMissingImports = "error"
+reportMissingModuleSource = "error"
+reportInvalidTypeForm = "error"
+reportUnusedImport = "error"
+reportUnusedClass = "error"
+reportUnusedFunction = "error"
+reportUnusedVariable = "error"
+reportDuplicateImport = "error"
+reportWildcardImportFromLibrary = "error"
+reportAbstractUsage = "error"
+reportAssertTypeFailure = "error"
+reportCallIssue = "error"
+reportInconsistentOverload = "error"
+reportIndexIssue = "error"
+reportInvalidTypeArguments = "error"
+reportNoOverloadImplementation = "error"
+reportRedeclaration = "error"
+reportConstantRedefinition = "error"
+
+### based pyright issues
 reportUnreachable = "error"
 reportIgnoreCommentWithoutRule = "error"
 reportImplicitRelativeImport = "error"

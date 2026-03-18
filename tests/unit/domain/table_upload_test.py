@@ -131,7 +131,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:
-                _, _ = self.manager.create_table(request)
+                self.manager.create_table(request)
 
             self.assertIn(err_substr, err.exception.message())
         else:
@@ -251,7 +251,7 @@ class MappingTest(unittest.TestCase):
     ):
         if err_substr:
             with self.assertRaises(errors.RuleValidationError) as err:
-                _ = domain_descriptions_to_data(input_columns)
+                domain_descriptions_to_data(input_columns)
 
             self.assertIn(err_substr, err.exception.message())
         else:
