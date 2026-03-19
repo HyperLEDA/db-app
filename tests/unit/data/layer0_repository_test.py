@@ -51,10 +51,10 @@ class Layer0RepositoryTest(unittest.TestCase):
             ),
         ]
     )
-    def test_fetch_raw_data(self, name: str, kwargs: dict, expected_query: str):
+    def test_fetch_raw_data(self, _: str, kwargs: dict, expected_query: str):
         lib.returns(self.storage_mock.query, {"haha": [1, 2]})
 
-        _ = self.repo.fetch_raw_data("ironman", **kwargs)
+        self.repo.fetch_raw_data("ironman", **kwargs)
         args, _ = self.storage_mock.query.call_args
 
         actual = normalize_query(args[0])

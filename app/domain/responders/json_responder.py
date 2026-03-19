@@ -15,5 +15,5 @@ def objects_to_response(objects: list[model.Layer2CatalogObject]) -> list[dataap
 
 
 class JSONResponder(interface.ObjectResponder):
-    def build_response(self, objects: list[model.Layer2CatalogObject]) -> Any:
+    def build_response_from_catalog(self, objects: list[model.Layer2CatalogObject]) -> Any:
         return objects_to_response(objects)

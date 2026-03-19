@@ -338,49 +338,49 @@ class SetCrossmatchResultsResponse(pydantic.BaseModel):
 
 class Actions(abc.ABC):
     @abc.abstractmethod
-    def add_data(self, request: AddDataRequest) -> AddDataResponse:
+    def add_data(self, r: AddDataRequest) -> AddDataResponse:
         pass
 
     @abc.abstractmethod
-    def create_table(self, request: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
+    def create_table(self, r: CreateTableRequest) -> tuple[CreateTableResponse, bool]:
         pass
 
     @abc.abstractmethod
-    def get_table(self, request: GetTableRequest) -> GetTableResponse:
+    def get_table(self, r: GetTableRequest) -> GetTableResponse:
         pass
 
     @abc.abstractmethod
-    def get_table_list(self, request: GetTableListRequest) -> GetTableListResponse:
+    def get_table_list(self, r: GetTableListRequest) -> GetTableListResponse:
         pass
 
     @abc.abstractmethod
-    def patch_table(self, request: PatchTableRequest) -> PatchTableResponse:
+    def patch_table(self, r: PatchTableRequest) -> PatchTableResponse:
         pass
 
     @abc.abstractmethod
-    def create_source(self, request: CreateSourceRequest) -> CreateSourceResponse:
+    def create_source(self, r: CreateSourceRequest) -> CreateSourceResponse:
         pass
 
     @abc.abstractmethod
-    def login(self, request: LoginRequest) -> LoginResponse:
+    def login(self, r: LoginRequest) -> LoginResponse:
         pass
 
     @abc.abstractmethod
-    def get_records(self, request: GetRecordsRequest) -> GetRecordsResponse:
+    def get_records(self, r: GetRecordsRequest) -> GetRecordsResponse:
         pass
 
     @abc.abstractmethod
-    def get_crossmatch_records(self, request: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
+    def get_crossmatch_records(self, r: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
         pass
 
     @abc.abstractmethod
-    def get_record_crossmatch(self, request: GetRecordCrossmatchRequest) -> GetRecordCrossmatchResponse:
+    def get_record_crossmatch(self, r: GetRecordCrossmatchRequest) -> GetRecordCrossmatchResponse:
         pass
 
     @abc.abstractmethod
-    def save_structured_data(self, request: SaveStructuredDataRequest) -> SaveStructuredDataResponse:
+    def save_structured_data(self, r: SaveStructuredDataRequest) -> SaveStructuredDataResponse:
         pass
 
     @abc.abstractmethod
-    def set_crossmatch_results(self, request: SetCrossmatchResultsRequest) -> SetCrossmatchResultsResponse:
+    def set_crossmatch_results(self, r: SetCrossmatchResultsRequest) -> SetCrossmatchResultsResponse:
         pass

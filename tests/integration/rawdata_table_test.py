@@ -42,7 +42,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = self.manager.create_table(
+        self.manager.create_table(
             presentation.CreateTableRequest(
                 table_name="test_table",
                 columns=[
@@ -90,7 +90,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = self.manager.create_table(
+        self.manager.create_table(
             presentation.CreateTableRequest(
                 table_name="test_table",
                 columns=[
@@ -171,7 +171,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        table_resp, _ = self.manager.create_table(
+        self.manager.create_table(
             presentation.CreateTableRequest(
                 table_name="test_table",
                 columns=[

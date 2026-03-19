@@ -18,7 +18,6 @@ class API:
     def add_data(
         self,
         request: interface.AddDataRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
@@ -26,7 +25,6 @@ class API:
     def create_source(
         self,
         request: interface.CreateSourceRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
@@ -34,7 +32,6 @@ class API:
     def create_table(
         self,
         request: interface.CreateTableRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
         return server.APIOkResponse(data=response)
@@ -60,7 +57,6 @@ class API:
     def patch_table(
         self,
         request: interface.PatchTableRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.PatchTableResponse]:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
@@ -84,7 +80,6 @@ class API:
     def save_structured_data(
         self,
         request: interface.SaveStructuredDataRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.SaveStructuredDataResponse]:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
@@ -92,7 +87,6 @@ class API:
     def set_crossmatch_results(
         self,
         request: interface.SetCrossmatchResultsRequest,
-        token: str = fastapi.Security(api_key_header),
     ) -> server.APIOkResponse[interface.SetCrossmatchResultsResponse]:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)

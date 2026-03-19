@@ -6,7 +6,6 @@ import structlog
 from app.data import model, template
 from app.lib import concurrency
 from app.lib.storage import postgres
-from app.lib.web.errors import DatabaseError
 
 
 @dataclass
@@ -39,9 +38,6 @@ class CommonRepository(postgres.TransactionalPGRepository):
             """,
             params=[code, year, authors, title],
         )
-
-        if result is None:
-            raise DatabaseError("no result returned from query")
 
         return int(result["id"])
 
@@ -77,7 +73,7 @@ class CommonRepository(postgres.TransactionalPGRepository):
 
         table_row = table_task.result()
         table_description = ""
-        if table_row is not None and table_row.get("param") is not None:
+        if table_row.get("param") is not None:
             param = table_row["param"]
             if isinstance(param, dict):
                 table_description = param.get("description") or ""

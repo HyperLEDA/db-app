@@ -105,7 +105,7 @@ def upload_data(
 
     request_data = adminapi.AddDataRequest(
         table_name=table_name,
-        data=df.to_dict("records"),  # type: ignore
+        data=df.to_dict("records"),
     )
 
     response = session.post("/v1/table/data", json=request_data.model_dump(mode="json"))

@@ -32,7 +32,7 @@ class CreateTableTest(unittest.TestCase):
             presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
 
-        response, created = self.upload_manager.create_table(
+        self.upload_manager.create_table(
             presentation.CreateTableRequest(
                 table_name="table_name",
                 columns=[
@@ -61,7 +61,7 @@ class CreateTableTest(unittest.TestCase):
         ).code
         table_name = "table_name"
 
-        response, created = self.upload_manager.create_table(
+        _, created = self.upload_manager.create_table(
             presentation.CreateTableRequest(
                 table_name=table_name,
                 columns=[
