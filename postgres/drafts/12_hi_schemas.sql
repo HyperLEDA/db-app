@@ -40,7 +40,7 @@ INSERT INTO radio.lines (id,species,transition,frequency) VALUES
 , ('OH 1612 MHz', 'OH', '1612 MHz', 1612.231e6)
 , ('OH 1665 MHz', 'OH', '1665 MHz', 1665.402e6)
 , ('OH 1667 MHz', 'OH', '1667 MHz', 1667.359e6)
-, ('OH 1720 MHz', 'OH', '1612 MHz', 1720.530e6)
+, ('OH 1720 MHz', 'OH', '1720 MHz', 1720.530e6)
 ;
 
 
@@ -103,7 +103,7 @@ CREATE TABLE radio.line_flux (
   record_id	Text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , flux	real	NOT NULL
 , e_flux	real
-, method	radio.line_fluxMethodType	NOT NULL	DEFAULT 'sum'
+, method	radio.FluxMethodType	NOT NULL	DEFAULT 'sum'
 , PRIMARY KEY (record_id, method)
 );
 CREATE INDEX ON radio.line_flux (record_id) ;
@@ -145,13 +145,13 @@ CREATE TABLE radio.line_width (
 , level	real	NOT NULL	DEFAULT 50
 , PRIMARY KEY (record_id, method, level)
 );
-CREATE INDEX ON radio.data (record_id) ;
-CREATE INDEX ON radio.data (method) ;
+CREATE INDEX ON radio.line_width (record_id) ;
+CREATE INDEX ON radio.line_width (method) ;
 
 COMMENT ON TABLE radio.line_width	IS 'Catalog of the HI line width' ;
 COMMENT ON COLUMN radio.line_width.record_id	IS 'Record ID' ;
-COMMENT ON COLUMN radio.line_width.flux	IS '{"description":"HI line width", "unit":"km/s", "ucd":"spect.line.width"}' ;
-COMMENT ON COLUMN radio.line_width.e_flux	IS '{"description":"Error of the HI line width", "unit":"km/s", "ucd":"stat.error"}' ;
+COMMENT ON COLUMN radio.line_width.width	IS '{"description":"Radio line width", "unit":"km/s", "ucd":"spect.line.width"}' ;
+COMMENT ON COLUMN radio.line_width.e_width	IS '{"description":"Error of the radio line width", "unit":"km/s", "ucd":"stat.error"}' ;
 COMMENT ON COLUMN radio.line_width.method	IS 'Measurement type' ;
 COMMENT ON COLUMN radio.line_width.level	IS 'Measurement level in percent' ;
 
