@@ -35,8 +35,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             raise RuntimeError("no records to upsert")
 
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-        if table_id_row is None:
-            raise DatabaseError(f"unable to fetch table with name {table_name}")
 
         table_id = table_id_row["id"]
 
@@ -121,8 +119,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-        if table_id_row is None:
-            raise DatabaseError(f"unable to fetch table with name {table_name}")
 
         table_id = table_id_row["id"]
 

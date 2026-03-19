@@ -18,14 +18,10 @@ def extract_object_data(objects: list[model.Layer2CatalogObject]) -> dict[str, n
             catalog_name = catalog_obj.catalog().value
             catalog_data = catalog_obj.layer2_data()
 
-            if isinstance(catalog_data, dict):
-                for field, _ in catalog_data.items():
-                    full_field_name = f"{catalog_name}_{field}"
-                    if full_field_name not in data_dict:
-                        data_dict[full_field_name] = []
-            else:
-                if catalog_name not in data_dict:
-                    data_dict[catalog_name] = []
+            for field, _ in catalog_data.items():
+                full_field_name = f"{catalog_name}_{field}"
+                if full_field_name not in data_dict:
+                    data_dict[full_field_name] = []
 
     for obj in objects:
         for field in data_dict:
@@ -37,12 +33,9 @@ def extract_object_data(objects: list[model.Layer2CatalogObject]) -> dict[str, n
             catalog_name = catalog_obj.catalog().value
             catalog_data = catalog_obj.layer2_data()
 
-            if isinstance(catalog_data, dict):
-                for field, value in catalog_data.items():
-                    full_field_name = f"{catalog_name}_{field}"
-                    data_dict[full_field_name][-1] = value
-            else:
-                data_dict[catalog_name][-1] = catalog_data
+            for field, value in catalog_data.items():
+                full_field_name = f"{catalog_name}_{field}"
+                data_dict[full_field_name][-1] = value
 
     for field, values in data_dict.items():
         if all(v is None for v in values):

@@ -14,7 +14,6 @@ from psycopg import sql
 from app.data import model, repositories, template
 from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
 from app.lib.storage import postgres
-from app.lib.web.errors import DatabaseError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -419,8 +418,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-        if row is None:
-            raise DatabaseError(f"unable to fetch table with name {table_name}")
 
         modification_dt: datetime.datetime | None = row.get("modification_dt")
         return self._fetch_metadata_by_name(table_name, modification_dt)
@@ -454,9 +451,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         table_metadata = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
         registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-
-        if table_metadata is None:
-            raise DatabaseError(f"unable to metadata for table {table_name}")
 
         return model.Layer0TableMeta(
             table_name,
