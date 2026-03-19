@@ -51,9 +51,6 @@ dev = [
     "testcontainers-postgres>=0.0.1rc1",
 ]
 
-[tool.uv]
-config-settings = { editable_mode = "compat" }
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = "-W ignore::DeprecationWarning"
