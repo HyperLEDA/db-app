@@ -13,18 +13,26 @@ check:
 	else \
 		echo "$$output"; \
 	fi
+
 	@find . \
 		-name "*.py" \
 		-not -path "./.venv/*" \
 		-not -path "./.git/*" \
 		-exec uv run python -m py_compile {} +
+
 	@uvx ruff format \
 		--quiet \
 		--config=pyproject.toml \
 		--check
+
 	@uvx ruff check \
 		--quiet \
 		--config=pyproject.toml
+
+	@output=$$(uvx basedpyright 2>&1); exit_code=$$?; \
+	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
+	exit $$exit_code
+
 	@uv run pytest \
 		--quiet \
 		--config-file=pyproject.toml \
@@ -34,6 +42,7 @@ fix:
 	@uvx ruff format \
 		--quiet \
 		--config=pyproject.toml
+
 	@uvx ruff check \
 		--quiet \
 		--config=pyproject.toml \
