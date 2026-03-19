@@ -123,7 +123,7 @@ build-docs:
 
 cleanup:
 	rm -rf uv.lock .venv \
-		.pytest_cache .mypy_cache .vizier_cache .ruff_cache \
+		.pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
 		.coverage htmlcov site \
 		docs/gen
@@ -139,10 +139,6 @@ test-all: check
 
 test-regression:
 	uv run tests.py regression-tests
-
-mypy:
-	uvx mypy app --config-file pyproject.toml
-	uvx mypy tests --config-file pyproject.toml
 
 coverage:
 	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
