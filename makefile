@@ -19,24 +19,29 @@ check:
 		-not -path "./.venv/*" \
 		-not -path "./.git/*" \
 		-exec uv run python -m py_compile {} +
+	@echo "Compilation ok."
 
 	@uvx ruff format \
 		--quiet \
 		--config=pyproject.toml \
 		--check
+	@echo "Formatting ok."
 
 	@uvx ruff check \
 		--quiet \
 		--config=pyproject.toml
+	@echo "Linter ok."
 
 	@output=$$(uvx basedpyright 2>&1); exit_code=$$?; \
 	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
 	exit $$exit_code
+	@echo "Typechecking ok."
 
 	@uv run pytest \
 		--quiet \
 		--config-file=pyproject.toml \
 		tests/env_test.py tests/unit
+	@echo "Testing ok."
 
 fix:
 	@uvx ruff format \
