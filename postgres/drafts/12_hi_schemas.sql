@@ -1,11 +1,13 @@
 BEGIN;
 
-ALTER TYPE common.quality RENAME VALUE 'ok' TO 'regular' CASCADE ;
-ALTER TYPE common.quality RENAME VALUE 'lowsnr' TO 'low_snr' CASCADE ;
-ALTER TYPE common.quality RENAME VALUE 'sus' TO 'suspected' CASCADE ;
-ALTER TYPE common.quality RENAME VALUE '>' TO 'lower_limit' CASCADE ;
-ALTER TYPE common.quality RENAME VALUE '<' TO 'upper_limit' CASCADE ;
-ALTER TYPE common.quality RENAME TO common.QualityType ;
+ALTER TYPE common.quality RENAME VALUE 'ok' TO 'regular' ;
+ALTER TYPE common.quality RENAME VALUE 'lowsnr' TO 'low_snr' ;
+ALTER TYPE common.quality RENAME VALUE 'sus' TO 'suspected' ;
+ALTER TYPE common.quality RENAME VALUE '>' TO 'lower_limit' ;
+ALTER TYPE common.quality RENAME VALUE '<' TO 'upper_limit' ;
+
+ALTER TYPE common.quality RENAME TO qualityType ;
+-- ALTER TYPE common.QualityType SET SCHEMA common ;
 
 COMMENT ON TYPE common.QualityType	IS '{
 "description": "Quality flag of the measurement", 
@@ -58,8 +60,8 @@ COMMENT ON TYPE radio.WidthMethodType	IS '{
   }
 }' ;
 
-CREATE TYPE radio.TelecsopeType AS ENUM ( 'single-dish', 'interferometer' ) ;
-COMMENT ON TYPE radio.TelecsopeType	IS '{
+CREATE TYPE radio.TelescopeType AS ENUM ( 'single-dish', 'interferometer' ) ;
+COMMENT ON TYPE radio.TelescopeType	IS '{
 "description": "Radio telescope types",
 "values": {
   "single-dish": "Single-dish reflector", 
