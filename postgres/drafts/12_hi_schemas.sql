@@ -210,5 +210,4 @@ COMMENT ON COLUMN radio.line_width.e_width	IS '{"description":"Error of the radi
 COMMENT ON COLUMN radio.line_width.method	IS 'Measurement type' ;
 COMMENT ON COLUMN radio.line_width.level	IS 'Measurement level in percent' ;
 
-
 COMMIT;
