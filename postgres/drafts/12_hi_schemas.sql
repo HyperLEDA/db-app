@@ -1,5 +1,24 @@
 BEGIN;
 
+ALTER TYPE common.quality RENAME VALUE 'ok' TO 'regular' CASCADE ;
+ALTER TYPE common.quality RENAME VALUE 'lowsnr' TO 'low_snr' CASCADE ;
+ALTER TYPE common.quality RENAME VALUE 'sus' TO 'suspected' CASCADE ;
+ALTER TYPE common.quality RENAME VALUE '>' TO 'lower_limit' CASCADE ;
+ALTER TYPE common.quality RENAME VALUE '<' TO 'upper_limit' CASCADE ;
+ALTER TYPE common.quality RENAME TO common.QualityType ;
+
+COMMENT ON TYPE common.QualityType	IS '{
+"description": "Quality flag of the measurement", 
+"values": {
+  "regular": "regular measurement", 
+  "low_snr": "low signal-to-noise", 
+  "suspected": "suspected measurement", 
+  "lower_limit": "lower limit", 
+  "upper_limit": "upper limit", 
+  "wrong": "wrong measurement"
+  }
+}' ;
+
 ----------------------------------------------------
 -------------- Radio Observations schema -----------
 ----------------------------------------------------
@@ -7,14 +26,46 @@ CREATE SCHEMA IF NOT EXISTS radio ;
 COMMENT ON SCHEMA radio IS 'Catalog of the radio observations';
 
 CREATE TYPE radio.FluxMethodType AS ENUM ( 'sum', 'fit' ) ;
-COMMENT ON TYPE radio.FluxMethodType IS '{"sum":"Integrated radio line flux by summing all velocity channels", "fit":"Integrated radio line flux by model line fitting"}' ;
+COMMENT ON TYPE radio.FluxMethodType	IS '{
+"description": "Method of the flux measurement",
+"values": {
+  "sum":"Integrated radio line flux by summing all velocity channels", 
+  "fit":"Integrated radio line flux by model line fitting"
+  }
+}' ;
 
 CREATE TYPE radio.VelConventionType AS ENUM ( 'optical', 'radio', 'relativistic' ) ;
-COMMENT ON TYPE radio.VelConventionType IS '{"optical":"Voptical=c(λ-λ0)/λ0=cz", "radio":"Vradio=c(ν0-ν)/ν0; cz=Vradio/(1-Vradio/c)", "relativistic":"Relativistic Doppler effect: V=c(ν0^2-ν^2)/(ν0^2+ν^2)=c(λ^2-λ0^2)/(λ^2+λ0^2)=c[(1+z)^2-1]/[(1+z)^2+1]"}' ;
+COMMENT ON TYPE radio.VelConventionType	IS '{
+"description": "Velocity convention",
+"values": {
+  "optical": "Voptical=c(λ-λ0)/λ0=cz", 
+  "radio": "Vradio=c(ν0-ν)/ν0; cz=Vradio/(1-Vradio/c)", 
+  "relativistic": "Relativistic Doppler effect: V=c(ν0^2-ν^2)/(ν0^2+ν^2)=c(λ^2-λ0^2)/(λ^2+λ0^2)=c[(1+z)^2-1]/[(1+z)^2+1]"
+  }
+}' ;
 
 CREATE TYPE radio.WidthMethodType AS ENUM ( 'max', 'peak', 'w2p', 'mean', 'int', 'edge', 'model' ) ;
-COMMENT ON TYPE radio.WidthMethodType IS '{"max":"Maximal-value-based width", "peak":"Every peak-based width", "w2p":"Mean of peaks double-horn specific width", "mean":"Mean-flux–based width", "int":"Integrated-flux–based width", "edge":"Edge-based width", "model":"Model-based width"}' ;
+COMMENT ON TYPE radio.WidthMethodType	IS '{
+"description": "Method of the line width measurement",
+"values": {
+  "max": "Maximal-value-based width", 
+  "peak": "Every peak-based width", 
+  "w2p": "Mean of peaks double-horn specific width", 
+  "mean": "Mean-flux–based width", 
+  "int": "Integrated-flux–based width", 
+  "edge": "Edge-based width", 
+  "model": "Model-based width"
+  }
+}' ;
 
+CREATE TYPE radio.TelecsopeType AS ENUM ( 'single-dish', 'interferometer' ) ;
+COMMENT ON TYPE radio.TelecsopeType	IS '{
+"description": "Radio telescope types",
+"values": {
+  "single-dish": "Single-dish reflector", 
+  "interferometer": "Radio interferometer"
+  }
+}' ;
 
 
 
@@ -47,30 +98,32 @@ INSERT INTO radio.lines (id,species,transition,frequency) VALUES
 ------------- Telescopes --------------------
 CREATE TABLE radio.telescopes (
   id	Text	PRIMARY KEY
+, type	radio.TelescopeType	NOT NULL
 , description	Text	NOT NULL
 ) ;
 
 COMMENT ON TABLE radio.telescopes	IS 'List of radio lines' ;
 COMMENT ON COLUMN radio.telescopes.id	IS 'Telescope ID' ;
+COMMENT ON COLUMN radio.telescopes.type	IS 'Telescope type' ;
 COMMENT ON COLUMN radio.telescopes.description	IS 'Telescope description' ;
 
-INSERT INTO radio.telescopes (id,description) VALUES
-  ('Nancay', 'Large radio telescope of the Nançay Radio Observatory')
-, ('WSRT',   'Westerbork Synthesis Radio Telescope')
-, ('GB140ft', 'NRAO Green Bank (43m, 140ft)')
-, ('GB300ft', 'NRAO Green Bank (91m, 300ft)')
-, ('GBT',     'Robert C. Byrd Green Bank Telescope (100m)')
-, ('Effelsberg', 'Effelsberg Radio Telescope (100m)')
-, ('Arecibo', 'Arecibo Telescope (305m, 1000ft)')
-, ('Parkes',  'Murriyang, Parkes 64m Radio Telescope')
-, ('ATCA',    'Australia Telescope Compact Array')
-, ('GMRT',    'Giant Metrewave Radio Telescope')
-, ('FAST',    'Five-hundred-meter Aperture Spherical Telescope')
-, ('VLA',     'Karl G. Jansky Very Large Array')
-, ('VLA A',   'A-configuration of the Karl G. Jansky Very Large Array')
-, ('VLA B',   'B-configuration of the Karl G. Jansky Very Large Array')
-, ('VLA C',   'C-configuration of the Karl G. Jansky Very Large Array')
-, ('VLA D',   'A-configuration of the Karl G. Jansky Very Large Array')
+INSERT INTO radio.telescopes (id,type,description) VALUES
+  ('Nancay',     'single-dish', 'Large radio telescope of the Nançay Radio Observatory')
+, ('GB140ft',    'single-dish', 'NRAO Green Bank (43m, 140ft)')
+, ('GB300ft',    'single-dish', 'NRAO Green Bank (91m, 300ft)')
+, ('GBT',        'single-dish', 'Robert C. Byrd Green Bank Telescope (100m)')
+, ('Effelsberg', 'single-dish', 'Effelsberg Radio Telescope (100m)')
+, ('Arecibo',    'single-dish', 'Arecibo Telescope (305m, 1000ft)')
+, ('Parkes',     'single-dish', 'Murriyang, Parkes 64m Radio Telescope')
+, ('FAST',       'single-dish', 'Five-hundred-meter Aperture Spherical Telescope')
+, ('WSRT',    'interferometer', 'Westerbork Synthesis Radio Telescope')
+, ('ATCA',    'interferometer', 'Australia Telescope Compact Array')
+, ('GMRT',    'interferometer', 'Giant Metrewave Radio Telescope')
+, ('VLA',     'interferometer', 'Karl G. Jansky Very Large Array')
+, ('VLA A',   'interferometer', 'A-configuration of the Karl G. Jansky Very Large Array')
+, ('VLA B',   'interferometer', 'B-configuration of the Karl G. Jansky Very Large Array')
+, ('VLA C',   'interferometer', 'C-configuration of the Karl G. Jansky Very Large Array')
+, ('VLA D',   'interferometer', 'A-configuration of the Karl G. Jansky Very Large Array')
 ;
 
 
@@ -103,6 +156,7 @@ CREATE TABLE radio.line_flux (
   record_id	Text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , flux	real	NOT NULL
 , e_flux	real
+, quality	common.QualityType	NOT NULL	DEFAULT 'regular'
 , method	radio.FluxMethodType	NOT NULL	DEFAULT 'sum'
 , PRIMARY KEY (record_id, method)
 );
@@ -121,6 +175,7 @@ COMMENT ON COLUMN radio.line_flux.method	IS 'Measurement type (sum, fit)' ;
 --   record_id	Text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 -- , flux	real	NOT NULL
 -- , e_flux	real
+-- , quality	common.QualityType	NOT NULL	DEFAULT 'regular'
 -- , frequency	real	NOT NULL
 -- , bandwidth	real	NOT NULL
 -- , PRIMARY KEY (record_id, frequency)
