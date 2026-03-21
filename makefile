@@ -21,18 +21,18 @@ check:
 		-exec uv run python -m py_compile {} +
 	@echo "Compilation ok."
 
-	@uvx ruff format \
+	@uv run ruff format \
 		--quiet \
 		--config=pyproject.toml \
 		--check
 	@echo "Formatting ok."
 
-	@uvx ruff check \
+	@uv run ruff check \
 		--quiet \
 		--config=pyproject.toml
 	@echo "Linter ok."
 
-	@output=$$(uvx basedpyright 2>&1); exit_code=$$?; \
+	@output=$$(uv run basedpyright 2>&1); exit_code=$$?; \
 	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
 	exit $$exit_code
 	@echo "Typechecking ok."
@@ -44,11 +44,11 @@ check:
 	@echo "Testing ok."
 
 fix:
-	@uvx ruff format \
+	@uv run ruff format \
 		--quiet \
 		--config=pyproject.toml
 
-	@uvx ruff check \
+	@uv run ruff check \
 		--quiet \
 		--config=pyproject.toml \
 		--fix
