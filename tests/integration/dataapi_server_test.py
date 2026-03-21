@@ -45,7 +45,8 @@ class DataAPIServerTest(unittest.TestCase):
         cls.process = subprocess.Popen(
             [
                 sys.executable,
-                "main.py",
+                "-m",
+                "app.cli",
                 "dataapi",
                 "-c",
                 "configs/dev/dataapi.yaml",
