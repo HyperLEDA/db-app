@@ -3,13 +3,13 @@ BEGIN;
 -----------------------------------
 --  Total magnitude 
 -----------------------------------
-ALTER TABLE photometry.data RENAME TO total ;
+ALTER TABLE IF EXISTS photometry.data RENAME TO total ;
 
 
 ----------------------------------
 --  Isophotal magnitude
 ----------------------------------
-CREATE TABLE photometry.isophotal (
+CREATE TABLE IF NOT EXISTS photometry.isophotal (
   record_id     Text    NOT NULL        REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , band  text    NOT NULL        REFERENCES photometry.calib_bands (id) ON DELETE restrict ON UPDATE cascade
 , isophote      real    NOT NULL        CHECK ( mag > -1 and mag < 30 )
@@ -32,7 +32,7 @@ SELECT meta.setparams('photometry', 'isophotal', 'e_mag', '{"description":"Error
 ----------------------------------
 --  Geometry 
 ----------------------------------
-CREATE TABLE photometry.ellipse (
+CREATE TABLE IF NOT EXISTS photometry.ellipse (
   record_id     Text    NOT NULL        REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , band  text    NOT NULL        REFERENCES photometry.calib_bands (id) ON DELETE restrict ON UPDATE cascade
 , method        photometry.MagMethodType        NOT NULL
@@ -47,6 +47,8 @@ CREATE TABLE photometry.ellipse (
 , e_isophote    real    CHECK (e_isophote>0 and e_isophote<0.5)
 , PRIMARY KEY (record_id, band, method, level)
 , CHECK (a IS NOT NULL or b IS NOT NULL or pa IS NOT NULL)
+, CHECK (method IN ('asymptotic','model','petrosian','kron') and level IS NOT NULL)
+, CHECK (method='isophotal' and isophote IS NOT NULL)
 );
 CREATE INDEX ON photometry.ellipse (record_id) ;
 CREATE INDEX ON photometry.ellipse (band) ;
