@@ -128,33 +128,47 @@ def get_record_ids(session: requests.Session, table_name: str, expected_count: i
 
 
 @lib.test_logging_decorator
-def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -> None:
+def upload_structured_data(session: requests.Session, records: list[dict]) -> None:
     ids = [r["id"] for r in records]
     orig = [r["original_data"] for r in records]
 
+    upload_designation_catalog(session, ids=ids, original_data=orig)
+    upload_icrs_catalog(session, ids=ids, original_data=orig)
+    upload_notes_catalog(session, ids=ids, original_data=orig)
+    upload_photometry_catalog(session, ids=ids)
+
+
+@lib.test_logging_decorator
+def upload_designation_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
     designation_request = adminapi.SaveStructuredDataRequest(
         catalog="designation",
         columns=["design"],
         units={},
         ids=ids,
-        data=[[o["name"]] for o in orig],
+        data=[[o["name"]] for o in original_data],
     )
     response = session.post("/v1/data/structured", json=designation_request.model_dump(mode="json"))
     response.raise_for_status()
 
+
+@lib.test_logging_decorator
+def upload_icrs_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
     ra_deg = 15.0
     icrs_request = adminapi.SaveStructuredDataRequest(
         catalog="icrs",
         columns=["ra", "dec", "e_ra", "e_dec"],
         units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
         ids=ids,
-        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in orig],
+        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in original_data],
     )
     response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
     response.raise_for_status()
 
-    phot_ids = []
-    phot_data = []
+
+@lib.test_logging_decorator
+def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None:
+    phot_ids: list[str] = []
+    phot_data: list[list[object]] = []
     for rid in ids:
         for band in PHOTOMETRY_BANDS:
             phot_ids.append(rid)
@@ -174,7 +188,20 @@ def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -
 
 
 @lib.test_logging_decorator
-def check_layer1_via_records(session: requests.Session, table_name: str, expected_count: int) -> None:
+def upload_notes_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
+    notes_request = adminapi.SaveStructuredDataRequest(
+        catalog="note",
+        columns=["note"],
+        units={},
+        ids=ids,
+        data=[[f"note: {o['name']}"] for o in original_data],
+    )
+    response = session.post("/v1/data/structured", json=notes_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def check_records(session: requests.Session, table_name: str, expected_count: int) -> None:
     records = get_records(session, table_name, expected_count * 2)
     assert len(records) == expected_count, f"Expected {expected_count} records, got {len(records)}"
     for record in records:
@@ -349,7 +376,7 @@ def layer2_import():
 
 
 @lib.test_logging_decorator
-def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
+def check_pgc_names(session: lib.TestSession, name_prefix: str):
     response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
     response.raise_for_status()
     name_results = response.json()["data"]
@@ -362,7 +389,7 @@ def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
 
 
 @lib.test_logging_decorator
-def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, radius: float):
+def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radius: float):
     response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
     response.raise_for_status()
     coord_results = response.json()["data"]
@@ -371,11 +398,44 @@ def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, r
 
 
 @lib.test_logging_decorator
+def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float, radius: float) -> None:
+    check_pgc_names(session, name_prefix)
+    check_pgc_notes(session, name_prefix)
+    check_pgc_coordinates(session, ra, dec, radius)
+
+
+@lib.test_logging_decorator
 def check_dataapi_query(session: lib.TestSession, q: str, page_size: int = 10, page: int = 0):
     response = session.get("/v1/query", params={"q": q, "page_size": page_size, "page": page})
     response.raise_for_status()
     data = response.json()["data"]
     assert "objects" in data
+
+
+@lib.test_logging_decorator
+def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
+    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response.raise_for_status()
+    name_results = response.json()["data"]
+    pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
+
+    response = session.get("/v1/query/simple", params={"pgcs": pgcs, "page_size": 100})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+    assert len(data["objects"]) > 0
+
+    for obj in data["objects"]:
+        catalogs = obj["catalogs"]
+        assert "notes" in catalogs and catalogs["notes"] is not None
+        assert len(catalogs["notes"]) > 0
+        note_entry = catalogs["notes"][0]
+        assert note_entry["note"] is not None and note_entry["note"] != ""
+        source = note_entry["source"]
+        assert source["bibcode"] is not None and source["bibcode"] != ""
+        assert source["title"] is not None and source["title"] != ""
+        assert len(source["authors"]) > 0
+        assert source["year"] > 0
 
 
 def get_adminapi_session() -> lib.TestSession:
@@ -416,8 +476,8 @@ def run():
     check_get_table(adminapi_session, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
     records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
-    fill_layer1_via_structured(adminapi_session, records)
-    check_layer1_via_records(adminapi_session, table_name, OBJECTS_NUM)
+    upload_structured_data(adminapi_session, records)
+    check_records(adminapi_session, table_name, OBJECTS_NUM)
 
     record_ids = [r["id"] for r in records]
     set_crossmatch_new(
@@ -429,8 +489,7 @@ def run():
     submit_crossmatch(table_name)
     layer2_import()
 
-    check_dataapi_name_query(dataapi, "NGC")
-    check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
+    check_pgc(dataapi, "NGC", COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
     check_dataapi_query(dataapi, "NGC")
     check_dataapi_query(dataapi, " ", page_size=10, page=0)
 
@@ -447,8 +506,8 @@ def run():
     )
 
     records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
-    fill_layer1_via_structured(adminapi_session, records_2)
-    check_layer1_via_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
+    upload_structured_data(adminapi_session, records_2)
+    check_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
 
     record_ids_2 = [r["id"] for r in records_2]
 

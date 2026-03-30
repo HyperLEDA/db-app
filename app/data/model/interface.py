@@ -36,6 +36,7 @@ class RawCatalog(enum.Enum):
     REDSHIFT = "redshift"
     NATURE = "nature"
     PHOTOMETRY = "photometry"
+    NOTE = "note"
 
 
 class CatalogObject(abc.ABC):

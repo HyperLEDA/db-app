@@ -303,6 +303,30 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             result.setdefault(pgc, []).append(ad)
         return {pgc: layer2_model.AdditionalDesignationsCatalog(names=names) for pgc, names in result.items()}
 
+    def _query_notes(self, pgcs: list[int]) -> dict[int, layer2_model.NotesCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, note, code, year, author, title FROM layer2.notes WHERE pgc = ANY(%s) ORDER BY pgc",
+            params=[pgcs],
+        )
+        result: dict[int, list[layer2_model.NoteEntry]] = {}
+        for row in rows:
+            pgc = int(row["pgc"])
+            author_val = row.get("author")
+            authors = (
+                author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
+            )
+            source = layer2_model.Source(
+                bibcode=str(row["code"]) if row.get("code") is not None else "",
+                title=str(row["title"]) if row.get("title") is not None else "",
+                authors=authors,
+                year=int(row["year"]) if row.get("year") is not None else 0,
+            )
+            note = layer2_model.NoteEntry(note=str(row["note"]) if row.get("note") is not None else "", source=source)
+            result.setdefault(pgc, []).append(note)
+        return {pgc: layer2_model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
+
     def query_pgc(
         self,
         catalogs: list[model.RawCatalog],
@@ -325,6 +349,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
         redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
         nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
+        notes_task: concurrency.TaskResult[dict[int, layer2_model.NotesCatalog]] | None = None
 
         if model.RawCatalog.DESIGNATION in catalogs:
             designation_task = errgr.run(self._query_designations, pgcs_page)
@@ -336,6 +361,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             redshift_task = errgr.run(self._query_redshift, pgcs_page)
         if model.RawCatalog.NATURE in catalogs:
             nature_task = errgr.run(self._query_nature, pgcs_page)
+        if model.RawCatalog.NOTE in catalogs:
+            notes_task = errgr.run(self._query_notes, pgcs_page)
 
         errgr.wait()
 
@@ -346,6 +373,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         icrs_map = icrs_task.result() if icrs_task is not None else {}
         redshift_map = redshift_task.result() if redshift_task is not None else {}
         nature_map = nature_task.result() if nature_task is not None else {}
+        notes_map = notes_task.result() if notes_task is not None else {}
 
         return [
             self._layer2_object_from_maps(
@@ -356,6 +384,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 icrs_map,
                 redshift_map,
                 nature_map,
+                notes_map,
             )
             for pgc in pgcs_page
         ]
@@ -369,6 +398,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         icrs_map: dict[int, layer2_model.ICRSCatalog],
         redshift_map: dict[int, layer2_model.RedshiftCatalog],
         nature_map: dict[int, layer2_model.NatureCatalog],
+        notes_map: dict[int, layer2_model.NotesCatalog],
     ) -> Layer2Object:
         designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
         additional_designations = (
@@ -377,6 +407,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
         redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
         nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
+        notes = notes_map.get(pgc) if model.RawCatalog.NOTE in catalogs else None
 
         return Layer2Object(
             pgc=pgc,
@@ -386,6 +417,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 icrs=icrs,
                 redshift=redshift,
                 nature=nature,
+                notes=notes,
             ),
         )
 

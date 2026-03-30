@@ -48,6 +48,11 @@ class AdditionalDesignation(pydantic.BaseModel):
     source: Source
 
 
+class NoteEntry(pydantic.BaseModel):
+    note: str
+    source: Source
+
+
 class Nature(pydantic.BaseModel):
     type_name: str
 
@@ -59,6 +64,7 @@ class Catalogs(pydantic.BaseModel):
     velocity: dict[str, AbsoluteVelocity] | None = None
     redshift: Redshift | None = None
     nature: Nature | None = None
+    notes: list[NoteEntry] | None = None
 
 
 class PGCObject(pydantic.BaseModel):
