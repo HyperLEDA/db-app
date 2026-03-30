@@ -21,18 +21,18 @@ check:
 		-exec uv run python -m py_compile {} +
 	@echo "Compilation ok."
 
-	@uvx ruff format \
+	@uv run ruff format \
 		--quiet \
 		--config=pyproject.toml \
 		--check
 	@echo "Formatting ok."
 
-	@uvx ruff check \
+	@uv run ruff check \
 		--quiet \
 		--config=pyproject.toml
 	@echo "Linter ok."
 
-	@output=$$(uvx basedpyright 2>&1); exit_code=$$?; \
+	@output=$$(uv run basedpyright 2>&1); exit_code=$$?; \
 	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
 	exit $$exit_code
 	@echo "Typechecking ok."
@@ -44,14 +44,17 @@ check:
 	@echo "Testing ok."
 
 fix:
-	@uvx ruff format \
+	@uv run ruff format \
 		--quiet \
 		--config=pyproject.toml
 
-	@uvx ruff check \
+	@uv run ruff check \
 		--quiet \
 		--config=pyproject.toml \
 		--fix
+
+wheel:
+	uv build --wheel
 
 # only for mac as this is faster
 build:
@@ -76,16 +79,16 @@ update-template:
 ## General targets
 
 adminapi:
-	uv run main.py adminapi -c configs/dev/adminapi.yaml
+	uv run app adminapi -c configs/dev/adminapi.yaml
 
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
-	uv run main.py dataapi -c configs/dev/dataapi.yaml
+	uv run app dataapi -c configs/dev/dataapi.yaml
 
 generate-spec:
-	uv run main.py generate-spec -o res.json
+	uv run app generate-spec -o res.json
 
 start-db:
 	docker-compose up -d
@@ -98,7 +101,7 @@ restart-db:
 	make start-db
 
 docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
@@ -106,7 +109,7 @@ docs:
 		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
@@ -114,7 +117,7 @@ deploy-docs:
 		mkdocs gh-deploy
 
 build-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \

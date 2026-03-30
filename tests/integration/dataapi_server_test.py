@@ -1,7 +1,6 @@
 import os
 import pathlib
 import subprocess
-import sys
 import tempfile
 import time
 import unittest
@@ -44,8 +43,9 @@ class DataAPIServerTest(unittest.TestCase):
 
         cls.process = subprocess.Popen(
             [
-                sys.executable,
-                "main.py",
+                "uv",
+                "run",
+                "app",
                 "dataapi",
                 "-c",
                 "configs/dev/dataapi.yaml",

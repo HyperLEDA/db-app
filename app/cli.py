@@ -80,7 +80,3 @@ def runtask(
 )
 def generate_spec(output: str):
     commands.run(GenerateSpecCommand(output))
-
-
-if __name__ == "__main__":
-    cli()
