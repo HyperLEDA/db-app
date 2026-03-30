@@ -389,6 +389,14 @@ def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float,
     check_pgc_coordinates(session, ra, dec, radius)
 
 
+@lib.test_logging_decorator
+def check_dataapi_query(session: lib.TestSession, q: str, page_size: int = 10, page: int = 0):
+    response = session.get("/v1/query", params={"q": q, "page_size": page_size, "page": page})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+
+
 def get_adminapi_session() -> lib.TestSession:
     api_host = os.getenv("API_HOST", "localhost")
     api_port = os.getenv("API_PORT", "8080")
@@ -441,6 +449,8 @@ def run():
     layer2_import()
 
     check_pgc(dataapi, "NGC", COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
+    check_dataapi_query(dataapi, "NGC")
+    check_dataapi_query(dataapi, " ", page_size=10, page=0)
 
     # ---- Table 2: smaller cluster, some pending/resolved; check via /records; submit; check pgc ----
     table_name_2 = create_table(adminapi_session, code)
