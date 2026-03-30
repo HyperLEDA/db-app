@@ -1,7 +1,6 @@
 import os
 import pathlib
 import subprocess
-import sys
 import tempfile
 import time
 import unittest
@@ -44,7 +43,8 @@ class AdminAPIServerTest(unittest.TestCase):
 
         cls.process = subprocess.Popen(
             [
-                sys.executable,
+                "uv",
+                "run",
                 "app",
                 "adminapi",
                 "-c",
