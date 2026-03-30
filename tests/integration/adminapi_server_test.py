@@ -45,7 +45,7 @@ class AdminAPIServerTest(unittest.TestCase):
         cls.process = subprocess.Popen(
             [
                 sys.executable,
-                "main.py",
+                "app",
                 "adminapi",
                 "-c",
                 "configs/dev/adminapi.yaml",

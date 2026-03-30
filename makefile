@@ -79,16 +79,16 @@ update-template:
 ## General targets
 
 adminapi:
-	uv run main.py adminapi -c configs/dev/adminapi.yaml
+	uv run app adminapi -c configs/dev/adminapi.yaml
 
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
-	uv run main.py dataapi -c configs/dev/dataapi.yaml
+	uv run app dataapi -c configs/dev/dataapi.yaml
 
 generate-spec:
-	uv run main.py generate-spec -o res.json
+	uv run app generate-spec -o res.json
 
 start-db:
 	docker-compose up -d
@@ -101,7 +101,7 @@ restart-db:
 	make start-db
 
 docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
@@ -109,7 +109,7 @@ docs:
 		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
@@ -117,7 +117,7 @@ deploy-docs:
 		mkdocs gh-deploy
 
 build-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
+	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
