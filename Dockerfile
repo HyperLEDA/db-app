@@ -5,7 +5,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY app ./app
 RUN uv sync --frozen --no-dev
 
-FROM python:3.12-slim AS runtime
+FROM python:3.13-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
