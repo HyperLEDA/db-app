@@ -29,7 +29,15 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.61b0",
     "opentelemetry-instrumentation-psycopg>=0.61b0",
     "opentelemetry-exporter-otlp>=1.40.0",
+    "click~=8.3.1",
 ]
+
+[project.scripts]
+"db_app" = "db_app.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [    
