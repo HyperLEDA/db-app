@@ -2,5 +2,5 @@
 # Parameters of the project as generated from template
 _commit: dcba0b0
 _src_path: gh:kraysent/python-template
-package_name: db_app
-project_name: db_app
+package_name: app
+project_name: app

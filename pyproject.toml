@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
-"db_app" = "db_app.cli:cli"
+"app" = "app.cli:cli"
 
 [build-system]
 requires = ["hatchling"]

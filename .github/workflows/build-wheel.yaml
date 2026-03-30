@@ -35,7 +35,7 @@ jobs:
           path: dist
 
       - name: Install wheel as tool
-        run: uv tool install --from dist/*.whl "db_app"
+        run: uv tool install --from dist/*.whl "app"
 
       - name: Check CLI help
-        run: 'db_app --help'
+        run: 'app --help'
