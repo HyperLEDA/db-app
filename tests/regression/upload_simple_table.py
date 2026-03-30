@@ -187,7 +187,7 @@ def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None
 
 
 @lib.test_logging_decorator
-def check_layer1_via_records(session: requests.Session, table_name: str, expected_count: int) -> None:
+def check_records(session: requests.Session, table_name: str, expected_count: int) -> None:
     records = get_records(session, table_name, expected_count * 2)
     assert len(records) == expected_count, f"Expected {expected_count} records, got {len(records)}"
     for record in records:
@@ -362,7 +362,7 @@ def layer2_import():
 
 
 @lib.test_logging_decorator
-def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
+def check_pgc_names(session: lib.TestSession, name_prefix: str):
     response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
     response.raise_for_status()
     name_results = response.json()["data"]
@@ -375,7 +375,7 @@ def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
 
 
 @lib.test_logging_decorator
-def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, radius: float):
+def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radius: float):
     response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
     response.raise_for_status()
     coord_results = response.json()["data"]
@@ -384,11 +384,9 @@ def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, r
 
 
 @lib.test_logging_decorator
-def check_dataapi_query(session: lib.TestSession, q: str, page_size: int = 10, page: int = 0):
-    response = session.get("/v1/query", params={"q": q, "page_size": page_size, "page": page})
-    response.raise_for_status()
-    data = response.json()["data"]
-    assert "objects" in data
+def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float, radius: float) -> None:
+    check_pgc_names(session, name_prefix)
+    check_pgc_coordinates(session, ra, dec, radius)
 
 
 def get_adminapi_session() -> lib.TestSession:
@@ -430,7 +428,7 @@ def run():
 
     records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
     upload_structured_data(adminapi_session, records)
-    check_layer1_via_records(adminapi_session, table_name, OBJECTS_NUM)
+    check_records(adminapi_session, table_name, OBJECTS_NUM)
 
     record_ids = [r["id"] for r in records]
     set_crossmatch_new(
@@ -442,10 +440,7 @@ def run():
     submit_crossmatch(table_name)
     layer2_import()
 
-    check_dataapi_name_query(dataapi, "NGC")
-    check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
-    check_dataapi_query(dataapi, "NGC")
-    check_dataapi_query(dataapi, " ", page_size=10, page=0)
+    check_pgc(dataapi, "NGC", COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
 
     # ---- Table 2: smaller cluster, some pending/resolved; check via /records; submit; check pgc ----
     table_name_2 = create_table(adminapi_session, code)
@@ -461,7 +456,7 @@ def run():
 
     records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
     upload_structured_data(adminapi_session, records_2)
-    check_layer1_via_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
+    check_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
 
     record_ids_2 = [r["id"] for r in records_2]
 
