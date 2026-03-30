@@ -128,33 +128,46 @@ def get_record_ids(session: requests.Session, table_name: str, expected_count: i
 
 
 @lib.test_logging_decorator
-def fill_layer1_via_structured(session: requests.Session, records: list[dict]) -> None:
+def upload_structured_data(session: requests.Session, records: list[dict]) -> None:
     ids = [r["id"] for r in records]
     orig = [r["original_data"] for r in records]
 
+    upload_designation_catalog(session, ids=ids, original_data=orig)
+    upload_icrs_catalog(session, ids=ids, original_data=orig)
+    upload_photometry_catalog(session, ids=ids)
+
+
+@lib.test_logging_decorator
+def upload_designation_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
     designation_request = adminapi.SaveStructuredDataRequest(
         catalog="designation",
         columns=["design"],
         units={},
         ids=ids,
-        data=[[o["name"]] for o in orig],
+        data=[[o["name"]] for o in original_data],
     )
     response = session.post("/v1/data/structured", json=designation_request.model_dump(mode="json"))
     response.raise_for_status()
 
+
+@lib.test_logging_decorator
+def upload_icrs_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
     ra_deg = 15.0
     icrs_request = adminapi.SaveStructuredDataRequest(
         catalog="icrs",
         columns=["ra", "dec", "e_ra", "e_dec"],
         units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
         ids=ids,
-        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in orig],
+        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in original_data],
     )
     response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
     response.raise_for_status()
 
-    phot_ids = []
-    phot_data = []
+
+@lib.test_logging_decorator
+def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None:
+    phot_ids: list[str] = []
+    phot_data: list[list[object]] = []
     for rid in ids:
         for band in PHOTOMETRY_BANDS:
             phot_ids.append(rid)
@@ -416,7 +429,7 @@ def run():
     check_get_table(adminapi_session, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
 
     records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
-    fill_layer1_via_structured(adminapi_session, records)
+    upload_structured_data(adminapi_session, records)
     check_layer1_via_records(adminapi_session, table_name, OBJECTS_NUM)
 
     record_ids = [r["id"] for r in records]
@@ -447,7 +460,7 @@ def run():
     )
 
     records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
-    fill_layer1_via_structured(adminapi_session, records_2)
+    upload_structured_data(adminapi_session, records_2)
     check_layer1_via_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
 
     record_ids_2 = [r["id"] for r in records_2]
