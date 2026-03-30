@@ -134,6 +134,7 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
 
     upload_designation_catalog(session, ids=ids, original_data=orig)
     upload_icrs_catalog(session, ids=ids, original_data=orig)
+    upload_notes_catalog(session, ids=ids, original_data=orig)
     upload_photometry_catalog(session, ids=ids)
 
 
@@ -183,6 +184,19 @@ def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None
         data=phot_data,
     )
     response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_notes_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
+    notes_request = adminapi.SaveStructuredDataRequest(
+        catalog="note",
+        columns=["note"],
+        units={},
+        ids=ids,
+        data=[[f"note: {o['name']}"] for o in original_data],
+    )
+    response = session.post("/v1/data/structured", json=notes_request.model_dump(mode="json"))
     response.raise_for_status()
 
 
@@ -386,6 +400,7 @@ def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radiu
 @lib.test_logging_decorator
 def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float, radius: float) -> None:
     check_pgc_names(session, name_prefix)
+    check_pgc_notes(session, name_prefix)
     check_pgc_coordinates(session, ra, dec, radius)
 
 
@@ -395,6 +410,32 @@ def check_dataapi_query(session: lib.TestSession, q: str, page_size: int = 10, p
     response.raise_for_status()
     data = response.json()["data"]
     assert "objects" in data
+
+
+@lib.test_logging_decorator
+def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
+    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response.raise_for_status()
+    name_results = response.json()["data"]
+    pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
+
+    response = session.get("/v1/query/simple", params={"pgcs": pgcs, "page_size": 100})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+    assert len(data["objects"]) > 0
+
+    for obj in data["objects"]:
+        catalogs = obj["catalogs"]
+        assert "notes" in catalogs and catalogs["notes"] is not None
+        assert len(catalogs["notes"]) > 0
+        note_entry = catalogs["notes"][0]
+        assert note_entry["note"] is not None and note_entry["note"] != ""
+        source = note_entry["source"]
+        assert source["bibcode"] is not None and source["bibcode"] != ""
+        assert source["title"] is not None and source["title"] != ""
+        assert len(source["authors"]) > 0
+        assert source["year"] > 0
 
 
 def get_adminapi_session() -> lib.TestSession:
