@@ -194,6 +194,20 @@ class StructuredResponder(interface.ObjectResponder):
             if obj.catalogs.nature is not None:
                 catalogs.nature = dataapi.Nature(type_name=obj.catalogs.nature.type_name)
 
+            if obj.catalogs.notes is not None:
+                catalogs.notes = [
+                    dataapi.NoteEntry(
+                        note=note.note,
+                        source=dataapi.Source(
+                            bibcode=note.source.bibcode,
+                            title=note.source.title,
+                            authors=note.source.authors,
+                            year=note.source.year,
+                        ),
+                    )
+                    for note in obj.catalogs.notes.notes
+                ]
+
             if icrs is not None and obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift
                 catalogs.velocity = {}

@@ -60,6 +60,17 @@ class AdditionalDesignationsCatalog:
 
 
 @dataclass
+class NoteEntry:
+    note: str
+    source: Source
+
+
+@dataclass
+class NotesCatalog:
+    notes: list[NoteEntry]
+
+
+@dataclass
 class Catalogs:
     """
     Dsscription of catalogs as they are stored on layer 2. To properly analyze them one probably needs
@@ -71,6 +82,7 @@ class Catalogs:
     icrs: ICRSCatalog | None = None
     redshift: RedshiftCatalog | None = None
     nature: NatureCatalog | None = None
+    notes: NotesCatalog | None = None
 
 
 @dataclass
