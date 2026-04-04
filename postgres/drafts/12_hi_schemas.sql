@@ -21,6 +21,17 @@ COMMENT ON TYPE common.QualityType	IS '{
   }
 }' ;
 
+CREATE TYPE common.VelocityConventionType AS ENUM ( 'optical', 'radio', 'relativistic' ) ;
+COMMENT ON TYPE common.VelocityConventionType IS '{
+"description": "Velocity convention",
+"values": {
+  "optical": "Voptical=c(λ-λ0)/λ0=cz",
+  "radio": "Vradio=c(ν0-ν)/ν0; cz=Vradio/(1-Vradio/c)",
+  "relativistic": "Relativistic Doppler effect: V=c(ν0^2-ν^2)/(ν0^2+ν^2)=c(λ^2-λ0^2)/(λ^2+λ0^2)=c[(1+z)^2-1]/[(1+z)^2+1]"
+  }
+}' ;
+
+
 ----------------------------------------------------
 -------------- Radio Observations schema -----------
 ----------------------------------------------------
@@ -33,16 +44,6 @@ COMMENT ON TYPE radio.FluxMethodType	IS '{
 "values": {
   "sum":"Integrated radio line flux by summing all velocity channels", 
   "fit":"Integrated radio line flux by model line fitting"
-  }
-}' ;
-
-CREATE TYPE radio.VelConventionType AS ENUM ( 'optical', 'radio', 'relativistic' ) ;
-COMMENT ON TYPE radio.VelConventionType	IS '{
-"description": "Velocity convention",
-"values": {
-  "optical": "Voptical=c(λ-λ0)/λ0=cz", 
-  "radio": "Vradio=c(ν0-ν)/ν0; cz=Vradio/(1-Vradio/c)", 
-  "relativistic": "Relativistic Doppler effect: V=c(ν0^2-ν^2)/(ν0^2+ν^2)=c(λ^2-λ0^2)/(λ^2+λ0^2)=c[(1+z)^2-1]/[(1+z)^2+1]"
   }
 }' ;
 
@@ -136,7 +137,7 @@ CREATE TABLE radio.datasets (
 , telescope_id	Text	NOT NULL	REFERENCES radio.telescopes (id) ON DELETE restrict ON UPDATE cascade
 , line_id	Text	NOT NULL	DEFAULT 'HI'
 , resolution	real	NOT NULL
-, velocity_convention	radio.VelConventionType	NOT NULL	DEFAULT 'optical'
+, velocity_convention	common.VelocityConventionType	NOT NULL	DEFAULT 'optical'
 , flux_correction	boolean	NOT NULL	DEFAULT false
 , resolution_correction	boolean	NOT NULL	DEFAULT false
 , redshift_correction	boolean	NOT NULL	DEFAULT false
