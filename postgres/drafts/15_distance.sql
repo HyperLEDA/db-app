@@ -276,5 +276,5 @@ INSERT INTO distance.calibrations (id, method, bibcode, description) VALUES
 , ('BS:Makarova+1998',	'BS',	'1998A&AS..133..181M',	'{"relation": "modulus0(R1)=1.10*V(R1)-0.10*BT+7.00-0.76*AB, (B-V)=1.6", "calibration_basis": "1994A&A...286..718K"}' )
 ;
 
-ROLLBACK ;
--- COMMIT ;
+-- ROLLBACK ;
+COMMIT ;
