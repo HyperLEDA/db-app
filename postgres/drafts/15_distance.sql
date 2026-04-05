@@ -27,7 +27,7 @@ CREATE TABLE distance.methods (
   id	Text	PRIMARY KEY
 , indicator	distance.IndicatorType	NOT NULL	DEFAULT 'standard candle'
 , short	Text	NOT NULL
-, description	Text	NOT NULL
+, description	Text
 ) ;
 
 COMMENT ON TABLE distance.methods	IS 'Distance determination methods' ;
@@ -41,16 +41,15 @@ COMMENT ON COLUMN distance.methods.description	IS 'Method description' ;
 CREATE TABLE distance.calibrations (
   id	Text	PRIMARY KEY
 , method	Text	NOT NULL	REFERENCES distance.methods (id) ON DELETE restrict ON UPDATE cascade
-, bibcode	Char(19)	REFERENCES common.bib (id) ON DELETE restrict ON UPDATE cascade
+, bibcode	Char(19)
 , description	json
-, UNIQUE (method, bibcode)
 );
 
-COMMENT ON TABLE distance.calib	IS 'Calibration of the distance method';
-COMMENT ON COLUMN distance.calib.id	IS 'Calibration ID';
-COMMENT ON COLUMN distance.calib.method	IS 'Distance method ID';
-COMMENT ON COLUMN distance.calib.bibcode	IS 'ADS bibcode';
-COMMENT ON COLUMN distance.calib.description	IS 'Distance calibration description';
+COMMENT ON TABLE distance.calibrations	IS 'Calibration of the distance method';
+COMMENT ON COLUMN distance.calibrations.id	IS 'Calibration ID';
+COMMENT ON COLUMN distance.calibrations.method	IS 'Distance method ID';
+COMMENT ON COLUMN distance.calibrations.bibcode	IS 'ADS bibcode';
+COMMENT ON COLUMN distance.calibrations.description	IS 'Distance calibration description';
 
 
 ------- Distance catalog -------
@@ -155,10 +154,10 @@ INSERT INTO distance.calibrations (id, method, bibcode, description) VALUES
 , ('TRGB:Ferrarese+2000',	'TRGB',	'2000ApJ...529..745F',	'{"description": "MI(TRGB)=-4.06 +-0.7(random) +-0.13(systematic)"}' )
 , ('TRGB:Girardi+2008',	'TRGB',	'2008PASP..120..583G',	'{"description": "Padova isochrones"}' )
 , ('TRGB:Gorski+2011',	'TRGB',	'2011AJ....141..194G',	'{"relation": "MJ(TRGB)=-5.67-0.31*[Fe/H], MH(TRGB)=-6.71-0.47*[Fe/H], MK(TRGB)=-6.98-0.58*[Fe/H]"}' )
-, ('TRGB:I=-4.00',	'TRGB',	'{"relation": "MI(TRGB)=-4.0 for metal-poor systems"}' )
-, ('TRGB:I=-4.03',	'TRGB',	'{"relation": "MI(TRGB)=-4.03 +-0.05", "description": "from the theoretical models of Girardi et al. (2000) and the semi-empirical calibration of Lee et al. (1993)"}' )
-, ('TRGB:I=-4.04',	'TRGB',	'{"relation": "MI(TRGB)=-4.04+-0.12 at [Fe/H]=-0.7", "description": "based on Omega Centauri by Bellazzini+2001", "anchor": "Omega Cen"}' )
-, ('TRGB:I=-4.05',	'TRGB',	'{"relation": "MI(TRGB)=-4.05 for metal-poor systems',	NULL )
+, ('TRGB:I=-4.00',	'TRGB',	NULL,	'{"relation": "MI(TRGB)=-4.0 for metal-poor systems"}' )
+, ('TRGB:I=-4.03',	'TRGB',	NULL,	'{"relation": "MI(TRGB)=-4.03 +-0.05", "description": "from the theoretical models of Girardi et al. (2000) and the semi-empirical calibration of Lee et al. (1993)"}' )
+, ('TRGB:I=-4.04',	'TRGB',	NULL,	'{"relation": "MI(TRGB)=-4.04+-0.12 at [Fe/H]=-0.7", "description": "based on Omega Centauri by Bellazzini+2001", "anchor": "Omega Cen"}' )
+, ('TRGB:I=-4.05',	'TRGB',	NULL,	'{"relation": "MI(TRGB)=-4.05 for metal-poor systems"}' )
 , ('TRGB:Jang+2017',	'TRGB',	'2017ApJ...835...28J',	'{"relation": "M_QT(TRGB)=-4.016+-0.058"}' )
 , ('TRGB:Lee+1993',	'TRGB',	'1993ApJ...417..553L',	'{"relation": "Mbol(TRGB)=-0.19*[Fe/H]-3.81, BC_I=0.881*-0.243*(V-I)0, [Fe/H]=-12.64+12.6*(V-I)_{-3.5}-3.3*(V-I)_{-3.5}^2"}' )
 , ('TRGB:Madore+2009',	'TRGB',	'2009ApJ...690..389M',	'{"relation": "MI(TRGB)=-4.05+0.20*((V-I)0-1.5)"}' )
@@ -176,16 +175,16 @@ INSERT INTO distance.calibrations (id, method, bibcode, description) VALUES
 , ('BHB:mod(M15)=15.39',	'BHB',	NULL,	'{"anchor": "M15", "modulus": "15.39"}' )
 , ('BHB:mod(M92)=14.65',	'BHB',	NULL,	'{"anchor": "M92", "modulus": "14.65"}' )
 , ('HB:Carretta+2000',	'HB',	'2000ApJ...533..215C',	'{"relation": "MV(HB)=0.13*([Fe/H]+1.5)+0.54", "anchor": "LMC", "modulus": "18.54+-0.03+-0.06"}' )
-, ('RHB:Chen+2009',	'RHB',	'2009ApJ...702.1336C',	'{"relation": "Mi(RHB)=0.06*[Fe/H]+0.040*t+0.03" "description": "SDSS ugriz photometric system"}' )
+, ('RHB:Chen+2009',	'RHB',	'2009ApJ...702.1336C',	'{"relation": "Mi(RHB)=0.06*[Fe/H]+0.040*t+0.03", "description": "SDSS ugriz photometric system"}' )
 , ('ZAHB:Carretta+2000',	'ZAHB',	'2000ApJ...533..215C',	'{"relation": "MV(ZAHB)=0.18*([Fe/H]+1.5)+0.63", "anchor": "LMC", "modulus": "18.54+-0.03+-0.06"}' )
 , ('RC:Bilir+2013',	'RC',	'2013NewA...23...88B',	'{"relation": "MV(RC)=0.627(+-0.104)*(B-V)0+0.046(+-0.043)*[Fe/H]+0.262(+-0.111) for 0.42<(B-V)0<1.20 mag, -1.55<[Fe/H]<+0.40 dex and 0.43<MV<1.03 mag", "description": "The distances obtained from trigonometric parallaxes and spectrophotometric analysis."}' )
 , ('RC:Udalski2000',	'RC',	'2000ApJ...531L..25U',	'{"relation": "MI=0.13*([Fe/H]+0.25)-0.26, -0.6<[Fe/H]<0.2, sigma=0.12", "description": "based on Hipparcos measurements"}' )
 , ('RC:Popowski2000',	'RC',	'2000ApJ...528L...9P',	'{"relation": "MI=-0.36+0.19*([Fe/H]+0.66)"}' )
 
-, ('CMD:Bressan+2012',	'CMD',	'2012MNRAS.427..127B',	NULL,	'{"description": "PARSEC: stellar tracks and isochrones with the PAdova and TRieste Stellar Evolution Code"}' )
-, ('CMD:Dotter+2008',	'CMD',	'2008ApJS..178...89D',	NULL,	'{"description": "theoretical isochrones"}' )
-, ('CMD:Fadely+2011',	'CMD',	'2011AJ....142...88F',	NULL,	'{"description": "a maximum likelihood fit of CMD using Dartmouth isochrones library (Dotter et al. 2008ApJS..178...89D)", "calibration_basis": "2008ApJS..178...89D"}' )
-, ('CMD:Girardi+2004',	'CMD',	'2004A&A...422..205G',	NULL,	'{"description": "theoretical isochrones: SDSS ugriz system"}' )
+, ('CMD:Bressan+2012',	'CMD',	'2012MNRAS.427..127B',	'{"description": "PARSEC: stellar tracks and isochrones with the PAdova and TRieste Stellar Evolution Code"}' )
+, ('CMD:Dotter+2008',	'CMD',	'2008ApJS..178...89D',	'{"description": "theoretical isochrones"}' )
+, ('CMD:Fadely+2011',	'CMD',	'2011AJ....142...88F',	'{"description": "a maximum likelihood fit of CMD using Dartmouth isochrones library (Dotter et al. 2008ApJS..178...89D)", "calibration_basis": "2008ApJS..178...89D"}' )
+, ('CMD:Girardi+2004',	'CMD',	'2004A&A...422..205G',	'{"description": "theoretical isochrones: SDSS ugriz system"}' )
 , ('CMD:mod(M15)=15.39',	'CMD',	NULL,	'{"anchor": "M15", "modulus": "15.39"}' )
 
 , ('Cepheids:Feast+1997',	'Cepheids',	'1997MNRAS.286L...1F',	'{"relation": "<MV>=-2.81*log(P)-1.43, e=0.10", "description": "Hipparcos trigonometrical parallaxes of Galactic Cepheid variables. The slope from LMC was addopted."}' )
@@ -193,9 +192,9 @@ INSERT INTO distance.calibrations (id, method, bibcode, description) VALUES
 , ('Cepheids:Fouque+2003',	'Cepheids',	'2003LNP...635...21F',	'{"relation": "MB=-2.72*(log(P)-1)-?, MV=-3.06*(log(P)-1)-4.049, MI=-3.24*(log(P)-1)-4.790, W=-3.57*(log(P)-1)-5.919, J=-3.53*(log(P)-1)-5.346, H=-3.64*(log(P)-1)-5.666, K=-3.67*(log(P)-1)-5.698", "description": "Galaxy N=32"}' )
 , ('Cepheids:Freedman+2001',	'Cepheids',	'2001ApJ...553...47F',	'{"relation": "MV=-2.760*(log(P)-1)-4.218, eV=+-0.16; MI=-2.962*(log(P)-1)-4.904, eI=+-0.11; mu0=muW=muV-R*(muV-muI)=2.45*muI-1.45*muV=W+3.255*(log(P)-1)+5.899, eW=0.08", "description": "it is based on slope from Udalski et al. 1999 and modulus(LMC)=18.50", "anchor": "LMC", "modulus": "18.50"}' )
 , ('Cepheids:Freedman+2001:Z',	'Cepheids',	'2001ApJ...553...47F',	'{"relation": "MV=-2.760*(log(P)-1)-4.218, eV=+-0.16; MI=-2.962*(log(P)-1)-4.904, eI=+-0.11; mu0=muW=muV-R*(muV-muI)=2.45*muI-1.45*muV=W+3.255*(log(P)-1)+5.899, eW=0.08; mu0Z=muV-R*(muV-muI)+dmuZ, dmuZ=gammaVI*([O/H]-[O/H]LMC), gammaVI=-0.2 +-0.2 mag dex^-1"}' )
-, ('Cepheids:Gieren+1998',	'Cepheids',	'1998ApJ...496...17G',	'{"relation": "MV=-3.037*(log(P)-1)-4.058, e=0.209; MIc=-3.329*(log(P)-1)-4.764, e=0.194; MJ(Carter)=-3.436*(log(P)-1)-5.185, e=0.173; MH(Carter)=-3.562*(log(P)-1)-5.580, e=0.175; MK(Carter)=-3.598*(log(P)-1)-5.664, e=0.173", "description": Galaxy. The infrared Barnes-Evans surface brightness technique is used to derive the radii and distances of 34 Galactic Cepheid variables."}' )
+, ('Cepheids:Gieren+1998',	'Cepheids',	'1998ApJ...496...17G',	'{"relation": "MV=-3.037*(log(P)-1)-4.058, e=0.209; MIc=-3.329*(log(P)-1)-4.764, e=0.194; MJ(Carter)=-3.436*(log(P)-1)-5.185, e=0.173; MH(Carter)=-3.562*(log(P)-1)-5.580, e=0.175; MK(Carter)=-3.598*(log(P)-1)-5.664, e=0.173", "description": "Galaxy. The infrared Barnes-Evans surface brightness technique is used to derive the radii and distances of 34 Galactic Cepheid variables."}' )
 , ('Cepheids:Kanbur+2003',	'Cepheids',	'2003A&A...411..361K',	'{"relation": "MI=-2.965*log(P)-1.889, e=0.145; MV=-2.746*log(P)-1.401", "description": "634, modulus(LMC)=18.50", "anchor": "LMC", "modulus": "18.50"}' )
-, ('Cepheids:Kanbur+2003:PLmax',	'Cepheids',	'2003A&A...411..361K',	'{"relation": "MI=-2.958*log(P)-2.129, e=0.171; MV=-2.744*log(P)-1.817, e=0.261", description": "PL(Max) relation. N=634, modulus(LMC)=18.50", "anchor": "LMC", "modulus": "18.50"}' )
+, ('Cepheids:Kanbur+2003:PLmax',	'Cepheids',	'2003A&A...411..361K',	'{"relation": "MI=-2.958*log(P)-2.129, e=0.171; MV=-2.744*log(P)-1.817, e=0.261", "description": "PL(Max) relation. N=634, modulus(LMC)=18.50", "anchor": "LMC", "modulus": "18.50"}' )
 , ('Cepheids:Kanbur+2003:Z',	'Cepheids',	'2003A&A...411..361K',	'{"relation": "dmuZ=gammaVI*([O/H]ref-[O/H]gal); gammaVI=-0.2+-0.2; [O/H](LMC)=8.50; [O/H](Galaxy)=8.87", "description": "Metallicity correction to relation Cepheids:Kanbur+2003"}' )
 , ('Cepheids:Lanoix+1999',	'Cepheids',	'1999MNRAS.308..969L',	'{"relation": "<MV>=-2.77*log(P)-1.44 (+-0.05), <MIc>=-3.05*log(P)-1.81 (+-0.09)", "description": "Hipparcos trigonometrical parallaxes of Galactic Cepheid variables. The slope from LMC was addopted."}' )
 , ('Cepheids:Madore+1991',	'Cepheids',	'1991PASP..103..933M',	'{"relation": "MB=-2.43*(log(P)-1)-3.50, eB=0.36; MV=-2.76*(log(P)-1)-4.16, eV=0.27; MRc=-2.94*(log(P)-1)-4.52, eRc=0.22; MIc=-3.06*(log(P)-1)-4.87, eIc=0.18", "description": "32 LMC Cepheids"}' )
@@ -244,7 +243,7 @@ INSERT INTO distance.calibrations (id, method, bibcode, description) VALUES
 , ('SNIa:Reindl+2005',	'SNIa',	'2005ApJ...624..532R',	'{"relation": "MB00=0.612*(dm15-1.1)+0.692*((B-V)+0.024)-19.57, sig=0.15; MV00=0.612*(dm15-1.1)-0.308*((B-V)+0.024)-19.55, sig=0.15; MI00=0.439*(dm15-1.1)+0.827*((B-V)+0.024)-19.29, sig=0.14", "H0": "60"}' )
 , ('SNIa:Wood-Vasey+2008',	'SNIa',	'2008ApJ...689..377W',	'{"relation": "MH=-18.07+-0.03 sig=0.16; MJ=-18.27+-0.07 sig=0.29; MK=-18.30+-0.11 sig=0.29"}' )
 
-, ('SBF:Blakeslee+2009',	'SBF',	'2009ApJ...694..556B',	'{"relation": "Mz=-2.04+1.41*x+2.60*x^2+3.72*x^3, where x=(g475-z850)-1.3, z850=F850LP(HST), g475=F475W(HST)", "description": :"zero point is bases on the Cepheid distance scale (Freedman et al. 2001; Macri et al. 2006)"}' )
+, ('SBF:Blakeslee+2009',	'SBF',	'2009ApJ...694..556B',	'{"relation": "Mz=-2.04+1.41*x+2.60*x^2+3.72*x^3, where x=(g475-z850)-1.3, z850=F850LP(HST), g475=F475W(HST)", "description": "zero point is bases on the Cepheid distance scale (Freedman et al. 2001; Macri et al. 2006)"}' )
 , ('SBF:Blakeslee+2010',	'SBF',	'2010ApJ...724..657B',	'{"relation": "M814=(-1.168 +-0.013+-0.092) + (1.83 +-0.20)*[(g475-I814)-1.2]  if 1.06<(g475-I814)<1.32, where g475=F475W_AB, I814=F814W_AB", "description": "Recalibration of Blakeslee+2009 for F814W fileter"}' )
 , ('SBF:Jensen+2003',	'SBF',	'2003ApJ...583..712J',	'{"relation": "MF160W=-4.86+5.1*((V-I)0-1.16) for 1.05<(V-I)0<1.24"}' )
 , ('SBF:Mei+2005',	'SBF',	'2005ApJ...625..121M',	'{"relation": "M850=-2.06+0.9*((g475-z850)0-1.3) if 1.0<=(g475-z850)0<=1.3, M850=-2.06+2.0*((g475-z850)0-1.3) if 1.3<(g475-z850)0<=1.6; z850=F850LP(HST), g475=F475W(HST)", "description": "Virgo distance mu=31.09+-0.03 mag is based on Freedman et al. 2001 Cepheid PL metallicity corrected relation", "anchor": "Virgo", "modulus": "31.09+-0.03"}' )
