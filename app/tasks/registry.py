@@ -10,6 +10,7 @@ from app.tasks import (
     layer2_import_nature,
     layer2_import_redshift,
     layer2_orphan_cleanup,
+    remove_table,
     submit_crossmatch,
 )
 
@@ -21,6 +22,7 @@ tasks: list[type[interface.Task]] = [
     layer2_import_nature.Layer2ImportNatureTask,
     layer2_import_redshift.Layer2ImportRedshiftTask,
     layer2_orphan_cleanup.Layer2OrphanCleanupTask,
+    remove_table.RemoveTableTask,
 ]
 
 task_by_name = {task.name(): task for task in tasks}

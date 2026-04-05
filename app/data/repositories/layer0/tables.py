@@ -547,3 +547,42 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             return 0, False
 
         return row["id"], True
+
+    def remove_table(self, table_name: str) -> dict[str, int]:
+        table_id, ok = self._get_table_id(table_name)
+        if not ok:
+            raise ValueError(f"table not found: {table_name}")
+
+        counts: dict[str, int] = {}
+        cursor = self._storage.get_connection().cursor()
+
+        for catalog in model.RawCatalog:
+            if catalog in model.RUNTIME_RAW_CATALOGS:
+                continue
+            fq_table = model.get_catalog_object_type(catalog).layer1_table()
+            delete_q = sql.SQL(
+                "DELETE FROM {} WHERE record_id IN (SELECT id FROM layer0.records WHERE table_id = %s)"
+            ).format(sql.Identifier(*fq_table.split(".", 1)))
+            cursor.execute(delete_q, [table_id])
+            counts[fq_table] = cursor.rowcount
+
+        cursor.execute(
+            "DELETE FROM layer0.crossmatch WHERE record_id IN (SELECT id FROM layer0.records WHERE table_id = %s)",
+            [table_id],
+        )
+        counts["layer0.crossmatch"] = cursor.rowcount
+
+        cursor.execute("DELETE FROM layer0.records WHERE table_id = %s", [table_id])
+        counts["layer0.records"] = cursor.rowcount
+
+        drop_q = sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        cursor.execute(drop_q)
+        counts["rawdata.drop"] = 0
+
+        cursor.execute("DELETE FROM layer0.tables WHERE table_name = %s", [table_name])
+        counts["layer0.tables"] = cursor.rowcount
+
+        return counts
