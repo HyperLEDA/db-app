@@ -88,6 +88,7 @@ INSERT INTO morphology.hubble (t, class, stage, design, description) VALUES
 , ( 8, 'spiral', 'dm', 'Sdm', 'Very loosely wound arms, very weak bulge, low amounts of dust')
 , ( 9, 'spiral', 'm',  'Sm',  'Some indication of spiral arms, very weak bulge, low amounts of dust')
 , (10, 'dwarf',  'Magellanic', 'Im',  'No arms, no bulge. Irregular profile. Low surface brightness. May host a bar')
+, (11, 'dwarf',  'Spheroidal', 'dSph',  'Regular low surface brightness profile, no arms. May contain a tight nucleus')
 ;
 
 
