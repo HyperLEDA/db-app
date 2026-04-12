@@ -21,12 +21,10 @@ class RemoveTableTask(interface.Task):
         self,
         logger: structlog.stdlib.BoundLogger,
         table_name: str,
-        dry_run: str = "True",
         batch_size: int = DEFAULT_BATCH_SIZE,
     ) -> None:
         self.log = logger
         self.table_name = table_name
-        self.dry_run = False if dry_run == "false" else True
         self.batch_size = int(batch_size)
 
     @classmethod
@@ -45,7 +43,6 @@ class RemoveTableTask(interface.Task):
         self.log.info(
             "Starting remove-table",
             table_name=self.table_name,
-            dry_run=self.dry_run,
             batch_size=self.batch_size,
         )
 
@@ -64,24 +61,19 @@ class RemoveTableTask(interface.Task):
             record_ids = raw_data.data[INTERNAL_ID_COLUMN_NAME].tolist()
             self.log.info("Processing batch", batch_size=len(record_ids))
 
-            if self.dry_run:
-                counts = self.layer0_repository.count_records_removal(self.table_name, record_ids)
-            else:
-                with self.layer0_repository.with_tx():
-                    counts = self.layer0_repository.remove_records(self.table_name, record_ids)
+            with self.layer0_repository.with_tx():
+                counts = self.layer0_repository.remove_records(self.table_name, record_ids)
 
             for k, v in counts.items():
                 total_counts[k] = total_counts.get(k, 0) + v
 
-        if not self.dry_run:
-            with self.layer0_repository.with_tx():
-                self.layer0_repository.drop_raw_table(self.table_name)
+        with self.layer0_repository.with_tx():
+            self.layer0_repository.drop_raw_table(self.table_name)
 
         self.log.info(
             "remove-table completed",
             table_name=self.table_name,
             counts=total_counts,
-            dry_run=self.dry_run,
         )
 
     def cleanup(self) -> None:

@@ -548,49 +548,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         return row["id"], True
 
-    def count_records_removal(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
-        if not record_ids:
-            return {}
-
-        counts: dict[str, int] = {}
-        id_placeholders = sql.SQL(",").join([sql.Placeholder()] * len(record_ids))
-
-        for catalog in model.RawCatalog:
-            if catalog in model.RUNTIME_RAW_CATALOGS:
-                continue
-            fq_table = model.get_catalog_object_type(catalog).layer1_table()
-            count_q = sql.SQL("SELECT COUNT(*)::int AS c FROM {} WHERE record_id IN ({})").format(
-                sql.Identifier(*fq_table.split(".", 1)),
-                id_placeholders,
-            )
-            row = self._storage.query_one(count_q, params=record_ids)
-            counts[fq_table] = int(row["c"])
-
-        row = self._storage.query_one(
-            sql.SQL("SELECT COUNT(*)::int AS c FROM layer0.crossmatch WHERE record_id IN ({})").format(id_placeholders),
-            params=record_ids,
-        )
-        counts["layer0.crossmatch"] = int(row["c"])
-
-        row = self._storage.query_one(
-            sql.SQL("SELECT COUNT(*)::int AS c FROM layer0.records WHERE id IN ({})").format(id_placeholders),
-            params=record_ids,
-        )
-        counts["layer0.records"] = int(row["c"])
-
-        row = self._storage.query_one(
-            sql.SQL("SELECT COUNT(*)::int AS c FROM {}.{} WHERE {} IN ({})").format(
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-                id_placeholders,
-            ),
-            params=record_ids,
-        )
-        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = int(row["c"])
-
-        return counts
-
     def remove_records(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
         if not record_ids:
             return {}

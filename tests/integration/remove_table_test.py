@@ -3,7 +3,7 @@ import unittest
 import structlog
 
 from app.data import repositories
-from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
+from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME
 from app.domain import adminapi as domain
 from app.lib import clients
 from app.lib.storage import enums
@@ -141,34 +141,6 @@ class RemoveTableTest(unittest.TestCase):
         self.assertEqual(self._record_count_for_table("table_a"), 0)
         self.assertEqual(self._record_count_for_table("table_b"), 2)
         self.assertEqual(self._raw_row_count("table_b"), 2)
-
-    def test_remove_table_dry_run(self) -> None:
-        self._mock_ads()
-        self._create_minimal_table("table_a")
-        self._create_minimal_table("table_b")
-        self._add_dummy_rows("table_a")
-        self._add_dummy_rows("table_b")
-
-        record_ids = self._get_record_ids("table_a")
-        self.assertEqual(len(record_ids), 2)
-
-        self.assertTrue(self._raw_table_exists("table_a"))
-        self.assertTrue(self._raw_table_exists("table_b"))
-        self.assertEqual(self._registry_row_count("table_a"), 1)
-        self.assertEqual(self._registry_row_count("table_b"), 1)
-        self.assertEqual(self._record_count_for_table("table_a"), 2)
-        self.assertEqual(self._record_count_for_table("table_b"), 2)
-        self.assertEqual(self._raw_row_count("table_a"), 2)
-        self.assertEqual(self._raw_row_count("table_b"), 2)
-
-    def test_count_records_removal(self) -> None:
-        self._mock_ads()
-        self._create_minimal_table("table_a")
-        self._add_dummy_rows("table_a")
-        record_ids = self._get_record_ids("table_a")
-        counts = self.layer0_repo.count_records_removal("table_a", record_ids)
-        self.assertEqual(counts[f"{RAWDATA_SCHEMA}.table_a"], 2)
-        self.assertEqual(counts["layer0.records"], 2)
 
     def test_remove_table_batched(self) -> None:
         self._mock_ads()
