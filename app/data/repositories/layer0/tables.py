@@ -548,41 +548,100 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         return row["id"], True
 
-    def remove_table(self, table_name: str) -> dict[str, int]:
-        table_id, ok = self._get_table_id(table_name)
-        if not ok:
-            raise ValueError(f"table not found: {table_name}")
+    def count_records_removal(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
+        if not record_ids:
+            return {}
 
         counts: dict[str, int] = {}
-        cursor = self._storage.get_connection().cursor()
+        id_placeholders = sql.SQL(",").join([sql.Placeholder()] * len(record_ids))
 
         for catalog in model.RawCatalog:
             if catalog in model.RUNTIME_RAW_CATALOGS:
                 continue
             fq_table = model.get_catalog_object_type(catalog).layer1_table()
-            delete_q = sql.SQL(
-                "DELETE FROM {} WHERE record_id IN (SELECT id FROM layer0.records WHERE table_id = %s)"
-            ).format(sql.Identifier(*fq_table.split(".", 1)))
-            cursor.execute(delete_q, [table_id])
+            count_q = sql.SQL("SELECT COUNT(*)::int AS c FROM {} WHERE record_id IN ({})").format(
+                sql.Identifier(*fq_table.split(".", 1)),
+                id_placeholders,
+            )
+            row = self._storage.query_one(count_q, params=record_ids)
+            counts[fq_table] = int(row["c"])
+
+        row = self._storage.query_one(
+            sql.SQL("SELECT COUNT(*)::int AS c FROM layer0.crossmatch WHERE record_id IN ({})").format(id_placeholders),
+            params=record_ids,
+        )
+        counts["layer0.crossmatch"] = int(row["c"])
+
+        row = self._storage.query_one(
+            sql.SQL("SELECT COUNT(*)::int AS c FROM layer0.records WHERE id IN ({})").format(id_placeholders),
+            params=record_ids,
+        )
+        counts["layer0.records"] = int(row["c"])
+
+        row = self._storage.query_one(
+            sql.SQL("SELECT COUNT(*)::int AS c FROM {}.{} WHERE {} IN ({})").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+                id_placeholders,
+            ),
+            params=record_ids,
+        )
+        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = int(row["c"])
+
+        return counts
+
+    def remove_records(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
+        if not record_ids:
+            return {}
+
+        counts: dict[str, int] = {}
+        cursor = self._storage.get_connection().cursor()
+        id_placeholders = sql.SQL(",").join([sql.Placeholder()] * len(record_ids))
+
+        for catalog in model.RawCatalog:
+            if catalog in model.RUNTIME_RAW_CATALOGS:
+                continue
+            fq_table = model.get_catalog_object_type(catalog).layer1_table()
+            delete_q = sql.SQL("DELETE FROM {} WHERE record_id IN ({})").format(
+                sql.Identifier(*fq_table.split(".", 1)),
+                id_placeholders,
+            )
+            cursor.execute(delete_q, record_ids)
             counts[fq_table] = cursor.rowcount
 
         cursor.execute(
-            "DELETE FROM layer0.crossmatch WHERE record_id IN (SELECT id FROM layer0.records WHERE table_id = %s)",
-            [table_id],
+            sql.SQL("DELETE FROM layer0.crossmatch WHERE record_id IN ({})").format(id_placeholders),
+            record_ids,
         )
         counts["layer0.crossmatch"] = cursor.rowcount
 
-        cursor.execute("DELETE FROM layer0.records WHERE table_id = %s", [table_id])
+        cursor.execute(
+            sql.SQL("DELETE FROM layer0.records WHERE id IN ({})").format(id_placeholders),
+            record_ids,
+        )
         counts["layer0.records"] = cursor.rowcount
+
+        cursor.execute(
+            sql.SQL("DELETE FROM {}.{} WHERE {} IN ({})").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(table_name),
+                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+                id_placeholders,
+            ),
+            record_ids,
+        )
+        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = cursor.rowcount
+
+        return counts
+
+    def drop_raw_table(self, table_name: str) -> None:
+        cursor = self._storage.get_connection().cursor()
 
         drop_q = sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
             sql.Identifier(RAWDATA_SCHEMA),
             sql.Identifier(table_name),
         )
         cursor.execute(drop_q)
-        counts["rawdata.drop"] = 0
 
         cursor.execute("DELETE FROM layer0.tables WHERE table_name = %s", [table_name])
-        counts["layer0.tables"] = cursor.rowcount
-
-        return counts

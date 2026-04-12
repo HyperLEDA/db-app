@@ -3,11 +3,11 @@ import unittest
 import structlog
 
 from app.data import repositories
+from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
 from app.domain import adminapi as domain
 from app.lib import clients
 from app.lib.storage import enums
 from app.presentation import adminapi as presentation
-from app.tasks.remove_table import DryRunRollback
 from tests import lib
 
 
@@ -107,6 +107,13 @@ class RemoveTableTest(unittest.TestCase):
         )
         return int(rows[0]["c"])
 
+    def _get_record_ids(self, table_name: str) -> list[str]:
+        raw_data = self.layer0_repo.fetch_raw_data(
+            table_name=table_name,
+            columns=[INTERNAL_ID_COLUMN_NAME],
+        )
+        return raw_data.data[INTERNAL_ID_COLUMN_NAME].tolist()
+
     def test_remove_table(self) -> None:
         self._mock_ads()
         self._create_minimal_table("table_a")
@@ -121,8 +128,11 @@ class RemoveTableTest(unittest.TestCase):
         self.assertEqual(self._record_count_for_table("table_a"), 2)
         self.assertEqual(self._record_count_for_table("table_b"), 2)
 
+        record_ids = self._get_record_ids("table_a")
         with self.layer0_repo.with_tx():
-            self.layer0_repo.remove_table("table_a")
+            self.layer0_repo.remove_records("table_a", record_ids)
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.drop_raw_table("table_a")
 
         self.assertFalse(self._raw_table_exists("table_a"))
         self.assertTrue(self._raw_table_exists("table_b"))
@@ -139,12 +149,8 @@ class RemoveTableTest(unittest.TestCase):
         self._add_dummy_rows("table_a")
         self._add_dummy_rows("table_b")
 
-        try:
-            with self.layer0_repo.with_tx():
-                self.layer0_repo.remove_table("table_a")
-                raise DryRunRollback()
-        except DryRunRollback:
-            pass
+        record_ids = self._get_record_ids("table_a")
+        self.assertEqual(len(record_ids), 2)
 
         self.assertTrue(self._raw_table_exists("table_a"))
         self.assertTrue(self._raw_table_exists("table_b"))
@@ -154,3 +160,38 @@ class RemoveTableTest(unittest.TestCase):
         self.assertEqual(self._record_count_for_table("table_b"), 2)
         self.assertEqual(self._raw_row_count("table_a"), 2)
         self.assertEqual(self._raw_row_count("table_b"), 2)
+
+    def test_count_records_removal(self) -> None:
+        self._mock_ads()
+        self._create_minimal_table("table_a")
+        self._add_dummy_rows("table_a")
+        record_ids = self._get_record_ids("table_a")
+        counts = self.layer0_repo.count_records_removal("table_a", record_ids)
+        self.assertEqual(counts[f"{RAWDATA_SCHEMA}.table_a"], 2)
+        self.assertEqual(counts["layer0.records"], 2)
+
+    def test_remove_table_batched(self) -> None:
+        self._mock_ads()
+        self._create_minimal_table("table_a")
+        self._add_dummy_rows("table_a")
+
+        all_ids = self._get_record_ids("table_a")
+        self.assertEqual(len(all_ids), 2)
+
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.remove_records("table_a", all_ids[:1])
+
+        self.assertEqual(self._record_count_for_table("table_a"), 1)
+        self.assertEqual(self._raw_row_count("table_a"), 1)
+
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.remove_records("table_a", all_ids[1:])
+
+        self.assertEqual(self._record_count_for_table("table_a"), 0)
+        self.assertEqual(self._raw_row_count("table_a"), 0)
+
+        with self.layer0_repo.with_tx():
+            self.layer0_repo.drop_raw_table("table_a")
+
+        self.assertFalse(self._raw_table_exists("table_a"))
+        self.assertEqual(self._registry_row_count("table_a"), 0)
