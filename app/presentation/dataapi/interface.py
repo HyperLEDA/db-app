@@ -208,6 +208,7 @@ class GetTableResponse(pydantic.BaseModel):
     table_name: str
     description: str | None = None
     columns: list[ColumnInfo]
+    sample_rows: list[dict[str, str | None]]
 
 
 class FITSRequest(pydantic.BaseModel):

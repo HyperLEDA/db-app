@@ -33,7 +33,7 @@ class MetadataAPITest(unittest.TestCase):
         self.pg_storage.clear()
 
     def test_list_schemas(self) -> None:
-        response = self.client.get("/api/v1/metadata/schemas")
+        response = self.client.get("/api/v1/schema")
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertIn("data", body)
@@ -48,7 +48,7 @@ class MetadataAPITest(unittest.TestCase):
 
     def test_get_table_common_bib(self) -> None:
         response = self.client.get(
-            "/api/v1/metadata/table",
+            "/api/v1/table",
             params={"schema_name": "common", "table_name": "bib"},
         )
         self.assertEqual(response.status_code, 200)
@@ -59,10 +59,13 @@ class MetadataAPITest(unittest.TestCase):
         col_names = {c["column_name"] for c in data["columns"]}
         self.assertIn("id", col_names)
         self.assertIn("code", col_names)
+        self.assertIn("sample_rows", data)
+        self.assertIsInstance(data["sample_rows"], list)
+        self.assertLessEqual(len(data["sample_rows"]), 50)
 
     def test_get_table_not_found(self) -> None:
         response = self.client.get(
-            "/api/v1/metadata/table",
+            "/api/v1/table",
             params={"schema_name": "common", "table_name": "no_such_table_zzzzz"},
         )
         self.assertEqual(response.status_code, 404)

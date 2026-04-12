@@ -65,6 +65,8 @@ class Actions(dataapi.Actions):
         detail = self.metadata_repo.get_table(request.schema_name, request.table_name)
         if detail is None:
             raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
+        raw_rows = self.metadata_repo.fetch_table_sample_rows(request.schema_name, request.table_name)
+        sample_rows = [{k: str(v) for k, v in row.items()} for row in raw_rows]
         return dataapi.GetTableResponse(
             schema_name=detail.schema_name,
             table_name=detail.table_name,
@@ -79,4 +81,5 @@ class Actions(dataapi.Actions):
                 )
                 for c in detail.columns
             ],
+            sample_rows=sample_rows,
         )

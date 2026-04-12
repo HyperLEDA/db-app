@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, final
 
+from psycopg import sql
+
 from app.lib.storage import postgres
+
+_TABLE_SAMPLE_LIMIT = 50
 
 
 def _description_from_param(param: Any) -> str | None:
@@ -119,3 +123,11 @@ class MetadataRepository(postgres.TransactionalPGRepository):
             description=table_description,
             columns=columns,
         )
+
+    def fetch_table_sample_rows(self, schema_name: str, table_name: str) -> list[dict[str, object]]:
+        query = sql.SQL("SELECT * FROM {}.{} LIMIT {}").format(
+            sql.Identifier(schema_name),
+            sql.Identifier(table_name),
+            sql.Literal(_TABLE_SAMPLE_LIMIT),
+        )
+        return self._storage.query(query)

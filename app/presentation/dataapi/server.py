@@ -112,16 +112,16 @@ For example, if both coordinates and designation are specified, object must be i
 the specified designation.""",
             ),
             server.Route(
-                "/v1/metadata/schemas",
+                "/v1/schema",
                 http.HTTPMethod.GET,
                 api.list_schemas,
-                "List database schemas and tables",
+                "Show database schema",
             ),
             server.Route(
-                "/v1/metadata/table",
+                "/v1/table",
                 http.HTTPMethod.GET,
                 api.get_table,
-                "Get metadata for a database table",
+                "Return table metadata and a sample of its data.",
             ),
         ]
 
