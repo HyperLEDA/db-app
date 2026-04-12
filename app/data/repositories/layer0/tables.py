@@ -553,42 +553,49 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             return {}
 
         counts: dict[str, int] = {}
-        cursor = self._storage.get_connection().cursor()
-        id_placeholders = sql.SQL(",").join([sql.Placeholder()] * len(record_ids))
+        batch_params: list[tuple[str]] = [(rid,) for rid in record_ids]
 
         for catalog in model.RawCatalog:
             if catalog in model.RUNTIME_RAW_CATALOGS:
                 continue
             fq_table = model.get_catalog_object_type(catalog).layer1_table()
-            delete_q = sql.SQL("DELETE FROM {} WHERE record_id IN ({})").format(
-                sql.Identifier(*fq_table.split(".", 1)),
-                id_placeholders,
+            schema, tbl = fq_table.split(".", 1)
+            delete_q = sql.SQL("DELETE FROM {}.{} WHERE record_id = {}").format(
+                sql.Identifier(schema),
+                sql.Identifier(tbl),
+                sql.Placeholder(),
             )
-            cursor.execute(delete_q, record_ids)
-            counts[fq_table] = cursor.rowcount
+            query_str = self._storage.query_str(delete_q)
+            counts[fq_table] = self._storage.execute_batch(query_str, batch_params)
 
-        cursor.execute(
-            sql.SQL("DELETE FROM layer0.crossmatch WHERE record_id IN ({})").format(id_placeholders),
-            record_ids,
+        crossmatch_q = sql.SQL("DELETE FROM {} WHERE record_id = {}").format(
+            sql.Identifier("layer0", "crossmatch"),
+            sql.Placeholder(),
         )
-        counts["layer0.crossmatch"] = cursor.rowcount
+        counts["layer0.crossmatch"] = self._storage.execute_batch(
+            self._storage.query_str(crossmatch_q),
+            batch_params,
+        )
 
-        cursor.execute(
-            sql.SQL("DELETE FROM layer0.records WHERE id IN ({})").format(id_placeholders),
-            record_ids,
+        records_q = sql.SQL("DELETE FROM {} WHERE id = {}").format(
+            sql.Identifier("layer0", "records"),
+            sql.Placeholder(),
         )
-        counts["layer0.records"] = cursor.rowcount
+        counts["layer0.records"] = self._storage.execute_batch(
+            self._storage.query_str(records_q),
+            batch_params,
+        )
 
-        cursor.execute(
-            sql.SQL("DELETE FROM {}.{} WHERE {} IN ({})").format(
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-                id_placeholders,
-            ),
-            record_ids,
+        raw_q = sql.SQL("DELETE FROM {}.{} WHERE {} = {}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+            sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+            sql.Placeholder(),
         )
-        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = cursor.rowcount
+        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = self._storage.execute_batch(
+            self._storage.query_str(raw_q),
+            batch_params,
+        )
 
         return counts
 
