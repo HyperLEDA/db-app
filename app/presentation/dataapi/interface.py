@@ -175,6 +175,41 @@ class QueryResponse(pydantic.BaseModel):
     objects: list[PGCObject]
 
 
+class TableSummary(pydantic.BaseModel):
+    table_name: str
+    description: str | None = None
+
+
+class SchemaEntry(pydantic.BaseModel):
+    schema_name: str
+    description: str | None = None
+    tables: list[TableSummary]
+
+
+class ListSchemasResponse(pydantic.BaseModel):
+    schemas: list[SchemaEntry]
+
+
+class GetTableRequest(pydantic.BaseModel):
+    schema_name: str = pydantic.Field(description="Schema name")
+    table_name: str = pydantic.Field(description="Table name within the schema")
+
+
+class ColumnInfo(pydantic.BaseModel):
+    column_name: str
+    data_type: str | None = None
+    description: str | None = None
+    unit: str | None = None
+    ucd: str | None = None
+
+
+class GetTableResponse(pydantic.BaseModel):
+    schema_name: str
+    table_name: str
+    description: str | None = None
+    columns: list[ColumnInfo]
+
+
 class FITSRequest(pydantic.BaseModel):
     pgcs: list[int] | None = pydantic.Field(
         default=None,
@@ -225,4 +260,12 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def query_fits(self, query: FITSRequest) -> bytes:
+        pass
+
+    @abc.abstractmethod
+    def list_schemas(self) -> ListSchemasResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_table(self, request: GetTableRequest) -> GetTableResponse:
         pass

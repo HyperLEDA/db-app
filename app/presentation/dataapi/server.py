@@ -54,6 +54,17 @@ class API:
             },
         )
 
+    def list_schemas(self) -> server.APIOkResponse[interface.ListSchemasResponse]:
+        response = self.actions.list_schemas()
+        return server.APIOkResponse(data=response)
+
+    def get_table(
+        self,
+        request: Annotated[interface.GetTableRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[interface.GetTableResponse]:
+        response = self.actions.get_table(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -99,6 +110,18 @@ If the string matches multiple interpretations, results are combined with OR."""
 All of the conditions are combined with the logical AND operator.
 For example, if both coordinates and designation are specified, object must be in the specified area and have
 the specified designation.""",
+            ),
+            server.Route(
+                "/v1/metadata/schemas",
+                http.HTTPMethod.GET,
+                api.list_schemas,
+                "List database schemas and tables",
+            ),
+            server.Route(
+                "/v1/metadata/table",
+                http.HTTPMethod.GET,
+                api.get_table,
+                "Get metadata for a database table",
             ),
         ]
 

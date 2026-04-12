@@ -3,6 +3,7 @@ from typing import final
 from app.data import model, repositories
 from app.domain import responders
 from app.domain.dataapi import parameterized_query, search_parsers
+from app.lib.web import errors
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -19,9 +20,11 @@ class Actions(dataapi.Actions):
         self,
         layer2_repo: repositories.Layer2Repository,
         catalog_cfg: responders.CatalogConfig,
+        metadata_repo: repositories.MetadataRepository,
     ) -> None:
         self.layer2_repo = layer2_repo
         self.catalog_cfg = catalog_cfg
+        self.metadata_repo = metadata_repo
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
             layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
@@ -44,3 +47,36 @@ class Actions(dataapi.Actions):
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         return self.parameterized_query_manager.query_simple(query)
+
+    def list_schemas(self) -> dataapi.ListSchemasResponse:
+        entries = self.metadata_repo.list_schemas()
+        return dataapi.ListSchemasResponse(
+            schemas=[
+                dataapi.SchemaEntry(
+                    schema_name=e.schema_name,
+                    description=e.description,
+                    tables=[dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables],
+                )
+                for e in entries
+            ],
+        )
+
+    def get_table(self, request: dataapi.GetTableRequest) -> dataapi.GetTableResponse:
+        detail = self.metadata_repo.get_table(request.schema_name, request.table_name)
+        if detail is None:
+            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
+        return dataapi.GetTableResponse(
+            schema_name=detail.schema_name,
+            table_name=detail.table_name,
+            description=detail.description,
+            columns=[
+                dataapi.ColumnInfo(
+                    column_name=c.column_name,
+                    data_type=c.data_type,
+                    description=c.description,
+                    unit=c.unit,
+                    ucd=c.ucd,
+                )
+                for c in detail.columns
+            ],
+        )
