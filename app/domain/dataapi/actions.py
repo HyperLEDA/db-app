@@ -13,6 +13,27 @@ ENABLED_CATALOGS = [
     model.RawCatalog.NATURE,
 ]
 
+METADATA_ALLOWED_SCHEMAS = frozenset(
+    {
+        "common",
+        "rawdata",
+        "designation",
+        "icrs",
+        "cz",
+        "layer2",
+        "layer0",
+        "nature",
+        "note",
+        "photometry",
+    },
+)
+METADATA_BLACKLISTED_TABLES: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("common", "users"),
+        ("common", "tokens"),
+    },
+)
+
 
 @final
 class Actions(dataapi.Actions):
@@ -50,18 +71,25 @@ class Actions(dataapi.Actions):
 
     def list_schemas(self) -> dataapi.ListSchemasResponse:
         entries = self.metadata_repo.list_schemas()
-        return dataapi.ListSchemasResponse(
-            schemas=[
-                dataapi.SchemaEntry(
-                    schema_name=e.schema_name,
-                    description=e.description,
-                    tables=[dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables],
-                )
-                for e in entries
-            ],
-        )
+        visible: list[dataapi.SchemaEntry] = []
+        for e in entries:
+            if e.schema_name not in METADATA_ALLOWED_SCHEMAS:
+                continue
+            tables = [
+                dataapi.TableSummary(table_name=t.table_name, description=t.description)
+                for t in e.tables
+                if (e.schema_name, t.table_name) not in METADATA_BLACKLISTED_TABLES
+            ]
+            visible.append(
+                dataapi.SchemaEntry(schema_name=e.schema_name, description=e.description, tables=tables),
+            )
+        return dataapi.ListSchemasResponse(schemas=visible)
 
     def get_table(self, request: dataapi.GetTableRequest) -> dataapi.GetTableResponse:
+        if request.schema_name not in METADATA_ALLOWED_SCHEMAS:
+            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
+        if (request.schema_name, request.table_name) in METADATA_BLACKLISTED_TABLES:
+            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
         detail = self.metadata_repo.get_table(request.schema_name, request.table_name)
         if detail is None:
             raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")

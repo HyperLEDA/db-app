@@ -8,6 +8,7 @@ from starlette import testclient
 from app.commands.dataapi import command as dataapi_command
 from app.data import repositories
 from app.domain import dataapi as domain
+from app.domain.dataapi import actions as dataapi_actions
 from app.presentation.dataapi.server import Server
 from tests import lib
 
@@ -67,5 +68,18 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/table",
             params={"schema_name": "common", "table_name": "no_such_table_zzzzz"},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_metadata_allowed_schema_filter(self) -> None:
+        response = self.client.get("/api/v1/schema")
+        self.assertEqual(response.status_code, 200)
+        for entry in response.json()["data"]["schemas"]:
+            self.assertIn(entry["schema_name"], dataapi_actions.METADATA_ALLOWED_SCHEMAS)
+
+    def test_get_table_rejects_schema_outside_whitelist(self) -> None:
+        response = self.client.get(
+            "/api/v1/table",
+            params={"schema_name": "pg_catalog", "table_name": "pg_class"},
         )
         self.assertEqual(response.status_code, 404)
