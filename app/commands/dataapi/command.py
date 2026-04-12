@@ -38,6 +38,7 @@ class DataAPICommand(commands.Command):
         actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
             catalog_cfg=self.config.catalogs,
+            metadata_repo=repositories.MetadataRepository(self.pg_storage),
         )
 
         self.app = presentation.Server(actions, self.config.server, log)
