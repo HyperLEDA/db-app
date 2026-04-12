@@ -547,3 +547,65 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             return 0, False
 
         return row["id"], True
+
+    def remove_records(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
+        if not record_ids:
+            return {}
+
+        counts: dict[str, int] = {}
+        batch_params: list[tuple[str]] = [(rid,) for rid in record_ids]
+
+        for catalog in model.RawCatalog:
+            if catalog in model.RUNTIME_RAW_CATALOGS:
+                continue
+            fq_table = model.get_catalog_object_type(catalog).layer1_table()
+            schema, tbl = fq_table.split(".", 1)
+            delete_q = sql.SQL("DELETE FROM {}.{} WHERE record_id = {}").format(
+                sql.Identifier(schema),
+                sql.Identifier(tbl),
+                sql.Placeholder(),
+            )
+            query_str = self._storage.query_str(delete_q)
+            counts[fq_table] = self._storage.execute_batch(query_str, batch_params)
+
+        crossmatch_q = sql.SQL("DELETE FROM {} WHERE record_id = {}").format(
+            sql.Identifier("layer0", "crossmatch"),
+            sql.Placeholder(),
+        )
+        counts["layer0.crossmatch"] = self._storage.execute_batch(
+            self._storage.query_str(crossmatch_q),
+            batch_params,
+        )
+
+        records_q = sql.SQL("DELETE FROM {} WHERE id = {}").format(
+            sql.Identifier("layer0", "records"),
+            sql.Placeholder(),
+        )
+        counts["layer0.records"] = self._storage.execute_batch(
+            self._storage.query_str(records_q),
+            batch_params,
+        )
+
+        raw_q = sql.SQL("DELETE FROM {}.{} WHERE {} = {}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+            sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+            sql.Placeholder(),
+        )
+        counts[f"{RAWDATA_SCHEMA}.{table_name}"] = self._storage.execute_batch(
+            self._storage.query_str(raw_q),
+            batch_params,
+        )
+
+        return counts
+
+    def drop_raw_table(self, table_name: str) -> None:
+        cursor = self._storage.get_connection().cursor()
+
+        cursor.execute("DELETE FROM layer0.tables WHERE table_name = %s", [table_name])
+
+        drop_q = sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        cursor.execute(drop_q)

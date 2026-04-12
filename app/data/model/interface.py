@@ -39,6 +39,13 @@ class RawCatalog(enum.Enum):
     NOTE = "note"
 
 
+RUNTIME_RAW_CATALOGS: frozenset[RawCatalog] = frozenset(
+    {
+        RawCatalog.ADDITIONAL_DESIGNATIONS,
+    }
+)
+
+
 class CatalogObject(abc.ABC):
     """
     Represents an object stored in a particular catalog.

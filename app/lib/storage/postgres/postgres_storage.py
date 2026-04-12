@@ -121,15 +121,22 @@ class PgStorage:
             with self.get_pool().connection() as c:
                 c.cursor().execute(query, params)
 
-    def execute_batch(self, query: str, rows_data: Sequence[Sequence[Any]]) -> None:
+    def execute_batch(self, query: str, rows_data: Sequence[Sequence[Any]]) -> int:
         log.debug("SQL execute batch", query=query.replace("\n", " "), num_rows=len(rows_data))
+
+        if not rows_data:
+            return 0
 
         conn = self.get_thread_conn()
         if conn is not None:
-            conn.cursor().executemany(query, rows_data)
-        else:
-            with self.get_pool().connection() as c:
-                c.cursor().executemany(query, rows_data)
+            cur = conn.cursor()
+            cur.executemany(query, rows_data)
+            return cur.rowcount
+
+        with self.get_pool().connection() as c:
+            cur = c.cursor()
+            cur.executemany(query, rows_data)
+            return cur.rowcount
 
     def query(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> list[rows.DictRow]:
         if params is None:

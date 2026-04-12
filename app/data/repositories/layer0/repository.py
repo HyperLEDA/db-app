@@ -111,3 +111,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         return self.records_repo.upsert_pgc(pgcs)
+
+    def remove_records(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
+        return self.table_repo.remove_records(table_name, record_ids)
+
+    def drop_raw_table(self, table_name: str) -> None:
+        return self.table_repo.drop_raw_table(table_name)
