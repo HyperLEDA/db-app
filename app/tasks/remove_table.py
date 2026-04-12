@@ -21,12 +21,12 @@ class RemoveTableTask(interface.Task):
         self,
         logger: structlog.stdlib.BoundLogger,
         table_name: str,
-        dry_run: bool = True,
+        dry_run: str = "True",
         batch_size: int = DEFAULT_BATCH_SIZE,
     ) -> None:
         self.log = logger
         self.table_name = table_name
-        self.dry_run = dry_run
+        self.dry_run = False if dry_run == "false" else True
         self.batch_size = int(batch_size)
 
     @classmethod
