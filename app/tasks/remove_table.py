@@ -8,7 +8,7 @@ from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface
 
-DEFAULT_BATCH_SIZE = 10000
+DEFAULT_BATCH_SIZE = 100000
 
 
 def _raw_data_last_id_offset(raw: model.Layer0RawData, _: object) -> str:

@@ -602,10 +602,10 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def drop_raw_table(self, table_name: str) -> None:
         cursor = self._storage.get_connection().cursor()
 
+        cursor.execute("DELETE FROM layer0.tables WHERE table_name = %s", [table_name])
+
         drop_q = sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
             sql.Identifier(RAWDATA_SCHEMA),
             sql.Identifier(table_name),
         )
         cursor.execute(drop_q)
-
-        cursor.execute("DELETE FROM layer0.tables WHERE table_name = %s", [table_name])
