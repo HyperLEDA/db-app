@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import cast
@@ -6,6 +7,12 @@ import bcrypt
 
 from app.lib.auth import interface, user
 from app.lib.storage import postgres
+
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt())
+
+
+def _token_hash(token: str) -> bytes:
+    return hashlib.sha256(token.encode()).digest()
 
 
 class NoopAuthenticator(interface.Authenticator):
@@ -18,6 +25,9 @@ class NoopAuthenticator(interface.Authenticator):
 
     def authenticate(self, token: str) -> tuple[user.User, bool]:
         return user.User(1, user.Role.ADMIN), True
+
+    def revoke(self, token: str) -> None:
+        pass
 
 
 class PostgresAuthenticator(interface.Authenticator):
@@ -38,20 +48,20 @@ class PostgresAuthenticator(interface.Authenticator):
                 params=[username],
             )
         except RuntimeError:
-            return "", False
+            user_info = None
 
-        expected_password_hash = user_info["password_hash"]
+        expected_password_hash = user_info["password_hash"] if user_info is not None else _DUMMY_PASSWORD_HASH
         password_matches = bcrypt.checkpw(str.encode(password), expected_password_hash)
 
-        if not password_matches:
+        if user_info is None or not password_matches:
             return "", False
 
         token = secrets.token_hex(16)
 
         self._storage.exec(
-            "INSERT INTO common.tokens (token, user_id, expiry_time) VALUES (%s, %s, %s)",
+            "INSERT INTO common.tokens (token_hash, user_id, expiry_time) VALUES (%s, %s, %s)",
             params=[
-                token,
+                _token_hash(token),
                 user_info["id"],
                 datetime.now(UTC) + timedelta(seconds=self.token_lifetime),
             ],
@@ -62,14 +72,20 @@ class PostgresAuthenticator(interface.Authenticator):
         try:
             token_info = self._storage.query_one(
                 """
-                SELECT t.token AS token, u.id AS user_id, u.role AS role
+                SELECT u.id AS user_id, u.role AS role
                 FROM common.tokens AS t
                 JOIN common.users AS u ON t.user_id = u.id
-                WHERE t.token = %s AND t.expiry_time > %s AND t.active
+                WHERE t.token_hash = %s AND t.expiry_time > %s AND t.active
                 """,
-                params=[token, datetime.now(UTC)],
+                params=[_token_hash(token), datetime.now(UTC)],
             )
         except RuntimeError:
             return cast(tuple[user.User, bool], (None, False))
 
         return user.User(token_info["user_id"], token_info["role"]), True
+
+    def revoke(self, token: str) -> None:
+        self._storage.exec(
+            "UPDATE common.tokens SET active = false WHERE token_hash = %s",
+            params=[_token_hash(token)],
+        )

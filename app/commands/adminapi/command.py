@@ -11,7 +11,7 @@ from app.domain import adminapi as domain
 from app.lib import auth, clients, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
-from app.lib.web import middlewares, server
+from app.lib.web import server
 from app.presentation import adminapi as presentation
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -34,7 +34,9 @@ class AdminAPICommand(commands.Command):
         self.pg_storage = postgres.PgStorage(cfg.storage, log)
         self.pg_storage.connect()
 
-        authenticator = auth.PostgresAuthenticator(self.pg_storage)
+        authenticator: auth.Authenticator = (
+            auth.PostgresAuthenticator(self.pg_storage) if cfg.auth_enabled else auth.NoopAuthenticator()
+        )
 
         actions = domain.Actions(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
@@ -45,10 +47,13 @@ class AdminAPICommand(commands.Command):
             clients=clients.Clients(cfg.clients.ads_token),
         )
 
-        self.app = presentation.Server(actions, cfg.server, log)
-
-        if cfg.auth_enabled:
-            self.app.add_mw(middlewares.AuthMiddleware, authenticator)
+        self.app = presentation.Server(
+            actions,
+            cfg.server,
+            log,
+            authenticator,
+            enforce_route_auth=cfg.auth_enabled,
+        )
 
     def run(self):
         self.app.run()
@@ -68,7 +73,7 @@ class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
     clients: ClientsConfig
-    auth_enabled: bool
+    auth_enabled: bool = True
     tracing: TracingConfig = pydantic.Field(
         default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
     )

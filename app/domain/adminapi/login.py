@@ -14,3 +14,7 @@ class LoginManager:
             raise UnauthorizedError("invalid username or password")
 
         return adminapi.LoginResponse(token=token)
+
+    def logout(self, token: str) -> adminapi.LogoutResponse:
+        self.authenticator.revoke(token)
+        return adminapi.LogoutResponse()

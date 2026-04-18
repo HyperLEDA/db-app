@@ -20,3 +20,6 @@ class Authenticator(abc.ABC):
         Given a token, returns the boolean indicating if the user is authenticated and if they are,
         instance of the user.
         """
+
+    @abc.abstractmethod
+    def revoke(self, token: str) -> None: ...

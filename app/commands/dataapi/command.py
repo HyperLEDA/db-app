@@ -8,7 +8,7 @@ import yaml
 from app.data import repositories
 from app.domain import dataapi as domain
 from app.domain import responders
-from app.lib import commands, config, tracing
+from app.lib import auth, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
@@ -41,7 +41,7 @@ class DataAPICommand(commands.Command):
             metadata_repo=repositories.MetadataRepository(self.pg_storage),
         )
 
-        self.app = presentation.Server(actions, self.config.server, log)
+        self.app = presentation.Server(actions, self.config.server, log, auth.NoopAuthenticator())
 
     def run(self):
         self.app.run()
