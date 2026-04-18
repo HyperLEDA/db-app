@@ -32,6 +32,12 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         lib.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual(("", False), self.authenticator.login("username", "password"))
 
+    @mock.patch("bcrypt.checkpw", return_value=False)
+    def test_login_user_does_not_exist_still_checks_password_hash(self, checkpw_mock):
+        lib.raises(self.mock_storage.query_one, RuntimeError)
+        self.assertEqual(("", False), self.authenticator.login("username", "password"))
+        checkpw_mock.assert_called_once()
+
     def test_login_wrong_password(self):
         lib.returns(self.mock_storage.query_one, {"password_hash": bcrypt.hashpw(b"password", bcrypt.gensalt())})
         self.assertEqual(("", False), self.authenticator.login("username", "wrong_password"))

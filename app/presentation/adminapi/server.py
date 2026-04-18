@@ -19,16 +19,18 @@ def _make_logout_handler(
     if enforce_route_auth:
 
         def logout_enforced(
+            request: fastapi.Request,
             _body: interface.LogoutRequest,
             auth_ctx: Annotated[auth_dependencies.AuthContext, fastapi.Depends(require_admin)],
         ) -> server.APIOkResponse[interface.LogoutResponse]:
+            _ = request
             return server.APIOkResponse(data=actions.logout(auth_ctx.token))
 
         return logout_enforced
 
     def logout_unenforced(
-        _body: interface.LogoutRequest,
         request: fastapi.Request,
+        _body: interface.LogoutRequest,
     ) -> server.APIOkResponse[interface.LogoutResponse]:
         raw = request.headers.get("Authorization", "").strip()
         parts = raw.split(None, 1)
@@ -88,8 +90,11 @@ class API:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
 
-    def login(self, request: interface.LoginRequest) -> server.APIOkResponse[interface.LoginResponse]:
-        response = self.actions.login(request)
+    def login(
+        self, request: fastapi.Request, body: interface.LoginRequest
+    ) -> server.APIOkResponse[interface.LoginResponse]:
+        _ = request
+        response = self.actions.login(body)
         return server.APIOkResponse(data=response)
 
     def get_crossmatch_records(
@@ -227,6 +232,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
+                rate_limit="10/minute",
             ),
             server.Route(
                 "/v1/logout",
@@ -235,6 +241,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 "Logout",
                 "Revokes the bearer token used for this request.",
                 allowed_roles=admin_only,
+                rate_limit="10/minute",
             ),
             server.Route(
                 "/v1/records/crossmatch",

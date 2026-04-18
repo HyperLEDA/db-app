@@ -11,6 +11,9 @@ from fastapi import exceptions, responses
 from fastapi.middleware import cors
 from fastapi.openapi import utils as openapi_utils
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.lib import auth
 from app.lib.web import errors, middlewares
@@ -30,12 +33,18 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     summary: str
     description: str = ""
     allowed_roles: list[auth.Role] | None = None
+    rate_limit: str | None = None
 
 
 async def validation_exception_handler(_request, exc):
     err = errors.RuleValidationError(str(exc))
 
     return responses.JSONResponse(err.dict(), status_code=err.status())
+
+
+async def rate_limit_exception_handler(_request, exc: RateLimitExceeded):
+    err = errors.RuleValidationError(str(exc))
+    return responses.JSONResponse(err.dict(), status_code=429)
 
 
 def _secured_path_methods(routes: list[Route[Any, Any]], path_prefix: str) -> frozenset[tuple[str, str]]:
@@ -93,13 +102,16 @@ class WebServer:
                 "persistAuthorization": True,
             },
         )
+        self.limiter = Limiter(key_func=get_remote_address)
+        app.state.limiter = self.limiter
+        app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
         app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
         app.add_middleware(
             cors.CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
+            allow_origins=cfg.allowed_origins,
+            allow_credentials=False,
             allow_headers=["Content-Type", "Authorization"],
             allow_methods=[
                 http.HTTPMethod.GET,
@@ -113,16 +125,19 @@ class WebServer:
 
         for route in routes:
             route_dependencies: list[Any] = []
+            endpoint = route.handler
+            if route.rate_limit is not None:
+                endpoint = self.limiter.limit(route.rate_limit)(endpoint)
             if enforce_route_auth and route.allowed_roles is not None:
                 role_dep = auth_dependencies.make_require_roles(authenticator, route.allowed_roles)
                 route_dependencies.append(fastapi.Depends(role_dep))
             app.add_api_route(
                 path=f"{cfg.path_prefix}{route.path}",
-                endpoint=route.handler,
+                endpoint=endpoint,
                 methods=[route.method],
                 summary=route.summary,
                 description=route.description,
-                operation_id=route.handler.__name__,
+                operation_id=endpoint.__name__,
                 response_model_exclude_none=True,
                 response_model_exclude_unset=True,
                 dependencies=route_dependencies,

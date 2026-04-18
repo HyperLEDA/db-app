@@ -7,6 +7,8 @@ import structlog
 from starlette import types
 from starlette.middleware import base as middlewares
 
+_SENSITIVE_HEADERS = frozenset({"authorization", "cookie", "x-api-key"})
+
 
 class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     def __init__(
@@ -26,7 +28,9 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
         if self.log_bodies:
             data["body"] = await r.body()
 
-        data["headers"] = dict(r.headers)
+        data["headers"] = {
+            key: "<redacted>" if key.lower() in _SENSITIVE_HEADERS else value for key, value in r.headers.items()
+        }
         data["query"] = dict(r.query_params)
 
         data["url"] = str(r.base_url)

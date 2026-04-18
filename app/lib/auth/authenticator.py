@@ -8,6 +8,8 @@ import bcrypt
 from app.lib.auth import interface, user
 from app.lib.storage import postgres
 
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt())
+
 
 def _token_hash(token: str) -> bytes:
     return hashlib.sha256(token.encode()).digest()
@@ -46,12 +48,12 @@ class PostgresAuthenticator(interface.Authenticator):
                 params=[username],
             )
         except RuntimeError:
-            return "", False
+            user_info = None
 
-        expected_password_hash = user_info["password_hash"]
+        expected_password_hash = user_info["password_hash"] if user_info is not None else _DUMMY_PASSWORD_HASH
         password_matches = bcrypt.checkpw(str.encode(password), expected_password_hash)
 
-        if not password_matches:
+        if user_info is None or not password_matches:
             return "", False
 
         token = secrets.token_hex(16)

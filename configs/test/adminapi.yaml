@@ -2,6 +2,8 @@ server:
   host: 0.0.0.0
   port: 8080
   path_prefix: /admin/api
+  allowed_origins:
+    - https://leda.kraysent.dev
 
 storage:
   endpoint: hyperledadb
