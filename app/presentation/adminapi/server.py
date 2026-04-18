@@ -1,14 +1,41 @@
 import http
+from collections.abc import Callable
 from typing import Annotated
 
 import fastapi
 import structlog
-from fastapi.security import api_key
 
+from app.lib import auth
 from app.lib.web import server
+from app.lib.web.dependencies import auth as auth_dependencies
 from app.presentation.adminapi import interface
 
-api_key_header = api_key.APIKeyHeader(name="Authorization", auto_error=False)
+
+def _make_logout_handler(
+    actions: interface.Actions,
+    require_admin: Callable[..., auth_dependencies.AuthContext],
+    enforce_route_auth: bool,
+) -> Callable[..., server.APIOkResponse[interface.LogoutResponse]]:
+    if enforce_route_auth:
+
+        def logout_enforced(
+            _body: interface.LogoutRequest,
+            auth_ctx: Annotated[auth_dependencies.AuthContext, fastapi.Depends(require_admin)],
+        ) -> server.APIOkResponse[interface.LogoutResponse]:
+            return server.APIOkResponse(data=actions.logout(auth_ctx.token))
+
+        return logout_enforced
+
+    def logout_unenforced(
+        _body: interface.LogoutRequest,
+        request: fastapi.Request,
+    ) -> server.APIOkResponse[interface.LogoutResponse]:
+        raw = request.headers.get("Authorization", "").strip()
+        parts = raw.split(None, 1)
+        token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else ""
+        return server.APIOkResponse(data=actions.logout(token))
+
+    return logout_unenforced
 
 
 class API:
@@ -98,8 +125,12 @@ class Server(server.WebServer):
         actions: interface.Actions,
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
+        authenticator: auth.Authenticator,
+        enforce_route_auth: bool = True,
     ) -> None:
         api = API(actions)
+        require_admin = auth_dependencies.make_require_roles(authenticator, [auth.Role.ADMIN])
+        admin_only = [auth.Role.ADMIN]
 
         routes: list[server.Route] = [
             server.Route(
@@ -110,6 +141,7 @@ class Server(server.WebServer):
                 """Inserts new data to the table.
 Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/source",
@@ -117,6 +149,7 @@ If two rows were identical this method will only insert the last one.""",
                 api.create_source,
                 "New internal source entry",
                 "Creates new source entry in the database for internal communication and unpublished articles.",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/table",
@@ -126,6 +159,7 @@ If two rows were identical this method will only insert the last one.""",
                 """Creates new schema for the table which can later be used to upload data.
 **Important**: If the table with the specified name already exists, does nothing and returns ID
 of the previously created table without any alterations.""",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/table",
@@ -185,6 +219,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
     }
 }
 ```""",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/login",
@@ -192,6 +227,14 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 api.login,
                 "Login",
                 "Authenticates user and returns token",
+            ),
+            server.Route(
+                "/v1/logout",
+                http.HTTPMethod.POST,
+                _make_logout_handler(actions, require_admin, enforce_route_auth),
+                "Logout",
+                "Revokes the bearer token used for this request.",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/records/crossmatch",
@@ -231,6 +274,7 @@ At least one status block must be present.
   }
 }
 ```""",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/record/crossmatch",
@@ -272,7 +316,8 @@ For every column that has unit metadata in the database, the request must includ
 }
 ```
 """,
+                allowed_roles=admin_only,
             ),
         ]
 
-        super().__init__(routes, config, logger)
+        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)

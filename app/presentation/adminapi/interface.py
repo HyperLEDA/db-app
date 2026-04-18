@@ -172,6 +172,14 @@ class LoginResponse(pydantic.BaseModel):
     )
 
 
+class LogoutRequest(pydantic.BaseModel):
+    pass
+
+
+class LogoutResponse(pydantic.BaseModel):
+    pass
+
+
 class GetRecordsCrossmatchRequest(pydantic.BaseModel):
     table_name: str
     status: enums.RecordCrossmatchStatus | None = None
@@ -363,6 +371,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def login(self, r: LoginRequest) -> LoginResponse:
+        pass
+
+    @abc.abstractmethod
+    def logout(self, token: str) -> LogoutResponse:
         pass
 
     @abc.abstractmethod

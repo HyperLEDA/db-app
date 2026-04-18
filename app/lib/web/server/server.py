@@ -10,9 +10,10 @@ import uvicorn
 from fastapi import exceptions, responses
 from fastapi.middleware import cors
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from starlette.middleware import base as smiddlewares
 
+from app.lib import auth
 from app.lib.web import errors, middlewares
+from app.lib.web.dependencies import auth as auth_dependencies
 from app.lib.web.server import config
 
 
@@ -24,9 +25,10 @@ class APIOkResponse[T: Any](pydantic.BaseModel):
 class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     path: str
     method: http.HTTPMethod
-    handler: Callable[[ReqT], APIOkResponse[RespT] | fastapi.Response]
+    handler: Callable[..., APIOkResponse[RespT] | fastapi.Response]
     summary: str
     description: str = ""
+    allowed_roles: list[auth.Role] | None = None
 
 
 async def validation_exception_handler(_request, exc):
@@ -41,6 +43,8 @@ class WebServer:
         routes: list[Route],
         cfg: config.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
+        authenticator: auth.Authenticator,
+        enforce_route_auth: bool = True,
     ) -> None:
         app = fastapi.FastAPI(
             docs_url=f"{cfg.path_prefix}/docs",
@@ -64,12 +68,17 @@ class WebServer:
                 http.HTTPMethod.GET,
                 http.HTTPMethod.POST,
                 http.HTTPMethod.PUT,
+                http.HTTPMethod.PATCH,
                 http.HTTPMethod.DELETE,
                 http.HTTPMethod.OPTIONS,
             ],
         )
 
         for route in routes:
+            route_dependencies: list[Any] = []
+            if enforce_route_auth and route.allowed_roles is not None:
+                role_dep = auth_dependencies.make_require_roles(authenticator, route.allowed_roles)
+                route_dependencies.append(fastapi.Depends(role_dep))
             app.add_api_route(
                 path=f"{cfg.path_prefix}{route.path}",
                 endpoint=route.handler,
@@ -79,6 +88,7 @@ class WebServer:
                 operation_id=route.handler.__name__,
                 response_model_exclude_none=True,
                 response_model_exclude_unset=True,
+                dependencies=route_dependencies,
             )
 
         app.add_api_route(
@@ -96,9 +106,6 @@ class WebServer:
         self.logger = logger
 
         self.logger.debug("initialized server", n_routes=len(routes))
-
-    def add_mw(self, mw: type[smiddlewares.BaseHTTPMiddleware], *args, **kwargs):
-        self.app.add_middleware(mw, *args, **kwargs)
 
     def run(self):
         self.logger.info(

@@ -1,5 +1,5 @@
+import hashlib
 import unittest
-from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import bcrypt
@@ -23,6 +23,10 @@ class PostgresAuthenticatorTest(unittest.TestCase):
             },
         )
         self.assertEqual(("123456789", True), self.authenticator.login("username", "password"))
+        self.mock_storage.exec.assert_called_once()
+        inserted_hash = self.mock_storage.exec.call_args.kwargs["params"][0]
+        self.assertIsInstance(inserted_hash, bytes)
+        self.assertEqual(inserted_hash, hashlib.sha256(b"123456789").digest())
 
     def test_login_user_does_not_exist(self):
         lib.raises(self.mock_storage.query_one, RuntimeError)
@@ -40,8 +44,6 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         lib.returns(
             self.mock_storage.query_one,
             {
-                "expiry_time": datetime.now(UTC) + timedelta(days=1),
-                "active": True,
                 "user_id": 1,
                 "role": auth.Role.ADMIN,
             },
@@ -50,3 +52,12 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         user, is_authenticated = self.authenticator.authenticate("correct_token")
         self.assertTrue(is_authenticated)
         self.assertEqual(user, auth.User(1, auth.Role.ADMIN))
+
+    def test_authenticate_hashes_incoming_token(self):
+        lib.returns(
+            self.mock_storage.query_one,
+            {"user_id": 1, "role": auth.Role.ADMIN},
+        )
+        self.authenticator.authenticate("mytoken")
+        passed_hash = self.mock_storage.query_one.call_args.kwargs["params"][0]
+        self.assertEqual(passed_hash, hashlib.sha256(b"mytoken").digest())

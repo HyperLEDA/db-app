@@ -6,7 +6,7 @@ import structlog
 from fastapi.openapi import utils
 
 from app.domain import adminapi as domain
-from app.lib import commands
+from app.lib import auth, commands
 from app.lib.web import server
 from app.presentation import adminapi as presentation
 
@@ -29,6 +29,7 @@ class GenerateSpecCommand(commands.Command):
             domain.get_mock_actions(),
             server.ServerConfig(port=80, host="localhost"),
             structlog.get_logger(),
+            auth.NoopAuthenticator(),
         )
 
         spec = utils.get_openapi(

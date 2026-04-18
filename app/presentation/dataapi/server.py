@@ -5,6 +5,7 @@ from typing import Annotated
 import fastapi
 import structlog
 
+from app.lib import auth
 from app.lib.web import server
 from app.presentation.dataapi import interface
 
@@ -68,7 +69,11 @@ class API:
 
 class Server(server.WebServer):
     def __init__(
-        self, actions: interface.Actions, config: server.ServerConfig, logger: structlog.stdlib.BoundLogger
+        self,
+        actions: interface.Actions,
+        config: server.ServerConfig,
+        logger: structlog.stdlib.BoundLogger,
+        authenticator: auth.Authenticator,
     ) -> None:
         api = API(actions)
 
@@ -125,4 +130,4 @@ the specified designation.""",
             ),
         ]
 
-        super().__init__(routes, config, logger)
+        super().__init__(routes, config, logger, authenticator)

@@ -29,6 +29,9 @@ class Actions(adminapi.Actions):
     def login(self, r: adminapi.LoginRequest) -> adminapi.LoginResponse:
         return self.login_manager.login(r)
 
+    def logout(self, token: str) -> adminapi.LogoutResponse:
+        return self.login_manager.logout(token)
+
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         return self.table_upload_manager.add_data(r)
 

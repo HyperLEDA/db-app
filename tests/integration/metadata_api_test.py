@@ -9,6 +9,7 @@ from app.commands.dataapi import command as dataapi_command
 from app.data import repositories
 from app.domain import dataapi as domain
 from app.domain.dataapi import actions as dataapi_actions
+from app.lib import auth
 from app.presentation.dataapi.server import Server
 from tests import lib
 
@@ -28,7 +29,9 @@ class MetadataAPITest(unittest.TestCase):
             catalog_cfg=self.cfg.catalogs,
             metadata_repo=repositories.MetadataRepository(self.pg),
         )
-        self.client = testclient.TestClient(Server(self.actions, self.cfg.server, self.log).app)
+        self.client = testclient.TestClient(
+            Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
+        )
 
     def tearDown(self) -> None:
         self.pg_storage.clear()
