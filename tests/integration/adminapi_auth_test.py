@@ -29,8 +29,10 @@ class AdminAPIAuthTest(unittest.TestCase):
         auth_seed.seed_admin_user(cls.pg_storage.get_storage(), cls._login, cls._password)
 
         os.environ["SERVER_PORT"] = str(cls.server_port)
+        os.environ["STORAGE_ENDPOINT"] = "localhost"
         os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
         os.environ["CLIENTS_ADS_TOKEN"] = "test"
+        os.environ["AUTH_ENABLED"] = "true"
 
         logger.info("starting adminapi for auth tests", port=cls.server_port)
 
@@ -41,7 +43,7 @@ class AdminAPIAuthTest(unittest.TestCase):
                 "app",
                 "adminapi",
                 "-c",
-                "configs/test/adminapi.yaml",
+                "configs/dev/adminapi.yaml",
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
