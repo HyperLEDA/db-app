@@ -10,8 +10,10 @@ def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.Cat
         return redshift.RedshiftCatalogObject
     if catalog == interface.RawCatalog.NATURE:
         return nature.NatureCatalogObject
-    if catalog == interface.RawCatalog.PHOTOMETRY:
-        return photometry.PhotometryCatalogObject
+    if catalog == interface.RawCatalog.PHOTOMETRY__TOTAL:
+        return photometry.PhotometryTotalCatalogObject
+    if catalog == interface.RawCatalog.PHOTOMETRY__ISOPHOTAL:
+        return photometry.PhotometryIsophotalCatalogObject
     if catalog == interface.RawCatalog.NOTE:
         return note.NoteCatalogObject
 

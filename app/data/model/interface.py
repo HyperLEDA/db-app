@@ -35,7 +35,8 @@ class RawCatalog(enum.Enum):
     ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
     NATURE = "nature"
-    PHOTOMETRY = "photometry"
+    PHOTOMETRY__TOTAL = "photometry_total"
+    PHOTOMETRY__ISOPHOTAL = "photometry_isophotal"
     NOTE = "note"
 
 
