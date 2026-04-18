@@ -3,7 +3,6 @@ import pathlib
 from typing import final
 
 import structlog
-from fastapi.openapi import utils
 
 from app.domain import adminapi as domain
 from app.lib import auth, commands
@@ -32,13 +31,7 @@ class GenerateSpecCommand(commands.Command):
             auth.NoopAuthenticator(),
         )
 
-        spec = utils.get_openapi(
-            title=app.app.title,
-            version=app.app.version,
-            openapi_version=app.app.openapi_version,
-            description=app.app.description,
-            routes=app.app.routes,
-        )
+        spec = app.app.openapi()
 
         output_file = pathlib.Path(self.filename)
         output_file.parent.mkdir(exist_ok=True, parents=True)

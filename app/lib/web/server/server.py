@@ -9,6 +9,7 @@ import structlog
 import uvicorn
 from fastapi import exceptions, responses
 from fastapi.middleware import cors
+from fastapi.openapi import utils as openapi_utils
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from app.lib import auth
@@ -37,6 +38,41 @@ async def validation_exception_handler(_request, exc):
     return responses.JSONResponse(err.dict(), status_code=err.status())
 
 
+def _secured_path_methods(routes: list[Route[Any, Any]], path_prefix: str) -> frozenset[tuple[str, str]]:
+    return frozenset(
+        (f"{path_prefix}{route.path}", route.method.value.lower())
+        for route in routes
+        if route.allowed_roles is not None
+    )
+
+
+def _make_openapi(app: fastapi.FastAPI, secured: frozenset[tuple[str, str]]) -> Callable[[], dict[str, Any]]:
+    def openapi() -> dict[str, Any]:
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = openapi_utils.get_openapi(
+            title=app.title,
+            version=app.version,
+            openapi_version=app.openapi_version,
+            description=app.description,
+            routes=app.routes,
+        )
+        components = openapi_schema.setdefault("components", {})
+        schemes = components.setdefault("securitySchemes", {})
+        schemes.setdefault("HTTPBearer", {"type": "http", "scheme": "bearer"})
+        http_methods = frozenset({"get", "post", "put", "patch", "delete", "head", "options", "trace"})
+        for path, path_item in (openapi_schema.get("paths") or {}).items():
+            for method, operation in path_item.items():
+                if method not in http_methods:
+                    continue
+                if (path, method) in secured:
+                    operation["security"] = [{"HTTPBearer": []}]
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    return openapi
+
+
 class WebServer:
     def __init__(
         self,
@@ -54,6 +90,7 @@ class WebServer:
             swagger_ui_parameters={
                 "tryItOutEnabled": True,
                 "displayRequestDuration": True,
+                "persistAuthorization": True,
             },
         )
 
@@ -100,6 +137,8 @@ class WebServer:
         app.add_exception_handler(exceptions.RequestValidationError, validation_exception_handler)
 
         FastAPIInstrumentor.instrument_app(app)
+
+        app.openapi = _make_openapi(app, _secured_path_methods(routes, cfg.path_prefix))
 
         self.app = app
         self.config = cfg
