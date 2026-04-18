@@ -136,6 +136,7 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_icrs_catalog(session, ids=ids, original_data=orig)
     upload_notes_catalog(session, ids=ids, original_data=orig)
     upload_photometry_catalog(session, ids=ids)
+    upload_photometry_isophotal_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -177,9 +178,32 @@ def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None
             phot_data.append([band, mag, e_mag, PHOTOMETRY_METHOD])
 
     photometry_request = adminapi.SaveStructuredDataRequest(
-        catalog="photometry",
+        catalog="photometry_total",
         columns=["band", "mag", "e_mag", "method"],
         units={"mag": "mag", "e_mag": "mag"},
+        ids=phot_ids,
+        data=phot_data,
+    )
+    response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_photometry_isophotal_catalog(session: requests.Session, ids: list[str]) -> None:
+    phot_ids: list[str] = []
+    phot_data: list[list[object]] = []
+    isophote_level = 25.0
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            phot_ids.append(rid)
+            mag = random.uniform(5.0, 25.0)
+            e_mag = random.uniform(0.01, 0.3)
+            phot_data.append([band, isophote_level, mag, e_mag])
+
+    photometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="photometry_isophotal",
+        columns=["band", "isophote", "mag", "e_mag"],
+        units={"isophote": "mag/arcmin2", "mag": "mag", "e_mag": "mag"},
         ids=phot_ids,
         data=phot_data,
     )
