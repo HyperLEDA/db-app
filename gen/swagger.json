@@ -41,7 +41,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/source": {
@@ -80,7 +85,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/table": {
@@ -88,6 +98,11 @@
         "summary": "Get or create schema for the table.",
         "description": "Creates new schema for the table which can later be used to upload data.\n**Important**: If the table with the specified name already exists, does nothing and returns ID\nof the previously created table without any alterations.",
         "operationId": "create_table",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -163,6 +178,11 @@
         "summary": "Patch table schema",
         "description": "Patches the schema of the table. Allows updating column metadata (UCD, unit, description).\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```",
         "operationId": "patch_table",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -405,6 +425,50 @@
         }
       }
     },
+    "/api/v1/logout": {
+      "post": {
+        "summary": "Logout",
+        "description": "Revokes the bearer token used for this request.",
+        "operationId": "logout_enforced",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_LogoutResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/records/crossmatch": {
       "get": {
         "summary": "Get crossmatch records",
@@ -500,6 +564,11 @@
         "summary": "Set crossmatch results",
         "description": "Bulk write crossmatch results. Each entry contains only the fields needed for that status (no nulls).\nAt least one status block must be present.\n\n**Example 1 \u2013 minimal (all new objects):**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] }\n  }\n}\n```\n\n**Example 2 \u2013 mixed statuses:**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] },\n    \"existing\": { \"record_ids\": [\"uuid-3\"], \"pgcs\": [42] },\n    \"collided\": {\n      \"record_ids\": [\"uuid-4\"],\n      \"possible_matches\": [[40, 41, 42]],\n      \"triage_statuses\": [\"resolved\"]\n    }\n  }\n}\n```",
         "operationId": "set_crossmatch_results",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -610,7 +679,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/ping": {
@@ -739,6 +813,18 @@
           "data"
         ],
         "title": "APIOkResponse[LoginResponse]"
+      },
+      "APIOkResponse_LogoutResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LogoutResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[LogoutResponse]"
       },
       "APIOkResponse_PatchTableResponse_": {
         "properties": {
@@ -1498,6 +1584,16 @@
           "token"
         ],
         "title": "LoginResponse"
+      },
+      "LogoutRequest": {
+        "properties": {},
+        "type": "object",
+        "title": "LogoutRequest"
+      },
+      "LogoutResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "LogoutResponse"
       },
       "NewStatusPayload": {
         "properties": {
@@ -2376,6 +2472,12 @@
           "heliocentric"
         ],
         "title": "Velocity"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }
