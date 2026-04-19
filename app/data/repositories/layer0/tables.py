@@ -13,7 +13,7 @@ from psycopg import sql
 
 from app.data import model, repositories, template
 from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -484,6 +484,41 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         )
         self._storage.exec(modification_query, params=[table_id])
 
+    def update_table_metadata(self, table_name: str, description: str) -> None:
+        table_id, _ = self._get_table_id(table_name)
+        modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
+        self._storage.exec(
+            "SELECT meta.setparams(%s, %s, %s::json)",
+            params=[RAWDATA_SCHEMA, table_name, json.dumps({"description": description})],
+        )
+        self._storage.exec(modification_query, params=[table_id])
+
+    def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
+        table_id, _ = self._get_table_id(table_name)
+        self._storage.exec(
+            "UPDATE layer0.tables SET datatype = %s, modification_dt = now() WHERE id = %s",
+            params=[datatype, table_id],
+        )
+
+    def is_raw_table_name_taken(self, table_name: str) -> bool:
+        return self._get_table_id(table_name)[1]
+
+    def rename_raw_table(self, old_table_name: str, new_table_name: str) -> None:
+        table_id, ok = self._get_table_id(old_table_name)
+        if not ok:
+            raise RuntimeError(f"table {old_table_name!r} is not in layer0.tables")
+
+        rename_q = sql.SQL("ALTER TABLE {}.{} RENAME TO {}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(old_table_name),
+            sql.Identifier(new_table_name),
+        )
+        self._storage.exec(rename_q)
+        self._storage.exec(
+            "UPDATE layer0.tables SET table_name = %s, modification_dt = now() WHERE id = %s",
+            params=[new_table_name, table_id],
+        )
+
     def search_tables(
         self,
         query: str,
@@ -493,7 +528,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         pattern = f"%{query}%" if query else "%"
         offset = page * page_size
 
-        sql = """
+        sql_query = """
         SELECT
             t.table_name,
             t.modification_dt,
@@ -525,7 +560,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             page_size,
             offset,
         ]
-        rows = self._storage.query(sql, params=params)
+        rows = self._storage.query(sql_query, params=params)
         return [
             model.Layer0TableListItem(
                 table_name=row["table_name"],

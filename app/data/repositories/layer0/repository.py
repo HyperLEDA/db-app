@@ -86,6 +86,18 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 
+    def update_table_metadata(self, table_name: str, description: str) -> None:
+        return self.table_repo.update_table_metadata(table_name, description)
+
+    def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
+        return self.table_repo.update_table_datatype(table_name, datatype)
+
+    def is_raw_table_name_taken(self, table_name: str) -> bool:
+        return self.table_repo.is_raw_table_name_taken(table_name)
+
+    def rename_raw_table(self, old_table_name: str, new_table_name: str) -> None:
+        return self.table_repo.rename_raw_table(old_table_name, new_table_name)
+
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self.records_repo.register_records(table_name, record_ids)
 

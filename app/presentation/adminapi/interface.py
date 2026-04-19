@@ -144,7 +144,19 @@ class PatchColumnSpec(pydantic.BaseModel):
 
 class PatchTableRequest(pydantic.BaseModel):
     table_name: str
-    columns: dict[str, PatchColumnSpec]
+    new_table_name: str | None = pydantic.Field(
+        default=None,
+        description="When set, renames the table.",
+    )
+    description: str | None = pydantic.Field(
+        default=None,
+        description="When set, replaces the human-readable description of the table",
+    )
+    datatype: enums.DataType | None = pydantic.Field(
+        default=None,
+        description="When set, replaces the table datatype.",
+    )
+    columns: dict[str, PatchColumnSpec] = {}
 
 
 class PatchTableResponse(pydantic.BaseModel):

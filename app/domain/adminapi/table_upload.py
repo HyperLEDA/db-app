@@ -119,10 +119,19 @@ class TableUploadManager:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
 
+        if r.new_table_name is not None and r.new_table_name != r.table_name:
+            if self.layer0_repo.is_raw_table_name_taken(r.new_table_name):
+                raise RuleValidationError(f"table name {r.new_table_name!r} is already in use")
+
         with self.layer0_repo.with_tx():
+            if r.description is not None:
+                self.layer0_repo.update_table_metadata(r.table_name, r.description)
+            if r.datatype is not None:
+                self.layer0_repo.update_table_datatype(r.table_name, r.datatype)
+
             for column_name, spec in r.columns.items():
                 if column_name not in columns_by_id:
-                    raise NotFoundError("column", "{column_name}")
+                    raise NotFoundError("column", column_name)
 
                 column_metadata = columns_by_id[column_name]
                 if spec.ucd is not None:
@@ -133,6 +142,9 @@ class TableUploadManager:
                     column_metadata.description = spec.description
                 if spec.ucd is not None or spec.unit is not None or spec.description is not None:
                     self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
+
+            if r.new_table_name is not None and r.new_table_name != r.table_name:
+                self.layer0_repo.rename_raw_table(r.table_name, r.new_table_name)
 
         return adminapi.PatchTableResponse()
 
