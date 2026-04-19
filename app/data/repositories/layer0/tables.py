@@ -500,6 +500,25 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             params=[datatype, table_id],
         )
 
+    def is_raw_table_name_taken(self, table_name: str) -> bool:
+        return self._get_table_id(table_name)[1]
+
+    def rename_raw_table(self, old_table_name: str, new_table_name: str) -> None:
+        table_id, ok = self._get_table_id(old_table_name)
+        if not ok:
+            raise RuntimeError(f"table {old_table_name!r} is not in layer0.tables")
+
+        rename_q = sql.SQL("ALTER TABLE {}.{} RENAME TO {}").format(
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(old_table_name),
+            sql.Identifier(new_table_name),
+        )
+        self._storage.exec(rename_q)
+        self._storage.exec(
+            "UPDATE layer0.tables SET table_name = %s, modification_dt = now() WHERE id = %s",
+            params=[new_table_name, table_id],
+        )
+
     def search_tables(
         self,
         query: str,

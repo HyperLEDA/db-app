@@ -53,8 +53,10 @@ def upload_table(session: requests.Session) -> str:
 
 @lib.test_logging_decorator
 def patch_metadata_and_verify(session: requests.Session, table_name: str) -> None:
+    new_table_name = f"{table_name}_renamed"
     patch_body = adminapi.PatchTableRequest(
         table_name=table_name,
+        new_table_name=new_table_name,
         description=TABLE_DESCRIPTION_NEW,
         datatype=enums.DataType.PRELIMINARY,
         columns={
@@ -64,7 +66,7 @@ def patch_metadata_and_verify(session: requests.Session, table_name: str) -> Non
     patch_resp = session.patch("/v1/table", json=patch_body.model_dump(mode="json"))
     patch_resp.raise_for_status()
 
-    get_req = adminapi.GetTableRequest(table_name=table_name)
+    get_req = adminapi.GetTableRequest(table_name=new_table_name)
     get_resp = session.get("/v1/table", params=get_req.model_dump(mode="json"))
     get_resp.raise_for_status()
     data = get_resp.json()["data"]
@@ -75,6 +77,9 @@ def patch_metadata_and_verify(session: requests.Session, table_name: str) -> Non
 
     v_col = next(c for c in data["column_info"] if c["name"] == "v")
     assert v_col["description"] == COLUMN_DESCRIPTION_NEW
+
+    old_get = session.get("/v1/table", params=adminapi.GetTableRequest(table_name=table_name).model_dump(mode="json"))
+    assert old_get.status_code != 200
 
 
 @lib.test_logging_decorator

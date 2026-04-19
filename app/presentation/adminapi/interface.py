@@ -144,6 +144,10 @@ class PatchColumnSpec(pydantic.BaseModel):
 
 class PatchTableRequest(pydantic.BaseModel):
     table_name: str
+    new_table_name: str | None = pydantic.Field(
+        default=None,
+        description="When set, renames the table.",
+    )
     description: str | None = pydantic.Field(
         default=None,
         description="When set, replaces the human-readable description of the table",

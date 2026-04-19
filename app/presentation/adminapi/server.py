@@ -239,6 +239,14 @@ Only provided fields will be updated; omitted fields will remain unchanged.
     "table_name": "my_table",
     "datatype": "preliminary"
 }
+```
+
+**Example 5**: Rename the table (updates `layer0.tables` and the physical `rawdata` relation):
+```json
+{
+    "table_name": "my_table",
+    "new_table_name": "my_table_v2"
+}
 ```""",
                 allowed_roles=admin_only,
             ),
