@@ -86,6 +86,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
 
+    def update_table_metadata(self, table_name: str, description: str) -> None:
+        return self.table_repo.update_table_metadata(table_name, description)
+
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self.records_repo.register_records(table_name, record_ids)
 

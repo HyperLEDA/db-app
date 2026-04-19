@@ -192,7 +192,7 @@ of the previously created table without any alterations.""",
                 http.HTTPMethod.PATCH,
                 api.patch_table,
                 "Patch table schema",
-                """Patches the schema of the table. Allows updating column metadata (UCD, unit, description).
+                """Patches the schema of the table.
 
 Only provided fields will be updated; omitted fields will remain unchanged.
 
@@ -222,6 +222,14 @@ Only provided fields will be updated; omitted fields will remain unchanged.
             "description": "Visual magnitude in the V band"
         }
     }
+}
+```
+
+**Example 3**: Change the table description:
+```json
+{
+    "table_name": "my_table",
+    "description": "Photometric catalog from Smith et al."
 }
 ```""",
                 allowed_roles=admin_only,

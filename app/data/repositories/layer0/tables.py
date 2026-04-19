@@ -484,6 +484,15 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         )
         self._storage.exec(modification_query, params=[table_id])
 
+    def update_table_metadata(self, table_name: str, description: str) -> None:
+        table_id, _ = self._get_table_id(table_name)
+        modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
+        self._storage.exec(
+            "SELECT meta.setparams(%s, %s, %s::json)",
+            params=[RAWDATA_SCHEMA, table_name, json.dumps({"description": description})],
+        )
+        self._storage.exec(modification_query, params=[table_id])
+
     def search_tables(
         self,
         query: str,
