@@ -176,7 +176,7 @@
       },
       "patch": {
         "summary": "Patch table schema",
-        "description": "Patches the schema of the table. Allows updating column metadata (UCD, unit, description).\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```",
+        "description": "Patches the schema of the table.\n\nOnly provided fields will be updated; omitted fields will remain unchanged.\n\n**Example 1**: Update column metadata (UCD and unit):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"ra\": {\n            \"ucd\": \"pos.eq.ra\",\n            \"unit\": \"hourangle\"\n        },\n        \"dec\": {\n            \"ucd\": \"pos.eq.dec\",\n            \"unit\": \"deg\"\n        }\n    }\n}\n```\n\n**Example 2**: Add a column description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"columns\": {\n        \"vmag\": {\n            \"description\": \"Visual magnitude in the V band\"\n        }\n    }\n}\n```\n\n**Example 3**: Change the table description:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"description\": \"Photometric catalog from Smith et al.\"\n}\n```\n\n**Example 4**: Change the table datatype:\n```json\n{\n    \"table_name\": \"my_table\",\n    \"datatype\": \"preliminary\"\n}\n```\n\n**Example 5**: Rename the table (updates `layer0.tables` and the physical `rawdata` relation):\n```json\n{\n    \"table_name\": \"my_table\",\n    \"new_table_name\": \"my_table_v2\"\n}\n```",
         "operationId": "patch_table",
         "security": [
           {
@@ -1688,18 +1688,53 @@
             "type": "string",
             "title": "Table Name"
           },
+          "new_table_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Table Name",
+            "description": "When set, renames the table."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "When set, replaces the human-readable description of the table"
+          },
+          "datatype": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When set, replaces the table datatype."
+          },
           "columns": {
             "additionalProperties": {
               "$ref": "#/components/schemas/PatchColumnSpec"
             },
             "type": "object",
-            "title": "Columns"
+            "title": "Columns",
+            "default": {}
           }
         },
         "type": "object",
         "required": [
-          "table_name",
-          "columns"
+          "table_name"
         ],
         "title": "PatchTableRequest"
       },
