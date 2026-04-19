@@ -231,6 +231,14 @@ Only provided fields will be updated; omitted fields will remain unchanged.
     "table_name": "my_table",
     "description": "Photometric catalog from Smith et al."
 }
+```
+
+**Example 4**: Change the table datatype:
+```json
+{
+    "table_name": "my_table",
+    "datatype": "preliminary"
+}
 ```""",
                 allowed_roles=admin_only,
             ),

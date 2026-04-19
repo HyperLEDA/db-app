@@ -148,6 +148,10 @@ class PatchTableRequest(pydantic.BaseModel):
         default=None,
         description="When set, replaces the human-readable description of the table",
     )
+    datatype: enums.DataType | None = pydantic.Field(
+        default=None,
+        description="When set, replaces the table datatype.",
+    )
     columns: dict[str, PatchColumnSpec] = {}
 
 

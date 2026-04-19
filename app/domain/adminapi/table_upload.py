@@ -122,6 +122,8 @@ class TableUploadManager:
         with self.layer0_repo.with_tx():
             if r.description is not None:
                 self.layer0_repo.update_table_metadata(r.table_name, r.description)
+            if r.datatype is not None:
+                self.layer0_repo.update_table_datatype(r.table_name, r.datatype)
 
             for column_name, spec in r.columns.items():
                 if column_name not in columns_by_id:

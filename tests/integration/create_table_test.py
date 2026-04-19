@@ -85,6 +85,7 @@ class CreateTableTest(unittest.TestCase):
             presentation.PatchTableRequest(
                 table_name=table_name,
                 description="updated table description",
+                datatype=enums.DataType.PRELIMINARY,
                 columns={
                     "name": presentation.PatchColumnSpec(ucd="meta.id"),
                     "ra": presentation.PatchColumnSpec(unit="hourangle"),
@@ -94,3 +95,4 @@ class CreateTableTest(unittest.TestCase):
 
         meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
         self.assertEqual(meta.description, "updated table description")
+        self.assertEqual(meta.meta["datatype"], enums.DataType.PRELIMINARY)

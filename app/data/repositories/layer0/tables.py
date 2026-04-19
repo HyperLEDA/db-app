@@ -13,7 +13,7 @@ from psycopg import sql
 
 from app.data import model, repositories, template
 from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -493,6 +493,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         )
         self._storage.exec(modification_query, params=[table_id])
 
+    def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
+        table_id, _ = self._get_table_id(table_name)
+        self._storage.exec(
+            "UPDATE layer0.tables SET datatype = %s, modification_dt = now() WHERE id = %s",
+            params=[datatype, table_id],
+        )
+
     def search_tables(
         self,
         query: str,
@@ -502,7 +509,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         pattern = f"%{query}%" if query else "%"
         offset = page * page_size
 
-        sql = """
+        sql_query = """
         SELECT
             t.table_name,
             t.modification_dt,
@@ -534,7 +541,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             page_size,
             offset,
         ]
-        rows = self._storage.query(sql, params=params)
+        rows = self._storage.query(sql_query, params=params)
         return [
             model.Layer0TableListItem(
                 table_name=row["table_name"],
