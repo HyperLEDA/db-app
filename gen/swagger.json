@@ -1493,22 +1493,8 @@
           "bibliography": {
             "$ref": "#/components/schemas/Bibliography"
           },
-          "statistics": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "propertyNames": {
-                  "$ref": "#/components/schemas/RecordCrossmatchStatus"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Statistics"
+          "crossmatch": {
+            "$ref": "#/components/schemas/TableCrossmatchResults"
           }
         },
         "type": "object",
@@ -1518,7 +1504,8 @@
           "column_info",
           "rows_num",
           "meta",
-          "bibliography"
+          "bibliography",
+          "crossmatch"
         ],
         "title": "GetTableResponse"
       },
@@ -2383,6 +2370,38 @@
         },
         "type": "object",
         "title": "StatusesPayload"
+      },
+      "TableCrossmatchResultStatus": {
+        "type": "string",
+        "enum": [
+          "done",
+          "in_progress",
+          "not_started"
+        ],
+        "title": "TableCrossmatchResultStatus"
+      },
+      "TableCrossmatchResults": {
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/TableCrossmatchResultStatus"
+          },
+          "statuses": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/CrossmatchTriageStatus"
+            },
+            "type": "object",
+            "title": "Statuses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result",
+          "statuses"
+        ],
+        "title": "TableCrossmatchResults"
       },
       "TableListItem": {
         "properties": {

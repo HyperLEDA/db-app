@@ -1454,6 +1454,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#tablecrossmatchresults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TableCrossmatchResults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tablecrossmatchresultstatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TableCrossmatchResultStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tablelistitem" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2940,6 +2962,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#tablecrossmatchresults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TableCrossmatchResults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tablecrossmatchresultstatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TableCrossmatchResultStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tablelistitem" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3656,9 +3700,12 @@ of the previously created table without any alterations.</p>
 </span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="w">            </span><span class="nt">&quot;year&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="w">            </span><span class="nt">&quot;bibcode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
 </span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a><span class="w">        </span><span class="nt">&quot;statistics&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a><span class="p">}</span>
+</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a><span class="w">        </span><span class="nt">&quot;crossmatch&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a><span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;done&quot;</span><span class="p">,</span>
+</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a><span class="w">            </span><span class="nt">&quot;statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-18-27"><a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-18-28"><a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-18-29"><a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a><span class="p">}</span>
 </span></code></pre></div>
 <span class="small-note">⚠️</span>&nbsp;<em class="small-note warning">This example has been generated automatically from the schema and it is not accurate. Refer to the schema for more information.</em></p>
 <details class="hint">
@@ -5976,6 +6023,11 @@ NaN and NULL are considered to be the same thing.</td>
             <td></td>
         </tr>
         <tr>
+            <td><code>crossmatch</code></td>
+            <td><a href="#tablecrossmatchresults" class="ref-link">TableCrossmatchResults</a></td>
+            <td></td>
+        </tr>
+        <tr>
             <td><code>description</code></td>
             <td><span class="string-type">string</span></td>
             <td></td>
@@ -5993,11 +6045,6 @@ NaN and NULL are considered to be the same thing.</td>
         <tr>
             <td><code>rows_num</code></td>
             <td><span class="integer-type">integer</span></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td><code>statistics</code></td>
-            <td></td>
             <td></td>
         </tr>
     </tbody>
@@ -6887,6 +6934,31 @@ NaN and NULL are considered to be the same thing.</td>
     </tbody>
 </table>
 
+<h3 id="tablecrossmatchresults">TableCrossmatchResults<a class="headerlink" href="#tablecrossmatchresults" title="Permanent link">#</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>result</code></td>
+            <td><a href="#tablecrossmatchresultstatus" class="ref-link">TableCrossmatchResultStatus</a></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><code>statuses</code></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="tablecrossmatchresultstatus">TableCrossmatchResultStatus<a class="headerlink" href="#tablecrossmatchresultstatus" title="Permanent link">#</a></h3>
+<p><span>Type: </span><span class="string-type">string</span></p>
 <h3 id="tablelistitem">TableListItem<a class="headerlink" href="#tablelistitem" title="Permanent link">#</a></h3>
 <table>
     <thead>
