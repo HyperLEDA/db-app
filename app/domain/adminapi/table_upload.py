@@ -196,12 +196,25 @@ class TableUploadManager:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
         table_stats = self.layer0_repo.get_table_statistics(r.table_name)
+        crossmatch_summary = self.layer0_repo.get_table_crossmatch_summary(r.table_name)
         rows_num = table_stats.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
+        pending_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.PENDING.value, 0)
+        resolved_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.RESOLVED.value, 0)
+        unprocessed_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.UNPROCESSED.value, 0)
 
-        statistics = None
-        if table_stats.statuses:
-            statistics = table_stats.statuses
+        if resolved_count == 0 and pending_count == 0:
+            crossmatch_result = adminapi.TableCrossmatchResultStatus.NOT_STARTED
+        elif pending_count > 0 or unprocessed_count > 0:
+            crossmatch_result = adminapi.TableCrossmatchResultStatus.IN_PROGRESS
+        else:
+            crossmatch_result = adminapi.TableCrossmatchResultStatus.DONE
+
+        crossmatch_statuses = {
+            adminapi.CrossmatchTriageStatus.UNPROCESSED: unprocessed_count,
+            adminapi.CrossmatchTriageStatus.PENDING: pending_count,
+            adminapi.CrossmatchTriageStatus.RESOLVED: resolved_count,
+        }
 
         return adminapi.GetTableResponse(
             id=meta.table_id,
@@ -210,7 +223,10 @@ class TableUploadManager:
             rows_num=rows_num,
             meta=metadata,
             bibliography=_bibliography_to_presentation(bibliography),
-            statistics=statistics,
+            crossmatch=adminapi.TableCrossmatchResults(
+                result=crossmatch_result,
+                statuses=crossmatch_statuses,
+            ),
         )
 
     def get_records(self, r: adminapi.GetRecordsRequest) -> adminapi.GetRecordsResponse:

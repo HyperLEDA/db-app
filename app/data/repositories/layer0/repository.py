@@ -104,6 +104,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.records_repo.get_table_statistics(table_name)
 
+    def get_table_crossmatch_summary(self, table_name: str) -> model.TableCrossmatchSummary:
+        return self.records_repo.get_table_crossmatch_summary(table_name)
+
     def get_processed_records(
         self,
         limit: int,

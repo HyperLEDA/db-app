@@ -363,7 +363,14 @@ def check_table_list(session: requests.Session, table_name: str):
 
 
 @lib.test_logging_decorator
-def check_get_table(session: requests.Session, table_name: str, expected_columns: int, expected_rows: int):
+def check_get_table(
+    session: requests.Session,
+    table_name: str,
+    expected_columns: int,
+    expected_rows: int,
+    expected_result: adminapi.TableCrossmatchResultStatus,
+    expected_statuses: dict[adminapi.CrossmatchTriageStatus, int],
+):
     request_data = adminapi.GetTableRequest(table_name=table_name)
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
@@ -375,6 +382,9 @@ def check_get_table(session: requests.Session, table_name: str, expected_columns
     assert table_info["rows_num"] == expected_rows
     assert "bibliography" in table_info
     assert "meta" in table_info
+    assert "crossmatch" in table_info
+    assert table_info["crossmatch"]["result"] == expected_result.value
+    assert table_info["crossmatch"]["statuses"] == {status.value: count for status, count in expected_statuses.items()}
 
 
 @lib.test_logging_decorator
@@ -497,7 +507,18 @@ def run():
     )
 
     check_table_list(adminapi_session, table_name)
-    check_get_table(adminapi_session, table_name, expected_columns=6, expected_rows=OBJECTS_NUM)
+    check_get_table(
+        adminapi_session,
+        table_name,
+        expected_columns=6,
+        expected_rows=OBJECTS_NUM,
+        expected_result=adminapi.TableCrossmatchResultStatus.NOT_STARTED,
+        expected_statuses={
+            adminapi.CrossmatchTriageStatus.UNPROCESSED: OBJECTS_NUM,
+            adminapi.CrossmatchTriageStatus.PENDING: 0,
+            adminapi.CrossmatchTriageStatus.RESOLVED: 0,
+        },
+    )
 
     records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
     upload_structured_data(adminapi_session, records)
@@ -508,6 +529,18 @@ def run():
         adminapi_session,
         record_ids,
         triage_statuses=[enums.RecordTriageStatus.RESOLVED] * len(record_ids),
+    )
+    check_get_table(
+        adminapi_session,
+        table_name,
+        expected_columns=6,
+        expected_rows=OBJECTS_NUM,
+        expected_result=adminapi.TableCrossmatchResultStatus.DONE,
+        expected_statuses={
+            adminapi.CrossmatchTriageStatus.UNPROCESSED: 0,
+            adminapi.CrossmatchTriageStatus.PENDING: 0,
+            adminapi.CrossmatchTriageStatus.RESOLVED: OBJECTS_NUM,
+        },
     )
 
     submit_crossmatch(table_name)
@@ -542,6 +575,18 @@ def run():
         record_ids_2,
         triage_statuses=[enums.RecordTriageStatus.PENDING] * n_pending
         + [enums.RecordTriageStatus.RESOLVED] * n_resolved,
+    )
+    check_get_table(
+        adminapi_session,
+        table_name_2,
+        expected_columns=6,
+        expected_rows=TABLE2_OBJECTS_NUM,
+        expected_result=adminapi.TableCrossmatchResultStatus.IN_PROGRESS,
+        expected_statuses={
+            adminapi.CrossmatchTriageStatus.UNPROCESSED: 0,
+            adminapi.CrossmatchTriageStatus.PENDING: n_pending,
+            adminapi.CrossmatchTriageStatus.RESOLVED: n_resolved,
+        },
     )
 
     check_triage_via_records(adminapi_session, table_name_2, expected_pending=n_pending, expected_resolved=n_resolved)
