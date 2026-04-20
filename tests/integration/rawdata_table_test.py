@@ -18,12 +18,14 @@ class RawDataTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get()
-
+        layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cache_registry = lib.get_cache_registry(layer0_repo)
         cls.manager = domain.TableUploadManager(
             repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),
-            repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
+            layer0_repo,
             repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
             clients.get_mock_clients(),
+            cache_registry,
         )
 
     def tearDown(self):

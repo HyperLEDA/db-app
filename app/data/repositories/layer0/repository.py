@@ -104,6 +104,12 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def get_table_statistics(self, table_name: str) -> model.TableStatistics:
         return self.records_repo.get_table_statistics(table_name)
 
+    def list_tables(self) -> list[str]:
+        return self.table_repo.list_tables()
+
+    def total_rows(self, table_name: str) -> int:
+        return self.table_repo.total_rows(table_name)
+
     def get_processed_records(
         self,
         limit: int,

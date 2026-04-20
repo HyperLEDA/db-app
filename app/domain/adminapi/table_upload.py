@@ -14,6 +14,7 @@ from astroquery import nasa_ads as ads
 from app.data import model, repositories
 from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
+from app.domain.adminapi.cache_registry import CacheRegistry
 from app.lib import astronomy, clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
@@ -88,11 +89,13 @@ class TableUploadManager:
         layer0_repo: repositories.Layer0Repository,
         layer1_repo: repositories.Layer1Repository,
         clients: clients.Clients,
+        cache_registry: CacheRegistry,
     ) -> None:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
         self.layer1_repo = layer1_repo
         self.clients = clients
+        self._cache_registry = cache_registry
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
         source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
@@ -174,12 +177,13 @@ class TableUploadManager:
 
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
+        row_counts = self._cache_registry.rawdata_row_counts.get().rows_by_table
         return adminapi.GetTableListResponse(
             tables=[
                 adminapi.TableListItem(
                     name=item.table_name,
                     description=item.description,
-                    num_entries=item.num_entries,
+                    num_entries=row_counts.get(item.table_name, 0),
                     num_fields=item.num_fields,
                     modification_dt=item.modification_dt,
                 )

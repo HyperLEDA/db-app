@@ -29,6 +29,7 @@ from app.data.model.table import (
     Layer0RawData,
     Layer0TableListItem,
     Layer0TableMeta,
+    RawdataTableRowCounts,
     TableRecord,
     TableStatistics,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "Layer0TableMeta",
     "Layer0CreationResponse",
     "Layer0TableListItem",
+    "RawdataTableRowCounts",
     "ColumnDescription",
     "TableStatistics",
     "get_object",
