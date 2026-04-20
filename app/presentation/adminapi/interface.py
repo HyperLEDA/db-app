@@ -7,7 +7,7 @@ import pydantic
 from astropy import units as u
 
 from app.lib.storage import enums, mapping
-from app.presentation.adminapi.records import GetRecordsRequest, GetRecordsResponse
+from app.presentation.adminapi.records import CrossmatchTriageStatus, GetRecordsRequest, GetRecordsResponse
 
 DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
@@ -71,6 +71,17 @@ class GetTableListResponse(pydantic.BaseModel):
     tables: list[TableListItem]
 
 
+class TableCrossmatchResultStatus(enum.Enum):
+    DONE = "done"
+    IN_PROGRESS = "in_progress"
+    NOT_STARTED = "not_started"
+
+
+class TableCrossmatchResults(pydantic.BaseModel):
+    result: TableCrossmatchResultStatus
+    statuses: dict[CrossmatchTriageStatus, int]
+
+
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
@@ -78,7 +89,7 @@ class GetTableResponse(pydantic.BaseModel):
     rows_num: int
     meta: dict[str, Any]
     bibliography: Bibliography
-    statistics: dict[enums.RecordCrossmatchStatus, int] | None = None
+    crossmatch: TableCrossmatchResults
 
 
 class CreateTableRequest(pydantic.BaseModel):

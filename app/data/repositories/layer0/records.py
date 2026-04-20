@@ -174,6 +174,27 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             total_original_rows,
         )
 
+    def get_table_crossmatch_summary(self, table_name: str) -> model.TableCrossmatchSummary:
+        table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        table_id = table_id_row["id"]
+
+        rows = self._storage.query(
+            """
+            SELECT CASE
+                WHEN c.record_id IS NULL THEN 'unprocessed'
+                ELSE c.triage_status::text
+            END AS triage,
+            COUNT(1) AS cnt
+            FROM layer0.records AS o
+            LEFT JOIN layer0.crossmatch AS c ON c.record_id = o.id
+            WHERE o.table_id = %s
+            GROUP BY triage
+            """,
+            params=[table_id],
+        )
+
+        return model.TableCrossmatchSummary(counts={row["triage"]: row["cnt"] for row in rows})
+
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:
             return
