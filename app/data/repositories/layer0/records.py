@@ -182,7 +182,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             """
             SELECT CASE
                 WHEN c.record_id IS NULL THEN 'unprocessed'
-                ELSE c.triage_status
+                ELSE c.triage_status::text
             END AS triage,
             COUNT(1) AS cnt
             FROM layer0.records AS o
