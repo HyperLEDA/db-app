@@ -240,6 +240,37 @@ class MappingTest(unittest.TestCase):
                 ],
                 [internal_id_column, model.ColumnDescription("name", "text", unit=units.Unit("m / s"))],
             ),
+            param(
+                "invalid unit is ignored and appended to description",
+                [
+                    presentation.ColumnDescription(
+                        name="name",
+                        data_type=presentation.DatatypeEnum["str"],
+                        unit="not_a_unit",
+                        description="some description",
+                    )
+                ],
+                [
+                    internal_id_column,
+                    model.ColumnDescription(
+                        "name", "text", unit=None, description="some description (unit not_a_unit)"
+                    ),
+                ],
+            ),
+            param(
+                "invalid unit with no description",
+                [
+                    presentation.ColumnDescription(
+                        name="name",
+                        data_type=presentation.DatatypeEnum["str"],
+                        unit="not_a_unit",
+                    )
+                ],
+                [
+                    internal_id_column,
+                    model.ColumnDescription("name", "text", unit=None, description="(unit not_a_unit)"),
+                ],
+            ),
         ],
     )
     def test_mapping(
