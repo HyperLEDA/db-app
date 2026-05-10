@@ -4,7 +4,6 @@ import enum
 from typing import Annotated, Any
 
 import pydantic
-from astropy import units as u
 
 from app.lib.storage import enums, mapping
 from app.presentation.adminapi.records import CrossmatchTriageStatus, GetRecordsRequest, GetRecordsResponse
@@ -13,18 +12,6 @@ DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
     zip(mapping.type_map.keys(), mapping.type_map.keys(), strict=False),
 )
-
-
-def check_unit(unit: str | None) -> str | None:
-    if unit is None:
-        return unit
-
-    try:
-        u.Unit(unit)
-    except Exception as e:
-        raise ValueError(f"Invalid unit: {unit}") from e
-
-    return unit
 
 
 def check_column_name(column_name: str) -> str:
@@ -38,7 +25,7 @@ class ColumnDescription(pydantic.BaseModel):
     name: Annotated[str, pydantic.AfterValidator(func=check_column_name)]
     data_type: DatatypeEnum
     ucd: str | None = None
-    unit: Annotated[str | None, pydantic.AfterValidator(func=check_unit)] = None
+    unit: str | None = None
     description: str | None = None
 
 

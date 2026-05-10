@@ -476,12 +476,17 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
     for col in columns:
         data_type = col.data_type.strip()
         unit = None
+        description = col.description
 
         if data_type not in mapping.type_map:
             raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
-            unit = get_unit(col.unit)
+            try:
+                unit = get_unit(col.unit)
+            except RuleValidationError:
+                logger.error("Failed to parse unit, ignoring", unit=col.unit, column=col.name)
+                description = f"{description or ''} (unit {col.unit})".lstrip()
 
         if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=False):
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
@@ -492,7 +497,7 @@ def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> li
                 data_type=mapping.type_map[data_type],
                 unit=unit,
                 ucd=col.ucd,
-                description=col.description,
+                description=description,
             )
         )
 
