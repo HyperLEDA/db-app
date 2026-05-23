@@ -1,4 +1,4 @@
-from app.data.model import designation, icrs, interface, nature, note, photometry, redshift
+from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, redshift
 
 
 def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.CatalogObject]:
@@ -14,6 +14,8 @@ def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.Cat
         return photometry.PhotometryTotalCatalogObject
     if catalog == interface.RawCatalog.PHOTOMETRY__ISOPHOTAL:
         return photometry.PhotometryIsophotalCatalogObject
+    if catalog == interface.RawCatalog.GEOMETRY:
+        return geometry.GeometryCatalogObject
     if catalog == interface.RawCatalog.NOTE:
         return note.NoteCatalogObject
 
