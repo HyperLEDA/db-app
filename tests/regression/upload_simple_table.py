@@ -137,6 +137,7 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_notes_catalog(session, ids=ids, original_data=orig)
     upload_photometry_catalog(session, ids=ids)
     upload_photometry_isophotal_catalog(session, ids=ids)
+    upload_geometry_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -208,6 +209,38 @@ def upload_photometry_isophotal_catalog(session: requests.Session, ids: list[str
         data=phot_data,
     )
     response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_geometry_catalog(session: requests.Session, ids: list[str]) -> None:
+    geom_ids: list[str] = []
+    geom_data: list[list[object]] = []
+    isophote_level = 25.0
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            geom_ids.append(rid)
+            a = random.uniform(10.0, 100.0)
+            b = random.uniform(5.0, a)
+            pa = random.uniform(0.0, 179.0)
+            geom_data.append([band, "isophotal", isophote_level, a, 0.1, b, 0.1, pa, 0.5])
+
+    geometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="geometry",
+        columns=["band", "method", "isophote", "a", "e_a", "b", "e_b", "pa", "e_pa"],
+        units={
+            "isophote": "mag/arcmin2",
+            "a": "arcsec",
+            "e_a": "arcsec",
+            "b": "arcsec",
+            "e_b": "arcsec",
+            "pa": "deg",
+            "e_pa": "deg",
+        },
+        ids=geom_ids,
+        data=geom_data,
+    )
+    response = session.post("/v1/data/structured", json=geometry_request.model_dump(mode="json"))
     response.raise_for_status()
 
 

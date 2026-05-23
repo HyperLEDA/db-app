@@ -1,5 +1,6 @@
 from app.data.model.bibliography import Bibliography
 from app.data.model.designation import DesignationCatalogObject
+from app.data.model.geometry import GeometryCatalogObject
 from app.data.model.helpers import get_catalog_object_type
 from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import (
@@ -62,6 +63,7 @@ __all__ = [
     "NatureCatalogObject",
     "PhotometryTotalCatalogObject",
     "PhotometryIsophotalCatalogObject",
+    "GeometryCatalogObject",
     "NoteCatalogObject",
     "get_catalog_object_type",
     "MeasuredValue",

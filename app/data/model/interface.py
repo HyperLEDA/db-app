@@ -37,6 +37,7 @@ class RawCatalog(enum.Enum):
     NATURE = "nature"
     PHOTOMETRY__TOTAL = "photometry_total"
     PHOTOMETRY__ISOPHOTAL = "photometry_isophotal"
+    GEOMETRY = "geometry"
     NOTE = "note"
 
 
