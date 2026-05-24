@@ -64,16 +64,17 @@ class Actions(dataapi.Actions):
         return self.parameterized_query_manager.query_simple(query)
 
     def list_schemas(self) -> dataapi.ListSchemasResponse:
-        entries = self.metadata_repo.list_schemas()
-        visible: list[dataapi.SchemaEntry] = []
-        for e in entries:
-            if e.schema_name not in METADATA_ALLOWED_SCHEMAS:
-                continue
-            tables = [dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables]
-            visible.append(
-                dataapi.SchemaEntry(schema_name=e.schema_name, description=e.description, tables=tables),
-            )
-        return dataapi.ListSchemasResponse(schemas=visible)
+        entries = self.metadata_repo.list_schemas(METADATA_ALLOWED_SCHEMAS)
+        return dataapi.ListSchemasResponse(
+            schemas=[
+                dataapi.SchemaEntry(
+                    schema_name=e.schema_name,
+                    description=e.description,
+                    tables=[dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables],
+                )
+                for e in entries
+            ],
+        )
 
     def get_table(self, request: dataapi.GetTableRequest) -> dataapi.GetTableResponse:
         if request.schema_name not in METADATA_ALLOWED_SCHEMAS:
