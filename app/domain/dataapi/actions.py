@@ -27,12 +27,6 @@ METADATA_ALLOWED_SCHEMAS = frozenset(
         "photometry",
     },
 )
-METADATA_BLACKLISTED_TABLES: frozenset[tuple[str, str]] = frozenset(
-    {
-        ("common", "users"),
-        ("common", "tokens"),
-    },
-)
 
 
 @final
@@ -75,11 +69,7 @@ class Actions(dataapi.Actions):
         for e in entries:
             if e.schema_name not in METADATA_ALLOWED_SCHEMAS:
                 continue
-            tables = [
-                dataapi.TableSummary(table_name=t.table_name, description=t.description)
-                for t in e.tables
-                if (e.schema_name, t.table_name) not in METADATA_BLACKLISTED_TABLES
-            ]
+            tables = [dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables]
             visible.append(
                 dataapi.SchemaEntry(schema_name=e.schema_name, description=e.description, tables=tables),
             )
@@ -87,8 +77,6 @@ class Actions(dataapi.Actions):
 
     def get_table(self, request: dataapi.GetTableRequest) -> dataapi.GetTableResponse:
         if request.schema_name not in METADATA_ALLOWED_SCHEMAS:
-            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
-        if (request.schema_name, request.table_name) in METADATA_BLACKLISTED_TABLES:
             raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
         detail = self.metadata_repo.get_table(request.schema_name, request.table_name)
         if detail is None:
