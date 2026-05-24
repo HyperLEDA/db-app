@@ -21,3 +21,15 @@ def pg_to_tap_datatype(pg_type: str | None) -> str:
     if normalized.startswith(("timestamp", "date", "time")):
         return "char"
     return normalized
+
+
+def python_to_tap_datatype(value: object) -> str:
+    if value is None:
+        return "char"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "double"
+    return "char"

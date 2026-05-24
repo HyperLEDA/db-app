@@ -7,7 +7,7 @@ import structlog
 
 from app.lib import auth
 from app.lib.web import server
-from app.presentation.dataapi import interface
+from app.presentation.dataapi import interface, tap
 
 logger = structlog.stdlib.get_logger()
 
@@ -68,9 +68,16 @@ class API:
 
     def list_tap_tables(
         self,
-        request: Annotated[interface.ListTAPTablesRequest, fastapi.Query()],
-    ) -> server.APIOkResponse[interface.ListTAPTablesResponse]:
+        request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[tap.ListTAPTablesResponse]:
         response = self.actions.list_tap_tables(request)
+        return server.APIOkResponse(data=response)
+
+    def tap_sync(
+        self,
+        request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[tap.TAPSyncResponse]:
+        response = self.actions.tap_sync(request)
         return server.APIOkResponse(data=response)
 
 
@@ -81,6 +88,7 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
+        enforce_route_auth: bool = True,
     ) -> None:
         api = API(actions)
 
@@ -141,6 +149,14 @@ the specified designation.""",
                 api.list_tap_tables,
                 "List TAP table metadata for whitelisted schemas.",
             ),
+            server.Route(
+                "/v1/tap/sync",
+                http.HTTPMethod.GET,
+                api.tap_sync,
+                "Execute an arbitrary SQL query (TAP /sync).",
+                "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
+                allowed_roles=[auth.Role.ADMIN],
+            ),
         ]
 
-        super().__init__(routes, config, logger, authenticator)
+        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)

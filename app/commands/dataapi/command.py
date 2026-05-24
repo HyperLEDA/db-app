@@ -36,7 +36,9 @@ class DataAPICommand(commands.Command):
         self.pg_auth = postgres.PgStorage(self.config.storage.auth, log)
         self.pg_main = postgres.PgStorage(self.config.storage.main, log)
 
-        authenticator = auth.PostgresAuthenticator(self.pg_auth)
+        authenticator: auth.Authenticator = (
+            auth.PostgresAuthenticator(self.pg_auth) if self.config.auth_enabled else auth.NoopAuthenticator()
+        )
 
         self.pg_auth.connect()
         self.pg_main.connect()
@@ -47,7 +49,13 @@ class DataAPICommand(commands.Command):
             metadata_repo=repositories.MetadataRepository(self.pg_main),
         )
 
-        self.app = presentation.Server(actions, self.config.server, log, authenticator)
+        self.app = presentation.Server(
+            actions,
+            self.config.server,
+            log,
+            authenticator,
+            enforce_route_auth=self.config.auth_enabled,
+        )
 
     def run(self):
         self.app.run()
@@ -68,6 +76,7 @@ class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: StorageConfig
     catalogs: responders.CatalogConfig
+    auth_enabled: bool = True
     tracing: TracingConfig = pydantic.Field(
         default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
     )

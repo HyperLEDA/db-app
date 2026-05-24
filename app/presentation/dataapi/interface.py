@@ -1,7 +1,8 @@
 import abc
-import enum
 
 import pydantic
+
+from app.presentation.dataapi import tap
 
 
 class EquatorialCoordinates(pydantic.BaseModel):
@@ -212,44 +213,6 @@ class GetTableResponse(pydantic.BaseModel):
     sample_rows: list[dict[str, str | None]]
 
 
-class Detail(enum.StrEnum):
-    MIN = "min"
-    MAX = "max"
-
-
-class TAPFormat(enum.StrEnum):
-    JSON = "json"
-
-
-class TAPColumnInfo(pydantic.BaseModel):
-    name: str
-    datatype: str
-    unit: str | None = None
-    ucd: str | None = None
-    description: str | None = None
-
-
-class TAPTableInfo(pydantic.BaseModel):
-    name: str
-    type: str = "table"
-    description: str | None = None
-    columns: list[TAPColumnInfo] | None = None
-
-
-class TAPSchemaEntry(pydantic.BaseModel):
-    schema_name: str
-    tables: list[TAPTableInfo]
-
-
-class ListTAPTablesRequest(pydantic.BaseModel):
-    detail: Detail = Detail.MAX
-    format: TAPFormat = TAPFormat.JSON
-
-
-class ListTAPTablesResponse(pydantic.BaseModel):
-    schemas: list[TAPSchemaEntry]
-
-
 class FITSRequest(pydantic.BaseModel):
     pgcs: list[int] | None = pydantic.Field(
         default=None,
@@ -311,5 +274,9 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def list_tap_tables(self, request: ListTAPTablesRequest) -> ListTAPTablesResponse:
+    def list_tap_tables(self, request: tap.ListTAPTablesRequest) -> tap.ListTAPTablesResponse:
+        pass
+
+    @abc.abstractmethod
+    def tap_sync(self, request: tap.TAPSyncRequest) -> tap.TAPSyncResponse:
         pass

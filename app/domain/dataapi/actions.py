@@ -29,6 +29,12 @@ METADATA_ALLOWED_SCHEMAS = frozenset(
 )
 
 
+def _json_cell(value: object) -> object:
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
+
+
 @final
 class Actions(dataapi.Actions):
     def __init__(
@@ -109,8 +115,6 @@ class Actions(dataapi.Actions):
         )
         schemas: dict[str, list[dataapi.TAPTableInfo]] = {}
         for table in tables:
-            if (table.schema_name, table.table_name) in METADATA_BLACKLISTED_TABLES:
-                continue
             columns: list[dataapi.TAPColumnInfo] | None = None
             if include_columns:
                 columns = [
@@ -136,4 +140,23 @@ class Actions(dataapi.Actions):
                 dataapi.TAPSchemaEntry(schema_name=schema_name, tables=schema_tables)
                 for schema_name, schema_tables in sorted(schemas.items())
             ]
+        )
+
+    def tap_sync(self, request: dataapi.TAPSyncRequest) -> dataapi.TAPSyncResponse:
+        result = self.metadata_repo.query_with_metadata(request.query, request.maxrec)
+        columns: list[dataapi.TAPVOTableColumn] = []
+        for col in result.columns:
+            datatype = tap_types.python_to_tap_datatype(col.sample_value)
+            columns.append(
+                dataapi.TAPVOTableColumn(
+                    name=col.column_name,
+                    datatype=datatype,
+                    arraysize="*" if datatype == "char" else None,
+                )
+            )
+        data = [[_json_cell(cell) for cell in row] for row in result.rows]
+        return dataapi.TAPSyncResponse(
+            resource=dataapi.TAPVOTableResource(
+                table=dataapi.TAPVOTableTable(columns=columns, data=data),
+            )
         )

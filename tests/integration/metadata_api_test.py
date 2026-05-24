@@ -117,3 +117,34 @@ class MetadataAPITest(unittest.TestCase):
             table_names.update(t["name"] for t in schema["tables"])
         self.assertNotIn("common.users", table_names)
         self.assertNotIn("common.tokens", table_names)
+
+    def test_tap_sync_basic(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name, objclass, description FROM nature.object_type ORDER BY type_name LIMIT 1",
+            },
+            headers={"Authorization": "Bearer test-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        col_names = [c["name"] for c in table["columns"]]
+        self.assertEqual(col_names, ["type_name", "objclass", "description"])
+        type_name_col = table["columns"][0]
+        self.assertEqual(type_name_col["datatype"], "char")
+        self.assertEqual(type_name_col["arraysize"], "*")
+        self.assertEqual(len(table["data"]), 1)
+        self.assertEqual(len(table["data"][0]), 3)
+
+    def test_tap_sync_maxrec(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name",
+                "maxrec": 2,
+            },
+            headers={"Authorization": "Bearer test-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual(len(table["data"]), 2)
