@@ -35,11 +35,13 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         all_columns = ["record_id"] + columns
         placeholders = ",".join(["%s"] * len(all_columns))
         update_columns = [c for c in all_columns if c not in conflict_keys]
-        on_conflict_set = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_columns)
-        query = (
-            f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) "
-            f"ON CONFLICT ({', '.join(conflict_keys)}) DO UPDATE SET {on_conflict_set}"
-        )
+        conflict_clause = f"ON CONFLICT ({', '.join(conflict_keys)})"
+        if update_columns:
+            on_conflict_set = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_columns)
+            conflict_action = f"{conflict_clause} DO UPDATE SET {on_conflict_set}"
+        else:
+            conflict_action = f"{conflict_clause} DO NOTHING"
+        query = f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) {conflict_action}"
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
             self._storage.execute_batch(query, rows)

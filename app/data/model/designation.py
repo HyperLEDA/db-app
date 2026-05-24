@@ -26,6 +26,10 @@ class DesignationCatalogObject(interface.CatalogObject):
         return ["design"]
 
     @classmethod
+    def layer1_primary_keys(cls) -> list[str]:
+        return ["record_id", "design"]
+
+    @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
         return cls(design=data["design"])
 

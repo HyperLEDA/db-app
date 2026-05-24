@@ -151,3 +151,21 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.assertEqual({r.pgc for r in result}, {99})
         type_names = {r.data.type_name for r in result}
         self.assertEqual(type_names, {"G", "*"})
+
+    def test_designation_multiple_names_per_record(self) -> None:
+        self._get_table("desig_table")
+        self.layer0_repo.register_records("desig_table", ["r1"])
+        self.layer1_repo.save_structured_data(
+            model.DesignationCatalogObject.layer1_table(),
+            model.DesignationCatalogObject.layer1_keys(),
+            ["r1", "r1"],
+            [["NGC 224"], ["M 31"]],
+            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+        )
+
+        result = self.pg_storage.storage.query(
+            "SELECT design FROM designation.data WHERE record_id = %s ORDER BY design",
+            params=["r1"],
+        )
+
+        self.assertEqual(result, [{"design": "M 31"}, {"design": "NGC 224"}])

@@ -258,7 +258,13 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.layer0_repo.register_records("t1", ["r1"])
         self.common_repo.register_pgcs([100])
         self.layer0_repo.upsert_pgc({"r1": 100})
-        self.layer1_repo.save_structured_data("designation.data", ["design"], ["r1"], [["x"]])
+        self.layer1_repo.save_structured_data(
+            "designation.data",
+            ["design"],
+            ["r1"],
+            [["x"]],
+            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+        )
         self._save_layer2_data([model.Layer2CatalogObject(100, [model.DesignationCatalogObject(design="x")])])
 
         orphaned = self.layer2_repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
@@ -270,7 +276,13 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.layer0_repo.register_records("t1", ["r1"])
         self.common_repo.register_pgcs([100, 200])
         self.layer0_repo.upsert_pgc({"r1": 100})
-        self.layer1_repo.save_structured_data("designation.data", ["design"], ["r1"], [["linked"]])
+        self.layer1_repo.save_structured_data(
+            "designation.data",
+            ["design"],
+            ["r1"],
+            [["linked"]],
+            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+        )
         self._save_layer2_data(
             [
                 model.Layer2CatalogObject(100, [model.DesignationCatalogObject(design="linked")]),
