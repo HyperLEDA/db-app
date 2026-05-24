@@ -38,13 +38,13 @@ class PostgresAuthenticator(interface.Authenticator):
 
     def __init__(self, storage: postgres.PgStorage, token_lifetime_seconds: int = 14 * 24 * 60 * 60):
         self._storage = storage
-        self._storage.register_type(user.Role, "common.user_role")
+        self._storage.register_type(user.Role, "private.user_role")
         self.token_lifetime = token_lifetime_seconds
 
     def login(self, username: str, password: str) -> tuple[str, bool]:
         try:
             user_info = self._storage.query_one(
-                "SELECT id, password_hash FROM common.users WHERE login = %s",
+                "SELECT id, password_hash FROM private.users WHERE login = %s",
                 params=[username],
             )
         except RuntimeError:
@@ -59,7 +59,7 @@ class PostgresAuthenticator(interface.Authenticator):
         token = secrets.token_hex(16)
 
         self._storage.exec(
-            "INSERT INTO common.tokens (token_hash, user_id, expiry_time) VALUES (%s, %s, %s)",
+            "INSERT INTO private.tokens (token_hash, user_id, expiry_time) VALUES (%s, %s, %s)",
             params=[
                 _token_hash(token),
                 user_info["id"],
@@ -73,8 +73,8 @@ class PostgresAuthenticator(interface.Authenticator):
             token_info = self._storage.query_one(
                 """
                 SELECT u.id AS user_id, u.role AS role
-                FROM common.tokens AS t
-                JOIN common.users AS u ON t.user_id = u.id
+                FROM private.tokens AS t
+                JOIN private.users AS u ON t.user_id = u.id
                 WHERE t.token_hash = %s AND t.expiry_time > %s AND t.active
                 """,
                 params=[_token_hash(token), datetime.now(UTC)],
@@ -86,6 +86,6 @@ class PostgresAuthenticator(interface.Authenticator):
 
     def revoke(self, token: str) -> None:
         self._storage.exec(
-            "UPDATE common.tokens SET active = false WHERE token_hash = %s",
+            "UPDATE private.tokens SET active = false WHERE token_hash = %s",
             params=[_token_hash(token)],
         )

@@ -70,10 +70,10 @@ class AdminAPIAuthTest(unittest.TestCase):
 
         storage = cls.pg_storage.get_storage()
         storage.exec(
-            "DELETE FROM common.tokens WHERE user_id IN (SELECT id FROM common.users WHERE login = %s)",
+            "DELETE FROM private.tokens WHERE user_id IN (SELECT id FROM private.users WHERE login = %s)",
             params=[cls._login],
         )
-        storage.exec("DELETE FROM common.users WHERE login = %s", params=[cls._login])
+        storage.exec("DELETE FROM private.users WHERE login = %s", params=[cls._login])
 
     @property
     def base(self) -> str:
