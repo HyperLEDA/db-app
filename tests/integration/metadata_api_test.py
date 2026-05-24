@@ -86,7 +86,7 @@ class MetadataAPITest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_list_tap_tables_default_max(self) -> None:
+    def test_tap_tables_default_max(self) -> None:
         response = self.client.get("/api/v1/tap/tables")
         self.assertEqual(response.status_code, 200)
         data = response.json()["data"]
@@ -101,14 +101,14 @@ class MetadataAPITest(unittest.TestCase):
         id_col = next(c for c in bib["columns"] if c["name"] == "id")
         self.assertEqual(id_col["datatype"], "int")
 
-    def test_list_tap_tables_min(self) -> None:
+    def test_tap_tables_min(self) -> None:
         response = self.client.get("/api/v1/tap/tables", params={"detail": "min"})
         self.assertEqual(response.status_code, 200)
         for schema in response.json()["data"]["schemas"]:
             for table in schema["tables"]:
                 self.assertNotIn("columns", table)
 
-    def test_list_tap_tables_whitelist(self) -> None:
+    def test_tap_tables_whitelist(self) -> None:
         response = self.client.get("/api/v1/tap/tables")
         self.assertEqual(response.status_code, 200)
         table_names: set[str] = set()

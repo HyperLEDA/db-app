@@ -274,7 +274,7 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def list_tap_tables(self, request: tap.ListTAPTablesRequest) -> tap.ListTAPTablesResponse:
+    def tap_tables(self, request: tap.ListTAPTablesRequest) -> tap.ListTAPTablesResponse:
         pass
 
     @abc.abstractmethod

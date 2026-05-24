@@ -107,7 +107,7 @@ class Actions(dataapi.Actions):
             sample_rows=sample_rows,
         )
 
-    def list_tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
+    def tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
         include_columns = request.detail == dataapi.Detail.MAX
         tables = self.metadata_repo.list_tables_with_columns(
             sorted(METADATA_ALLOWED_SCHEMAS),

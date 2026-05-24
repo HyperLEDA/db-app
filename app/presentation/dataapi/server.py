@@ -66,11 +66,11 @@ class API:
         response = self.actions.get_table(request)
         return server.APIOkResponse(data=response)
 
-    def list_tap_tables(
+    def tap_tables(
         self,
         request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
     ) -> server.APIOkResponse[tap.ListTAPTablesResponse]:
-        response = self.actions.list_tap_tables(request)
+        response = self.actions.tap_tables(request)
         return server.APIOkResponse(data=response)
 
     def tap_sync(
@@ -146,7 +146,7 @@ the specified designation.""",
             server.Route(
                 "/v1/tap/tables",
                 http.HTTPMethod.GET,
-                api.list_tap_tables,
+                api.tap_tables,
                 "List TAP table metadata for whitelisted schemas.",
             ),
             server.Route(
