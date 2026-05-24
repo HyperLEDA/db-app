@@ -47,7 +47,13 @@ class Layer2ImportTest(unittest.TestCase):
         self.layer1_repo.save_structured_data(
             "icrs.data", ["ra", "e_ra", "dec", "e_dec"], ["123", "124"], [[12, 0.2, 13, 0.2], [14, 0.2, 15, 0.2]]
         )
-        self.layer1_repo.save_structured_data("designation.data", ["design"], ["123", "124"], [["test1"], ["test2"]])
+        self.layer1_repo.save_structured_data(
+            "designation.data",
+            ["design"],
+            ["123", "124"],
+            [["test1"], ["test2"]],
+            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+        )
 
         self.task.run()
 
@@ -75,7 +81,13 @@ class Layer2ImportTest(unittest.TestCase):
 
         last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
 
-        self.layer1_repo.save_structured_data("designation.data", ["design"], ["125", "126"], [["test3"], ["test3"]])
+        self.layer1_repo.save_structured_data(
+            "designation.data",
+            ["design"],
+            ["125", "126"],
+            [["test3"], ["test3"]],
+            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+        )
 
         self.task.run()
 
