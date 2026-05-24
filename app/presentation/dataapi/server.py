@@ -55,17 +55,6 @@ class API:
             },
         )
 
-    def list_schemas(self) -> server.APIOkResponse[interface.ListSchemasResponse]:
-        response = self.actions.list_schemas()
-        return server.APIOkResponse(data=response)
-
-    def get_table(
-        self,
-        request: Annotated[interface.GetTableRequest, fastapi.Query()],
-    ) -> server.APIOkResponse[interface.GetTableResponse]:
-        response = self.actions.get_table(request)
-        return server.APIOkResponse(data=response)
-
     def tap_tables(
         self,
         request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
@@ -130,18 +119,6 @@ If the string matches multiple interpretations, results are combined with OR."""
 All of the conditions are combined with the logical AND operator.
 For example, if both coordinates and designation are specified, object must be in the specified area and have
 the specified designation.""",
-            ),
-            server.Route(
-                "/v1/schema",
-                http.HTTPMethod.GET,
-                api.list_schemas,
-                "Show database schema",
-            ),
-            server.Route(
-                "/v1/table",
-                http.HTTPMethod.GET,
-                api.get_table,
-                "Return table metadata and a sample of its data.",
             ),
             server.Route(
                 "/v1/tap/tables",

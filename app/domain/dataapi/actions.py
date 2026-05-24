@@ -3,7 +3,6 @@ from typing import final
 from app.data import model, repositories
 from app.domain import responders
 from app.domain.dataapi import parameterized_query, search_parsers, tap_types
-from app.lib.web import errors
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -68,44 +67,6 @@ class Actions(dataapi.Actions):
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         return self.parameterized_query_manager.query_simple(query)
-
-    def list_schemas(self) -> dataapi.ListSchemasResponse:
-        entries = self.metadata_repo.list_schemas(METADATA_ALLOWED_SCHEMAS)
-        return dataapi.ListSchemasResponse(
-            schemas=[
-                dataapi.SchemaEntry(
-                    schema_name=e.schema_name,
-                    description=e.description,
-                    tables=[dataapi.TableSummary(table_name=t.table_name, description=t.description) for t in e.tables],
-                )
-                for e in entries
-            ],
-        )
-
-    def get_table(self, request: dataapi.GetTableRequest) -> dataapi.GetTableResponse:
-        if request.schema_name not in METADATA_ALLOWED_SCHEMAS:
-            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
-        detail = self.metadata_repo.get_table(request.schema_name, request.table_name)
-        if detail is None:
-            raise errors.NotFoundError("Table", f"{request.schema_name}.{request.table_name}")
-        raw_rows = self.metadata_repo.fetch_table_sample_rows(request.schema_name, request.table_name)
-        sample_rows = [{k: str(v) for k, v in row.items()} for row in raw_rows]
-        return dataapi.GetTableResponse(
-            schema_name=detail.schema_name,
-            table_name=detail.table_name,
-            description=detail.description,
-            columns=[
-                dataapi.ColumnInfo(
-                    column_name=c.column_name,
-                    data_type=c.data_type,
-                    description=c.description,
-                    unit=c.unit,
-                    ucd=c.ucd,
-                )
-                for c in detail.columns
-            ],
-            sample_rows=sample_rows,
-        )
 
     def tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
         include_columns = request.detail == dataapi.Detail.MAX
