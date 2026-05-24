@@ -66,6 +66,13 @@ class API:
         response = self.actions.get_table(request)
         return server.APIOkResponse(data=response)
 
+    def list_tap_tables(
+        self,
+        request: Annotated[interface.ListTAPTablesRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[interface.ListTAPTablesResponse]:
+        response = self.actions.list_tap_tables(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -127,6 +134,12 @@ the specified designation.""",
                 http.HTTPMethod.GET,
                 api.get_table,
                 "Return table metadata and a sample of its data.",
+            ),
+            server.Route(
+                "/v1/tap/tables",
+                http.HTTPMethod.GET,
+                api.list_tap_tables,
+                "List TAP table metadata for whitelisted schemas.",
             ),
         ]
 

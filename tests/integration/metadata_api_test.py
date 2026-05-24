@@ -85,3 +85,35 @@ class MetadataAPITest(unittest.TestCase):
             params={"schema_name": "pg_catalog", "table_name": "pg_class"},
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_list_tap_tables_default_max(self) -> None:
+        response = self.client.get("/api/v1/tap/tables")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["data"]
+        self.assertIn("schemas", data)
+        self.assertGreater(len(data["schemas"]), 0)
+        common = next(s for s in data["schemas"] if s["schema_name"] == "common")
+        bib = next(t for t in common["tables"] if t["name"] == "common.bib")
+        self.assertEqual(bib["type"], "table")
+        self.assertIn("columns", bib)
+        self.assertIsInstance(bib["columns"], list)
+        self.assertGreater(len(bib["columns"]), 0)
+        id_col = next(c for c in bib["columns"] if c["name"] == "id")
+        self.assertEqual(id_col["datatype"], "int")
+
+    def test_list_tap_tables_min(self) -> None:
+        response = self.client.get("/api/v1/tap/tables", params={"detail": "min"})
+        self.assertEqual(response.status_code, 200)
+        for schema in response.json()["data"]["schemas"]:
+            for table in schema["tables"]:
+                self.assertNotIn("columns", table)
+
+    def test_list_tap_tables_whitelist(self) -> None:
+        response = self.client.get("/api/v1/tap/tables")
+        self.assertEqual(response.status_code, 200)
+        table_names: set[str] = set()
+        for schema in response.json()["data"]["schemas"]:
+            self.assertIn(schema["schema_name"], dataapi_actions.METADATA_ALLOWED_SCHEMAS)
+            table_names.update(t["name"] for t in schema["tables"])
+        self.assertNotIn("common.users", table_names)
+        self.assertNotIn("common.tokens", table_names)

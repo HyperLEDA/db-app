@@ -2,7 +2,7 @@ from typing import final
 
 from app.data import model, repositories
 from app.domain import responders
-from app.domain.dataapi import parameterized_query, search_parsers
+from app.domain.dataapi import parameterized_query, search_parsers, tap_types
 from app.lib.web import errors
 from app.presentation import dataapi
 
@@ -99,4 +99,41 @@ class Actions(dataapi.Actions):
                 for c in detail.columns
             ],
             sample_rows=sample_rows,
+        )
+
+    def list_tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
+        include_columns = request.detail == dataapi.Detail.MAX
+        tables = self.metadata_repo.list_tables_with_columns(
+            sorted(METADATA_ALLOWED_SCHEMAS),
+            include_columns=include_columns,
+        )
+        schemas: dict[str, list[dataapi.TAPTableInfo]] = {}
+        for table in tables:
+            if (table.schema_name, table.table_name) in METADATA_BLACKLISTED_TABLES:
+                continue
+            columns: list[dataapi.TAPColumnInfo] | None = None
+            if include_columns:
+                columns = [
+                    dataapi.TAPColumnInfo(
+                        name=c.column_name,
+                        datatype=tap_types.pg_to_tap_datatype(c.data_type),
+                        unit=c.unit,
+                        ucd=c.ucd,
+                        description=c.description,
+                    )
+                    for c in table.columns
+                ]
+            schemas.setdefault(table.schema_name, []).append(
+                dataapi.TAPTableInfo(
+                    name=f"{table.schema_name}.{table.table_name}",
+                    type="table",
+                    description=table.description,
+                    columns=columns,
+                )
+            )
+        return dataapi.ListTAPTablesResponse(
+            schemas=[
+                dataapi.TAPSchemaEntry(schema_name=schema_name, tables=schema_tables)
+                for schema_name, schema_tables in sorted(schemas.items())
+            ]
         )

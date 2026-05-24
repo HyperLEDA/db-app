@@ -50,6 +50,19 @@ class MetadataTableDetail:
     columns: list[MetadataColumnDetail]
 
 
+def _column_detail_from_row(row: dict[str, Any]) -> MetadataColumnDetail:
+    param = row.get("param") or {}
+    if not isinstance(param, dict):
+        param = {}
+    return MetadataColumnDetail(
+        column_name=row["column_name"],
+        data_type=row.get("data_type"),
+        description=param.get("description"),
+        unit=param.get("unit"),
+        ucd=param.get("ucd"),
+    )
+
+
 @final
 class MetadataRepository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage) -> None:
@@ -108,26 +121,64 @@ class MetadataRepository(postgres.TransactionalPGRepository):
             """,
             params=[schema_name, table_name],
         )
-        columns: list[MetadataColumnDetail] = []
-        for row in column_rows:
-            param = row.get("param") or {}
-            if not isinstance(param, dict):
-                param = {}
-            columns.append(
-                MetadataColumnDetail(
-                    column_name=row["column_name"],
-                    data_type=row.get("data_type"),
-                    description=param.get("description"),
-                    unit=param.get("unit"),
-                    ucd=param.get("ucd"),
-                )
-            )
+        columns = [_column_detail_from_row(row) for row in column_rows]
         return MetadataTableDetail(
             schema_name=schema_name,
             table_name=table_name,
             description=table_description,
             columns=columns,
         )
+
+    def list_tables_with_columns(
+        self,
+        schemas: Sequence[str],
+        *,
+        include_columns: bool,
+    ) -> list[MetadataTableDetail]:
+        if not schemas:
+            return []
+
+        table_rows = self._storage.query(
+            """
+            SELECT schema_name, table_name, param
+            FROM meta.table_info
+            WHERE schema_name = ANY(%s)
+            ORDER BY schema_name, table_name
+            """,
+            params=[list(schemas)],
+        )
+        columns_by_table: dict[tuple[str, str], list[MetadataColumnDetail]] = {}
+        if include_columns:
+            column_rows = self._storage.query(
+                """
+                SELECT c.table_schema AS schema_name,
+                       c.table_name,
+                       c.column_name,
+                       c.data_type::text AS data_type,
+                       ci.param
+                FROM information_schema.columns c
+                INNER JOIN meta.column_info ci
+                  ON ci.schema_name = c.table_schema
+                 AND ci.table_name = c.table_name
+                 AND ci.column_name = c.column_name
+                WHERE c.table_schema = ANY(%s)
+                ORDER BY c.table_schema, c.table_name, c.ordinal_position
+                """,
+                params=[list(schemas)],
+            )
+            for row in column_rows:
+                key = (row["schema_name"], row["table_name"])
+                columns_by_table.setdefault(key, []).append(_column_detail_from_row(row))
+
+        return [
+            MetadataTableDetail(
+                schema_name=row["schema_name"],
+                table_name=row["table_name"],
+                description=_description_from_param(row.get("param")),
+                columns=columns_by_table.get((row["schema_name"], row["table_name"]), []),
+            )
+            for row in table_rows
+        ]
 
     def fetch_table_sample_rows(self, schema_name: str, table_name: str) -> list[dict[str, object]]:
         query = sql.SQL("SELECT * FROM {}.{} LIMIT {}").format(
