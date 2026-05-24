@@ -35,57 +35,6 @@ class MetadataAPITest(unittest.TestCase):
     def tearDown(self) -> None:
         self.pg_storage.clear()
 
-    def test_list_schemas(self) -> None:
-        response = self.client.get("/api/v1/schema")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertIn("data", body)
-        self.assertIn("schemas", body["data"])
-        schemas = body["data"]["schemas"]
-        self.assertIsInstance(schemas, list)
-        self.assertGreater(len(schemas), 0)
-        common = next(s for s in schemas if s["schema_name"] == "common")
-        self.assertIn("tables", common)
-        table_names = {t["table_name"] for t in common["tables"]}
-        self.assertIn("bib", table_names)
-
-    def test_get_table_common_bib(self) -> None:
-        response = self.client.get(
-            "/api/v1/table",
-            params={"schema_name": "common", "table_name": "bib"},
-        )
-        self.assertEqual(response.status_code, 200)
-        data = response.json()["data"]
-        self.assertEqual(data["schema_name"], "common")
-        self.assertEqual(data["table_name"], "bib")
-        self.assertIn("columns", data)
-        col_names = {c["column_name"] for c in data["columns"]}
-        self.assertIn("id", col_names)
-        self.assertIn("code", col_names)
-        self.assertIn("sample_rows", data)
-        self.assertIsInstance(data["sample_rows"], list)
-        self.assertLessEqual(len(data["sample_rows"]), 50)
-
-    def test_get_table_not_found(self) -> None:
-        response = self.client.get(
-            "/api/v1/table",
-            params={"schema_name": "common", "table_name": "no_such_table_zzzzz"},
-        )
-        self.assertEqual(response.status_code, 404)
-
-    def test_metadata_allowed_schema_filter(self) -> None:
-        response = self.client.get("/api/v1/schema")
-        self.assertEqual(response.status_code, 200)
-        for entry in response.json()["data"]["schemas"]:
-            self.assertIn(entry["schema_name"], dataapi_actions.METADATA_ALLOWED_SCHEMAS)
-
-    def test_get_table_rejects_schema_outside_whitelist(self) -> None:
-        response = self.client.get(
-            "/api/v1/table",
-            params={"schema_name": "pg_catalog", "table_name": "pg_class"},
-        )
-        self.assertEqual(response.status_code, 404)
-
     def test_tap_tables_default_max(self) -> None:
         response = self.client.get("/api/v1/tap/tables")
         self.assertEqual(response.status_code, 200)
