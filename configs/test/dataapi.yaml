@@ -5,11 +5,18 @@ server:
     - https://leda.kraysent.dev
 
 storage:
-  endpoint: hyperledadb
-  port: 5432
-  dbname: hyperleda
-  user: hyperleda
-  password: fake
+  auth:
+    endpoint: hyperledadb
+    port: 5432
+    dbname: hyperleda
+    user: hyperleda
+    password: fake
+  main:
+    endpoint: hyperledadb
+    port: 5432
+    dbname: hyperleda
+    user: hyperleda
+    password: fake
 
 tracing:
   endpoint: tracing-collector:4317

@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import final
+from typing import Any, final
 
 import pydantic
+import pydantic_settings as settings
 import structlog
 import yaml
 
@@ -32,35 +33,59 @@ class DataAPICommand(commands.Command):
 
         tracing.setup_tracing("dataapi", self.config.tracing)
 
-        self.pg_storage = postgres.PgStorage(self.config.storage, log)
-        self.pg_storage.connect()
+        self.pg_auth = postgres.PgStorage(self.config.storage.auth, log)
+        self.pg_main = postgres.PgStorage(self.config.storage.main, log)
+
+        authenticator = auth.PostgresAuthenticator(self.pg_auth)
+
+        self.pg_auth.connect()
+        self.pg_main.connect()
 
         actions = domain.Actions(
-            layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            layer2_repo=repositories.Layer2Repository(self.pg_main, log),
             catalog_cfg=self.config.catalogs,
-            metadata_repo=repositories.MetadataRepository(self.pg_storage),
+            metadata_repo=repositories.MetadataRepository(self.pg_main),
         )
 
-        self.app = presentation.Server(actions, self.config.server, log, auth.NoopAuthenticator())
+        self.app = presentation.Server(actions, self.config.server, log, authenticator)
 
     def run(self):
         self.app.run()
 
     def cleanup(self):
-        if self.pg_storage:
-            self.pg_storage.disconnect()
+        if self.pg_auth:
+            self.pg_auth.disconnect()
+        if self.pg_main:
+            self.pg_main.disconnect()
+
+
+class StorageConfig(pydantic.BaseModel):
+    auth: postgres.PgStorageConfig
+    main: postgres.PgStorageConfig
 
 
 class Config(config.ConfigSettings):
     server: server.ServerConfig
-    storage: postgres.PgStorageConfig
+    storage: StorageConfig
     catalogs: responders.CatalogConfig
     tracing: TracingConfig = pydantic.Field(
         default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
     )
 
 
+def _load_named_storage(name: str, data: dict[str, Any]) -> postgres.PgStorageConfig:
+    class _Cfg(postgres.PgStorageConfig):
+        model_config = settings.SettingsConfigDict(env_prefix=f"STORAGE_{name.upper()}_")
+
+    return _Cfg(**data)
+
+
 def parse_config(path: str) -> Config:
     data = yaml.safe_load(Path(path).read_text())
+    raw_storage = data.get("storage", {}) or {}
+    data["storage"] = StorageConfig(
+        auth=_load_named_storage("auth", raw_storage.get("auth", {})),
+        main=_load_named_storage("main", raw_storage.get("main", {})),
+    )
 
     return Config(**data)
