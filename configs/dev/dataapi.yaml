@@ -4,6 +4,8 @@ server:
   allowed_origins:
     - "*"
 
+auth_enabled: false
+
 storage:
   auth:
     endpoint: localhost

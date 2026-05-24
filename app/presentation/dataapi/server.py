@@ -7,7 +7,7 @@ import structlog
 
 from app.lib import auth
 from app.lib.web import server
-from app.presentation.dataapi import interface
+from app.presentation.dataapi import interface, tap
 
 logger = structlog.stdlib.get_logger()
 
@@ -66,6 +66,20 @@ class API:
         response = self.actions.get_table(request)
         return server.APIOkResponse(data=response)
 
+    def tap_tables(
+        self,
+        request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[tap.ListTAPTablesResponse]:
+        response = self.actions.tap_tables(request)
+        return server.APIOkResponse(data=response)
+
+    def tap_sync(
+        self,
+        request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[tap.TAPSyncResponse]:
+        response = self.actions.tap_sync(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -74,6 +88,7 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
+        enforce_route_auth: bool = True,
     ) -> None:
         api = API(actions)
 
@@ -128,6 +143,20 @@ the specified designation.""",
                 api.get_table,
                 "Return table metadata and a sample of its data.",
             ),
+            server.Route(
+                "/v1/tap/tables",
+                http.HTTPMethod.GET,
+                api.tap_tables,
+                "List TAP table metadata for whitelisted schemas.",
+            ),
+            server.Route(
+                "/v1/tap/sync",
+                http.HTTPMethod.GET,
+                api.tap_sync,
+                "Execute an arbitrary SQL query (TAP /sync).",
+                "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
+                allowed_roles=[auth.Role.ADMIN],
+            ),
         ]
 
-        super().__init__(routes, config, logger, authenticator)
+        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)

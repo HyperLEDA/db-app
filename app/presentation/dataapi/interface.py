@@ -2,6 +2,8 @@ import abc
 
 import pydantic
 
+from app.presentation.dataapi import tap
+
 
 class EquatorialCoordinates(pydantic.BaseModel):
     ra: float
@@ -269,4 +271,12 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_table(self, request: GetTableRequest) -> GetTableResponse:
+        pass
+
+    @abc.abstractmethod
+    def tap_tables(self, request: tap.ListTAPTablesRequest) -> tap.ListTAPTablesResponse:
+        pass
+
+    @abc.abstractmethod
+    def tap_sync(self, request: tap.TAPSyncRequest) -> tap.TAPSyncResponse:
         pass

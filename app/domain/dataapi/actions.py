@@ -2,7 +2,7 @@ from typing import final
 
 from app.data import model, repositories
 from app.domain import responders
-from app.domain.dataapi import parameterized_query, search_parsers
+from app.domain.dataapi import parameterized_query, search_parsers, tap_types
 from app.lib.web import errors
 from app.presentation import dataapi
 
@@ -27,6 +27,12 @@ METADATA_ALLOWED_SCHEMAS = frozenset(
         "photometry",
     },
 )
+
+
+def _json_cell(value: object) -> object:
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
 
 
 @final
@@ -99,4 +105,58 @@ class Actions(dataapi.Actions):
                 for c in detail.columns
             ],
             sample_rows=sample_rows,
+        )
+
+    def tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
+        include_columns = request.detail == dataapi.Detail.MAX
+        tables = self.metadata_repo.list_tables_with_columns(
+            sorted(METADATA_ALLOWED_SCHEMAS),
+            include_columns=include_columns,
+        )
+        schemas: dict[str, list[dataapi.TAPTableInfo]] = {}
+        for table in tables:
+            columns: list[dataapi.TAPColumnInfo] | None = None
+            if include_columns:
+                columns = [
+                    dataapi.TAPColumnInfo(
+                        name=c.column_name,
+                        datatype=tap_types.pg_to_tap_datatype(c.data_type),
+                        unit=c.unit,
+                        ucd=c.ucd,
+                        description=c.description,
+                    )
+                    for c in table.columns
+                ]
+            schemas.setdefault(table.schema_name, []).append(
+                dataapi.TAPTableInfo(
+                    name=f"{table.schema_name}.{table.table_name}",
+                    type="table",
+                    description=table.description,
+                    columns=columns,
+                )
+            )
+        return dataapi.ListTAPTablesResponse(
+            schemas=[
+                dataapi.TAPSchemaEntry(schema_name=schema_name, tables=schema_tables)
+                for schema_name, schema_tables in sorted(schemas.items())
+            ]
+        )
+
+    def tap_sync(self, request: dataapi.TAPSyncRequest) -> dataapi.TAPSyncResponse:
+        result = self.metadata_repo.query_with_metadata(request.query, request.maxrec)
+        columns: list[dataapi.TAPVOTableColumn] = []
+        for col in result.columns:
+            datatype = tap_types.python_to_tap_datatype(col.sample_value)
+            columns.append(
+                dataapi.TAPVOTableColumn(
+                    name=col.column_name,
+                    datatype=datatype,
+                    arraysize="*" if datatype == "char" else None,
+                )
+            )
+        data = [[_json_cell(cell) for cell in row] for row in result.rows]
+        return dataapi.TAPSyncResponse(
+            resource=dataapi.TAPVOTableResource(
+                table=dataapi.TAPVOTableTable(columns=columns, data=data),
+            )
         )
