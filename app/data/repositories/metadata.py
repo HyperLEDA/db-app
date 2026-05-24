@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, final
 
@@ -54,12 +55,16 @@ class MetadataRepository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage) -> None:
         super().__init__(storage)
 
-    def list_schemas(self) -> list[MetadataSchemaEntry]:
+    def list_schemas(self, allowed_schemas: Sequence[str]) -> list[MetadataSchemaEntry]:
+        allowed = list(allowed_schemas)
         schema_rows = self._storage.query(
-            "SELECT schema_name, param FROM meta.schema_info ORDER BY schema_name",
+            "SELECT schema_name, param FROM meta.schema_info WHERE schema_name = ANY(%s) ORDER BY schema_name",
+            params=[allowed],
         )
         table_rows = self._storage.query(
-            "SELECT schema_name, table_name, param FROM meta.table_info ORDER BY schema_name, table_name",
+            "SELECT schema_name, table_name, param FROM meta.table_info "
+            "WHERE schema_name = ANY(%s) ORDER BY schema_name, table_name",
+            params=[allowed],
         )
         tables_by_schema: dict[str, list[MetadataTableSummary]] = {}
         for row in table_rows:
