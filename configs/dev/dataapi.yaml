@@ -5,11 +5,18 @@ server:
     - "*"
 
 storage:
-  endpoint: localhost
-  port: 6432
-  dbname: hyperleda
-  user: hyperleda
-  password: password
+  auth:
+    endpoint: localhost
+    port: 6432
+    dbname: hyperleda
+    user: hyperleda
+    password: password
+  main:
+    endpoint: localhost
+    port: 6432
+    dbname: hyperleda
+    user: hyperleda
+    password: password
 
 tracing:
   endpoint: localhost:4317

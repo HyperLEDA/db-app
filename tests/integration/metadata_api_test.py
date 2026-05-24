@@ -2,7 +2,6 @@ import pathlib
 import unittest
 
 import structlog
-import yaml
 from starlette import testclient
 
 from app.commands.dataapi import command as dataapi_command
@@ -19,7 +18,7 @@ class MetadataAPITest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get()
         cfg_path = pathlib.Path(__file__).resolve().parents[2] / "configs" / "dev" / "dataapi.yaml"
-        cls.cfg = dataapi_command.Config(**yaml.safe_load(cfg_path.read_text()))
+        cls.cfg = dataapi_command.parse_config(str(cfg_path))
         cls.log = structlog.get_logger()
 
     def setUp(self) -> None:
