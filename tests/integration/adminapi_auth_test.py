@@ -107,51 +107,62 @@ class AdminAPIAuthTest(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 401)
 
-    def test_login_then_post_logout_relogin_second_invalidates_first(self):
-        r_login = requests.post(
+    def _login_and_get_token(self) -> str:
+        r = requests.post(
             f"{self.base}/v1/login",
             json={"username": self._login, "password": self._password},
             timeout=5,
         )
-        self.assertEqual(r_login.status_code, 200)
-        token1 = r_login.json()["data"]["token"]
+        self.assertEqual(r.status_code, 200)
+        return r.json()["data"]["token"]
 
-        r_login2 = requests.post(
-            f"{self.base}/v1/login",
-            json={"username": self._login, "password": self._password},
-            timeout=5,
-        )
-        self.assertEqual(r_login2.status_code, 200)
-        token2 = r_login2.json()["data"]["token"]
-
-        r_old = requests.post(
+    def _assert_token_works(self, token: str) -> None:
+        r = requests.post(
             f"{self.base}/v1/source",
-            headers={"Authorization": f"Bearer {token1}"},
-            json={"title": "Old token", "authors": ["B"], "year": 2019},
+            headers={"Authorization": f"Bearer {token}"},
+            json={"title": "t", "authors": ["A"], "year": 2020},
             timeout=5,
         )
-        self.assertEqual(r_old.status_code, 401)
+        self.assertEqual(r.status_code, 200)
 
-        r_ok = requests.post(
+    def _assert_token_rejected(self, token: str) -> None:
+        r = requests.post(
             f"{self.base}/v1/source",
-            headers={"Authorization": f"Bearer {token2}"},
-            json={"title": "New token", "authors": ["C"], "year": 2021},
+            headers={"Authorization": f"Bearer {token}"},
+            json={"title": "t", "authors": ["A"], "year": 2020},
             timeout=5,
         )
-        self.assertEqual(r_ok.status_code, 200)
+        self.assertEqual(r.status_code, 401)
+
+    def test_up_to_three_tokens_are_valid(self):
+        token1 = self._login_and_get_token()
+        token2 = self._login_and_get_token()
+        token3 = self._login_and_get_token()
+
+        self._assert_token_works(token1)
+        self._assert_token_works(token2)
+        self._assert_token_works(token3)
+
+    def test_fourth_token_invalidates_earliest(self):
+        token1 = self._login_and_get_token()
+        token2 = self._login_and_get_token()
+        token3 = self._login_and_get_token()
+        token4 = self._login_and_get_token()
+
+        self._assert_token_rejected(token1)
+        self._assert_token_works(token2)
+        self._assert_token_works(token3)
+        self._assert_token_works(token4)
+
+    def test_logout_revokes_token(self):
+        token = self._login_and_get_token()
 
         r_out = requests.post(
             f"{self.base}/v1/logout",
-            headers={"Authorization": f"Bearer {token2}"},
+            headers={"Authorization": f"Bearer {token}"},
             json={},
             timeout=5,
         )
         self.assertEqual(r_out.status_code, 200)
 
-        r_after = requests.post(
-            f"{self.base}/v1/source",
-            headers={"Authorization": f"Bearer {token2}"},
-            json={"title": "After logout", "authors": ["D"], "year": 2022},
-            timeout=5,
-        )
-        self.assertEqual(r_after.status_code, 401)
+        self._assert_token_rejected(token)

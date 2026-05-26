@@ -1,14 +1,14 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'db_reader') THEN
-        CREATE ROLE my_new_role;
+        CREATE ROLE db_reader;
     END IF;
 END
 $$;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'db_writer') THEN
-        CREATE ROLE my_new_role;
+        CREATE ROLE db_writer;
     END IF;
 END
 $$;
