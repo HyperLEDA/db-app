@@ -42,7 +42,7 @@ class MetadataAPITest(unittest.TestCase):
         self.assertIn("schemas", data)
         self.assertGreater(len(data["schemas"]), 0)
         common = next(s for s in data["schemas"] if s["schema_name"] == "common")
-        bib = next(t for t in common["tables"] if t["name"] == "common.bib")
+        bib = next(t for t in common["tables"] if t["name"] == 'common."bib"')
         self.assertEqual(bib["type"], "table")
         self.assertIn("columns", bib)
         self.assertIsInstance(bib["columns"], list)
@@ -64,8 +64,8 @@ class MetadataAPITest(unittest.TestCase):
         for schema in response.json()["data"]["schemas"]:
             self.assertIn(schema["schema_name"], dataapi_actions.METADATA_ALLOWED_SCHEMAS)
             table_names.update(t["name"] for t in schema["tables"])
-        self.assertNotIn("common.users", table_names)
-        self.assertNotIn("common.tokens", table_names)
+        self.assertNotIn('common."users"', table_names)
+        self.assertNotIn('common."tokens"', table_names)
 
     def test_tap_sync_basic(self) -> None:
         response = self.client.get(

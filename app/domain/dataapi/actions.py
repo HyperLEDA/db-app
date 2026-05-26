@@ -90,7 +90,7 @@ class Actions(dataapi.Actions):
                 ]
             schemas.setdefault(table.schema_name, []).append(
                 dataapi.TAPTableInfo(
-                    name=f"{table.schema_name}.{table.table_name}",
+                    name=f'{table.schema_name}."{table.table_name}"',
                     type="table",
                     description=table.description,
                     columns=columns,
