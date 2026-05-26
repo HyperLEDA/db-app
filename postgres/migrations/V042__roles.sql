@@ -1,3 +1,18 @@
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'db_reader') THEN
+        CREATE ROLE my_new_role;
+    END IF;
+END
+$$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'db_writer') THEN
+        CREATE ROLE my_new_role;
+    END IF;
+END
+$$;
+
 ALTER DEFAULT PRIVILEGES IN SCHEMA common GRANT SELECT ON TABLES TO db_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cz GRANT SELECT ON TABLES TO db_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA designation GRANT SELECT ON TABLES TO db_reader;
