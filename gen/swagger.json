@@ -603,6 +603,50 @@
         }
       }
     },
+    "/api/v1/records/pgcs": {
+      "post": {
+        "summary": "Assign PGCs to records",
+        "description": "Assigns PGC numbers to records that already have crossmatch results with\n`triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.\nRecords in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.",
+        "operationId": "assign_record_pgcs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRecordPgcsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOkResponse_AssignRecordPgcsResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/record/crossmatch": {
       "get": {
         "summary": "Get record crossmatch details",
@@ -717,6 +761,18 @@
           "data"
         ],
         "title": "APIOkResponse[AddDataResponse]"
+      },
+      "APIOkResponse_AssignRecordPgcsResponse_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AssignRecordPgcsResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "APIOkResponse[AssignRecordPgcsResponse]"
       },
       "APIOkResponse_CreateSourceResponse_": {
         "properties": {
@@ -903,6 +959,27 @@
         "properties": {},
         "type": "object",
         "title": "AddDataResponse"
+      },
+      "AssignRecordPgcsRequest": {
+        "properties": {
+          "record_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Record Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_ids"
+        ],
+        "title": "AssignRecordPgcsRequest"
+      },
+      "AssignRecordPgcsResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "AssignRecordPgcsResponse"
       },
       "Bibliography": {
         "properties": {
