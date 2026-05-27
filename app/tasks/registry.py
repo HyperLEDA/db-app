@@ -11,11 +11,9 @@ from app.tasks import (
     layer2_import_redshift,
     layer2_orphan_cleanup,
     remove_table,
-    submit_crossmatch,
 )
 
 tasks: list[type[interface.Task]] = [
-    submit_crossmatch.SubmitCrossmatchTask,
     layer2_import.Layer2ImportTask,
     layer2_import_designation.Layer2ImportDesignationTask,
     layer2_import_icrs.Layer2ImportICRSTask,

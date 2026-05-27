@@ -6,6 +6,7 @@ NOT_FOUND_ERROR = "not_found"
 DATABASE_ERROR = "database_error"
 UNAUTHORIZED_ERROR = "unauthorized"
 FORBIDDEN_ERROR = "forbidden"
+CONFLICT_ERROR = "conflict"
 
 
 class APIError(abc.ABC, Exception):
@@ -104,3 +105,31 @@ class ForbiddenError(APIError):
 
     def data(self) -> tuple[str, int, str]:
         return (FORBIDDEN_ERROR, 403, self.msg)
+
+
+class ConflictError(APIError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        sample_record_ids: list[str] | None = None,
+        count: int | None = None,
+    ) -> None:
+        self.msg = message
+        self.sample_record_ids = sample_record_ids
+        self.count = count
+
+    def data(self) -> tuple[str, int, str]:
+        return (CONFLICT_ERROR, 409, self.msg)
+
+    def dict(self) -> dict:
+        result: dict[str, str | int | list[str]] = {
+            "code": CONFLICT_ERROR,
+            "status": 409,
+            "message": self.msg,
+        }
+        if self.count is not None:
+            result["count"] = self.count
+        if self.sample_record_ids is not None:
+            result["sample_record_ids"] = self.sample_record_ids
+        return result

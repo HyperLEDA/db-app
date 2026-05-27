@@ -6,9 +6,10 @@ from astropy import units as u
 
 from app.data import model
 from app.data.repositories import layer0, layer1, layer2
+from app.data.repositories.layer0.records import AssignRecordPgcsPreconditionError
 from app.lib import astronomy
 from app.lib.storage import enums
-from app.lib.web.errors import NotFoundError
+from app.lib.web.errors import ConflictError, NotFoundError
 from app.presentation import adminapi
 
 logger = structlog.stdlib.get_logger()
@@ -103,6 +104,18 @@ class CrossmatchManager:
         if rows:
             self.layer0_repo.set_crossmatch_results(rows)
         return adminapi.SetCrossmatchResultsResponse()
+
+    def assign_record_pgcs(self, request: adminapi.AssignRecordPgcsRequest) -> adminapi.AssignRecordPgcsResponse:
+        unique_ids = list(dict.fromkeys(request.record_ids))
+        try:
+            self.layer0_repo.assign_record_pgcs(unique_ids)
+        except AssignRecordPgcsPreconditionError as e:
+            raise ConflictError(
+                f"{e.count} records cannot be assigned a PGC (missing crossmatch, not resolved, or collided)",
+                sample_record_ids=e.sample,
+                count=e.count,
+            ) from e
+        return adminapi.AssignRecordPgcsResponse()
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         row_offset = r.page * r.page_size
