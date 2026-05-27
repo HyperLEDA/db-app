@@ -421,14 +421,19 @@ def check_get_table(
 
 
 @lib.test_logging_decorator
-def submit_crossmatch(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "submit-crossmatch",
-            input_data={"table_name": table_name, "batch_size": OBJECTS_NUM // 2},
-            log_level="warn",
-        ),
+def submit_records(session: requests.Session, table_name: str):
+    resolved_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.RESOLVED, OBJECTS_NUM * 2
     )
+    record_ids = [r["id"] for r in resolved_records]
+    if not record_ids:
+        return
+    request_data = adminapi.SubmitRecordsRequest(record_ids=record_ids)
+    response = session.post(
+        "/v1/records/submit",
+        json=request_data.model_dump(mode="json"),
+    )
+    response.raise_for_status()
 
 
 @lib.test_logging_decorator
@@ -576,7 +581,7 @@ def run():
         },
     )
 
-    submit_crossmatch(table_name)
+    submit_records(adminapi_session, table_name)
     layer2_import()
 
     check_pgc(dataapi, "NGC", COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
@@ -624,7 +629,7 @@ def run():
 
     check_triage_via_records(adminapi_session, table_name_2, expected_pending=n_pending, expected_resolved=n_resolved)
 
-    submit_crossmatch(table_name_2)
+    submit_records(adminapi_session, table_name_2)
 
     check_pgc_after_submit_via_records(
         adminapi_session, table_name_2, expected_with_pgc=n_resolved, expected_without_pgc=n_pending

@@ -61,3 +61,6 @@ class Actions(adminapi.Actions):
 
     def set_crossmatch_results(self, r: adminapi.SetCrossmatchResultsRequest) -> adminapi.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)
+
+    def submit_records(self, r: adminapi.SubmitRecordsRequest) -> adminapi.SubmitRecordsResponse:
+        return self.crossmatch_manager.submit_records(r)

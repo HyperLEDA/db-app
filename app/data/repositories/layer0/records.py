@@ -29,6 +29,12 @@ def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
     return {"possible_matches": candidates}
 
 
+class SubmitRecordsPreconditionError(Exception):
+    def __init__(self, sample: list[str], count: int) -> None:
+        self.sample = sample
+        self.count = count
+
+
 class Layer0RecordRepository(postgres.TransactionalPGRepository):
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         if len(record_ids) == 0:
@@ -211,6 +217,98 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         with self.with_tx():
             cursor = self._storage.get_connection().cursor()
             cursor.executemany(query, db_rows)
+
+    def submit_resolved_records(self, record_ids: list[str]) -> None:
+        if not record_ids:
+            return
+
+        with self.with_tx():
+            conn = self._storage.get_connection()
+            cur = conn.cursor()
+            cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
+            with cur.copy("COPY submit_staging (record_id) FROM STDIN") as copy:
+                for record_id in record_ids:
+                    copy.write_row((record_id,))
+
+            invalid_rows = self._storage.query(
+                """
+                SELECT s.record_id::text AS record_id
+                FROM submit_staging s
+                LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
+                WHERE c.record_id IS NULL
+                   OR c.triage_status != 'resolved'
+                   OR c.metadata::jsonb ? 'possible_matches'
+                LIMIT 101
+                """
+            )
+            if invalid_rows:
+                count_row = self._storage.query_one(
+                    """
+                    SELECT COUNT(*)::int AS cnt
+                    FROM submit_staging s
+                    LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
+                    WHERE c.record_id IS NULL
+                       OR c.triage_status != 'resolved'
+                       OR c.metadata::jsonb ? 'possible_matches'
+                    """
+                )
+                raise SubmitRecordsPreconditionError(
+                    sample=[row["record_id"] for row in invalid_rows[:100]],
+                    count=int(count_row["cnt"]),
+                )
+
+            self._storage.query(
+                """
+                SELECT s.record_id
+                FROM submit_staging s
+                JOIN layer0.crossmatch c ON c.record_id = s.record_id
+                JOIN layer0.records r ON r.id = s.record_id
+                FOR UPDATE OF c, r
+                """
+            )
+
+            existing_rows = self._storage.query(
+                """
+                SELECT s.record_id::text AS record_id, (c.metadata->>'pgc')::int AS pgc
+                FROM submit_staging s
+                JOIN layer0.crossmatch c ON c.record_id = s.record_id
+                JOIN layer0.records r ON r.id = s.record_id
+                WHERE c.metadata::jsonb ? 'pgc'
+                  AND r.pgc IS NULL
+                ORDER BY s.record_id
+                """
+            )
+            new_rows = self._storage.query(
+                """
+                SELECT s.record_id::text AS record_id
+                FROM submit_staging s
+                JOIN layer0.crossmatch c ON c.record_id = s.record_id
+                JOIN layer0.records r ON r.id = s.record_id
+                WHERE c.metadata::jsonb = '{}'::jsonb
+                  AND r.pgc IS NULL
+                ORDER BY s.record_id
+                """
+            )
+
+            pgcs_to_insert: dict[str, int] = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
+
+            if new_rows:
+                minted = self._storage.query(
+                    f"""INSERT INTO common.pgc
+                    VALUES {",".join(["(DEFAULT)"] * len(new_rows))}
+                    RETURNING id"""
+                )
+                for row, minted_row in zip(new_rows, minted, strict=True):
+                    pgcs_to_insert[row["record_id"]] = int(minted_row["id"])
+
+            if pgcs_to_insert:
+                update_query = (
+                    "UPDATE layer0.records SET pgc = v.pgc "
+                    "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                    "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
+                )
+                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+                self._storage.execute_batch(update_query, rows)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}
