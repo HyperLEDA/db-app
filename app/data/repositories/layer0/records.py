@@ -29,7 +29,7 @@ def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
     return {"possible_matches": candidates}
 
 
-class SubmitRecordsPreconditionError(Exception):
+class AssignRecordPgcsPreconditionError(Exception):
     def __init__(self, sample: list[str], count: int) -> None:
         self.sample = sample
         self.count = count
@@ -218,7 +218,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             cursor = self._storage.get_connection().cursor()
             cursor.executemany(query, db_rows)
 
-    def submit_resolved_records(self, record_ids: list[str]) -> None:
+    def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:
             return
 
@@ -252,7 +252,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                        OR c.metadata::jsonb ? 'possible_matches'
                     """
                 )
-                raise SubmitRecordsPreconditionError(
+                raise AssignRecordPgcsPreconditionError(
                     sample=[row["record_id"] for row in invalid_rows[:100]],
                     count=int(count_row["cnt"]),
                 )

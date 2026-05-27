@@ -19,7 +19,7 @@ from tests.lib import auth_seed
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
-class SubmitRecordsRepositoryTest(unittest.TestCase):
+class AssignRecordPgcsRepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get()
@@ -67,7 +67,7 @@ class SubmitRecordsRepositoryTest(unittest.TestCase):
             ]
         )
 
-        self.manager.submit_records(adminapi.SubmitRecordsRequest(record_ids=[new_id, existing_id]))
+        self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[new_id, existing_id]))
 
         new_pgc = self._pgc_for(new_id)
         self.assertIsNotNone(new_pgc)
@@ -87,8 +87,8 @@ class SubmitRecordsRepositoryTest(unittest.TestCase):
         )
 
         with self.assertRaises(errors.ConflictError) as ctx:
-            self.manager.submit_records(
-                adminapi.SubmitRecordsRequest(record_ids=[pending_id, resolved_id]),
+            self.manager.assign_record_pgcs(
+                adminapi.AssignRecordPgcsRequest(record_ids=[pending_id, resolved_id]),
             )
 
         self.assertEqual(ctx.exception.count, 1)
@@ -102,7 +102,7 @@ class SubmitRecordsRepositoryTest(unittest.TestCase):
         self._register(table_name, [missing_id])
 
         with self.assertRaises(errors.ConflictError) as ctx:
-            self.manager.submit_records(adminapi.SubmitRecordsRequest(record_ids=[missing_id]))
+            self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[missing_id]))
 
         self.assertEqual(ctx.exception.count, 1)
         self.assertIsNone(self._pgc_for(missing_id))
@@ -117,7 +117,7 @@ class SubmitRecordsRepositoryTest(unittest.TestCase):
         )
 
         with self.assertRaises(errors.ConflictError):
-            self.manager.submit_records(adminapi.SubmitRecordsRequest(record_ids=[collided_id]))
+            self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[collided_id]))
 
         self.assertIsNone(self._pgc_for(collided_id))
 
@@ -127,21 +127,21 @@ class SubmitRecordsRepositoryTest(unittest.TestCase):
         self._register(table_name, [record_id])
         self._set_crossmatch([(record_id, enums.RecordTriageStatus.RESOLVED, [])])
 
-        request = adminapi.SubmitRecordsRequest(record_ids=[record_id])
-        self.manager.submit_records(request)
+        request = adminapi.AssignRecordPgcsRequest(record_ids=[record_id])
+        self.manager.assign_record_pgcs(request)
         first_pgc = self._pgc_for(record_id)
         self.assertIsNotNone(first_pgc)
 
         pgc_count_before = self.pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
-        self.manager.submit_records(request)
+        self.manager.assign_record_pgcs(request)
         pgc_count_after = self.pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
 
         self.assertEqual(self._pgc_for(record_id), first_pgc)
         self.assertEqual(pgc_count_before, pgc_count_after)
 
 
-class SubmitRecordsAuthTest(unittest.TestCase):
-    _login = "integration_submit_admin"
+class AssignRecordPgcsAuthTest(unittest.TestCase):
+    _login = "integration_assign_pgc_admin"
     _password = "integration-secret"
 
     @classmethod
@@ -205,7 +205,7 @@ class SubmitRecordsAuthTest(unittest.TestCase):
 
     def test_submit_without_auth(self) -> None:
         r = requests.post(
-            f"{self.base}/v1/records/submit",
+            f"{self.base}/v1/records/pgcs",
             json={"record_ids": [str(uuid.uuid4())]},
             timeout=5,
         )
@@ -221,7 +221,7 @@ class SubmitRecordsAuthTest(unittest.TestCase):
         token = login_r.json()["data"]["token"]
 
         r = requests.post(
-            f"{self.base}/v1/records/submit",
+            f"{self.base}/v1/records/pgcs",
             headers={"Authorization": f"Bearer {token}"},
             json={"record_ids": [str(uuid.uuid4())]},
             timeout=5,

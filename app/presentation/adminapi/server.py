@@ -123,11 +123,11 @@ class API:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)
 
-    def submit_records(
+    def assign_record_pgcs(
         self,
-        request: interface.SubmitRecordsRequest,
-    ) -> server.APIOkResponse[interface.SubmitRecordsResponse]:
-        response = self.actions.submit_records(request)
+        request: interface.AssignRecordPgcsRequest,
+    ) -> server.APIOkResponse[interface.AssignRecordPgcsResponse]:
+        response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
 
 
@@ -315,12 +315,12 @@ At least one status block must be present.
                 allowed_roles=admin_only,
             ),
             server.Route(
-                "/v1/records/submit",
+                "/v1/records/pgcs",
                 http.HTTPMethod.POST,
-                api.submit_records,
-                "Submit resolved records",
+                api.assign_record_pgcs,
+                "Assign PGCs to records",
                 """Assigns PGC numbers to records that already have crossmatch results with
-`triage_status = resolved`. Each record must have beec called using `POST /v1/records/crossmatch` first. 
+`triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.
 Records in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.""",
                 allowed_roles=admin_only,
             ),

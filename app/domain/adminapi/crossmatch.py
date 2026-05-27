@@ -6,7 +6,7 @@ from astropy import units as u
 
 from app.data import model
 from app.data.repositories import layer0, layer1, layer2
-from app.data.repositories.layer0.records import SubmitRecordsPreconditionError
+from app.data.repositories.layer0.records import AssignRecordPgcsPreconditionError
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
@@ -105,17 +105,17 @@ class CrossmatchManager:
             self.layer0_repo.set_crossmatch_results(rows)
         return adminapi.SetCrossmatchResultsResponse()
 
-    def submit_records(self, request: adminapi.SubmitRecordsRequest) -> adminapi.SubmitRecordsResponse:
+    def assign_record_pgcs(self, request: adminapi.AssignRecordPgcsRequest) -> adminapi.AssignRecordPgcsResponse:
         unique_ids = list(dict.fromkeys(request.record_ids))
         try:
-            self.layer0_repo.submit_resolved_records(unique_ids)
-        except SubmitRecordsPreconditionError as e:
+            self.layer0_repo.assign_record_pgcs(unique_ids)
+        except AssignRecordPgcsPreconditionError as e:
             raise ConflictError(
-                f"{e.count} records cannot be submitted (missing crossmatch, not resolved, or collided)",
+                f"{e.count} records cannot be assigned a PGC (missing crossmatch, not resolved, or collided)",
                 sample_record_ids=e.sample,
                 count=e.count,
             ) from e
-        return adminapi.SubmitRecordsResponse()
+        return adminapi.AssignRecordPgcsResponse()
 
     def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
         row_offset = r.page * r.page_size

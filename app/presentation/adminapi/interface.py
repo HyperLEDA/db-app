@@ -354,22 +354,22 @@ class SetCrossmatchResultsResponse(pydantic.BaseModel):
     pass
 
 
-MAX_SUBMIT_RECORD_IDS = 200_000
+MAX_ASSIGN_RECORD_PGC_IDS = 200_000
 
 
-class SubmitRecordsRequest(pydantic.BaseModel):
+class AssignRecordPgcsRequest(pydantic.BaseModel):
     record_ids: list[str]
 
     @pydantic.model_validator(mode="after")
-    def check_record_ids(self) -> "SubmitRecordsRequest":
+    def check_record_ids(self) -> "AssignRecordPgcsRequest":
         if not self.record_ids:
             raise ValueError("record_ids must be non-empty")
-        if len(self.record_ids) > MAX_SUBMIT_RECORD_IDS:
-            raise ValueError(f"record_ids must not exceed {MAX_SUBMIT_RECORD_IDS}")
+        if len(self.record_ids) > MAX_ASSIGN_RECORD_PGC_IDS:
+            raise ValueError(f"record_ids must not exceed {MAX_ASSIGN_RECORD_PGC_IDS}")
         return self
 
 
-class SubmitRecordsResponse(pydantic.BaseModel):
+class AssignRecordPgcsResponse(pydantic.BaseModel):
     pass
 
 
@@ -427,5 +427,5 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def submit_records(self, r: SubmitRecordsRequest) -> SubmitRecordsResponse:
+    def assign_record_pgcs(self, r: AssignRecordPgcsRequest) -> AssignRecordPgcsResponse:
         pass
