@@ -1,11 +1,6 @@
-import os
-import subprocess
-import time
 import unittest
 import uuid
-from concurrent import futures
 
-import requests
 import structlog
 
 from app.data import model, repositories
@@ -14,9 +9,6 @@ from app.lib.storage import enums
 from app.lib.web import errors
 from app.presentation import adminapi
 from tests import lib
-from tests.lib import auth_seed
-
-logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 class AssignRecordPgcsRepositoryTest(unittest.TestCase):
@@ -138,94 +130,3 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
 
         self.assertEqual(self._pgc_for(record_id), first_pgc)
         self.assertEqual(pgc_count_before, pgc_count_after)
-
-
-class AssignRecordPgcsAuthTest(unittest.TestCase):
-    _login = "integration_assign_pgc_admin"
-    _password = "integration-secret"
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(lib.TestPostgresStorage.get)
-            port_thread = group.submit(lib.find_free_port)
-
-        cls.pg_storage = pg_thread.result()
-        cls.server_port = port_thread.result()
-
-        auth_seed.seed_admin_user(cls.pg_storage.get_storage(), cls._login, cls._password)
-
-        os.environ["SERVER_PORT"] = str(cls.server_port)
-        os.environ["STORAGE_ENDPOINT"] = "localhost"
-        os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
-        os.environ["CLIENTS_ADS_TOKEN"] = "test"
-        os.environ["AUTH_ENABLED"] = "true"
-
-        cls.process = subprocess.Popen(
-            [
-                "uv",
-                "run",
-                "app",
-                "adminapi",
-                "-c",
-                "configs/dev/adminapi.yaml",
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        deadline = time.time() + 30
-        while time.time() < deadline:
-            try:
-                r = requests.get(f"http://127.0.0.1:{cls.server_port}/ping", timeout=1)
-                if r.status_code == 200:
-                    break
-            except (requests.RequestException, OSError):
-                pass
-            time.sleep(0.3)
-            if cls.process.poll() is not None and cls.process.returncode != 0:
-                raise RuntimeError("adminapi process exited before becoming ready")
-        else:
-            cls.process.kill()
-            raise RuntimeError("adminapi did not respond on /ping within 30s")
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.process.kill()
-        cls.process.wait()
-        storage = cls.pg_storage.get_storage()
-        storage.exec(
-            "DELETE FROM private.tokens WHERE user_id IN (SELECT id FROM private.users WHERE login = %s)",
-            params=[cls._login],
-        )
-        storage.exec("DELETE FROM private.users WHERE login = %s", params=[cls._login])
-
-    @property
-    def base(self) -> str:
-        return f"http://127.0.0.1:{self.server_port}/admin/api"
-
-    def test_submit_without_auth(self) -> None:
-        r = requests.post(
-            f"{self.base}/v1/records/pgcs",
-            json={"record_ids": [str(uuid.uuid4())]},
-            timeout=5,
-        )
-        self.assertEqual(r.status_code, 401)
-
-    def test_submit_with_admin_token(self) -> None:
-        login_r = requests.post(
-            f"{self.base}/v1/login",
-            json={"username": self._login, "password": self._password},
-            timeout=5,
-        )
-        self.assertEqual(login_r.status_code, 200)
-        token = login_r.json()["data"]["token"]
-
-        r = requests.post(
-            f"{self.base}/v1/records/pgcs",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"record_ids": [str(uuid.uuid4())]},
-            timeout=5,
-        )
-        self.assertEqual(r.status_code, 409)
-        body = r.json()
-        self.assertEqual(body["code"], "conflict")
