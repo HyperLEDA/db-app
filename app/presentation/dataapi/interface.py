@@ -55,6 +55,15 @@ class NoteEntry(pydantic.BaseModel):
     source: Source
 
 
+class PhotometryTotalMeasurement(pydantic.BaseModel):
+    band: str
+    magsys: str | None
+    method: str
+    wavelength: float
+    mag: float
+    e_mag: float | None
+
+
 class Nature(pydantic.BaseModel):
     type_name: str
 
@@ -67,6 +76,7 @@ class Catalogs(pydantic.BaseModel):
     redshift: Redshift | None = None
     nature: Nature | None = None
     notes: list[NoteEntry] | None = None
+    photometry_total: list[PhotometryTotalMeasurement] | None = None
 
 
 class PGCObject(pydantic.BaseModel):

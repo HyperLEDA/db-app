@@ -473,6 +473,7 @@ def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radiu
 def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float, radius: float) -> None:
     check_pgc_names(session, name_prefix)
     check_pgc_notes(session, name_prefix)
+    check_pgc_photometry(session, name_prefix)
     check_pgc_coordinates(session, ra, dec, radius)
 
 
@@ -508,6 +509,31 @@ def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
         assert source["title"] is not None and source["title"] != ""
         assert len(source["authors"]) > 0
         assert source["year"] > 0
+
+
+@lib.test_logging_decorator
+def check_pgc_photometry(session: lib.TestSession, name_prefix: str) -> None:
+    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response.raise_for_status()
+    name_results = response.json()["data"]
+    pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
+
+    response = session.get("/v1/query/simple", params={"pgcs": pgcs, "page_size": 100})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+    assert len(data["objects"]) > 0
+
+    for obj in data["objects"]:
+        catalogs = obj["catalogs"]
+        assert "photometry_total" in catalogs and catalogs["photometry_total"] is not None
+        assert len(catalogs["photometry_total"]) > 0
+        bands = {entry["band"] for entry in catalogs["photometry_total"]}
+        assert set(PHOTOMETRY_BANDS).issubset(bands)
+        for entry in catalogs["photometry_total"]:
+            assert entry["wavelength"] > 0
+            assert entry["mag"] is not None
+            assert entry["method"] == PHOTOMETRY_METHOD
 
 
 def get_adminapi_session() -> lib.TestSession:
