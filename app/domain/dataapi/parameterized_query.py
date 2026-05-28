@@ -10,6 +10,7 @@ CATALOGS_FOR_PGC_QUERY = [
     model.RawCatalog.REDSHIFT,
     model.RawCatalog.NATURE,
     model.RawCatalog.NOTE,
+    model.RawCatalog.PHOTOMETRY__TOTAL,
 ]
 
 

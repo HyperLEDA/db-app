@@ -71,6 +71,21 @@ class NotesCatalog:
 
 
 @dataclass
+class PhotometryTotalMeasurement:
+    band: str
+    magsys: str | None
+    method: str
+    wavelength: float
+    mag: float
+    e_mag: float | None
+
+
+@dataclass
+class PhotometryTotalCatalog:
+    measurements: list[PhotometryTotalMeasurement]
+
+
+@dataclass
 class Catalogs:
     """
     Dsscription of catalogs as they are stored on layer 2. To properly analyze them one probably needs
@@ -83,6 +98,7 @@ class Catalogs:
     redshift: RedshiftCatalog | None = None
     nature: NatureCatalog | None = None
     notes: NotesCatalog | None = None
+    photometry_total: PhotometryTotalCatalog | None = None
 
 
 @dataclass
