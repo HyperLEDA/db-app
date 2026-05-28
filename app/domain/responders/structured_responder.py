@@ -208,6 +208,19 @@ class StructuredResponder(interface.ObjectResponder):
                     for note in obj.catalogs.notes.notes
                 ]
 
+            if obj.catalogs.photometry_total is not None:
+                catalogs.photometry_total = [
+                    dataapi.PhotometryTotalMeasurement(
+                        band=measurement.band,
+                        magsys=measurement.magsys,
+                        method=measurement.method,
+                        wavelength=measurement.wavelength,
+                        mag=measurement.mag,
+                        e_mag=measurement.e_mag,
+                    )
+                    for measurement in obj.catalogs.photometry_total.measurements
+                ]
+
             if icrs is not None and obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift
                 catalogs.velocity = {}

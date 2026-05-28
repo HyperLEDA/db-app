@@ -322,3 +322,33 @@ class Layer2RepositoryTest(unittest.TestCase):
             0,
         )
         self.assertEqual(actual, [model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="d2")])])
+
+    def test_query_photometry_total(self) -> None:
+        self._get_table("phot_table")
+        self.layer0_repo.register_records("phot_table", ["r1"])
+        self.common_repo.register_pgcs([5001])
+        self.layer0_repo.upsert_pgc({"r1": 5001})
+        self.layer1_repo.save_structured_data(
+            model.PhotometryTotalCatalogObject.layer1_table(),
+            ["band", "mag", "e_mag", "method"],
+            ["r1"],
+            [["V", 12.5, 0.1, "psf"]],
+            conflict_keys=model.PhotometryTotalCatalogObject.layer1_primary_keys(),
+        )
+
+        result = self.layer2_repo.query_pgc([model.RawCatalog.PHOTOMETRY__TOTAL], [5001], limit=10)
+
+        self.assertEqual(len(result), 1)
+        photometry = result[0].catalogs.photometry_total
+        self.assertIsNotNone(photometry)
+        assert photometry is not None
+        self.assertEqual(len(photometry.measurements), 1)
+        measurement = photometry.measurements[0]
+        self.assertEqual(measurement.band, "V")
+        self.assertEqual(measurement.magsys, "Vega")
+        self.assertEqual(measurement.method, "psf")
+        self.assertAlmostEqual(measurement.wavelength, 5501.40)
+        self.assertAlmostEqual(measurement.mag, 12.5)
+        self.assertIsNotNone(measurement.e_mag)
+        assert measurement.e_mag is not None
+        self.assertAlmostEqual(measurement.e_mag, 0.1)

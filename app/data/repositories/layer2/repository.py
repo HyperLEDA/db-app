@@ -327,6 +327,30 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             result.setdefault(pgc, []).append(note)
         return {pgc: layer2_model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
 
+    def _query_photometry_total(self, pgcs: list[int]) -> dict[int, layer2_model.PhotometryTotalCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, band, magsys, method, wavelength, mag, e_mag FROM layer2.photometry_total "
+            "WHERE pgc = ANY(%s) ORDER BY pgc, wavelength",
+            params=[pgcs],
+        )
+        result: dict[int, list[layer2_model.PhotometryTotalMeasurement]] = {}
+        for row in rows:
+            pgc = int(row["pgc"])
+            measurement = layer2_model.PhotometryTotalMeasurement(
+                band=str(row["band"]),
+                magsys=str(row["magsys"]) if row.get("magsys") is not None else None,
+                method=str(row["method"]),
+                wavelength=float(row["wavelength"]),
+                mag=float(row["mag"]),
+                e_mag=float(row["e_mag"]) if row.get("e_mag") is not None else None,
+            )
+            result.setdefault(pgc, []).append(measurement)
+        return {
+            pgc: layer2_model.PhotometryTotalCatalog(measurements=measurements) for pgc, measurements in result.items()
+        }
+
     def query_pgc(
         self,
         catalogs: list[model.RawCatalog],
@@ -350,6 +374,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
         nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
         notes_task: concurrency.TaskResult[dict[int, layer2_model.NotesCatalog]] | None = None
+        photometry_total_task: concurrency.TaskResult[dict[int, layer2_model.PhotometryTotalCatalog]] | None = None
 
         if model.RawCatalog.DESIGNATION in catalogs:
             designation_task = errgr.run(self._query_designations, pgcs_page)
@@ -363,6 +388,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             nature_task = errgr.run(self._query_nature, pgcs_page)
         if model.RawCatalog.NOTE in catalogs:
             notes_task = errgr.run(self._query_notes, pgcs_page)
+        if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs:
+            photometry_total_task = errgr.run(self._query_photometry_total, pgcs_page)
 
         errgr.wait()
 
@@ -374,6 +401,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         redshift_map = redshift_task.result() if redshift_task is not None else {}
         nature_map = nature_task.result() if nature_task is not None else {}
         notes_map = notes_task.result() if notes_task is not None else {}
+        photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
 
         return [
             self._layer2_object_from_maps(
@@ -385,6 +413,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 redshift_map,
                 nature_map,
                 notes_map,
+                photometry_total_map,
             )
             for pgc in pgcs_page
         ]
@@ -399,6 +428,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         redshift_map: dict[int, layer2_model.RedshiftCatalog],
         nature_map: dict[int, layer2_model.NatureCatalog],
         notes_map: dict[int, layer2_model.NotesCatalog],
+        photometry_total_map: dict[int, layer2_model.PhotometryTotalCatalog],
     ) -> Layer2Object:
         designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
         additional_designations = (
@@ -408,6 +438,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
         nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
         notes = notes_map.get(pgc) if model.RawCatalog.NOTE in catalogs else None
+        photometry_total = photometry_total_map.get(pgc) if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs else None
 
         return Layer2Object(
             pgc=pgc,
@@ -418,6 +449,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 redshift=redshift,
                 nature=nature,
                 notes=notes,
+                photometry_total=photometry_total,
             ),
         )
 
