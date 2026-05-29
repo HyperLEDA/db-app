@@ -921,16 +921,10 @@
       "AddDataRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "table_name": {
             "type": "string",
@@ -975,16 +969,10 @@
       "AssignRecordPgcsRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "record_ids": {
             "items": {
@@ -1193,16 +1181,10 @@
       "CreateSourceRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "title": {
             "type": "string",
@@ -1253,16 +1235,10 @@
       "CreateTableRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "table_name": {
             "type": "string",
@@ -1797,16 +1773,10 @@
       "PatchTableRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "table_name": {
             "type": "string",
@@ -2395,16 +2365,10 @@
       "SaveStructuredDataRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "catalog": {
             "type": "string",
@@ -2470,16 +2434,10 @@
       "SetCrossmatchResultsRequest": {
         "properties": {
           "action_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Action Description",
-            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc)."
+            "description": "Description of the script/run with input parameters (e.g. table name, column name, etc).",
+            "default": ""
           },
           "statuses": {
             "$ref": "#/components/schemas/StatusesPayload"
