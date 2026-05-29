@@ -132,7 +132,6 @@ the specified designation.""",
                 api.tap_sync,
                 "Execute an arbitrary SQL query (TAP /sync).",
                 "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
-                allowed_roles=[auth.Role.ADMIN],
             ),
         ]
 

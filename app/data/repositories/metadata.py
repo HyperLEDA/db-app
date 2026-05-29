@@ -66,6 +66,9 @@ def _infer_column_sample(column: str, rows: list[dict[str, Any]]) -> object | No
     return None
 
 
+_TAP_SYNC_QUERY_TIMEOUT_SECONDS = 20
+
+
 @final
 class MetadataRepository(pg_storage.TransactionalPGRepository):
     def __init__(self, storage: pg_storage.PgStorage) -> None:
@@ -74,7 +77,10 @@ class MetadataRepository(pg_storage.TransactionalPGRepository):
     def query_with_metadata(self, query: str, max_rows: int) -> QueryWithMetadataResult:
         stripped = query.strip().rstrip(";")
         wrapped = f"SELECT * FROM ({stripped}) AS _tap_sync LIMIT {max_rows}"
-        dict_rows: list[dict[str, Any]] = self._storage.query(wrapped)
+        dict_rows: list[dict[str, Any]] = self._storage.query(
+            wrapped,
+            timeout_seconds=_TAP_SYNC_QUERY_TIMEOUT_SECONDS,
+        )
         if not dict_rows:
             return QueryWithMetadataResult(columns=[], rows=[])
         col_names = list(dict_rows[0].keys())

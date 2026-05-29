@@ -1,6 +1,7 @@
 import pathlib
 import unittest
 
+import psycopg
 import structlog
 from starlette import testclient
 
@@ -73,7 +74,6 @@ class MetadataAPITest(unittest.TestCase):
             params={
                 "query": "SELECT type_name, objclass, description FROM nature.object_type ORDER BY type_name LIMIT 1",
             },
-            headers={"Authorization": "Bearer test-token"},
         )
         self.assertEqual(response.status_code, 200)
         table = response.json()["data"]["resource"]["table"]
@@ -92,8 +92,11 @@ class MetadataAPITest(unittest.TestCase):
                 "query": "SELECT type_name FROM nature.object_type ORDER BY type_name",
                 "maxrec": 2,
             },
-            headers={"Authorization": "Bearer test-token"},
         )
         self.assertEqual(response.status_code, 200)
         table = response.json()["data"]["resource"]["table"]
         self.assertEqual(len(table["data"]), 2)
+
+    def test_tap_sync_query_timeout(self) -> None:
+        with self.assertRaises(psycopg.errors.QueryCanceled):
+            self.pg.query("SELECT pg_sleep(2)", timeout_seconds=1)
