@@ -91,6 +91,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "No authorization header")
 
     def test_patch_without_auth(self):
         r = requests.patch(
@@ -134,6 +135,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "Invalid token")
 
     def _user_id(self) -> int:
         row = self.pg_storage.get_storage().query_one(
