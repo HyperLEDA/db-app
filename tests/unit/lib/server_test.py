@@ -127,13 +127,20 @@ class ServerRouteAuthTest(unittest.TestCase):
 
         self.assertEqual(client.post("/api/sec", json={"message": "x"}).status_code, 401)
         self.assertEqual(
+            client.post("/api/sec", json={"message": "x"}).json()["message"],
+            "No authorization header",
+        )
+        self.assertEqual(
             client.post("/api/sec", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code,
             200,
         )
-        self.assertEqual(
-            client.post("/api/sec", json={"message": "x"}, headers={"Authorization": "Bearer invalid"}).status_code,
-            401,
+        invalid = client.post(
+            "/api/sec",
+            json={"message": "x"},
+            headers={"Authorization": "Bearer invalid"},
         )
+        self.assertEqual(invalid.status_code, 401)
+        self.assertEqual(invalid.json()["message"], "Invalid token")
 
         self.assertEqual(
             client.post("/api/closed", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code,

@@ -15,8 +15,8 @@ DatatypeEnum = enum.StrEnum(
 
 
 class WriteRequest(pydantic.BaseModel):
-    action_description: str | None = pydantic.Field(
-        default=None,
+    action_description: str = pydantic.Field(
+        default="",
         description="Description of the script/run with input parameters (e.g. table name, column name, etc).",
     )
 

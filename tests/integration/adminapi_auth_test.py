@@ -91,6 +91,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "No authorization header")
 
     def test_patch_without_auth(self):
         r = requests.patch(
@@ -134,6 +135,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "Invalid token")
 
     def _user_id(self) -> int:
         row = self.pg_storage.get_storage().query_one(
@@ -170,11 +172,20 @@ class AdminAPIAuthTest(unittest.TestCase):
         self._post_source(token, title="audit-run-1", action_description=action_description)
 
         logs = storage.query(
-            "SELECT method, run_id FROM private.action_log WHERE user_id = %s AND run_id = %s",
+            "SELECT method, run_id, request FROM private.action_log WHERE user_id = %s AND run_id = %s",
             params=[user_id, expected_run_id],
         )
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0]["method"], "create_source")
+        self.assertEqual(
+            logs[0]["request"],
+            {
+                "title": "audit-run-1",
+                "authors": ["A"],
+                "year": 2020,
+                "action_description": action_description,
+            },
+        )
 
         runs = storage.query(
             "SELECT id, action_description FROM private.runs WHERE id = %s",
@@ -212,7 +223,7 @@ class AdminAPIAuthTest(unittest.TestCase):
 
         latest = storage.query(
             """
-            SELECT method, run_id FROM private.action_log
+            SELECT method, run_id, request FROM private.action_log
             WHERE user_id = %s
             ORDER BY id DESC
             LIMIT 1
@@ -221,6 +232,14 @@ class AdminAPIAuthTest(unittest.TestCase):
         )
         self.assertEqual(latest[0]["method"], "create_source")
         self.assertIsNone(latest[0]["run_id"])
+        self.assertEqual(
+            latest[0]["request"],
+            {
+                "title": "audit-no-run",
+                "authors": ["A"],
+                "year": 2020,
+            },
+        )
 
     def test_up_to_three_tokens_are_valid(self):
         token1 = self._login_and_get_token()

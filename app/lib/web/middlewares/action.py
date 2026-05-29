@@ -8,6 +8,7 @@ from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from starlette import types
 from starlette.middleware import base as middlewares
 
+from app.lib.audit import truncate
 from app.lib.web.middlewares.auth import identity_from_request
 
 _tracer = trace.get_tracer("adminapi.run")
@@ -30,17 +31,27 @@ def run_span(run_id: str | None, method: str):
         yield
 
 
-def _action_description_from_body(body: bytes) -> str | None:
+def _parsed_body(body: bytes) -> dict[str, object] | None:
     if not body:
         return None
     try:
         parsed = json.loads(body)
     except json.JSONDecodeError:
         return None
-    if not isinstance(parsed, dict):
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _action_description_from_body(parsed: dict[str, object] | None) -> str | None:
+    if parsed is None:
         return None
     raw = parsed.get("action_description")
     return raw if isinstance(raw, str) else None
+
+
+def _truncated_request_from_body(parsed: dict[str, object] | None) -> dict[str, object] | None:
+    if parsed is None:
+        return None
+    return truncate.truncate_request(parsed)
 
 
 class ActionMiddleware(middlewares.BaseHTTPMiddleware):
@@ -48,7 +59,7 @@ class ActionMiddleware(middlewares.BaseHTTPMiddleware):
         self,
         app: types.ASGIApp,
         tracked_actions: Mapping[tuple[str, str], str],
-        record_action: Callable[[int, str, str | None], None],
+        record_action: Callable[[int, str, str | None, dict[str, object] | None], None],
         run_id: Callable[[int, str, str], str],
     ) -> None:
         self._tracked_actions = tracked_actions
@@ -68,7 +79,9 @@ class ActionMiddleware(middlewares.BaseHTTPMiddleware):
         auth_ctx = identity_from_request(request)
         user_id = auth_ctx.user.user_id if auth_ctx is not None else None
 
-        action_description = _action_description_from_body(await request.body())
+        parsed_body = _parsed_body(await request.body())
+        action_description = _action_description_from_body(parsed_body)
+        truncated_request = _truncated_request_from_body(parsed_body)
         resolved_run_id = (
             self._run_id(user_id, method_name, action_description)
             if user_id is not None and action_description
@@ -79,6 +92,6 @@ class ActionMiddleware(middlewares.BaseHTTPMiddleware):
             response = await call_next(request)
 
         if user_id is not None:
-            self._record_action(user_id, method_name, action_description)
+            self._record_action(user_id, method_name, action_description, truncated_request)
 
         return response
