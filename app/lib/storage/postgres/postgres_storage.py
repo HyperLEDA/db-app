@@ -138,17 +138,37 @@ class PgStorage:
             cur.executemany(query, rows_data)
             return cur.rowcount
 
-    def query(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> list[rows.DictRow]:
+    def query(
+        self,
+        query: str | sql.SQL | sql.Composed,
+        *,
+        params: list[Any] | None = None,
+        timeout_seconds: float | None = None,
+    ) -> list[rows.DictRow]:
         if params is None:
             params = []
 
         log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params)
 
         def _run(conn: psycopg.Connection) -> list[rows.DictRow]:
-            cursor = conn.cursor()
             start = time.monotonic()
-            cursor.execute(query, params)
-            result = cursor.fetchall()
+
+            def _execute(cursor: psycopg.Cursor) -> list[rows.DictRow]:
+                cursor.execute(query, params)
+                return cursor.fetchall()
+
+            if timeout_seconds is None:
+                with conn.cursor() as cursor:
+                    result = _execute(cursor)
+            else:
+                timeout_ms = int(timeout_seconds * 1000)
+                with conn.transaction():
+                    with conn.cursor() as cursor:
+                        cursor.execute(
+                            sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(f"{timeout_ms}ms"))
+                        )
+                        result = _execute(cursor)
+
             elapsed = time.monotonic() - start
             log.debug("SQL result", num_rows=len(result), elapsed_seconds=round(elapsed, 4))
             return result
