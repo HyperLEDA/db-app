@@ -54,7 +54,7 @@ class DataAPICommand(commands.Command):
             self.config.server,
             log,
             authenticator,
-            enforce_route_auth=self.config.auth_enabled,
+            auth_enabled=self.config.auth_enabled,
         )
 
     def run(self):

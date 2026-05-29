@@ -53,7 +53,7 @@ class AdminAPICommand(commands.Command):
             cfg.server,
             log,
             authenticator,
-            enforce_route_auth=cfg.auth_enabled,
+            auth_enabled=cfg.auth_enabled,
         )
 
     def run(self):

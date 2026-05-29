@@ -1,7 +1,6 @@
 import contextlib
 import functools
 import http
-from collections.abc import Callable
 from typing import Annotated
 
 import fastapi
@@ -12,13 +11,8 @@ from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from app.domain.adminapi import audit as audit_module
 from app.lib import auth
 from app.lib.web import server
-from app.lib.web.dependencies import auth as auth_dependencies
+from app.lib.web.middlewares import auth_context
 from app.presentation.adminapi import interface
-
-_OptionalAuthCtx = Annotated[
-    auth_dependencies.AuthContext | None,
-    fastapi.Depends(auth_dependencies.optional_identity),
-]
 
 _tracer = trace.get_tracer("adminapi.run")
 _id_generator = RandomIdGenerator()
@@ -44,20 +38,21 @@ def action(func):
     @functools.wraps(func)
     def wrapper(
         self,
+        _http_request: fastapi.Request,
         request,
-        _auth_ctx: _OptionalAuthCtx,
         *args,
         **kwargs,
     ):
+        auth_ctx = auth_context.identity_from_request(_http_request)
         action_description = request.action_description if isinstance(request, interface.WriteRequest) else None
-        user_id = _auth_ctx.user.user_id if _auth_ctx is not None else None
+        user_id = auth_ctx.user.user_id if auth_ctx is not None else None
         resolved_run_id = (
             audit_module.run_id(user_id, func.__name__, action_description)
             if user_id is not None and action_description
             else None
         )
         with run_span(resolved_run_id, func.__name__):
-            result = func(self, request, _auth_ctx, *args, **kwargs)
+            result = func(self, _http_request, request, *args, **kwargs)
         if user_id is not None and isinstance(request, interface.WriteRequest):
             self.actions.record_action(user_id, func.__name__, action_description)
         return result
@@ -65,33 +60,15 @@ def action(func):
     return wrapper
 
 
-def _make_logout_handler(
-    actions: interface.Actions,
-    require_admin: Callable[..., auth_dependencies.AuthContext],
-    enforce_route_auth: bool,
-) -> Callable[..., server.APIOkResponse[interface.LogoutResponse]]:
-    if enforce_route_auth:
-
-        def logout_enforced(
-            request: fastapi.Request,
-            _body: interface.LogoutRequest,
-            auth_ctx: Annotated[auth_dependencies.AuthContext, fastapi.Depends(require_admin)],
-        ) -> server.APIOkResponse[interface.LogoutResponse]:
-            _ = request
-            return server.APIOkResponse(data=actions.logout(auth_ctx.token))
-
-        return logout_enforced
-
-    def logout_unenforced(
-        request: fastapi.Request,
-        _body: interface.LogoutRequest,
-    ) -> server.APIOkResponse[interface.LogoutResponse]:
-        raw = request.headers.get("Authorization", "").strip()
-        parts = raw.split(None, 1)
-        token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else ""
-        return server.APIOkResponse(data=actions.logout(token))
-
-    return logout_unenforced
+def _logout_token(request: fastapi.Request) -> str:
+    ctx = auth_context.identity_from_request(request)
+    if ctx is not None:
+        return ctx.token
+    raw = request.headers.get("Authorization", "").strip()
+    parts = raw.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1].strip()
+    return ""
 
 
 class API:
@@ -101,8 +78,8 @@ class API:
     @action
     def add_data(
         self,
+        _http_request: fastapi.Request,
         request: interface.AddDataRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
@@ -110,8 +87,8 @@ class API:
     @action
     def create_source(
         self,
+        _http_request: fastapi.Request,
         request: interface.CreateSourceRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
@@ -119,8 +96,8 @@ class API:
     @action
     def create_table(
         self,
+        _http_request: fastapi.Request,
         request: interface.CreateTableRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
         return server.APIOkResponse(data=response)
@@ -146,8 +123,8 @@ class API:
     @action
     def patch_table(
         self,
+        _http_request: fastapi.Request,
         request: interface.PatchTableRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.PatchTableResponse]:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
@@ -158,6 +135,13 @@ class API:
         _ = request
         response = self.actions.login(body)
         return server.APIOkResponse(data=response)
+
+    def logout(
+        self,
+        request: fastapi.Request,
+        _body: interface.LogoutRequest,
+    ) -> server.APIOkResponse[interface.LogoutResponse]:
+        return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
 
     def get_crossmatch_records(
         self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
@@ -174,8 +158,8 @@ class API:
     @action
     def save_structured_data(
         self,
+        _http_request: fastapi.Request,
         request: interface.SaveStructuredDataRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.SaveStructuredDataResponse]:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
@@ -183,8 +167,8 @@ class API:
     @action
     def set_crossmatch_results(
         self,
+        _http_request: fastapi.Request,
         request: interface.SetCrossmatchResultsRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.SetCrossmatchResultsResponse]:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)
@@ -192,8 +176,8 @@ class API:
     @action
     def assign_record_pgcs(
         self,
+        _http_request: fastapi.Request,
         request: interface.AssignRecordPgcsRequest,
-        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.AssignRecordPgcsResponse]:
         response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
@@ -206,10 +190,9 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
-        enforce_route_auth: bool = True,
+        auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
-        require_admin = auth_dependencies.make_require_roles(authenticator, [auth.Role.ADMIN])
         admin_only = [auth.Role.ADMIN]
 
         routes: list[server.Route] = [
@@ -336,7 +319,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
             server.Route(
                 "/v1/logout",
                 http.HTTPMethod.POST,
-                _make_logout_handler(actions, require_admin, enforce_route_auth),
+                api.logout,
                 "Logout",
                 "Revokes the bearer token used for this request.",
                 allowed_roles=admin_only,
@@ -436,4 +419,4 @@ For every column that has unit metadata in the database, the request must includ
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)
+        super().__init__(routes, config, logger, authenticator, auth_enabled=auth_enabled)
