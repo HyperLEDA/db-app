@@ -7,6 +7,7 @@ from concurrent import futures
 import requests
 import structlog
 
+from app.domain.adminapi import audit
 from tests import lib
 from tests.lib import auth_seed
 
@@ -133,6 +134,93 @@ class AdminAPIAuthTest(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(r.status_code, 401)
+
+    def _user_id(self) -> int:
+        row = self.pg_storage.get_storage().query_one(
+            "SELECT id FROM private.users WHERE login = %s",
+            params=[self._login],
+        )
+        return int(row["id"])
+
+    def _post_source(
+        self,
+        token: str,
+        *,
+        title: str,
+        action_description: str | None = None,
+    ) -> None:
+        body: dict[str, object] = {"title": title, "authors": ["A"], "year": 2020}
+        if action_description is not None:
+            body["action_description"] = action_description
+        r = requests.post(
+            f"{self.base}/v1/source",
+            headers={"Authorization": f"Bearer {token}"},
+            json=body,
+            timeout=5,
+        )
+        self.assertEqual(r.status_code, 200)
+
+    def test_action_log(self) -> None:
+        token = self._login_and_get_token()
+        user_id = self._user_id()
+        storage = self.pg_storage.get_storage()
+
+        action_description = "integration-action-log-run"
+        expected_run_id = audit.run_id(user_id, "create_source", action_description)
+        self._post_source(token, title="audit-run-1", action_description=action_description)
+
+        logs = storage.query(
+            "SELECT method, run_id FROM private.action_log WHERE user_id = %s AND run_id = %s",
+            params=[user_id, expected_run_id],
+        )
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["method"], "create_source")
+
+        runs = storage.query(
+            "SELECT id, action_description FROM private.runs WHERE id = %s",
+            params=[expected_run_id],
+        )
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(runs[0]["action_description"], action_description)
+
+        dedup_description = "integration-action-log-dedup"
+        dedup_run_id = audit.run_id(user_id, "create_source", dedup_description)
+        self._post_source(token, title="audit-dedup-1", action_description=dedup_description)
+        self._post_source(token, title="audit-dedup-2", action_description=dedup_description)
+
+        dedup_logs = storage.query(
+            "SELECT id FROM private.action_log WHERE user_id = %s AND run_id = %s",
+            params=[user_id, dedup_run_id],
+        )
+        self.assertEqual(len(dedup_logs), 2)
+        dedup_runs = storage.query(
+            "SELECT id FROM private.runs WHERE id = %s",
+            params=[dedup_run_id],
+        )
+        self.assertEqual(len(dedup_runs), 1)
+
+        before = storage.query(
+            "SELECT COUNT(*)::int AS n FROM private.action_log WHERE user_id = %s AND run_id IS NULL",
+            params=[user_id],
+        )[0]["n"]
+        self._post_source(token, title="audit-no-run")
+        after = storage.query(
+            "SELECT COUNT(*)::int AS n FROM private.action_log WHERE user_id = %s AND run_id IS NULL",
+            params=[user_id],
+        )[0]["n"]
+        self.assertEqual(after, before + 1)
+
+        latest = storage.query(
+            """
+            SELECT method, run_id FROM private.action_log
+            WHERE user_id = %s
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            params=[user_id],
+        )
+        self.assertEqual(latest[0]["method"], "create_source")
+        self.assertIsNone(latest[0]["run_id"])
 
     def test_up_to_three_tokens_are_valid(self):
         token1 = self._login_and_get_token()

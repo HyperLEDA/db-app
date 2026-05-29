@@ -39,3 +39,19 @@ def make_require_roles(
         return AuthContext(user=user, token=creds.credentials)
 
     return require_roles
+
+
+def optional_identity(
+    request: fastapi.Request,
+    creds: Annotated[
+        http_security.HTTPAuthorizationCredentials | None,
+        fastapi.Depends(_bearer),
+    ],
+) -> AuthContext | None:
+    if creds is None or creds.scheme.lower() != "bearer":
+        return None
+    authenticator = request.app.state.authenticator
+    user, ok = authenticator.authenticate(creds.credentials)
+    if not ok:
+        return None
+    return AuthContext(user=user, token=creds.credentials)

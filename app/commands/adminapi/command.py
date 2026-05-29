@@ -43,6 +43,7 @@ class AdminAPICommand(commands.Command):
             layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            private_repo=repositories.PrivateRepository(self.pg_storage, log),
             authenticator=authenticator,
             clients=clients.Clients(cfg.clients.ads_token),
         )

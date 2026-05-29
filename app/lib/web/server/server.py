@@ -104,6 +104,7 @@ class WebServer:
         )
         self.limiter = Limiter(key_func=get_remote_address)
         app.state.limiter = self.limiter
+        app.state.authenticator = authenticator
         app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)

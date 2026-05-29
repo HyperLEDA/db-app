@@ -1,14 +1,68 @@
+import contextlib
+import functools
 import http
 from collections.abc import Callable
 from typing import Annotated
 
 import fastapi
 import structlog
+from opentelemetry import trace
+from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 
+from app.domain.adminapi import audit as audit_module
 from app.lib import auth
 from app.lib.web import server
 from app.lib.web.dependencies import auth as auth_dependencies
 from app.presentation.adminapi import interface
+
+_OptionalAuthCtx = Annotated[
+    auth_dependencies.AuthContext | None,
+    fastapi.Depends(auth_dependencies.optional_identity),
+]
+
+_tracer = trace.get_tracer("adminapi.run")
+_id_generator = RandomIdGenerator()
+
+
+@contextlib.contextmanager
+def run_span(run_id: str | None, method: str):
+    if run_id is None:
+        yield
+        return
+    span_ctx = trace.SpanContext(
+        trace_id=int(run_id[:32], 16),
+        span_id=_id_generator.generate_span_id(),
+        is_remote=True,
+        trace_flags=trace.TraceFlags(trace.TraceFlags.SAMPLED),
+    )
+    parent = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
+    with _tracer.start_as_current_span(method, context=parent):
+        yield
+
+
+def action(func):
+    @functools.wraps(func)
+    def wrapper(
+        self,
+        request,
+        _auth_ctx: _OptionalAuthCtx,
+        *args,
+        **kwargs,
+    ):
+        action_description = request.action_description if isinstance(request, interface.WriteRequest) else None
+        user_id = _auth_ctx.user.user_id if _auth_ctx is not None else None
+        resolved_run_id = (
+            audit_module.run_id(user_id, func.__name__, action_description)
+            if user_id is not None and action_description
+            else None
+        )
+        with run_span(resolved_run_id, func.__name__):
+            result = func(self, request, _auth_ctx, *args, **kwargs)
+        if user_id is not None and isinstance(request, interface.WriteRequest):
+            self.actions.record_action(user_id, func.__name__, action_description)
+        return result
+
+    return wrapper
 
 
 def _make_logout_handler(
@@ -44,23 +98,29 @@ class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
 
+    @action
     def add_data(
         self,
         request: interface.AddDataRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def create_source(
         self,
         request: interface.CreateSourceRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def create_table(
         self,
         request: interface.CreateTableRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
         return server.APIOkResponse(data=response)
@@ -83,9 +143,11 @@ class API:
         response = self.actions.get_records(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def patch_table(
         self,
         request: interface.PatchTableRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.PatchTableResponse]:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
@@ -109,23 +171,29 @@ class API:
         response = self.actions.get_record_crossmatch(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def save_structured_data(
         self,
         request: interface.SaveStructuredDataRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.SaveStructuredDataResponse]:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def set_crossmatch_results(
         self,
         request: interface.SetCrossmatchResultsRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.SetCrossmatchResultsResponse]:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)
 
+    @action
     def assign_record_pgcs(
         self,
         request: interface.AssignRecordPgcsRequest,
+        _auth_ctx: _OptionalAuthCtx,
     ) -> server.APIOkResponse[interface.AssignRecordPgcsResponse]:
         response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
