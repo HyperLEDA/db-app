@@ -181,7 +181,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             logs[0]["request"],
             {
                 "title": "audit-run-1",
-                "authors": "<truncated array>",
+                "authors": ["A"],
                 "year": 2020,
                 "action_description": action_description,
             },
@@ -236,7 +236,7 @@ class AdminAPIAuthTest(unittest.TestCase):
             latest[0]["request"],
             {
                 "title": "audit-no-run",
-                "authors": "<truncated array>",
+                "authors": ["A"],
                 "year": 2020,
             },
         )
