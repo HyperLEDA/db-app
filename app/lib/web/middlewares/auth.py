@@ -33,7 +33,7 @@ def _parse_bearer_token(request: fastapi.Request) -> str | None:
     return token if token else None
 
 
-class AuthContextMiddleware(middlewares.BaseHTTPMiddleware):
+class AuthMiddleware(middlewares.BaseHTTPMiddleware):
     def __init__(
         self,
         app: types.ASGIApp,

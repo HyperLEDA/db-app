@@ -113,7 +113,7 @@ class WebServer:
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
         app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
-        app.add_middleware(middlewares.AuthContextMiddleware, secured_roles=secured_roles)
+        app.add_middleware(middlewares.AuthMiddleware, secured_roles=secured_roles)
         app.add_middleware(
             cors.CORSMiddleware,
             allow_origins=cfg.allowed_origins,

@@ -11,7 +11,7 @@ from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from app.domain.adminapi import audit as audit_module
 from app.lib import auth
 from app.lib.web import server
-from app.lib.web.middlewares import auth_context
+from app.lib.web.middlewares import identity_from_request
 from app.presentation.adminapi import interface
 
 _tracer = trace.get_tracer("adminapi.run")
@@ -43,7 +43,7 @@ def action(func):
         *args,
         **kwargs,
     ):
-        auth_ctx = auth_context.identity_from_request(_http_request)
+        auth_ctx = identity_from_request(_http_request)
         action_description = request.action_description if isinstance(request, interface.WriteRequest) else None
         user_id = auth_ctx.user.user_id if auth_ctx is not None else None
         resolved_run_id = (
@@ -61,7 +61,7 @@ def action(func):
 
 
 def _logout_token(request: fastapi.Request) -> str:
-    ctx = auth_context.identity_from_request(request)
+    ctx = identity_from_request(request)
     if ctx is not None:
         return ctx.token
     raw = request.headers.get("Authorization", "").strip()
