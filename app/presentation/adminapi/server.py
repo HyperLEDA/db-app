@@ -1,63 +1,13 @@
-import contextlib
-import functools
 import http
 from typing import Annotated
 
 import fastapi
 import structlog
-from opentelemetry import trace
-from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 
-from app.domain.adminapi import audit as audit_module
-from app.lib import auth
+from app.lib import audit, auth
 from app.lib.web import server
 from app.lib.web.middlewares import identity_from_request
 from app.presentation.adminapi import interface
-
-_tracer = trace.get_tracer("adminapi.run")
-_id_generator = RandomIdGenerator()
-
-
-@contextlib.contextmanager
-def run_span(run_id: str | None, method: str):
-    if run_id is None:
-        yield
-        return
-    span_ctx = trace.SpanContext(
-        trace_id=int(run_id[:32], 16),
-        span_id=_id_generator.generate_span_id(),
-        is_remote=True,
-        trace_flags=trace.TraceFlags(trace.TraceFlags.SAMPLED),
-    )
-    parent = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
-    with _tracer.start_as_current_span(method, context=parent):
-        yield
-
-
-def action(func):
-    @functools.wraps(func)
-    def wrapper(
-        self,
-        _http_request: fastapi.Request,
-        request,
-        *args,
-        **kwargs,
-    ):
-        auth_ctx = identity_from_request(_http_request)
-        action_description = request.action_description if isinstance(request, interface.WriteRequest) else None
-        user_id = auth_ctx.user.user_id if auth_ctx is not None else None
-        resolved_run_id = (
-            audit_module.run_id(user_id, func.__name__, action_description)
-            if user_id is not None and action_description
-            else None
-        )
-        with run_span(resolved_run_id, func.__name__):
-            result = func(self, _http_request, request, *args, **kwargs)
-        if user_id is not None and isinstance(request, interface.WriteRequest):
-            self.actions.record_action(user_id, func.__name__, action_description)
-        return result
-
-    return wrapper
 
 
 def _logout_token(request: fastapi.Request) -> str:
@@ -75,28 +25,22 @@ class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
 
-    @action
     def add_data(
         self,
-        _http_request: fastapi.Request,
         request: interface.AddDataRequest,
     ) -> server.APIOkResponse[interface.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def create_source(
         self,
-        _http_request: fastapi.Request,
         request: interface.CreateSourceRequest,
     ) -> server.APIOkResponse[interface.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def create_table(
         self,
-        _http_request: fastapi.Request,
         request: interface.CreateTableRequest,
     ) -> server.APIOkResponse[interface.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
@@ -120,10 +64,8 @@ class API:
         response = self.actions.get_records(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def patch_table(
         self,
-        _http_request: fastapi.Request,
         request: interface.PatchTableRequest,
     ) -> server.APIOkResponse[interface.PatchTableResponse]:
         response = self.actions.patch_table(request)
@@ -155,28 +97,22 @@ class API:
         response = self.actions.get_record_crossmatch(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def save_structured_data(
         self,
-        _http_request: fastapi.Request,
         request: interface.SaveStructuredDataRequest,
     ) -> server.APIOkResponse[interface.SaveStructuredDataResponse]:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def set_crossmatch_results(
         self,
-        _http_request: fastapi.Request,
         request: interface.SetCrossmatchResultsRequest,
     ) -> server.APIOkResponse[interface.SetCrossmatchResultsResponse]:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)
 
-    @action
     def assign_record_pgcs(
         self,
-        _http_request: fastapi.Request,
         request: interface.AssignRecordPgcsRequest,
     ) -> server.APIOkResponse[interface.AssignRecordPgcsResponse]:
         response = self.actions.assign_record_pgcs(request)
@@ -190,6 +126,7 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
+        action_recorder: audit.ActionRecorder,
         auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
@@ -205,6 +142,7 @@ class Server(server.WebServer):
 Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/source",
@@ -213,6 +151,7 @@ If two rows were identical this method will only insert the last one.""",
                 "New internal source entry",
                 "Creates new source entry in the database for internal communication and unpublished articles.",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/table",
@@ -223,6 +162,7 @@ If two rows were identical this method will only insert the last one.""",
 **Important**: If the table with the specified name already exists, does nothing and returns ID
 of the previously created table without any alterations.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/table",
@@ -307,6 +247,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
 }
 ```""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/login",
@@ -364,6 +305,7 @@ At least one status block must be present.
 }
 ```""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/records/pgcs",
@@ -374,6 +316,7 @@ At least one status block must be present.
 `triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.
 Records in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/record/crossmatch",
@@ -416,7 +359,15 @@ For every column that has unit metadata in the database, the request must includ
 ```
 """,
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, auth_enabled=auth_enabled)
+        super().__init__(
+            routes,
+            config,
+            logger,
+            authenticator,
+            auth_enabled=auth_enabled,
+            action_recorder=action_recorder,
+        )

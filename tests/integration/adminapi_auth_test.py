@@ -7,7 +7,7 @@ from concurrent import futures
 import requests
 import structlog
 
-from app.domain.adminapi import audit
+from app.lib import audit
 from tests import lib
 from tests.lib import auth_seed
 

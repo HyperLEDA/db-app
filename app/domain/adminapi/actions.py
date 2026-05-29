@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import repositories
-from app.domain.adminapi import audit, crossmatch, layer1_write, login, sources, table_upload
+from app.domain.adminapi import crossmatch, layer1_write, login, sources, table_upload
 from app.lib import auth, clients
 from app.presentation import adminapi
 
@@ -14,7 +14,6 @@ class Actions(adminapi.Actions):
         layer0_repo: repositories.Layer0Repository,
         layer1_repo: repositories.Layer1Repository,
         layer2_repo: repositories.Layer2Repository,
-        private_repo: repositories.PrivateRepository,
         authenticator: auth.Authenticator,
         clients: clients.Clients,
     ):
@@ -23,7 +22,6 @@ class Actions(adminapi.Actions):
         self.table_upload_manager = table_upload.TableUploadManager(common_repo, layer0_repo, layer1_repo, clients)
         self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer1_repo, layer2_repo)
         self.layer1_writer = layer1_write.Layer1Writer(layer1_repo)
-        self.audit_manager = audit.AuditManager(private_repo)
 
     def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -66,6 +64,3 @@ class Actions(adminapi.Actions):
 
     def assign_record_pgcs(self, r: adminapi.AssignRecordPgcsRequest) -> adminapi.AssignRecordPgcsResponse:
         return self.crossmatch_manager.assign_record_pgcs(r)
-
-    def record_action(self, user_id: int, method: str, action_description: str | None) -> None:
-        self.audit_manager.record_action(user_id, method, action_description)

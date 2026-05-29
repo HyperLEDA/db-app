@@ -15,7 +15,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.lib import auth
+from app.lib import audit, auth
 from app.lib.web import errors, middlewares
 from app.lib.web.server import config
 
@@ -33,6 +33,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     description: str = ""
     allowed_roles: list[auth.Role] | None = None
     rate_limit: str | None = None
+    audit_action: bool = False
 
 
 async def validation_exception_handler(_request, exc):
@@ -54,6 +55,17 @@ def _secured_roles_map(
         (f"{path_prefix}{route.path}", route.method.value.lower()): frozenset(route.allowed_roles)
         for route in routes
         if route.allowed_roles is not None
+    }
+
+
+def _audit_actions_map(
+    routes: list[Route[Any, Any]],
+    path_prefix: str,
+) -> dict[tuple[str, str], str]:
+    return {
+        (f"{path_prefix}{route.path}", route.method.value.lower()): route.handler.__name__
+        for route in routes
+        if route.audit_action
     }
 
 
@@ -92,6 +104,7 @@ class WebServer:
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
         auth_enabled: bool = True,
+        action_recorder: audit.ActionRecorder | None = None,
     ) -> None:
         app = fastapi.FastAPI(
             docs_url=f"{cfg.path_prefix}/docs",
@@ -110,10 +123,19 @@ class WebServer:
         app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
         secured_roles = _secured_roles_map(routes, cfg.path_prefix) if auth_enabled else {}
+        audit_actions = _audit_actions_map(routes, cfg.path_prefix)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
         app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
-        app.add_middleware(middlewares.AuthMiddleware, secured_roles=secured_roles)
+        if audit_actions and action_recorder is not None:
+            app.add_middleware(
+                middlewares.ActionMiddleware,
+                tracked_actions=audit_actions,
+                record_action=action_recorder.record_action,
+                run_id=audit.run_id,
+            )
+        if auth_enabled:
+            app.add_middleware(middlewares.AuthMiddleware, secured_roles=secured_roles)
         app.add_middleware(
             cors.CORSMiddleware,
             allow_origins=cfg.allowed_origins,

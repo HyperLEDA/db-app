@@ -436,7 +436,3 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def assign_record_pgcs(self, r: AssignRecordPgcsRequest) -> AssignRecordPgcsResponse:
         pass
-
-    @abc.abstractmethod
-    def record_action(self, user_id: int, method: str, action_description: str | None) -> None:
-        pass
