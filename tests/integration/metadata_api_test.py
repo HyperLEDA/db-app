@@ -97,6 +97,18 @@ class MetadataAPITest(unittest.TestCase):
         table = response.json()["data"]["resource"]["table"]
         self.assertEqual(len(table["data"]), 2)
 
+    def test_tap_sync_maxrec_not_bypassed_by_line_comment(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name --",
+                "maxrec": 2,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual(len(table["data"]), 2)
+
     def test_tap_sync_query_timeout(self) -> None:
         with self.assertRaises(psycopg.errors.QueryCanceled):
             self.pg.query("SELECT pg_sleep(2)", timeout_seconds=1)

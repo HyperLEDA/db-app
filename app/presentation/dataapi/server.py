@@ -64,9 +64,11 @@ class API:
 
     def tap_sync(
         self,
-        request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
+        request: fastapi.Request,
+        tap_request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
     ) -> server.APIOkResponse[tap.TAPSyncResponse]:
-        response = self.actions.tap_sync(request)
+        _ = request
+        response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)
 
 
@@ -132,6 +134,7 @@ the specified designation.""",
                 api.tap_sync,
                 "Execute an arbitrary SQL query (TAP /sync).",
                 "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
+                rate_limit="60/minute",
             ),
         ]
 
