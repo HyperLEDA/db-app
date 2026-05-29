@@ -77,7 +77,7 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
-        enforce_route_auth: bool = True,
+        auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
 
@@ -136,4 +136,4 @@ the specified designation.""",
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)
+        super().__init__(routes, config, logger, authenticator, auth_enabled=auth_enabled)

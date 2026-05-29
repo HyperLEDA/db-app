@@ -8,7 +8,7 @@ import yaml
 
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.lib import auth, clients, commands, config, tracing
+from app.lib import audit, auth, clients, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
@@ -37,6 +37,9 @@ class AdminAPICommand(commands.Command):
         authenticator: auth.Authenticator = (
             auth.PostgresAuthenticator(self.pg_storage) if cfg.auth_enabled else auth.NoopAuthenticator()
         )
+        action_recorder: audit.ActionRecorder = (
+            audit.PostgresActionRecorder(self.pg_storage) if cfg.auth_enabled else audit.NoopActionRecorder()
+        )
 
         actions = domain.Actions(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
@@ -52,7 +55,8 @@ class AdminAPICommand(commands.Command):
             cfg.server,
             log,
             authenticator,
-            enforce_route_auth=cfg.auth_enabled,
+            action_recorder,
+            auth_enabled=cfg.auth_enabled,
         )
 
     def run(self):

@@ -14,6 +14,13 @@ DatatypeEnum = enum.StrEnum(
 )
 
 
+class WriteRequest(pydantic.BaseModel):
+    action_description: str | None = pydantic.Field(
+        default=None,
+        description="Description of the script/run with input parameters (e.g. table name, column name, etc).",
+    )
+
+
 def check_column_name(column_name: str) -> str:
     if column_name == "hyperleda_internal_id":
         raise ValueError(f"Forbidden column name: {column_name}")
@@ -79,7 +86,7 @@ class GetTableResponse(pydantic.BaseModel):
     crossmatch: TableCrossmatchResults
 
 
-class CreateTableRequest(pydantic.BaseModel):
+class CreateTableRequest(WriteRequest):
     table_name: str
     columns: list[ColumnDescription] = pydantic.Field(
         description="List of columns in the table",
@@ -103,7 +110,7 @@ class CreateTableResponse(pydantic.BaseModel):
     id: int
 
 
-class AddDataRequest(pydantic.BaseModel):
+class AddDataRequest(WriteRequest):
     table_name: str
     data: list[dict[str, Any]] = pydantic.Field(
         description="""Actual data to append. 
@@ -122,7 +129,7 @@ class AddDataResponse(pydantic.BaseModel):
     pass
 
 
-class SaveStructuredDataRequest(pydantic.BaseModel):
+class SaveStructuredDataRequest(WriteRequest):
     catalog: str
     columns: list[str]
     units: dict[str, str] = {}
@@ -140,7 +147,7 @@ class PatchColumnSpec(pydantic.BaseModel):
     description: str | None = None
 
 
-class PatchTableRequest(pydantic.BaseModel):
+class PatchTableRequest(WriteRequest):
     table_name: str
     new_table_name: str | None = pydantic.Field(
         default=None,
@@ -161,7 +168,7 @@ class PatchTableResponse(pydantic.BaseModel):
     pass
 
 
-class CreateSourceRequest(pydantic.BaseModel):
+class CreateSourceRequest(WriteRequest):
     title: str
     authors: list[str] = pydantic.Field(examples=[["Ivanov V.", "Johnson H."]])
     year: int = pydantic.Field(examples=[2006])
@@ -346,7 +353,7 @@ class StatusesPayload(pydantic.BaseModel):
         return self
 
 
-class SetCrossmatchResultsRequest(pydantic.BaseModel):
+class SetCrossmatchResultsRequest(WriteRequest):
     statuses: StatusesPayload
 
 
@@ -357,7 +364,7 @@ class SetCrossmatchResultsResponse(pydantic.BaseModel):
 MAX_ASSIGN_RECORD_PGC_IDS = 200_000
 
 
-class AssignRecordPgcsRequest(pydantic.BaseModel):
+class AssignRecordPgcsRequest(WriteRequest):
     record_ids: list[str]
 
     @pydantic.model_validator(mode="after")

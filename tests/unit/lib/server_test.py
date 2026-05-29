@@ -120,7 +120,7 @@ class ServerRouteAuthTest(unittest.TestCase):
                 "good": (auth.User(1, auth.Role.ADMIN), True),
             }
         )
-        srv = WebServer(self.routes, self.config, self.logger, authenticator, enforce_route_auth=True)
+        srv = WebServer(self.routes, self.config, self.logger, authenticator, auth_enabled=True)
         client = testclient.TestClient(srv.app)
 
         self.assertEqual(client.get("/api/pub").status_code, 200)
@@ -140,9 +140,9 @@ class ServerRouteAuthTest(unittest.TestCase):
             403,
         )
 
-    def test_enforce_route_auth_false_skips_dependencies(self) -> None:
+    def test_auth_disabled_skips_middleware_gate(self) -> None:
         authenticator = _FakeAuthenticator({})
-        srv = WebServer(self.routes, self.config, self.logger, authenticator, enforce_route_auth=False)
+        srv = WebServer(self.routes, self.config, self.logger, authenticator, auth_enabled=False)
         client = testclient.TestClient(srv.app)
 
         self.assertEqual(client.post("/api/sec", json={"message": "x"}).status_code, 200)

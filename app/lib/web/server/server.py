@@ -15,9 +15,8 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.lib import auth
+from app.lib import audit, auth
 from app.lib.web import errors, middlewares
-from app.lib.web.dependencies import auth as auth_dependencies
 from app.lib.web.server import config
 
 
@@ -34,6 +33,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     description: str = ""
     allowed_roles: list[auth.Role] | None = None
     rate_limit: str | None = None
+    audit_action: bool = False
 
 
 async def validation_exception_handler(_request, exc):
@@ -47,12 +47,26 @@ async def rate_limit_exception_handler(_request, exc: RateLimitExceeded):
     return responses.JSONResponse(err.dict(), status_code=429)
 
 
-def _secured_path_methods(routes: list[Route[Any, Any]], path_prefix: str) -> frozenset[tuple[str, str]]:
-    return frozenset(
-        (f"{path_prefix}{route.path}", route.method.value.lower())
+def _secured_roles_map(
+    routes: list[Route[Any, Any]],
+    path_prefix: str,
+) -> dict[tuple[str, str], frozenset[auth.Role]]:
+    return {
+        (f"{path_prefix}{route.path}", route.method.value.lower()): frozenset(route.allowed_roles)
         for route in routes
         if route.allowed_roles is not None
-    )
+    }
+
+
+def _audit_actions_map(
+    routes: list[Route[Any, Any]],
+    path_prefix: str,
+) -> dict[tuple[str, str], str]:
+    return {
+        (f"{path_prefix}{route.path}", route.method.value.lower()): route.handler.__name__
+        for route in routes
+        if route.audit_action
+    }
 
 
 def _make_openapi(app: fastapi.FastAPI, secured: frozenset[tuple[str, str]]) -> Callable[[], dict[str, Any]]:
@@ -89,7 +103,8 @@ class WebServer:
         cfg: config.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
-        enforce_route_auth: bool = True,
+        auth_enabled: bool = True,
+        action_recorder: audit.ActionRecorder | None = None,
     ) -> None:
         app = fastapi.FastAPI(
             docs_url=f"{cfg.path_prefix}/docs",
@@ -104,10 +119,23 @@ class WebServer:
         )
         self.limiter = Limiter(key_func=get_remote_address)
         app.state.limiter = self.limiter
+        app.state.authenticator = authenticator
         app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
+
+        secured_roles = _secured_roles_map(routes, cfg.path_prefix) if auth_enabled else {}
+        audit_actions = _audit_actions_map(routes, cfg.path_prefix)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
         app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
+        if audit_actions and action_recorder is not None:
+            app.add_middleware(
+                middlewares.ActionMiddleware,
+                tracked_actions=audit_actions,
+                record_action=action_recorder.record_action,
+                run_id=audit.run_id,
+            )
+        if auth_enabled:
+            app.add_middleware(middlewares.AuthMiddleware, secured_roles=secured_roles)
         app.add_middleware(
             cors.CORSMiddleware,
             allow_origins=cfg.allowed_origins,
@@ -124,13 +152,9 @@ class WebServer:
         )
 
         for route in routes:
-            route_dependencies: list[Any] = []
             endpoint = route.handler
             if route.rate_limit is not None:
                 endpoint = self.limiter.limit(route.rate_limit)(endpoint)
-            if enforce_route_auth and route.allowed_roles is not None:
-                role_dep = auth_dependencies.make_require_roles(authenticator, route.allowed_roles)
-                route_dependencies.append(fastapi.Depends(role_dep))
             app.add_api_route(
                 path=f"{cfg.path_prefix}{route.path}",
                 endpoint=endpoint,
@@ -140,7 +164,6 @@ class WebServer:
                 operation_id=endpoint.__name__,
                 response_model_exclude_none=True,
                 response_model_exclude_unset=True,
-                dependencies=route_dependencies,
             )
 
         app.add_api_route(
@@ -153,7 +176,7 @@ class WebServer:
 
         FastAPIInstrumentor.instrument_app(app)
 
-        app.openapi = _make_openapi(app, _secured_path_methods(routes, cfg.path_prefix))
+        app.openapi = _make_openapi(app, frozenset(secured_roles.keys()))
 
         self.app = app
         self.config = cfg

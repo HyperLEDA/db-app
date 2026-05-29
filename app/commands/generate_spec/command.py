@@ -5,7 +5,7 @@ from typing import final
 import structlog
 
 from app.domain import adminapi as domain
-from app.lib import auth, commands
+from app.lib import audit, auth, commands
 from app.lib.web import server
 from app.presentation import adminapi as presentation
 
@@ -29,6 +29,7 @@ class GenerateSpecCommand(commands.Command):
             server.ServerConfig(port=80, host="localhost"),
             structlog.get_logger(),
             auth.NoopAuthenticator(),
+            audit.NoopActionRecorder(),
         )
 
         spec = app.app.openapi()

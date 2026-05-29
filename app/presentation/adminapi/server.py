@@ -1,43 +1,24 @@
 import http
-from collections.abc import Callable
 from typing import Annotated
 
 import fastapi
 import structlog
 
-from app.lib import auth
+from app.lib import audit, auth
 from app.lib.web import server
-from app.lib.web.dependencies import auth as auth_dependencies
+from app.lib.web.middlewares import identity_from_request
 from app.presentation.adminapi import interface
 
 
-def _make_logout_handler(
-    actions: interface.Actions,
-    require_admin: Callable[..., auth_dependencies.AuthContext],
-    enforce_route_auth: bool,
-) -> Callable[..., server.APIOkResponse[interface.LogoutResponse]]:
-    if enforce_route_auth:
-
-        def logout_enforced(
-            request: fastapi.Request,
-            _body: interface.LogoutRequest,
-            auth_ctx: Annotated[auth_dependencies.AuthContext, fastapi.Depends(require_admin)],
-        ) -> server.APIOkResponse[interface.LogoutResponse]:
-            _ = request
-            return server.APIOkResponse(data=actions.logout(auth_ctx.token))
-
-        return logout_enforced
-
-    def logout_unenforced(
-        request: fastapi.Request,
-        _body: interface.LogoutRequest,
-    ) -> server.APIOkResponse[interface.LogoutResponse]:
-        raw = request.headers.get("Authorization", "").strip()
-        parts = raw.split(None, 1)
-        token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else ""
-        return server.APIOkResponse(data=actions.logout(token))
-
-    return logout_unenforced
+def _logout_token(request: fastapi.Request) -> str:
+    ctx = identity_from_request(request)
+    if ctx is not None:
+        return ctx.token
+    raw = request.headers.get("Authorization", "").strip()
+    parts = raw.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1].strip()
+    return ""
 
 
 class API:
@@ -97,6 +78,13 @@ class API:
         response = self.actions.login(body)
         return server.APIOkResponse(data=response)
 
+    def logout(
+        self,
+        request: fastapi.Request,
+        _body: interface.LogoutRequest,
+    ) -> server.APIOkResponse[interface.LogoutResponse]:
+        return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
+
     def get_crossmatch_records(
         self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
     ) -> server.APIOkResponse[interface.GetRecordsCrossmatchResponse]:
@@ -138,10 +126,10 @@ class Server(server.WebServer):
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
         authenticator: auth.Authenticator,
-        enforce_route_auth: bool = True,
+        action_recorder: audit.ActionRecorder,
+        auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
-        require_admin = auth_dependencies.make_require_roles(authenticator, [auth.Role.ADMIN])
         admin_only = [auth.Role.ADMIN]
 
         routes: list[server.Route] = [
@@ -154,6 +142,7 @@ class Server(server.WebServer):
 Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/source",
@@ -162,6 +151,7 @@ If two rows were identical this method will only insert the last one.""",
                 "New internal source entry",
                 "Creates new source entry in the database for internal communication and unpublished articles.",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/table",
@@ -172,6 +162,7 @@ If two rows were identical this method will only insert the last one.""",
 **Important**: If the table with the specified name already exists, does nothing and returns ID
 of the previously created table without any alterations.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/table",
@@ -256,6 +247,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
 }
 ```""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/login",
@@ -268,7 +260,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
             server.Route(
                 "/v1/logout",
                 http.HTTPMethod.POST,
-                _make_logout_handler(actions, require_admin, enforce_route_auth),
+                api.logout,
                 "Logout",
                 "Revokes the bearer token used for this request.",
                 allowed_roles=admin_only,
@@ -313,6 +305,7 @@ At least one status block must be present.
 }
 ```""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/records/pgcs",
@@ -323,6 +316,7 @@ At least one status block must be present.
 `triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.
 Records in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.""",
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/record/crossmatch",
@@ -365,7 +359,15 @@ For every column that has unit metadata in the database, the request must includ
 ```
 """,
                 allowed_roles=admin_only,
+                audit_action=True,
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, enforce_route_auth=enforce_route_auth)
+        super().__init__(
+            routes,
+            config,
+            logger,
+            authenticator,
+            auth_enabled=auth_enabled,
+            action_recorder=action_recorder,
+        )
