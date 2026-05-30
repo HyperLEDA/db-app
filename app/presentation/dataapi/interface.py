@@ -19,9 +19,17 @@ class GalacticCoordinates(pydantic.BaseModel):
     e_lat: float
 
 
+class SupergalacticCoordinates(pydantic.BaseModel):
+    lon: float
+    lat: float
+    e_lon: float
+    e_lat: float
+
+
 class Coordinates(pydantic.BaseModel):
     equatorial: EquatorialCoordinates
     galactic: GalacticCoordinates
+    supergalactic: SupergalacticCoordinates
 
 
 class AbsoluteVelocity(pydantic.BaseModel):
@@ -98,9 +106,17 @@ class GalacticCoordinatesUnits(pydantic.BaseModel):
     e_lat: str
 
 
+class SupergalacticCoordinatesUnits(pydantic.BaseModel):
+    lon: str
+    lat: str
+    e_lon: str
+    e_lat: str
+
+
 class CoordinateUnits(pydantic.BaseModel):
     equatorial: EquatorialCoordinatesUnits
     galactic: GalacticCoordinatesUnits
+    supergalactic: SupergalacticCoordinatesUnits
 
 
 class AbsoluteVelocityUnits(pydantic.BaseModel):
