@@ -24,6 +24,12 @@ DATA_SCHEMA = dataapi.Schema(
                 e_lon="arcsec",
                 e_lat="arcsec",
             ),
+            supergalactic=dataapi.SupergalacticCoordinatesUnits(
+                lon="deg",
+                lat="deg",
+                e_lon="arcsec",
+                e_lat="arcsec",
+            ),
         ),
         velocity={},
     )
@@ -88,6 +94,19 @@ class StructuredResponder(interface.ObjectResponder):
 
         return lon, lat, e_lon, e_lat
 
+    def _equatorial_to_supergalactic(
+        self, ra: float, dec: float, e_ra: float, e_dec: float
+    ) -> tuple[float, float, float, float]:
+        coord = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg"))
+        sg = coord.supergalactic
+
+        lon = astronomy.to(sg.sgl, "deg")
+        lat = astronomy.to(sg.sgb, "deg")
+        e_lon = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
+        e_lat = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
+
+        return lon, lat, e_lon, e_lat
+
     def build_response_from_catalog(self, objects: list[layer2.Layer2CatalogObject]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
@@ -102,10 +121,16 @@ class StructuredResponder(interface.ObjectResponder):
             if icrs is not None:
                 ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
                 lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+                sg_lon, sg_lat, sg_e_lon, sg_e_lat = self._equatorial_to_supergalactic(
+                    icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec
+                )
 
                 catalogs.coordinates = dataapi.Coordinates(
                     equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
                     galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
+                    supergalactic=dataapi.SupergalacticCoordinates(
+                        lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat
+                    ),
                 )
 
             redshift = obj.get(model.RedshiftCatalogObject)
@@ -178,10 +203,16 @@ class StructuredResponder(interface.ObjectResponder):
             if icrs is not None:
                 ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
                 lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+                sg_lon, sg_lat, sg_e_lon, sg_e_lat = self._equatorial_to_supergalactic(
+                    icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec
+                )
 
                 catalogs.coordinates = dataapi.Coordinates(
                     equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
                     galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
+                    supergalactic=dataapi.SupergalacticCoordinates(
+                        lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat
+                    ),
                 )
 
             if obj.catalogs.redshift is not None:
