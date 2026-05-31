@@ -101,9 +101,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self.records_repo.register_records(table_name, record_ids)
 
-    def get_table_crossmatch_summary(self, table_name: str) -> model.TableCrossmatchSummary:
-        return self.records_repo.get_table_crossmatch_summary(table_name)
-
     def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
         return self.records_repo.get_table_progress(table_names)
 

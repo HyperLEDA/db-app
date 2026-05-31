@@ -59,11 +59,6 @@ class Layer0CreationResponse:
 
 
 @dataclass
-class TableCrossmatchSummary:
-    counts: dict[str, int]
-
-
-@dataclass
 class CatalogProgress:
     structured: int
     in_layer2: int
