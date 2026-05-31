@@ -403,8 +403,9 @@ def check_get_table(
     table_name: str,
     expected_columns: int,
     expected_rows: int,
-    expected_result: adminapi.TableCrossmatchResultStatus,
-    expected_statuses: dict[adminapi.CrossmatchTriageStatus, int],
+    expected_unprocessed: int,
+    expected_pending_triage: int,
+    expected_resolved_unsubmitted: int,
 ):
     request_data = adminapi.GetTableRequest(table_name=table_name)
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
@@ -414,13 +415,14 @@ def check_get_table(
     assert "description" in table_info
     assert "column_info" in table_info
     assert len(table_info["column_info"]) == expected_columns
-    assert table_info["rows_num"] == expected_rows
     assert "bibliography" in table_info
     assert "meta" in table_info
-    assert "crossmatch" in table_info
     assert "progress" in table_info
-    assert table_info["crossmatch"]["result"] == expected_result.value
-    assert table_info["crossmatch"]["statuses"] == {status.value: count for status, count in expected_statuses.items()}
+    progress = table_info["progress"]
+    assert progress["total_records"] == expected_rows
+    assert progress["unprocessed"] == expected_unprocessed
+    assert progress["pending_triage"] == expected_pending_triage
+    assert progress["resolved_unsubmitted"] == expected_resolved_unsubmitted
 
 
 @lib.test_logging_decorator
@@ -615,12 +617,9 @@ def run():
         table_name,
         expected_columns=6,
         expected_rows=OBJECTS_NUM,
-        expected_result=adminapi.TableCrossmatchResultStatus.NOT_STARTED,
-        expected_statuses={
-            adminapi.CrossmatchTriageStatus.UNPROCESSED: OBJECTS_NUM,
-            adminapi.CrossmatchTriageStatus.PENDING: 0,
-            adminapi.CrossmatchTriageStatus.RESOLVED: 0,
-        },
+        expected_unprocessed=OBJECTS_NUM,
+        expected_pending_triage=0,
+        expected_resolved_unsubmitted=0,
     )
 
     records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
@@ -638,12 +637,9 @@ def run():
         table_name,
         expected_columns=6,
         expected_rows=OBJECTS_NUM,
-        expected_result=adminapi.TableCrossmatchResultStatus.DONE,
-        expected_statuses={
-            adminapi.CrossmatchTriageStatus.UNPROCESSED: 0,
-            adminapi.CrossmatchTriageStatus.PENDING: 0,
-            adminapi.CrossmatchTriageStatus.RESOLVED: OBJECTS_NUM,
-        },
+        expected_unprocessed=0,
+        expected_pending_triage=0,
+        expected_resolved_unsubmitted=OBJECTS_NUM,
     )
 
     assign_record_pgcs(adminapi_session, table_name)
@@ -684,12 +680,9 @@ def run():
         table_name_2,
         expected_columns=6,
         expected_rows=TABLE2_OBJECTS_NUM,
-        expected_result=adminapi.TableCrossmatchResultStatus.IN_PROGRESS,
-        expected_statuses={
-            adminapi.CrossmatchTriageStatus.UNPROCESSED: 0,
-            adminapi.CrossmatchTriageStatus.PENDING: n_pending,
-            adminapi.CrossmatchTriageStatus.RESOLVED: n_resolved,
-        },
+        expected_unprocessed=0,
+        expected_pending_triage=n_pending,
+        expected_resolved_unsubmitted=n_resolved,
     )
 
     check_triage_via_records(adminapi_session, table_name_2, expected_pending=n_pending, expected_resolved=n_resolved)

@@ -177,12 +177,13 @@ class TableUploadManager:
 
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
+        cached_tables = self.table_stats_cache.get().tables
         return adminapi.GetTableListResponse(
             tables=[
                 adminapi.TableListItem(
                     name=item.table_name,
                     description=item.description,
-                    num_entries=item.num_entries,
+                    num_entries=cached_tables[item.table_name].total_records if item.table_name in cached_tables else 0,
                     num_fields=item.num_fields,
                     modification_dt=item.modification_dt,
                 )
@@ -198,26 +199,7 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        statistics = self.layer0_repo.get_table_statistics(r.table_name)
-        crossmatch_summary = self.layer0_repo.get_table_crossmatch_summary(r.table_name)
-        rows_num = statistics.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
-        pending_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.PENDING.value, 0)
-        resolved_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.RESOLVED.value, 0)
-        unprocessed_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.UNPROCESSED.value, 0)
-
-        if resolved_count == 0 and pending_count == 0:
-            crossmatch_result = adminapi.TableCrossmatchResultStatus.NOT_STARTED
-        elif pending_count > 0 or unprocessed_count > 0:
-            crossmatch_result = adminapi.TableCrossmatchResultStatus.IN_PROGRESS
-        else:
-            crossmatch_result = adminapi.TableCrossmatchResultStatus.DONE
-
-        crossmatch_statuses = {
-            adminapi.CrossmatchTriageStatus.UNPROCESSED: unprocessed_count,
-            adminapi.CrossmatchTriageStatus.PENDING: pending_count,
-            adminapi.CrossmatchTriageStatus.RESOLVED: resolved_count,
-        }
 
         progress = self.table_stats_cache.get().tables.get(r.table_name)
         if progress is None:
@@ -238,13 +220,8 @@ class TableUploadManager:
             id=meta.table_id,
             description=meta.description or "",
             column_info=_column_description_to_presentation(meta.column_descriptions),
-            rows_num=rows_num,
             meta=metadata,
             bibliography=_bibliography_to_presentation(bibliography),
-            crossmatch=adminapi.TableCrossmatchResults(
-                result=crossmatch_result,
-                statuses=crossmatch_statuses,
-            ),
             progress=progress,
         )
 

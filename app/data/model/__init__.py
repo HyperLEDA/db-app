@@ -31,10 +31,8 @@ from app.data.model.table import (
     Layer0RawData,
     Layer0TableListItem,
     Layer0TableMeta,
-    TableCrossmatchSummary,
     TableProgress,
     TableRecord,
-    TableStatistics,
 )
 
 __all__ = [
@@ -44,8 +42,6 @@ __all__ = [
     "Layer0CreationResponse",
     "Layer0TableListItem",
     "ColumnDescription",
-    "TableStatistics",
-    "TableCrossmatchSummary",
     "CatalogProgress",
     "TableProgress",
     "get_object",

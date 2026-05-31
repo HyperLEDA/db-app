@@ -6,7 +6,7 @@ from typing import Annotated, Any
 import pydantic
 
 from app.lib.storage import enums, mapping
-from app.presentation.adminapi.records import CrossmatchTriageStatus, GetRecordsRequest, GetRecordsResponse
+from app.presentation.adminapi.records import GetRecordsRequest, GetRecordsResponse
 
 DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
@@ -65,17 +65,6 @@ class GetTableListResponse(pydantic.BaseModel):
     tables: list[TableListItem]
 
 
-class TableCrossmatchResultStatus(enum.Enum):
-    DONE = "done"
-    IN_PROGRESS = "in_progress"
-    NOT_STARTED = "not_started"
-
-
-class TableCrossmatchResults(pydantic.BaseModel):
-    result: TableCrossmatchResultStatus
-    statuses: dict[CrossmatchTriageStatus, int]
-
-
 class CatalogProgress(pydantic.BaseModel):
     structured: int
     in_layer2: int
@@ -100,10 +89,8 @@ class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
     column_info: list[ColumnDescription]
-    rows_num: int
     meta: dict[str, Any]
     bibliography: Bibliography
-    crossmatch: TableCrossmatchResults
     progress: TableProgress
 
 

@@ -2,13 +2,9 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from psycopg import sql
-
 from app.data import model, template
-from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
-from app.lib.web.errors import DatabaseError
 
 
 def _metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
@@ -122,63 +118,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )
             for row in rows
         ]
-
-    def get_table_statistics(self, table_name: str) -> model.TableStatistics:
-        table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-
-        table_id = table_id_row["id"]
-
-        errgr = concurrency.ErrorGroup()
-        stats_res = errgr.run(
-            self._storage.query_one,
-            """
-            SELECT COUNT(1) AS cnt, MAX(t.modification_dt) AS modification_dt
-            FROM layer0.records AS o
-            JOIN layer0.tables AS t ON o.table_id = t.id
-            WHERE table_id = %s""",
-            params=[table_id],
-        )
-        total_original_rows_res = errgr.run(
-            self._storage.query_one,
-            sql.SQL("SELECT COUNT(1) AS cnt FROM {}.{}").format(
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-            ),
-        )
-        errgr.wait()
-
-        stats = stats_res.result()
-        total_original_rows = total_original_rows_res.result().get("cnt")
-
-        if total_original_rows is None:
-            raise DatabaseError(f"unable to fetch total rows for table {table_name}")
-
-        return model.TableStatistics(
-            stats["modification_dt"],
-            stats["cnt"],
-            total_original_rows,
-        )
-
-    def get_table_crossmatch_summary(self, table_name: str) -> model.TableCrossmatchSummary:
-        table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
-        table_id = table_id_row["id"]
-
-        rows = self._storage.query(
-            """
-            SELECT CASE
-                WHEN c.record_id IS NULL THEN 'unprocessed'
-                ELSE c.triage_status::text
-            END AS triage,
-            COUNT(1) AS cnt
-            FROM layer0.records AS o
-            LEFT JOIN layer0.crossmatch AS c ON c.record_id = o.id
-            WHERE o.table_id = %s
-            GROUP BY triage
-            """,
-            params=[table_id],
-        )
-
-        return model.TableCrossmatchSummary(counts={row["triage"]: row["cnt"] for row in rows})
 
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:
