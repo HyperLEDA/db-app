@@ -1,11 +1,14 @@
+import contextvars
 import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from time import monotonic
 
 import pydantic
 
 from app.lib.cache import BackgroundCache
+from app.lib.cache.background_cache import _run_in_context
 
 
 class SampleSnapshot(pydantic.BaseModel):
@@ -74,3 +77,16 @@ class BackgroundCacheTest(unittest.TestCase):
         cache.stop()
         thread.join(timeout=2.0)
         self.assertEqual(cache.get().value, 1)
+
+    def test_run_in_context_propagates_context_to_worker_thread(self) -> None:
+        seen = contextvars.ContextVar("seen", default=False)
+        seen.set(True)
+        ctx = contextvars.copy_context()
+
+        def check_context() -> bool:
+            return seen.get()
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            result = executor.submit(_run_in_context, ctx, check_context).result()
+
+        self.assertTrue(result)

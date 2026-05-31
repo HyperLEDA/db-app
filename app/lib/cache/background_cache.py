@@ -1,4 +1,5 @@
 import concurrent.futures
+import contextvars
 import threading
 from collections.abc import Callable
 from datetime import timedelta
@@ -25,20 +26,18 @@ class BackgroundCache[T: pydantic.BaseModel]:
         self._refresh_timeout = refresh_timeout
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._value: T = self._do_refresh()
-
-    def _do_refresh(self) -> T:
         with _tracer.start_as_current_span("cache.refresh") as span:
             span.set_attribute("cache.name", self.name)
-            start = monotonic()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(self._refresh_func)
-                try:
-                    value = future.result(timeout=self._refresh_timeout.total_seconds())
-                except concurrent.futures.TimeoutError as e:
-                    raise TimeoutError(f"refresh_func timed out after {self._refresh_timeout}") from e
-            span.set_attribute("cache.duration_seconds", round(monotonic() - start, 3))
-            return value
+            self._value = self._do_refresh()
+
+    def _do_refresh(self) -> T:
+        ctx = contextvars.copy_context()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_in_context, ctx, self._refresh_func)
+            try:
+                return future.result(timeout=self._refresh_timeout.total_seconds())
+            except concurrent.futures.TimeoutError as e:
+                raise TimeoutError(f"refresh_func timed out after {self._refresh_timeout}") from e
 
     def get(self) -> T:
         with self._lock:
@@ -48,7 +47,7 @@ class BackgroundCache[T: pydantic.BaseModel]:
         log = structlog.get_logger().bind(cache_name=self.name)
 
         while not self._stop_event.is_set():
-            with _tracer.start_as_current_span("cache.update") as span:
+            with _tracer.start_as_current_span("cache.refresh") as span:
                 span.set_attribute("cache.name", self.name)
                 start = monotonic()
 
@@ -82,3 +81,7 @@ class BackgroundCache[T: pydantic.BaseModel]:
 
     def stop(self) -> None:
         self._stop_event.set()
+
+
+def _run_in_context[T](ctx: contextvars.Context, fn: Callable[[], T]) -> T:
+    return ctx.run(fn)
