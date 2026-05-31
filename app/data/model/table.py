@@ -61,7 +61,6 @@ class Layer0CreationResponse:
 
 @dataclass
 class TableStatistics:
-    statuses: dict[enums.RecordCrossmatchStatus, int]
     last_modified_dt: datetime.datetime
     total_rows: int
     total_original_rows: int

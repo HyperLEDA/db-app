@@ -129,25 +129,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         table_id = table_id_row["id"]
 
         errgr = concurrency.ErrorGroup()
-        status_rows_res = errgr.run(
-            self._storage.query,
-            """
-            SELECT status_label AS status, COUNT(1)
-            FROM (
-                SELECT CASE
-                    WHEN c.record_id IS NULL THEN 'unprocessed'
-                    WHEN c.metadata::jsonb = '{}'::jsonb THEN 'new'
-                    WHEN c.metadata::jsonb ? 'pgc' THEN 'existing'
-                    WHEN c.metadata::jsonb ? 'possible_matches' THEN 'collided'
-                    ELSE 'unprocessed'
-                END AS status_label
-                FROM layer0.records o
-                LEFT JOIN layer0.crossmatch c ON c.record_id = o.id
-                WHERE o.table_id = %s
-            ) t
-            GROUP BY status_label""",
-            params=[table_id],
-        )
         stats_res = errgr.run(
             self._storage.query_one,
             """
@@ -166,7 +147,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         )
         errgr.wait()
 
-        status_rows = status_rows_res.result()
         stats = stats_res.result()
         total_original_rows = total_original_rows_res.result().get("cnt")
 
@@ -174,7 +154,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             raise DatabaseError(f"unable to fetch total rows for table {table_name}")
 
         return model.TableStatistics(
-            {enums.RecordCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,
