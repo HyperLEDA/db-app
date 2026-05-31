@@ -7,6 +7,7 @@ from parameterized import param, parameterized
 
 from app.data import model, repositories
 from app.domain import adminapi as domain
+from app.domain.adminapi.mock import get_mock_table_stats_cache
 from app.domain.adminapi.table_upload import domain_descriptions_to_data, get_source_id
 from app.lib import clients
 from app.lib.storage import enums, mapping
@@ -22,6 +23,7 @@ class TableUploadManagerTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=mock.MagicMock(),
             clients=clients.get_mock_clients(),
+            table_stats_cache=get_mock_table_stats_cache(),
         )
 
     def test_add_data(self):
@@ -147,6 +149,7 @@ class GetSourceIDTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=mock.MagicMock(),
             clients=clients.get_mock_clients(),
+            table_stats_cache=get_mock_table_stats_cache(),
         )
 
     @parameterized.expand(
@@ -301,6 +304,7 @@ class GetRecordsTest(unittest.TestCase):
             layer0_repo=mock.MagicMock(),
             layer1_repo=layer1_repo,
             clients=clients.get_mock_clients(),
+            table_stats_cache=get_mock_table_stats_cache(),
         )
 
     def test_get_records_returns_records_with_pgc(self) -> None:

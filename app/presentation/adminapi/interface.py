@@ -76,6 +76,26 @@ class TableCrossmatchResults(pydantic.BaseModel):
     statuses: dict[CrossmatchTriageStatus, int]
 
 
+class CatalogProgress(pydantic.BaseModel):
+    structured: int
+    in_layer2: int
+    layer2_pending: int
+
+
+class TableProgress(pydantic.BaseModel):
+    total_records: int
+    unprocessed: int
+    pending_triage: int
+    resolved_unsubmitted: int
+    submitted: int
+    catalogs: dict[str, CatalogProgress]
+
+
+class TableStatsSnapshot(pydantic.BaseModel):
+    tables: dict[str, TableProgress]
+    computed_at: datetime.datetime
+
+
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
@@ -84,6 +104,7 @@ class GetTableResponse(pydantic.BaseModel):
     meta: dict[str, Any]
     bibliography: Bibliography
     crossmatch: TableCrossmatchResults
+    progress: TableProgress
 
 
 class CreateTableRequest(WriteRequest):

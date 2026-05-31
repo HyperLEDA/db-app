@@ -5,6 +5,7 @@ import structlog
 from app.data import repositories
 from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME
 from app.domain import adminapi as domain
+from app.domain.adminapi.mock import get_mock_table_stats_cache
 from app.lib import clients
 from app.lib.storage import enums
 from app.presentation import adminapi as presentation
@@ -21,6 +22,7 @@ class RemoveTableTest(unittest.TestCase):
             repositories.Layer0Repository(cls.storage, structlog.get_logger()),
             repositories.Layer1Repository(cls.storage, structlog.get_logger()),
             clients.get_mock_clients(),
+            get_mock_table_stats_cache(),
         )
         cls.layer0_repo = repositories.Layer0Repository(cls.storage, structlog.get_logger())
 

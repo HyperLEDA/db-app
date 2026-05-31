@@ -70,3 +70,20 @@ class TableStatistics:
 @dataclass
 class TableCrossmatchSummary:
     counts: dict[str, int]
+
+
+@dataclass
+class CatalogProgress:
+    structured: int
+    in_layer2: int
+    layer2_pending: int
+
+
+@dataclass
+class TableProgress:
+    total_records: int
+    unprocessed: int
+    pending_triage: int
+    resolved_unsubmitted: int
+    submitted: int
+    catalogs: dict[str, CatalogProgress]
