@@ -109,6 +109,19 @@ class MetadataAPITest(unittest.TestCase):
         table = response.json()["data"]["resource"]["table"]
         self.assertEqual(len(table["data"]), 2)
 
+    def test_tap_sync_maxrec_not_bypassed_by_unterminated_block_comment(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": (
+                    "SELECT type_name FROM nature.object_type ORDER BY type_name"
+                    ") AS _tap_sync LIMIT 10000 /*"
+                ),
+                "maxrec": 2,
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+
     def test_tap_sync_like_with_percent_wildcard(self) -> None:
         response = self.client.get(
             "/api/v1/tap/sync",
