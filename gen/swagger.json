@@ -1024,6 +1024,29 @@
         ],
         "title": "Bibliography"
       },
+      "CatalogProgress": {
+        "properties": {
+          "structured": {
+            "type": "integer",
+            "title": "Structured"
+          },
+          "in_layer2": {
+            "type": "integer",
+            "title": "In Layer2"
+          },
+          "layer2_pending": {
+            "type": "integer",
+            "title": "Layer2 Pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "structured",
+          "in_layer2",
+          "layer2_pending"
+        ],
+        "title": "CatalogProgress"
+      },
       "Catalogs": {
         "properties": {
           "designation": {
@@ -1596,6 +1619,9 @@
           },
           "crossmatch": {
             "$ref": "#/components/schemas/TableCrossmatchResults"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TableProgress"
           }
         },
         "type": "object",
@@ -1606,7 +1632,8 @@
           "rows_num",
           "meta",
           "bibliography",
-          "crossmatch"
+          "crossmatch",
+          "progress"
         ],
         "title": "GetTableResponse"
       },
@@ -2555,6 +2582,47 @@
           "modification_dt"
         ],
         "title": "TableListItem"
+      },
+      "TableProgress": {
+        "properties": {
+          "total_records": {
+            "type": "integer",
+            "title": "Total Records"
+          },
+          "unprocessed": {
+            "type": "integer",
+            "title": "Unprocessed"
+          },
+          "pending_triage": {
+            "type": "integer",
+            "title": "Pending Triage"
+          },
+          "resolved_unsubmitted": {
+            "type": "integer",
+            "title": "Resolved Unsubmitted"
+          },
+          "submitted": {
+            "type": "integer",
+            "title": "Submitted"
+          },
+          "catalogs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CatalogProgress"
+            },
+            "type": "object",
+            "title": "Catalogs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_records",
+          "unprocessed",
+          "pending_triage",
+          "resolved_unsubmitted",
+          "submitted",
+          "catalogs"
+        ],
+        "title": "TableProgress"
       },
       "UnitsSchema": {
         "properties": {
