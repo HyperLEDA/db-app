@@ -28,6 +28,8 @@ TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 PHOTOMETRY_BANDS = ["V", "B", "R"]
 PHOTOMETRY_METHOD = "psf"
 
+SIMPLE_FILTER_QUERY_CATALOGS = ["designation", "icrs", "redshift", "nature"]
+
 
 @lib.test_logging_decorator
 def create_bibliography(session: requests.Session) -> str:
@@ -449,7 +451,14 @@ def layer2_import():
 
 @lib.test_logging_decorator
 def check_pgc_names(session: lib.TestSession, name_prefix: str):
-    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     name_results = response.json()["data"]
 
@@ -462,7 +471,16 @@ def check_pgc_names(session: lib.TestSession, name_prefix: str):
 
 @lib.test_logging_decorator
 def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radius: float):
-    response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "ra": ra,
+            "dec": dec,
+            "radius": radius,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     coord_results = response.json()["data"]
 
@@ -487,12 +505,22 @@ def check_dataapi_query(session: lib.TestSession, q: str, page_size: int = 10, p
 
 @lib.test_logging_decorator
 def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
-    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     name_results = response.json()["data"]
     pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
 
-    response = session.get("/v1/query/simple", params={"pgcs": pgcs, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={"pgcs": pgcs, "page_size": 100, "catalogs": ["note"]},
+    )
     response.raise_for_status()
     data = response.json()["data"]
     assert "objects" in data
@@ -513,12 +541,22 @@ def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
 
 @lib.test_logging_decorator
 def check_pgc_photometry(session: lib.TestSession, name_prefix: str) -> None:
-    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     name_results = response.json()["data"]
     pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
 
-    response = session.get("/v1/query/simple", params={"pgcs": pgcs, "page_size": 100})
+    response = session.get(
+        "/v1/query/simple",
+        params={"pgcs": pgcs, "page_size": 100, "catalogs": ["photometry_total"]},
+    )
     response.raise_for_status()
     data = response.json()["data"]
     assert "objects" in data

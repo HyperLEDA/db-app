@@ -97,6 +97,7 @@ the specified designation.
 Several notes:
 - You cannot specify both PGC numbers and additional queries. If both are specified, only PGC numbers
 will be used to query.
+- Use the catalogs query parameter to limit which catalogs are returned (e.g. catalogs=icrs&catalogs=designation).
 - The answer is paginated to improve performance.""",
             ),
             server.Route(

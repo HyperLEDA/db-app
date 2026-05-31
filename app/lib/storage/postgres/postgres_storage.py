@@ -109,17 +109,16 @@ class PgStorage:
             return query.as_string(c)
 
     def exec(self, query: str | sql.SQL | sql.Composed, *, params: list[Any] | None = None) -> None:
-        if params is None:
-            params = []
-
-        log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params)
+        log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params or [])
 
         conn = self.get_thread_conn()
+        execute_params: list[Any] | None = params if params else None
         if conn is not None:
-            conn.cursor().execute(query, params)
+            cursor = conn.cursor()
+            cursor.execute(query, execute_params)
         else:
             with self.get_pool().connection() as c:
-                c.cursor().execute(query, params)
+                c.cursor().execute(query, execute_params)
 
     def execute_batch(self, query: str, rows_data: Sequence[Sequence[Any]]) -> int:
         log.debug("SQL execute batch", query=query.replace("\n", " "), num_rows=len(rows_data))
@@ -145,16 +144,15 @@ class PgStorage:
         params: list[Any] | None = None,
         timeout_seconds: float | None = None,
     ) -> list[rows.DictRow]:
-        if params is None:
-            params = []
+        log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params or [])
 
-        log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params)
+        execute_params: list[Any] | None = params if params else None
 
         def _run(conn: psycopg.Connection) -> list[rows.DictRow]:
             start = time.monotonic()
 
             def _execute(cursor: psycopg.Cursor) -> list[rows.DictRow]:
-                cursor.execute(query, params)
+                cursor.execute(query, execute_params)
                 return cursor.fetchall()
 
             if timeout_seconds is None:
