@@ -418,6 +418,7 @@ def check_get_table(
     assert "bibliography" in table_info
     assert "meta" in table_info
     assert "crossmatch" in table_info
+    assert "progress" in table_info
     assert table_info["crossmatch"]["result"] == expected_result.value
     assert table_info["crossmatch"]["statuses"] == {status.value: count for status, count in expected_statuses.items()}
 

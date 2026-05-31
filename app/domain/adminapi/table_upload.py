@@ -14,7 +14,8 @@ from astroquery import nasa_ads as ads
 from app.data import model, repositories
 from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
-from app.lib import astronomy, clients, concurrency
+from app.domain.adminapi import table_stats
+from app.lib import astronomy, cache, clients, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.presentation import adminapi
@@ -88,11 +89,13 @@ class TableUploadManager:
         layer0_repo: repositories.Layer0Repository,
         layer1_repo: repositories.Layer1Repository,
         clients: clients.Clients,
+        table_stats_cache: cache.BackgroundCache[adminapi.TableStatsSnapshot],
     ) -> None:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
         self.layer1_repo = layer1_repo
         self.clients = clients
+        self.table_stats_cache = table_stats_cache
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
         source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
@@ -195,9 +198,9 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        table_stats = self.layer0_repo.get_table_statistics(r.table_name)
+        statistics = self.layer0_repo.get_table_statistics(r.table_name)
         crossmatch_summary = self.layer0_repo.get_table_crossmatch_summary(r.table_name)
-        rows_num = table_stats.total_original_rows
+        rows_num = statistics.total_original_rows
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
         pending_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.PENDING.value, 0)
         resolved_count = crossmatch_summary.counts.get(adminapi.CrossmatchTriageStatus.RESOLVED.value, 0)
@@ -216,6 +219,21 @@ class TableUploadManager:
             adminapi.CrossmatchTriageStatus.RESOLVED: resolved_count,
         }
 
+        progress = self.table_stats_cache.get().tables.get(r.table_name)
+        if progress is None:
+            fallback = self.layer0_repo.get_table_progress([r.table_name])
+            table_progress = fallback.get(r.table_name)
+            if table_progress is None:
+                table_progress = model.TableProgress(
+                    total_records=0,
+                    unprocessed=0,
+                    pending_triage=0,
+                    resolved_unsubmitted=0,
+                    submitted=0,
+                    catalogs={},
+                )
+            progress = table_stats.table_progress_to_presentation(table_progress)
+
         return adminapi.GetTableResponse(
             id=meta.table_id,
             description=meta.description or "",
@@ -227,6 +245,7 @@ class TableUploadManager:
                 result=crossmatch_result,
                 statuses=crossmatch_statuses,
             ),
+            progress=progress,
         )
 
     def get_records(self, r: adminapi.GetRecordsRequest) -> adminapi.GetRecordsResponse:

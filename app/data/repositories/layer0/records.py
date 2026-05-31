@@ -129,25 +129,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         table_id = table_id_row["id"]
 
         errgr = concurrency.ErrorGroup()
-        status_rows_res = errgr.run(
-            self._storage.query,
-            """
-            SELECT status_label AS status, COUNT(1)
-            FROM (
-                SELECT CASE
-                    WHEN c.record_id IS NULL THEN 'unprocessed'
-                    WHEN c.metadata::jsonb = '{}'::jsonb THEN 'new'
-                    WHEN c.metadata::jsonb ? 'pgc' THEN 'existing'
-                    WHEN c.metadata::jsonb ? 'possible_matches' THEN 'collided'
-                    ELSE 'unprocessed'
-                END AS status_label
-                FROM layer0.records o
-                LEFT JOIN layer0.crossmatch c ON c.record_id = o.id
-                WHERE o.table_id = %s
-            ) t
-            GROUP BY status_label""",
-            params=[table_id],
-        )
         stats_res = errgr.run(
             self._storage.query_one,
             """
@@ -166,7 +147,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         )
         errgr.wait()
 
-        status_rows = status_rows_res.result()
         stats = stats_res.result()
         total_original_rows = total_original_rows_res.result().get("cnt")
 
@@ -174,7 +154,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             raise DatabaseError(f"unable to fetch total rows for table {table_name}")
 
         return model.TableStatistics(
-            {enums.RecordCrossmatchStatus(row["status"]): row["count"] for row in status_rows},
             stats["modification_dt"],
             stats["cnt"],
             total_original_rows,
@@ -338,3 +317,160 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )
             rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
             self._storage.execute_batch(update_query, rows)
+
+    def _progress_table_filter(self, table_names: list[str] | None) -> tuple[str, list[Any]]:
+        if table_names is None:
+            return "", []
+        return "WHERE t.table_name = ANY(%s)", [table_names]
+
+    def _progress_catalogs(self) -> list[model.RawCatalog]:
+        catalogs: list[model.RawCatalog] = []
+        for catalog in model.RawCatalog:
+            if catalog in model.RUNTIME_RAW_CATALOGS:
+                continue
+            try:
+                model.get_catalog_object_type(catalog)
+            except ValueError:
+                continue
+            catalogs.append(catalog)
+        return catalogs
+
+    def _get_table_progress_funnel(self, table_names: list[str] | None) -> dict[str, dict[str, Any]]:
+        where_clause, params = self._progress_table_filter(table_names)
+        rows = self._storage.query(
+            f"""
+            SELECT t.table_name,
+                   COUNT(*) AS total_records,
+                   COUNT(*) FILTER (WHERE c.record_id IS NULL) AS unprocessed,
+                   COUNT(*) FILTER (
+                       WHERE c.record_id IS NOT NULL AND c.triage_status = 'pending'
+                   ) AS pending_triage,
+                   COUNT(*) FILTER (
+                       WHERE c.triage_status = 'resolved' AND r.pgc IS NULL
+                   ) AS resolved_unsubmitted,
+                   COUNT(*) FILTER (WHERE r.pgc IS NOT NULL) AS submitted
+            FROM layer0.records AS r
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            LEFT JOIN layer0.crossmatch AS c ON c.record_id = r.id
+            {where_clause}
+            GROUP BY t.table_name, t.id
+            ORDER BY t.table_name
+            """,
+            params=params,
+        )
+        return {row["table_name"]: row for row in rows}
+
+    def _get_catalog_progress(
+        self,
+        catalog: model.RawCatalog,
+        table_names: list[str] | None,
+    ) -> dict[str, model.CatalogProgress]:
+        object_cls = model.get_catalog_object_type(catalog)
+        layer1_table = object_cls.layer1_table()
+        where_clause, params = self._progress_table_filter(table_names)
+
+        try:
+            layer2_table = object_cls.layer2_table()
+        except NotImplementedError:
+            rows = self._storage.query(
+                f"""
+                SELECT t.table_name, COUNT(*) AS structured
+                FROM (
+                    SELECT DISTINCT record_id
+                    FROM {layer1_table}
+                ) AS d
+                JOIN layer0.records AS r ON r.id = d.record_id
+                JOIN layer0.tables AS t ON r.table_id = t.id
+                {where_clause}
+                GROUP BY t.table_name, t.id
+                """,
+                params=params,
+            )
+            return {
+                row["table_name"]: model.CatalogProgress(
+                    structured=int(row["structured"]),
+                    in_layer2=0,
+                    layer2_pending=0,
+                )
+                for row in rows
+            }
+
+        rows = self._storage.query(
+            f"""
+            SELECT t.table_name,
+                   COUNT(*) AS structured,
+                   COUNT(*) FILTER (
+                       WHERE r.pgc IS NOT NULL AND l2.pgc IS NOT NULL
+                   ) AS in_layer2,
+                   COUNT(*) FILTER (
+                       WHERE r.pgc IS NOT NULL
+                         AND (l2.pgc IS NULL OR r.modification_time > lu.dt)
+                   ) AS layer2_pending
+            FROM (
+                SELECT DISTINCT record_id
+                FROM {layer1_table}
+            ) AS d
+            JOIN layer0.records AS r ON r.id = d.record_id
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            LEFT JOIN {layer2_table} AS l2 ON l2.pgc = r.pgc
+            CROSS JOIN (
+                SELECT dt
+                FROM layer2.last_update
+                WHERE catalog = %s
+            ) AS lu
+            {where_clause}
+            GROUP BY t.table_name, t.id
+            """,
+            params=[catalog.value, *params],
+        )
+        return {
+            row["table_name"]: model.CatalogProgress(
+                structured=int(row["structured"]),
+                in_layer2=int(row["in_layer2"]),
+                layer2_pending=int(row["layer2_pending"]),
+            )
+            for row in rows
+        }
+
+    def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
+        catalogs = self._progress_catalogs()
+        catalog_names = [catalog.value for catalog in catalogs]
+
+        errgr = concurrency.ErrorGroup()
+        funnel_task = errgr.run(self._get_table_progress_funnel, table_names)
+        catalog_tasks = {catalog: errgr.run(self._get_catalog_progress, catalog, table_names) for catalog in catalogs}
+        errgr.wait()
+
+        funnel = funnel_task.result()
+        empty_catalogs = {
+            name: model.CatalogProgress(structured=0, in_layer2=0, layer2_pending=0) for name in catalog_names
+        }
+
+        result: dict[str, model.TableProgress] = {
+            table_name: model.TableProgress(
+                total_records=int(row["total_records"]),
+                unprocessed=int(row["unprocessed"]),
+                pending_triage=int(row["pending_triage"]),
+                resolved_unsubmitted=int(row["resolved_unsubmitted"]),
+                submitted=int(row["submitted"]),
+                catalogs=dict(empty_catalogs),
+            )
+            for table_name, row in funnel.items()
+        }
+
+        for catalog in catalogs:
+            catalog_rows = catalog_tasks[catalog].result()
+            alias = catalog.value
+            for table_name, catalog_progress in catalog_rows.items():
+                if table_name not in result:
+                    result[table_name] = model.TableProgress(
+                        total_records=0,
+                        unprocessed=0,
+                        pending_triage=0,
+                        resolved_unsubmitted=0,
+                        submitted=0,
+                        catalogs=dict(empty_catalogs),
+                    )
+                result[table_name].catalogs[alias] = catalog_progress
+
+        return result

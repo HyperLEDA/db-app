@@ -7,6 +7,7 @@ from pandas import DataFrame
 
 from app.data import model, repositories
 from app.domain import adminapi as domain
+from app.domain.adminapi.mock import get_mock_table_stats_cache
 from app.lib import clients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
@@ -24,6 +25,7 @@ class RawDataTableTest(unittest.TestCase):
             repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
             repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
             clients.get_mock_clients(),
+            get_mock_table_stats_cache(),
         )
 
     def tearDown(self):

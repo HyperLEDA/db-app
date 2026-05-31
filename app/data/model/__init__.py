@@ -25,12 +25,14 @@ from app.data.model.records import (
 )
 from app.data.model.redshift import RedshiftCatalogObject
 from app.data.model.table import (
+    CatalogProgress,
     ColumnDescription,
     Layer0CreationResponse,
     Layer0RawData,
     Layer0TableListItem,
     Layer0TableMeta,
     TableCrossmatchSummary,
+    TableProgress,
     TableRecord,
     TableStatistics,
 )
@@ -44,6 +46,8 @@ __all__ = [
     "ColumnDescription",
     "TableStatistics",
     "TableCrossmatchSummary",
+    "CatalogProgress",
+    "TableProgress",
     "get_object",
     "DesignationRecord",
     "ICRSRecord",

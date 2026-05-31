@@ -69,7 +69,7 @@ class PgStorage:
         self._pool = ConnectionPool(
             self._config.get_dsn(),
             min_size=10,
-            max_size=30,
+            max_size=50,
             kwargs={"row_factory": rows.dict_row, "autocommit": True},
             configure=self._configure_connection,
         )

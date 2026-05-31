@@ -1,3 +1,5 @@
+import threading
+from datetime import timedelta
 from pathlib import Path
 from typing import final
 
@@ -8,7 +10,8 @@ import yaml
 
 from app.data import repositories
 from app.domain import adminapi as domain
-from app.lib import audit, auth, clients, commands, config, tracing
+from app.domain.adminapi import table_stats
+from app.lib import audit, auth, cache, clients, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
@@ -25,6 +28,10 @@ class AdminAPICommand(commands.Command):
 
     def __init__(self, config_path: str):
         self.config_path = config_path
+        self.pg_storage: postgres.PgStorage | None = None
+        self.table_stats_cache: cache.BackgroundCache[presentation.TableStatsSnapshot] | None = None
+        self._table_stats_thread: threading.Thread | None = None
+        self.app: presentation.Server | None = None
 
     def prepare(self):
         cfg = parse_config(self.config_path)
@@ -41,13 +48,25 @@ class AdminAPICommand(commands.Command):
             audit.PostgresActionRecorder(self.pg_storage) if cfg.auth_enabled else audit.NoopActionRecorder()
         )
 
+        layer0_repo = repositories.Layer0Repository(self.pg_storage, log)
+        refresh = table_stats.make_table_stats_refresh(layer0_repo)
+        self.table_stats_cache = cache.BackgroundCache(
+            "table_stats",
+            refresh,
+            refresh_frequency=timedelta(minutes=2),
+            refresh_timeout=timedelta(minutes=5),
+        )
+        self._table_stats_thread = threading.Thread(target=self.table_stats_cache.run, daemon=True)
+        self._table_stats_thread.start()
+
         actions = domain.Actions(
             common_repo=repositories.CommonRepository(self.pg_storage, log),
-            layer0_repo=repositories.Layer0Repository(self.pg_storage, log),
+            layer0_repo=layer0_repo,
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
             authenticator=authenticator,
             clients=clients.Clients(cfg.clients.ads_token),
+            table_stats_cache=self.table_stats_cache,
         )
 
         self.app = presentation.Server(
@@ -60,9 +79,13 @@ class AdminAPICommand(commands.Command):
         )
 
     def run(self):
+        if self.app is None:
+            raise RuntimeError("prepare() was not called")
         self.app.run()
 
     def cleanup(self):
+        if self.table_stats_cache is not None:
+            self.table_stats_cache.stop()
         if self.pg_storage:
             self.pg_storage.disconnect()
 
