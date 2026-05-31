@@ -122,6 +122,18 @@ class MetadataAPITest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 500)
 
+    def test_tap_sync_rejects_semicolon_separated_queries(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": (
+                    "SELECT type_name FROM nature.object_type LIMIT 1;"
+                    " SELECT type_name FROM nature.object_type LIMIT 1"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+
     def test_tap_sync_like_with_percent_wildcard(self) -> None:
         response = self.client.get(
             "/api/v1/tap/sync",
