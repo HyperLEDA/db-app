@@ -113,10 +113,7 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": (
-                    "SELECT type_name FROM nature.object_type ORDER BY type_name"
-                    ") AS _tap_sync LIMIT 10000 /*"
-                ),
+                "query": ("SELECT type_name FROM nature.object_type ORDER BY type_name) AS _tap_sync LIMIT 10000 /*"),
                 "maxrec": 2,
             },
         )
@@ -127,8 +124,7 @@ class MetadataAPITest(unittest.TestCase):
             "/api/v1/tap/sync",
             params={
                 "query": (
-                    "SELECT type_name FROM nature.object_type LIMIT 1;"
-                    " SELECT type_name FROM nature.object_type LIMIT 1"
+                    "SELECT type_name FROM nature.object_type LIMIT 1; SELECT type_name FROM nature.object_type LIMIT 1"
                 ),
             },
         )

@@ -170,6 +170,13 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=0,
         description="Page number",
     )
+    catalogs: list[str] | None = pydantic.Field(
+        default=None,
+        description=(
+            "Catalogs to include in the response (e.g. designation, icrs, redshift, nature). "
+            "If omitted, default set of catalogs is returned."
+        ),
+    )
 
     @pydantic.model_validator(mode="after")
     def _pgcs_exclusive_with_filters(self) -> "QuerySimpleRequest":
