@@ -109,6 +109,18 @@ class MetadataAPITest(unittest.TestCase):
         table = response.json()["data"]["resource"]["table"]
         self.assertEqual(len(table["data"]), 2)
 
+    def test_tap_sync_like_with_percent_wildcard(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type WHERE type_name NOT LIKE '%gal%'",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual([c["name"] for c in table["columns"]], ["type_name"])
+        self.assertTrue(all("gal" not in row[0].lower() for row in table["data"]))
+
     def test_tap_sync_query_timeout(self) -> None:
         with self.assertRaises(psycopg.errors.QueryCanceled):
             self.pg.query("SELECT pg_sleep(2)", timeout_seconds=1)
