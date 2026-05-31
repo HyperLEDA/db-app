@@ -126,6 +126,7 @@ class WebServer:
         audit_actions = _audit_actions_map(routes, cfg.path_prefix)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
+        app.add_middleware(middlewares.TracingMiddleware)
         app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
         if audit_actions and action_recorder is not None:
             app.add_middleware(

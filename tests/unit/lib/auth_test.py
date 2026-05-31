@@ -52,17 +52,18 @@ class PostgresAuthenticatorTest(unittest.TestCase):
             {
                 "user_id": 1,
                 "role": auth.Role.ADMIN,
+                "login": "admin",
             },
         )
 
         user, is_authenticated = self.authenticator.authenticate("correct_token")
         self.assertTrue(is_authenticated)
-        self.assertEqual(user, auth.User(1, auth.Role.ADMIN))
+        self.assertEqual(user, auth.User(1, auth.Role.ADMIN, "admin"))
 
     def test_authenticate_hashes_incoming_token(self):
         lib.returns(
             self.mock_storage.query_one,
-            {"user_id": 1, "role": auth.Role.ADMIN},
+            {"user_id": 1, "role": auth.Role.ADMIN, "login": "admin"},
         )
         self.authenticator.authenticate("mytoken")
         passed_hash = self.mock_storage.query_one.call_args.kwargs["params"][0]

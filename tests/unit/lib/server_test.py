@@ -117,7 +117,7 @@ class ServerRouteAuthTest(unittest.TestCase):
     def test_public_and_role_gates(self) -> None:
         authenticator = _FakeAuthenticator(
             {
-                "good": (auth.User(1, auth.Role.ADMIN), True),
+                "good": (auth.User(1, auth.Role.ADMIN, "admin"), True),
             }
         )
         srv = WebServer(self.routes, self.config, self.logger, authenticator, auth_enabled=True)
