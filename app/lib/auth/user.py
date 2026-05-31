@@ -10,3 +10,4 @@ class Role(enum.Enum):
 class User:
     user_id: int
     role: Role
+    login: str

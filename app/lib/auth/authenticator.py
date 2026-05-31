@@ -24,7 +24,7 @@ class NoopAuthenticator(interface.Authenticator):
         return "noop_token", True
 
     def authenticate(self, token: str) -> tuple[user.User, bool]:
-        return user.User(1, user.Role.ADMIN), True
+        return user.User(1, user.Role.ADMIN, "noop"), True
 
     def revoke(self, token: str) -> None:
         pass
@@ -72,7 +72,7 @@ class PostgresAuthenticator(interface.Authenticator):
         try:
             token_info = self._storage.query_one(
                 """
-                SELECT u.id AS user_id, u.role AS role
+                SELECT u.id AS user_id, u.role AS role, u.login AS login
                 FROM private.tokens AS t
                 JOIN private.users AS u ON t.user_id = u.id
                 WHERE t.token_hash = %s AND t.expiry_time > %s AND t.active
@@ -82,7 +82,7 @@ class PostgresAuthenticator(interface.Authenticator):
         except RuntimeError:
             return cast(tuple[user.User, bool], (None, False))
 
-        return user.User(token_info["user_id"], token_info["role"]), True
+        return user.User(token_info["user_id"], token_info["role"], token_info["login"]), True
 
     def revoke(self, token: str) -> None:
         self._storage.exec(
