@@ -53,7 +53,7 @@ class AdminAPICommand(commands.Command):
         self.table_stats_cache = cache.BackgroundCache(
             "table_stats",
             refresh,
-            refresh_frequency=timedelta(minutes=1),
+            refresh_frequency=timedelta(minutes=2),
             refresh_timeout=timedelta(minutes=5),
         )
         self._table_stats_thread = threading.Thread(target=self.table_stats_cache.run, daemon=True)

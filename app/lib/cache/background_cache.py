@@ -6,6 +6,9 @@ from time import monotonic
 
 import pydantic
 import structlog
+from opentelemetry import trace
+
+_tracer = trace.get_tracer("cache.background")
 
 
 class BackgroundCache[T: pydantic.BaseModel]:
@@ -25,12 +28,17 @@ class BackgroundCache[T: pydantic.BaseModel]:
         self._value: T = self._do_refresh()
 
     def _do_refresh(self) -> T:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self._refresh_func)
-            try:
-                return future.result(timeout=self._refresh_timeout.total_seconds())
-            except concurrent.futures.TimeoutError as e:
-                raise TimeoutError(f"refresh_func timed out after {self._refresh_timeout}") from e
+        with _tracer.start_as_current_span("cache.refresh") as span:
+            span.set_attribute("cache.name", self.name)
+            start = monotonic()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._refresh_func)
+                try:
+                    value = future.result(timeout=self._refresh_timeout.total_seconds())
+                except concurrent.futures.TimeoutError as e:
+                    raise TimeoutError(f"refresh_func timed out after {self._refresh_timeout}") from e
+            span.set_attribute("cache.duration_seconds", round(monotonic() - start, 3))
+            return value
 
     def get(self) -> T:
         with self._lock:
@@ -40,29 +48,36 @@ class BackgroundCache[T: pydantic.BaseModel]:
         log = structlog.get_logger().bind(cache_name=self.name)
 
         while not self._stop_event.is_set():
-            start = monotonic()
+            with _tracer.start_as_current_span("cache.update") as span:
+                span.set_attribute("cache.name", self.name)
+                start = monotonic()
 
-            try:
-                new_value = self._do_refresh()
-            except Exception as e:
-                log.error("cache refresh failed", reason=str(e), exc_info=True)
-                self._stop_event.wait(timeout=self.refresh_frequency.total_seconds())
-                continue
+                try:
+                    new_value = self._do_refresh()
+                except Exception as e:
+                    span.record_exception(e)
+                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                    log.error("cache refresh failed", reason=str(e), exc_info=True)
+                    self._stop_event.wait(timeout=self.refresh_frequency.total_seconds())
+                    continue
 
-            elapsed = monotonic() - start
-            with self._lock:
-                old_value = self._value
-                self._value = new_value
+                elapsed = monotonic() - start
+                with self._lock:
+                    old_value = self._value
+                    self._value = new_value
 
-            old_json = old_value.model_dump_json()
-            new_json = new_value.model_dump_json()
-            changed = old_json != new_json
-            log.debug(
-                "cache refreshed",
-                duration_seconds=round(elapsed, 3),
-                size_bytes=len(new_json),
-                changed=changed,
-            )
+                old_json = old_value.model_dump_json()
+                new_json = new_value.model_dump_json()
+                changed = old_json != new_json
+                span.set_attribute("cache.duration_seconds", round(elapsed, 3))
+                span.set_attribute("cache.size_bytes", len(new_json))
+                span.set_attribute("cache.changed", changed)
+                log.debug(
+                    "cache refreshed",
+                    duration_seconds=round(elapsed, 3),
+                    size_bytes=len(new_json),
+                    changed=changed,
+                )
             self._stop_event.wait(timeout=self.refresh_frequency.total_seconds())
 
     def stop(self) -> None:

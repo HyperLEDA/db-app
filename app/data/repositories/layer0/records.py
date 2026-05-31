@@ -434,7 +434,11 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             JOIN layer0.records AS r ON r.id = d.record_id
             JOIN layer0.tables AS t ON r.table_id = t.id
             LEFT JOIN {layer2_table} AS l2 ON l2.pgc = r.pgc
-            LEFT JOIN layer2.last_update AS lu ON lu.catalog = %s
+            CROSS JOIN (
+                SELECT dt
+                FROM layer2.last_update
+                WHERE catalog = %s
+            ) AS lu
             {where_clause}
             GROUP BY t.table_name, t.id
             """,
