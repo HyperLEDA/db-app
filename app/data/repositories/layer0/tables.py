@@ -533,7 +533,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             t.table_name,
             t.modification_dt,
             COALESCE(ti.param->>'description', '') AS description,
-            COALESCE(ps.n_live_tup::bigint, 0)::int AS num_entries,
             (
                 SELECT COUNT(*)::int
                 FROM meta.column_info c
@@ -544,8 +543,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         FROM layer0.tables t
         LEFT JOIN meta.table_info ti
             ON ti.schema_name = %s AND ti.table_name = t.table_name
-        LEFT JOIN pg_stat_user_tables ps
-            ON ps.schemaname = %s AND ps.relname = t.table_name
         WHERE t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s
         ORDER BY t.modification_dt DESC
         LIMIT %s OFFSET %s
@@ -553,7 +550,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         params = [
             RAWDATA_SCHEMA,
             INTERNAL_ID_COLUMN_NAME,
-            RAWDATA_SCHEMA,
             RAWDATA_SCHEMA,
             pattern,
             pattern,
@@ -565,7 +561,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             model.Layer0TableListItem(
                 table_name=row["table_name"],
                 description=row["description"] or "",
-                num_entries=int(row["num_entries"]),
                 num_fields=int(row["num_fields"]),
                 modification_dt=row["modification_dt"],
             )

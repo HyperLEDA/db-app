@@ -100,7 +100,6 @@ class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
     column_info: list[ColumnDescription]
-    rows_num: int
     meta: dict[str, Any]
     bibliography: Bibliography
     crossmatch: TableCrossmatchResults

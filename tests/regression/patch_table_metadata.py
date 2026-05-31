@@ -73,7 +73,7 @@ def patch_metadata_and_verify(session: requests.Session, table_name: str) -> Non
 
     assert data["description"] == TABLE_DESCRIPTION_NEW
     assert data["meta"]["datatype"] == enums.DataType.PRELIMINARY.value
-    assert data["rows_num"] == 1
+    assert data["progress"]["total_records"] == 1
 
     v_col = next(c for c in data["column_info"] if c["name"] == "v")
     assert v_col["description"] == COLUMN_DESCRIPTION_NEW

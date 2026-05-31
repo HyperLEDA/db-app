@@ -67,7 +67,6 @@ class Layer0RepositoryTest(unittest.TestCase):
             {
                 "table_name": "my_table",
                 "description": "A test table",
-                "num_entries": 100,
                 "num_fields": 6,
                 "modification_dt": datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
             }
@@ -89,5 +88,4 @@ class Layer0RepositoryTest(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].table_name, "my_table")
         self.assertEqual(result[0].description, "A test table")
-        self.assertEqual(result[0].num_entries, 100)
         self.assertEqual(result[0].num_fields, 6)

@@ -414,7 +414,7 @@ def check_get_table(
     assert "description" in table_info
     assert "column_info" in table_info
     assert len(table_info["column_info"]) == expected_columns
-    assert table_info["rows_num"] == expected_rows
+    assert table_info["progress"]["total_records"] == expected_rows
     assert "bibliography" in table_info
     assert "meta" in table_info
     assert "crossmatch" in table_info

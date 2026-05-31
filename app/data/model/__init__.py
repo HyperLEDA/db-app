@@ -34,7 +34,6 @@ from app.data.model.table import (
     TableCrossmatchSummary,
     TableProgress,
     TableRecord,
-    TableStatistics,
 )
 
 __all__ = [
@@ -44,7 +43,6 @@ __all__ = [
     "Layer0CreationResponse",
     "Layer0TableListItem",
     "ColumnDescription",
-    "TableStatistics",
     "TableCrossmatchSummary",
     "CatalogProgress",
     "TableProgress",

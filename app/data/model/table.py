@@ -48,7 +48,6 @@ class Layer0TableMeta:
 class Layer0TableListItem:
     table_name: str
     description: str
-    num_entries: int
     num_fields: int
     modification_dt: datetime.datetime
 
@@ -57,13 +56,6 @@ class Layer0TableListItem:
 class Layer0CreationResponse:
     table_id: int
     created: bool
-
-
-@dataclass
-class TableStatistics:
-    last_modified_dt: datetime.datetime
-    total_rows: int
-    total_original_rows: int
 
 
 @dataclass
