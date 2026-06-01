@@ -124,11 +124,6 @@ def get_records(session: requests.Session, table_name: str, page_size: int) -> l
     return response.json()["data"]["records"]
 
 
-def get_record_ids(session: requests.Session, table_name: str, expected_count: int) -> list[str]:
-    records = get_records(session, table_name, expected_count * 2)
-    return [r["id"] for r in records]
-
-
 @lib.test_logging_decorator
 def upload_structured_data(session: requests.Session, records: list[dict]) -> None:
     ids = [r["id"] for r in records]

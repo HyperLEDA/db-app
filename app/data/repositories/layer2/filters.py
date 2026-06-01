@@ -3,8 +3,6 @@ from typing import Any, final
 
 from astropy.units import quantity
 
-from app.data import model
-from app.data.repositories.layer2 import params
 from app.lib import astronomy
 
 
@@ -15,10 +13,6 @@ class Filter(abc.ABC):
 
     @abc.abstractmethod
     def get_params(self) -> list[Any]:
-        pass
-
-    @abc.abstractmethod
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
         pass
 
 
@@ -36,9 +30,6 @@ class PGCOneOfFilter(Filter):
 
     def get_params(self):
         return self._pgcs
-
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        return params.CombinedSearchParams([])
 
 
 @final
@@ -61,10 +52,6 @@ class AndFilter(Filter):
 
         return params
 
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        search_params_list = [f.extract_search_params(object_info) for f in self._filters]
-        return params.CombinedSearchParams(search_params_list)
-
 
 @final
 class OrFilter(Filter):
@@ -84,10 +71,6 @@ class OrFilter(Filter):
             params.extend(f.get_params())
         return params
 
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        search_params_list = [f.extract_search_params(object_info) for f in self._filters]
-        return params.CombinedSearchParams(search_params_list)
-
 
 @final
 class DesignationEqualsFilter(Filter):
@@ -103,9 +86,6 @@ class DesignationEqualsFilter(Filter):
 
     def get_params(self):
         return [self._designation]
-
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        return params.CombinedSearchParams([])
 
 
 @final
@@ -123,12 +103,6 @@ class DesignationCloseFilter(Filter):
     def get_params(self):
         return [self._distance, self._distance]
 
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        if (cat := model.get_object(object_info, model.DesignationCatalogObject)) is not None:
-            return params.DesignationSearchParams(designation=cat.designation)
-
-        return params.CombinedSearchParams([])
-
 
 @final
 class DesignationLikeFilter(Filter):
@@ -141,11 +115,6 @@ class DesignationLikeFilter(Filter):
 
     def get_params(self):
         return []
-
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        if (cat := model.get_object(object_info, model.DesignationCatalogObject)) is not None:
-            return params.DesignationSearchParams(designation=cat.designation)
-        return params.CombinedSearchParams([])
 
 
 @final
@@ -172,12 +141,6 @@ class ICRSCoordinatesInRadiusFilter(Filter):
     def get_params(self):
         return [self._radius]
 
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        if (cat := model.get_object(object_info, model.ICRSCatalogObject)) is not None:
-            return params.ICRSSearchParams(ra=cat.ra, dec=cat.dec)
-
-        return params.CombinedSearchParams([])
-
 
 @final
 class RedshiftCloseFilter(Filter):
@@ -194,6 +157,3 @@ class RedshiftCloseFilter(Filter):
 
     def get_params(self):
         return [self._redshift, self._distance_percent]
-
-    def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
-        return params.CombinedSearchParams([])
