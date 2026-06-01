@@ -1,15 +1,6 @@
 import abc
 import enum
-from dataclasses import dataclass
 from typing import Any, Self
-
-from astropy import units as u
-
-
-@dataclass
-class MeasuredValue:
-    value: Any
-    unit: u.Unit
 
 
 class RawCatalog(enum.Enum):

@@ -197,14 +197,3 @@ class RedshiftCloseFilter(Filter):
 
     def extract_search_params(self, object_info: list[model.CatalogObject]) -> params.SearchParams:
         return params.CombinedSearchParams([])
-
-
-AVAILABLE_FILTERS = {
-    PGCOneOfFilter.name(): PGCOneOfFilter,
-    AndFilter.name(): AndFilter,
-    OrFilter.name(): OrFilter,
-    DesignationEqualsFilter.name(): DesignationEqualsFilter,
-    DesignationCloseFilter.name(): DesignationCloseFilter,
-    ICRSCoordinatesInRadiusFilter.name(): ICRSCoordinatesInRadiusFilter,
-    RedshiftCloseFilter.name(): RedshiftCloseFilter,
-}

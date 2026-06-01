@@ -1,5 +1,4 @@
 from app.data.repositories.layer2.filters import (
-    AVAILABLE_FILTERS,
     AndFilter,
     DesignationCloseFilter,
     DesignationEqualsFilter,
@@ -33,5 +32,4 @@ __all__ = [
     "PGCOneOfFilter",
     "AndFilter",
     "OrFilter",
-    "AVAILABLE_FILTERS",
 ]
