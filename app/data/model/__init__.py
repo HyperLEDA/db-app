@@ -6,7 +6,6 @@ from app.data.model.icrs import ICRSCatalogObject
 from app.data.model.interface import (
     RUNTIME_RAW_CATALOGS,
     CatalogObject,
-    MeasuredValue,
     RawCatalog,
     get_object,
 )
@@ -66,6 +65,5 @@ __all__ = [
     "GeometryCatalogObject",
     "NoteCatalogObject",
     "get_catalog_object_type",
-    "MeasuredValue",
     "Bibliography",
 ]

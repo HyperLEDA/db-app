@@ -205,14 +205,6 @@ class LogoutResponse(pydantic.BaseModel):
     pass
 
 
-class GetRecordsCrossmatchRequest(pydantic.BaseModel):
-    table_name: str
-    status: enums.RecordCrossmatchStatus | None = None
-    triage_status: enums.RecordTriageStatus | None = None
-    page: int = 0
-    page_size: int = 25
-
-
 class RecordCrossmatchMetadata(pydantic.BaseModel):
     possible_matches: list[int] | None = None
     pgc: int | None = None
@@ -277,11 +269,6 @@ class UnitsSchema(pydantic.BaseModel):
 
 class Schema(pydantic.BaseModel):
     units: UnitsSchema
-
-
-class GetRecordsCrossmatchResponse(pydantic.BaseModel):
-    records: list[RecordCrossmatch]
-    schema_: Schema = pydantic.Field(..., alias="schema")
 
 
 class GetRecordCrossmatchRequest(pydantic.BaseModel):
@@ -423,10 +410,6 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_records(self, r: GetRecordsRequest) -> GetRecordsResponse:
-        pass
-
-    @abc.abstractmethod
-    def get_crossmatch_records(self, r: GetRecordsCrossmatchRequest) -> GetRecordsCrossmatchResponse:
         pass
 
     @abc.abstractmethod
