@@ -85,12 +85,6 @@ class API:
     ) -> server.APIOkResponse[interface.LogoutResponse]:
         return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
 
-    def get_crossmatch_records(
-        self, request: Annotated[interface.GetRecordsCrossmatchRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[interface.GetRecordsCrossmatchResponse]:
-        response = self.actions.get_crossmatch_records(request)
-        return server.APIOkResponse(data=response)
-
     def get_record_crossmatch(
         self, request: Annotated[interface.GetRecordCrossmatchRequest, fastapi.Query()]
     ) -> server.APIOkResponse[interface.GetRecordCrossmatchResponse]:
@@ -265,13 +259,6 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 "Revokes the bearer token used for this request.",
                 allowed_roles=admin_only,
                 rate_limit="10/minute",
-            ),
-            server.Route(
-                "/v1/records/crossmatch",
-                http.HTTPMethod.GET,
-                api.get_crossmatch_records,
-                "Get crossmatch records",
-                """Retrieves crossmatch records for a specific table with optional filtering.""",
             ),
             server.Route(
                 "/v1/records/crossmatch",

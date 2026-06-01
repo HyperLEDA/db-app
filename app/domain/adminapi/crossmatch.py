@@ -117,21 +117,6 @@ class CrossmatchManager:
             ) from e
         return adminapi.AssignRecordPgcsResponse()
 
-    def get_crossmatch_records(self, r: adminapi.GetRecordsCrossmatchRequest) -> adminapi.GetRecordsCrossmatchResponse:
-        row_offset = r.page * r.page_size
-
-        processed_rows = self.layer0_repo.get_processed_records(
-            table_name=r.table_name,
-            limit=r.page_size,
-            row_offset=row_offset if row_offset > 0 else None,
-            status=[r.status] if r.status is not None else None,
-            triage_status=[r.triage_status] if r.triage_status is not None else None,
-        )
-
-        records = self._convert_to_record_crossmatch(processed_rows)
-
-        return adminapi.GetRecordsCrossmatchResponse(records=records, schema=DATA_SCHEMA)
-
     def _candidates_to_status(self, candidates: list[int]) -> enums.RecordCrossmatchStatus:
         if len(candidates) == 0:
             return enums.RecordCrossmatchStatus.NEW
