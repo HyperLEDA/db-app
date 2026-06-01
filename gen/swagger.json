@@ -470,109 +470,19 @@
       }
     },
     "/api/v1/records/crossmatch": {
-      "get": {
-        "summary": "Get crossmatch records",
-        "description": "Retrieves crossmatch records for a specific table with optional filtering.",
-        "operationId": "get_crossmatch_records",
-        "parameters": [
-          {
-            "name": "table_name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Table Name"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RecordCrossmatchStatus"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Status"
-            }
-          },
-          {
-            "name": "triage_status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RecordTriageStatus"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Triage Status"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Page"
-            }
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 25,
-              "title": "Page Size"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIOkResponse_GetRecordsCrossmatchResponse_"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "summary": "Set crossmatch results",
         "description": "Bulk write crossmatch results. Each entry contains only the fields needed for that status (no nulls).\nAt least one status block must be present.\n\n**Example 1 \u2013 minimal (all new objects):**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] }\n  }\n}\n```\n\n**Example 2 \u2013 mixed statuses:**\n```json\n{\n  \"statuses\": {\n    \"new\": { \"record_ids\": [\"uuid-1\", \"uuid-2\"] },\n    \"existing\": { \"record_ids\": [\"uuid-3\"], \"pgcs\": [42] },\n    \"collided\": {\n      \"record_ids\": [\"uuid-4\"],\n      \"possible_matches\": [[40, 41, 42]],\n      \"triage_statuses\": [\"resolved\"]\n    }\n  }\n}\n```",
         "operationId": "set_crossmatch_results",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SetCrossmatchResultsRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -809,18 +719,6 @@
           "data"
         ],
         "title": "APIOkResponse[GetRecordCrossmatchResponse]"
-      },
-      "APIOkResponse_GetRecordsCrossmatchResponse_": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/GetRecordsCrossmatchResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "APIOkResponse[GetRecordsCrossmatchResponse]"
       },
       "APIOkResponse_GetRecordsResponse_": {
         "properties": {
@@ -1531,26 +1429,6 @@
           "schema"
         ],
         "title": "GetRecordCrossmatchResponse"
-      },
-      "GetRecordsCrossmatchResponse": {
-        "properties": {
-          "records": {
-            "items": {
-              "$ref": "#/components/schemas/RecordCrossmatch"
-            },
-            "type": "array",
-            "title": "Records"
-          },
-          "schema": {
-            "$ref": "#/components/schemas/Schema"
-          }
-        },
-        "type": "object",
-        "required": [
-          "records",
-          "schema"
-        ],
-        "title": "GetRecordsCrossmatchResponse"
       },
       "GetRecordsResponse": {
         "properties": {
