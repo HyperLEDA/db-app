@@ -53,6 +53,9 @@ fix:
 		--config=pyproject.toml \
 		--fix
 
+check-deadcode:
+	@uvx vulture
+
 wheel:
 	uv build --wheel
 

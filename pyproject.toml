@@ -168,3 +168,20 @@ reportImplicitAbstractClass = "error"
     "F403", # ignore star imports warning in __init__ files
 ]
 "tests/**" = ["S101"]
+
+[tool.vulture]
+paths = ["app", "tests"]
+min_confidence = 60
+ignore_decorators = [
+    "@pydantic.model_validator*",
+    "@pydantic.field_validator*",
+    "@cli.command*",
+]
+ignore_names = [
+    "model_config",
+    "dispatch",
+    "settings_customise_sources",
+    "settings_cls",
+    "dotenv_settings",
+    "file_secret_settings",
+]

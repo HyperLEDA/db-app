@@ -3,7 +3,6 @@ import abc
 INTERNAL_ERROR_CODE = "internal_error"
 VALIDATION_ERROR_CODE = "validation_error"
 NOT_FOUND_ERROR = "not_found"
-DATABASE_ERROR = "database_error"
 UNAUTHORIZED_ERROR = "unauthorized"
 FORBIDDEN_ERROR = "forbidden"
 CONFLICT_ERROR = "conflict"
@@ -69,18 +68,6 @@ class NotFoundError(APIError):
 
     def data(self) -> tuple[str, int, str]:
         return (NOT_FOUND_ERROR, 404, self.msg)
-
-
-class DatabaseError(APIError):
-    """
-    Internal error that originated in the database.
-    """
-
-    def __init__(self, message: str):
-        self.msg = message
-
-    def data(self) -> tuple[str, int, str]:
-        return (DATABASE_ERROR, 500, self.msg)
 
 
 class UnauthorizedError(APIError):
