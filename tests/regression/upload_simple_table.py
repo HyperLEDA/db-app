@@ -390,6 +390,8 @@ def check_table_list(session: requests.Session, table_name: str):
         assert "description" in item
         assert "num_entries" in item
         assert "num_fields" in item
+        assert "bibcode" in item
+        assert "progress" in item
 
 
 @lib.test_logging_decorator

@@ -178,17 +178,39 @@ class TableUploadManager:
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
         cached_tables = self.table_stats_cache.get().tables
+        missing_names = [item.table_name for item in items if item.table_name not in cached_tables]
+        fallback_progress = self.layer0_repo.get_table_progress(missing_names) if missing_names else {}
         return adminapi.GetTableListResponse(
-            tables=[
-                adminapi.TableListItem(
-                    name=item.table_name,
-                    description=item.description,
-                    num_entries=cached_tables[item.table_name].total_records if item.table_name in cached_tables else 0,
-                    num_fields=item.num_fields,
-                    modification_dt=item.modification_dt,
+            tables=[self._table_list_item(item, cached_tables, fallback_progress) for item in items]
+        )
+
+    def _table_list_item(
+        self,
+        item: model.Layer0TableListItem,
+        cached_tables: dict[str, adminapi.TableProgress],
+        fallback_progress: dict[str, model.TableProgress],
+    ) -> adminapi.TableListItem:
+        progress = cached_tables.get(item.table_name)
+        if progress is None:
+            table_progress = fallback_progress.get(item.table_name)
+            if table_progress is None:
+                table_progress = model.TableProgress(
+                    total_records=0,
+                    unprocessed=0,
+                    pending_triage=0,
+                    resolved_unsubmitted=0,
+                    submitted=0,
+                    catalogs={},
                 )
-                for item in items
-            ]
+            progress = table_stats.table_progress_to_presentation(table_progress)
+        return adminapi.TableListItem(
+            name=item.table_name,
+            description=item.description,
+            num_entries=progress.total_records,
+            num_fields=item.num_fields,
+            modification_dt=item.modification_dt,
+            bibcode=item.bibcode,
+            progress=progress,
         )
 
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
