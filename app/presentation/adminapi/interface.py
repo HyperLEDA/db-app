@@ -53,18 +53,6 @@ class GetTableListRequest(pydantic.BaseModel):
     page: int = 0
 
 
-class TableListItem(pydantic.BaseModel):
-    name: str
-    description: str
-    num_entries: int
-    num_fields: int
-    modification_dt: datetime.datetime
-
-
-class GetTableListResponse(pydantic.BaseModel):
-    tables: list[TableListItem]
-
-
 class CatalogProgress(pydantic.BaseModel):
     structured: int
     in_layer2: int
@@ -78,6 +66,20 @@ class TableProgress(pydantic.BaseModel):
     resolved_unsubmitted: int
     submitted: int
     catalogs: dict[str, CatalogProgress]
+
+
+class TableListItem(pydantic.BaseModel):
+    name: str
+    description: str
+    num_entries: int
+    num_fields: int
+    modification_dt: datetime.datetime
+    bibcode: str
+    progress: TableProgress
+
+
+class GetTableListResponse(pydantic.BaseModel):
+    tables: list[TableListItem]
 
 
 class TableStatsSnapshot(pydantic.BaseModel):

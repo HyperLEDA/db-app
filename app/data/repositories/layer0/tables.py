@@ -533,6 +533,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             t.table_name,
             t.modification_dt,
             COALESCE(ti.param->>'description', '') AS description,
+            b.code AS bibcode,
             (
                 SELECT COUNT(*)::int
                 FROM meta.column_info c
@@ -541,6 +542,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                   AND c.column_name != %s
             ) AS num_fields
         FROM layer0.tables t
+        JOIN common.bib b ON b.id = t.bib
         LEFT JOIN meta.table_info ti
             ON ti.schema_name = %s AND ti.table_name = t.table_name
         WHERE t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s
@@ -563,6 +565,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 description=row["description"] or "",
                 num_fields=int(row["num_fields"]),
                 modification_dt=row["modification_dt"],
+                bibcode=row["bibcode"],
             )
             for row in rows
         ]

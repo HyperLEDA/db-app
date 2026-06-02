@@ -50,6 +50,7 @@ class Layer0TableListItem:
     description: str
     num_fields: int
     modification_dt: datetime.datetime
+    bibcode: str
 
 
 @dataclass

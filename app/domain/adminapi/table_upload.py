@@ -178,18 +178,29 @@ class TableUploadManager:
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
         cached_tables = self.table_stats_cache.get().tables
-        return adminapi.GetTableListResponse(
-            tables=[
+        empty_progress = adminapi.TableProgress(
+            total_records=0,
+            unprocessed=0,
+            pending_triage=0,
+            resolved_unsubmitted=0,
+            submitted=0,
+            catalogs={},
+        )
+        tables: list[adminapi.TableListItem] = []
+        for item in items:
+            progress = cached_tables.get(item.table_name) or empty_progress
+            tables.append(
                 adminapi.TableListItem(
                     name=item.table_name,
                     description=item.description,
-                    num_entries=cached_tables[item.table_name].total_records if item.table_name in cached_tables else 0,
+                    num_entries=progress.total_records,
                     num_fields=item.num_fields,
                     modification_dt=item.modification_dt,
+                    bibcode=item.bibcode,
+                    progress=progress,
                 )
-                for item in items
-            ]
-        )
+            )
+        return adminapi.GetTableListResponse(tables=tables)
 
     def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
