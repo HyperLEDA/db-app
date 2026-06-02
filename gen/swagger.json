@@ -2408,6 +2408,13 @@
             "type": "string",
             "format": "date-time",
             "title": "Modification Dt"
+          },
+          "bibcode": {
+            "type": "string",
+            "title": "Bibcode"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TableProgress"
           }
         },
         "type": "object",
@@ -2416,7 +2423,9 @@
           "description",
           "num_entries",
           "num_fields",
-          "modification_dt"
+          "modification_dt",
+          "bibcode",
+          "progress"
         ],
         "title": "TableListItem"
       },
