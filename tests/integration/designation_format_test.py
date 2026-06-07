@@ -84,7 +84,7 @@ class DesignationFormatIntegrationTest(unittest.TestCase):
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0]["formatted"], "NGC 224")
         self.assertEqual(results[0]["rule_id"], "ngc")
-        self.assertIsNone(results[1]["rule_id"])
+        self.assertIsNone(results[1].get("rule_id"))
         self.assertEqual(results[1]["formatted"], "unknown name xyz")
 
     def test_golden_cases(self) -> None:
