@@ -3,6 +3,7 @@ from typing import final
 from app.data import model, repositories
 from app.domain import responders
 from app.domain.dataapi import parameterized_query, search_parsers, tap_types
+from app.domain.designation import DesignationFormatter
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -41,10 +42,12 @@ class Actions(dataapi.Actions):
         layer2_repo: repositories.Layer2Repository,
         catalog_cfg: responders.CatalogConfig,
         metadata_repo: repositories.MetadataRepository,
+        designation_formatter: DesignationFormatter,
     ) -> None:
         self.layer2_repo = layer2_repo
         self.catalog_cfg = catalog_cfg
         self.metadata_repo = metadata_repo
+        self.designation_formatter = designation_formatter
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
             layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
@@ -64,6 +67,17 @@ class Actions(dataapi.Actions):
 
     def query_fits(self, query: dataapi.FITSRequest) -> bytes:
         return self.parameterized_query_manager.query_fits(query)
+
+    def format_designations(self, request: dataapi.FormatRequest) -> dataapi.FormatResponse:
+        batch = self.designation_formatter.format_batch(request.names)
+        results: list[dataapi.FormatResult] = []
+        for original, match in batch:
+            raw = original.strip() if original else ""
+            if match is None:
+                results.append(dataapi.FormatResult(formatted=raw, rule_id=None))
+            else:
+                results.append(dataapi.FormatResult(formatted=match.formatted, rule_id=match.rule_id))
+        return dataapi.FormatResponse(results=results)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         return self.parameterized_query_manager.query_simple(query)

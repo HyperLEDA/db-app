@@ -9,6 +9,7 @@ from app.commands.dataapi import command as dataapi_command
 from app.data import repositories
 from app.domain import dataapi as domain
 from app.domain.dataapi import actions as dataapi_actions
+from app.domain.designation import DesignationFormatter
 from app.lib import auth
 from app.presentation.dataapi.server import Server
 from tests import lib
@@ -24,10 +25,13 @@ class MetadataAPITest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.pg = self.pg_storage.get_storage()
+        rules_repo = repositories.DesignationRulesRepository(self.pg, self.log)
+        formatter = DesignationFormatter(rules_repo.snapshot)
         self.actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg, self.log),
             catalog_cfg=self.cfg.catalogs,
             metadata_repo=repositories.MetadataRepository(self.pg),
+            designation_formatter=formatter,
         )
         self.client = testclient.TestClient(
             Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
