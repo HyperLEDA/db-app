@@ -112,6 +112,19 @@ class API:
         response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
 
+    def list_designation_rules(
+        self,
+    ) -> server.APIOkResponse[interface.ListRulesResponse]:
+        response = self.actions.list_designation_rules()
+        return server.APIOkResponse(data=response)
+
+    def save_designation_rule(
+        self,
+        request: interface.SaveRuleRequest,
+    ) -> server.APIOkResponse[interface.SaveRuleResponse]:
+        response = self.actions.save_designation_rule(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -327,10 +340,10 @@ For every column that has unit metadata in the database, the request must includ
 ```json
 {
   "catalog": "designation",
-  "columns": ["design"],
+  "columns": ["design", "raw", "rule_id"],
   "units": {},
   "ids": ["uuid-1", "uuid-2"],
-  "data": [["NGC 1234"], ["NGC 5678"]]
+  "data": [["NGC 1234", "ngc 1234", "ngc"], ["NGC 5678", "NGC5678", "ngc"]]
 }
 ```
 
@@ -345,6 +358,26 @@ For every column that has unit metadata in the database, the request must includ
 }
 ```
 """,
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/designation/rules",
+                http.HTTPMethod.GET,
+                api.list_designation_rules,
+                "List designation format rules",
+                "Returns all designation formatting rules ordered by priority.",
+                allowed_roles=admin_only,
+            ),
+            server.Route(
+                "/v1/designation/rule",
+                http.HTTPMethod.POST,
+                api.save_designation_rule,
+                "Save designation format rule",
+                """Creates or updates a designation formatting rule.
+`rule.id` is the stable free-text identifier and primary key.
+Set `rule.enabled` to false to disable a rule instead of deleting it.
+When `rule.enabled` is true, optional `examples` are validated before save.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

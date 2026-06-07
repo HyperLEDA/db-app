@@ -1,3 +1,5 @@
+import threading
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, final
 
@@ -9,7 +11,8 @@ import yaml
 from app.data import repositories
 from app.domain import dataapi as domain
 from app.domain import responders
-from app.lib import auth, commands, config, tracing
+from app.domain.designation import DesignationFormatter
+from app.lib import auth, cache, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
@@ -27,6 +30,11 @@ class DataAPICommand(commands.Command):
 
     def __init__(self, config_path: str) -> None:
         self.config_path = config_path
+        self.pg_auth: postgres.PgStorage | None = None
+        self.pg_main: postgres.PgStorage | None = None
+        self.designation_rules_cache: cache.BackgroundCache | None = None
+        self._designation_rules_thread: threading.Thread | None = None
+        self.app: presentation.Server | None = None
 
     def prepare(self):
         self.config = parse_config(self.config_path)
@@ -43,10 +51,26 @@ class DataAPICommand(commands.Command):
         self.pg_auth.connect()
         self.pg_main.connect()
 
+        designation_rules_repo = repositories.DesignationRulesRepository(self.pg_main, log)
+        self.designation_rules_cache = cache.BackgroundCache(
+            "designation_rules",
+            designation_rules_repo.snapshot,
+            refresh_frequency=timedelta(seconds=30),
+            refresh_timeout=timedelta(seconds=10),
+        )
+        self._designation_rules_thread = threading.Thread(
+            target=self.designation_rules_cache.run,
+            daemon=True,
+        )
+        self._designation_rules_thread.start()
+
+        designation_formatter = DesignationFormatter(self.designation_rules_cache.get)
+
         actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg_main, log),
             catalog_cfg=self.config.catalogs,
             metadata_repo=repositories.MetadataRepository(self.pg_main),
+            designation_formatter=designation_formatter,
         )
 
         self.app = presentation.Server(
@@ -58,9 +82,13 @@ class DataAPICommand(commands.Command):
         )
 
     def run(self):
+        if self.app is None:
+            raise RuntimeError("prepare() was not called")
         self.app.run()
 
     def cleanup(self):
+        if self.designation_rules_cache is not None:
+            self.designation_rules_cache.stop()
         if self.pg_auth:
             self.pg_auth.disconnect()
         if self.pg_main:
