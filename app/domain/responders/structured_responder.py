@@ -65,7 +65,7 @@ class StructuredResponder(interface.ObjectResponder):
         self.config = cfg
 
     def _heliocentric_to_redshift(self, cz: float) -> float:
-        return astronomy.to((cz * u.Unit("m") / u.Unit("s")) / astronomy.const("c"))
+        return astronomy.to((cz * u.Unit("km/s")) / astronomy.const("c"))
 
     def _equatorial(
         self,
@@ -148,13 +148,13 @@ class StructuredResponder(interface.ObjectResponder):
 
                 for key, apex in self.config.velocity.apexes.items():
                     vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                        vel=redshift.cz * u.Unit("m/s"),
+                        vel=redshift.cz * u.Unit("km/s"),
                         lon=lon * u.Unit("deg"),
                         lat=lat * u.Unit("deg"),
                         vel_apex=apex.vel.value * u.Unit("km/s"),
                         lon_apex=apex.lon.value * u.Unit("deg"),
                         lat_apex=apex.lat.value * u.Unit("deg"),
-                        vel_err=redshift.e_cz * u.Unit("m/s"),
+                        vel_err=redshift.e_cz * u.Unit("km/s"),
                         lon_err=e_lon * u.Unit("arcsec"),
                         lat_err=e_lat * u.Unit("arcsec"),
                         vel_apex_err=apex.vel.error * u.Unit("km/s"),
@@ -258,13 +258,13 @@ class StructuredResponder(interface.ObjectResponder):
 
                 for key, apex in self.config.velocity.apexes.items():
                     vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                        vel=redshift.cz * u.Unit("m/s"),
+                        vel=redshift.cz * u.Unit("km/s"),
                         lon=lon * u.Unit("deg"),
                         lat=lat * u.Unit("deg"),
                         vel_apex=apex.vel.value * u.Unit("km/s"),
                         lon_apex=apex.lon.value * u.Unit("deg"),
                         lat_apex=apex.lat.value * u.Unit("deg"),
-                        vel_err=redshift.e_cz * u.Unit("m/s"),
+                        vel_err=redshift.e_cz * u.Unit("km/s"),
                         lon_err=e_lon * u.Unit("arcsec"),
                         lat_err=e_lat * u.Unit("arcsec"),
                         vel_apex_err=apex.vel.error * u.Unit("km/s"),
