@@ -14,6 +14,8 @@ def const(const_name: str) -> u.Quantity:
 
 def to(value: u.Quantity, unit: str | None = None) -> float:
     if unit is None:
+        if value.unit.is_equivalent(u.one):
+            return float(value.decompose().value)
         return value.value
 
     return float(value.to(u.Unit(unit)).value)

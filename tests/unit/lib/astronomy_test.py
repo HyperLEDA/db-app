@@ -145,3 +145,7 @@ class AstronomyTest(unittest.TestCase):
         self.assertAlmostEqual(velocity_err.value, expected.std_dev, places=5)
         self.assertEqual(velocity.unit, u.Unit("km/s"))
         self.assertEqual(velocity_err.unit, u.Unit("km/s"))
+
+    def test_to_dimensionless_quantity(self):
+        z = astronomy.to((4195.0 * u.Unit("km/s")) / astronomy.const("c"))
+        self.assertAlmostEqual(z, 0.013993013793562478)
