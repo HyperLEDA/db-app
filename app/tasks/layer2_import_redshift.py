@@ -12,7 +12,7 @@ from app.lib.storage import postgres
 from app.tasks import interface
 
 REDSHIFT_COLUMNS = ["cz", "e_cz"]
-VELOCITY_UNIT = "m/s"
+VELOCITY_UNIT = "km/s"
 
 
 def _array_to_velocity(arr: np.ndarray, unit_str: str) -> np.ndarray:
