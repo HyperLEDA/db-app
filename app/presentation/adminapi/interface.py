@@ -377,6 +377,33 @@ class AssignRecordPgcsResponse(pydantic.BaseModel):
     pass
 
 
+class RuleExample(pydantic.BaseModel):
+    input: str
+    expected: str
+
+
+class RuleModel(pydantic.BaseModel):
+    id: str
+    priority: int
+    pattern: str
+    template: str
+    transforms: dict[str, list[dict[str, str | None]]] = pydantic.Field(default_factory=dict)
+    enabled: bool = True
+
+
+class ListRulesResponse(pydantic.BaseModel):
+    rules: list[RuleModel]
+
+
+class SaveRuleRequest(WriteRequest):
+    rule: RuleModel
+    examples: list[RuleExample] = pydantic.Field(default_factory=list)
+
+
+class SaveRuleResponse(pydantic.BaseModel):
+    rule: RuleModel
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, r: AddDataRequest) -> AddDataResponse:
@@ -428,4 +455,12 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def assign_record_pgcs(self, r: AssignRecordPgcsRequest) -> AssignRecordPgcsResponse:
+        pass
+
+    @abc.abstractmethod
+    def list_designation_rules(self) -> ListRulesResponse:
+        pass
+
+    @abc.abstractmethod
+    def save_designation_rule(self, r: SaveRuleRequest) -> SaveRuleResponse:
         pass

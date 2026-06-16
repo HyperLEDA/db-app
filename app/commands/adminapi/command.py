@@ -49,6 +49,7 @@ class AdminAPICommand(commands.Command):
         )
 
         layer0_repo = repositories.Layer0Repository(self.pg_storage, log)
+        designation_rules_repo = repositories.DesignationRulesRepository(self.pg_storage, log)
         refresh = table_stats.make_table_stats_refresh(layer0_repo)
         self.table_stats_cache = cache.BackgroundCache(
             "table_stats",
@@ -64,6 +65,7 @@ class AdminAPICommand(commands.Command):
             layer0_repo=layer0_repo,
             layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            designation_rules_repo=designation_rules_repo,
             authenticator=authenticator,
             clients=clients.Clients(cfg.clients.ads_token),
             table_stats_cache=self.table_stats_cache,

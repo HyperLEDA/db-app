@@ -55,6 +55,15 @@ class API:
             },
         )
 
+    def format_designations(
+        self,
+        request: fastapi.Request,
+        body: interface.FormatRequest,
+    ) -> server.APIOkResponse[interface.FormatResponse]:
+        _ = request
+        response = self.actions.format_designations(body)
+        return server.APIOkResponse(data=response)
+
     def tap_tables(
         self,
         request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
@@ -122,6 +131,16 @@ If the string matches multiple interpretations, results are combined with OR."""
 All of the conditions are combined with the logical AND operator.
 For example, if both coordinates and designation are specified, object must be in the specified area and have
 the specified designation.""",
+            ),
+            server.Route(
+                "/v1/designation/format",
+                http.HTTPMethod.POST,
+                api.format_designations,
+                "Format designation names",
+                """Canonicalizes a batch of designation names using the active format rules.
+Returns the formatted name and matched rule ID for each input.
+Unmatched names are returned unchanged with rule_id omitted.""",
+                rate_limit="120/minute",
             ),
             server.Route(
                 "/v1/tap/tables",

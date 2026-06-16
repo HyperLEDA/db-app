@@ -210,6 +210,23 @@ class QueryResponse(pydantic.BaseModel):
     objects: list[PGCObject]
 
 
+class FormatRequest(pydantic.BaseModel):
+    names: list[str] = pydantic.Field(
+        description="Designation names to format",
+        min_length=1,
+        max_length=10000,
+    )
+
+
+class FormatResult(pydantic.BaseModel):
+    formatted: str
+    rule_id: str | None = None
+
+
+class FormatResponse(pydantic.BaseModel):
+    results: list[FormatResult]
+
+
 class FITSRequest(pydantic.BaseModel):
     pgcs: list[int] | None = pydantic.Field(
         default=None,
@@ -260,6 +277,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def query_fits(self, query: FITSRequest) -> bytes:
+        pass
+
+    @abc.abstractmethod
+    def format_designations(self, request: FormatRequest) -> FormatResponse:
         pass
 
     @abc.abstractmethod
