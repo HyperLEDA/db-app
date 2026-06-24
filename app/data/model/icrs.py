@@ -17,12 +17,6 @@ class ICRSCatalogObject(interface.CatalogObject):
         self.e_ra = e_ra
         self.e_dec = e_dec
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, ICRSCatalogObject):
-            return False
-
-        return self.ra == value.ra and self.e_ra == value.e_ra and self.dec == value.dec and self.e_dec == value.e_dec
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 

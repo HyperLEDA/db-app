@@ -18,16 +18,6 @@ class PhotometryTotalCatalogObject(interface.CatalogObject):
         self.e_mag = e_mag
         self.method = method
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, PhotometryTotalCatalogObject):
-            return False
-        return (
-            self.band == value.band
-            and self.mag == value.mag
-            and self.e_mag == value.e_mag
-            and self.method == value.method
-        )
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.PHOTOMETRY__TOTAL
 
@@ -54,16 +44,6 @@ class PhotometryIsophotalCatalogObject(interface.CatalogObject):
         self.isophote = isophote
         self.mag = mag
         self.e_mag = e_mag
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, PhotometryIsophotalCatalogObject):
-            return False
-        return (
-            self.band == value.band
-            and self.isophote == value.isophote
-            and self.mag == value.mag
-            and self.e_mag == value.e_mag
-        )
 
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.PHOTOMETRY__ISOPHOTAL

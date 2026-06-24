@@ -8,12 +8,6 @@ class NatureCatalogObject(interface.CatalogObject):
     def __init__(self, type_name: str, **kwargs: Any) -> None:
         self.type_name = type_name
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, NatureCatalogObject):
-            return False
-
-        return self.type_name == value.type_name
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.NATURE
 

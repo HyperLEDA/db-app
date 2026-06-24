@@ -32,23 +32,6 @@ class GeometryCatalogObject(interface.CatalogObject):
         self.isophote = isophote
         self.e_isophote = e_isophote
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, GeometryCatalogObject):
-            return False
-        return (
-            self.band == value.band
-            and self.method == value.method
-            and self.level == value.level
-            and self.a == value.a
-            and self.e_a == value.e_a
-            and self.b == value.b
-            and self.e_b == value.e_b
-            and self.pa == value.pa
-            and self.e_pa == value.e_pa
-            and self.isophote == value.isophote
-            and self.e_isophote == value.e_isophote
-        )
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.GEOMETRY
 
