@@ -37,7 +37,7 @@ jobs:
           tags: local/app:latest
 
       - name: Run image help
-        run: docker run --rm --entrypoint "${{ github.event.repository.name }}" local/app:latest --help
+        run: docker run --rm --entrypoint "{{ project_name }}" local/app:latest --help
 
       - name: Save image
         run: docker save local/app:latest -o image.tar
