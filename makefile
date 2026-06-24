@@ -29,6 +29,10 @@ check-migrations:
 		exit 1; \
 	fi; \
 
+check-schema:
+	docker compose up -d hyperledadb migrate wait-for-migrate
+	npx --yes schemalint@2.3.2
+
 check:
 	@output=$$(copier check-update --answers-file .template.yaml 2>&1) || true; \
 	if echo "$$output" | grep -q "up-to-date"; then \

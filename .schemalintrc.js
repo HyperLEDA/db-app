@@ -25,13 +25,9 @@ module.exports = {
   ],
   rules: {
     "name-casing": ["error", "snake"],
+    "prefer-text-to-varchar": ["error"],
   },
   ignores: [
     { identifierPattern: "public\\.schema_version.*", rulePattern: ".*" },
-    { identifierPattern: "public\\.spatial_ref_sys.*", rulePattern: ".*" },
-    { identifierPattern: "public\\.geography_columns.*", rulePattern: ".*" },
-    { identifierPattern: "public\\.geometry_columns.*", rulePattern: ".*" },
-    { identifierPattern: "public\\.raster_columns.*", rulePattern: ".*" },
-    { identifierPattern: "public\\.raster_overviews.*", rulePattern: ".*" },
   ],
 };
