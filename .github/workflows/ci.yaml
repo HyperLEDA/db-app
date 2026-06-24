@@ -53,9 +53,37 @@ jobs:
           path: image.tar
           retention-days: 1
 
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install deps
+        run: make install-dev
+
+      - name: Start environment
+        run: docker compose up -d
+
+      - name: Start AdminAPI server
+        run: make adminapi &
+
+      - name: Start DataAPI server
+        env:
+          STORAGE_PASSWORD: password
+        run: SERVER_PORT=8081 make dataapi &
+
+      - name: Run regression tests
+        run: make test-regression
+
   release:
     runs-on: ubuntu-latest
-    needs: [tests, build]
+    needs: [tests, build, regression]
     if: github.ref_name == github.event.repository.default_branch
     permissions:
       contents: read
