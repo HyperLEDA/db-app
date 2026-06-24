@@ -1,22 +1,19 @@
 from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, redshift
 
+_CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]] = {
+    interface.RawCatalog.DESIGNATION: designation.DesignationCatalogObject,
+    interface.RawCatalog.ICRS: icrs.ICRSCatalogObject,
+    interface.RawCatalog.REDSHIFT: redshift.RedshiftCatalogObject,
+    interface.RawCatalog.NATURE: nature.NatureCatalogObject,
+    interface.RawCatalog.PHOTOMETRY__TOTAL: photometry.PhotometryTotalCatalogObject,
+    interface.RawCatalog.PHOTOMETRY__ISOPHOTAL: photometry.PhotometryIsophotalCatalogObject,
+    interface.RawCatalog.GEOMETRY: geometry.GeometryCatalogObject,
+    interface.RawCatalog.NOTE: note.NoteCatalogObject,
+}
+
 
 def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.CatalogObject]:
-    if catalog == interface.RawCatalog.DESIGNATION:
-        return designation.DesignationCatalogObject
-    if catalog == interface.RawCatalog.ICRS:
-        return icrs.ICRSCatalogObject
-    if catalog == interface.RawCatalog.REDSHIFT:
-        return redshift.RedshiftCatalogObject
-    if catalog == interface.RawCatalog.NATURE:
-        return nature.NatureCatalogObject
-    if catalog == interface.RawCatalog.PHOTOMETRY__TOTAL:
-        return photometry.PhotometryTotalCatalogObject
-    if catalog == interface.RawCatalog.PHOTOMETRY__ISOPHOTAL:
-        return photometry.PhotometryIsophotalCatalogObject
-    if catalog == interface.RawCatalog.GEOMETRY:
-        return geometry.GeometryCatalogObject
-    if catalog == interface.RawCatalog.NOTE:
-        return note.NoteCatalogObject
-
-    raise ValueError(f"Unknown catalog: {catalog}")
+    try:
+        return _CATALOG_OBJECT_TYPES[catalog]
+    except KeyError as e:
+        raise ValueError(f"Unknown catalog: {catalog}") from e
