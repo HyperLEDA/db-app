@@ -4,6 +4,37 @@ install:
 install-dev:
 	uv sync --all-extras
 
+MIGRATIONS_DIR = postgres/migrations
+
+check-migrations:
+	@invalid=$$( \
+		ls $(MIGRATIONS_DIR) \
+		| grep -vE '^V[0-9]{3}__[a-z0-9_]+\.sql$$' \
+		|| true \
+	); \
+	dups=$$( \
+		ls $(MIGRATIONS_DIR) \
+		| sed -n 's/^V\([0-9]\{3\}\)__.*/\1/p' \
+		| sort \
+		| uniq -d \
+	); \
+	if [ -n "$$invalid" ]; then \
+		echo "Invalid migration names:"; \
+		echo "$$invalid"; \
+		exit 1; \
+	fi; \
+	if [ -n "$$dups" ]; then \
+		echo "Duplicate migration versions:"; \
+		echo "$$dups"; \
+		exit 1; \
+	fi; \
+
+check-schema:
+	docker compose stop hyperledadb migrate wait-for-migrate
+	docker compose rm -f -v hyperledadb migrate wait-for-migrate
+	docker compose up -d hyperledadb migrate wait-for-migrate
+	npx --yes schemalint@2.3.2
+
 check:
 	@output=$$(copier check-update --answers-file .template.yaml 2>&1) || true; \
 	if echo "$$output" | grep -q "up-to-date"; then \
@@ -36,6 +67,9 @@ check:
 	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
 	exit $$exit_code
 	@echo "Typechecking ok."
+
+	@$(MAKE) check-migrations
+	@echo "Migrations ok."
 
 	@uv run pytest \
 		--quiet \
