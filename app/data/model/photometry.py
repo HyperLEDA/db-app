@@ -1,4 +1,4 @@
-from typing import Any, Self, final
+from typing import Any, final
 
 from app.data.model import interface
 
@@ -36,21 +36,8 @@ class PhotometryTotalCatalogObject(interface.CatalogObject):
         return "photometry.total"
 
     @classmethod
-    def layer1_keys(cls) -> list[str]:
-        return ["band", "mag", "e_mag", "method"]
-
-    @classmethod
     def layer1_primary_keys(cls) -> list[str]:
         return ["record_id", "method", "band"]
-
-    @classmethod
-    def from_layer1(cls, data: dict[str, Any]) -> Self:
-        return cls(
-            band=data["band"],
-            mag=data["mag"],
-            e_mag=data.get("e_mag"),
-            method=data["method"],
-        )
 
 
 @final
@@ -86,18 +73,5 @@ class PhotometryIsophotalCatalogObject(interface.CatalogObject):
         return "photometry.isophotal"
 
     @classmethod
-    def layer1_keys(cls) -> list[str]:
-        return ["band", "isophote", "mag", "e_mag"]
-
-    @classmethod
     def layer1_primary_keys(cls) -> list[str]:
         return ["record_id", "band", "isophote"]
-
-    @classmethod
-    def from_layer1(cls, data: dict[str, Any]) -> Self:
-        return cls(
-            band=data["band"],
-            isophote=float(data["isophote"]),
-            mag=data["mag"],
-            e_mag=data.get("e_mag"),
-        )

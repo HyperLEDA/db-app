@@ -37,7 +37,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.layer0_repo.register_records(table_name, record_ids)
         self.common_repo.register_pgcs(list(pgcs.values()))
         self.layer0_repo.upsert_pgc(pgcs)
-        columns = model.NatureCatalogObject.layer1_keys()
+        columns = ["type_name"]
         self.layer1_repo.save_structured_data(
             model.NatureCatalogObject.layer1_table(),
             columns,

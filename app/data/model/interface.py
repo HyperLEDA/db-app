@@ -43,18 +43,16 @@ class CatalogObject(abc.ABC):
         return f"{catalog.value}.data"
 
     @classmethod
-    @abc.abstractmethod
     def layer1_keys(cls) -> list[str]:
-        pass
+        raise NotImplementedError
 
     @classmethod
     def layer1_primary_keys(cls) -> list[str]:
         return ["record_id"]
 
     @classmethod
-    @abc.abstractmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
-        pass
+        raise NotImplementedError
 
     @classmethod
     def layer2_table(cls) -> str:
