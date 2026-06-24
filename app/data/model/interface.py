@@ -38,9 +38,9 @@ class CatalogObject(abc.ABC):
         pass
 
     @classmethod
-    @abc.abstractmethod
     def layer1_table(cls) -> str:
-        pass
+        catalog = object.__new__(cls).catalog()
+        return f"{catalog.value}.data"
 
     @classmethod
     @abc.abstractmethod

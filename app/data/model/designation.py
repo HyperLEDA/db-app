@@ -18,10 +18,6 @@ class DesignationCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.DESIGNATION
 
     @classmethod
-    def layer1_table(cls) -> str:
-        return "designation.data"
-
-    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["design"]
 

@@ -18,10 +18,6 @@ class NatureCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.NATURE
 
     @classmethod
-    def layer1_table(cls) -> str:
-        return "nature.data"
-
-    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["type_name"]
 

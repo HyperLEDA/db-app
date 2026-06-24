@@ -18,10 +18,6 @@ class NoteCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.NOTE
 
     @classmethod
-    def layer1_table(cls) -> str:
-        return "note.data"
-
-    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["note"]
 

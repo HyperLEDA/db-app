@@ -27,10 +27,6 @@ class ICRSCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.ICRS
 
     @classmethod
-    def layer1_table(cls) -> str:
-        return "icrs.data"
-
-    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["ra", "e_ra", "dec", "e_dec"]
 
