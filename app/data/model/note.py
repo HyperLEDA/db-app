@@ -28,18 +28,3 @@ class NoteCatalogObject(interface.CatalogObject):
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
         return cls(note=data["note"])
-
-    @classmethod
-    def layer2_table(cls) -> str:
-        raise NotImplementedError
-
-    @classmethod
-    def layer2_keys(cls) -> list[str]:
-        raise NotImplementedError
-
-    def layer2_data(self) -> dict[str, Any]:
-        raise NotImplementedError
-
-    @classmethod
-    def from_layer2(cls, data: dict[str, Any]) -> Self:
-        raise NotImplementedError

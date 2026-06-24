@@ -57,23 +57,19 @@ class CatalogObject(abc.ABC):
         pass
 
     @classmethod
-    @abc.abstractmethod
     def layer2_table(cls) -> str:
-        pass
+        raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
     def layer2_keys(cls) -> list[str]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def layer2_data(self) -> dict[str, Any]:
-        pass
+        raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
     def from_layer2(cls, data: dict[str, Any]) -> Self:
-        pass
+        raise NotImplementedError
 
 
 def get_object[T](catalog_objects: list[CatalogObject], t: type[T]) -> T | None:

@@ -79,18 +79,3 @@ class GeometryCatalogObject(interface.CatalogObject):
             isophote=float(data["isophote"]) if data.get("isophote") is not None else None,
             e_isophote=float(data["e_isophote"]) if data.get("e_isophote") is not None else None,
         )
-
-    @classmethod
-    def layer2_table(cls) -> str:
-        raise NotImplementedError
-
-    @classmethod
-    def layer2_keys(cls) -> list[str]:
-        raise NotImplementedError
-
-    def layer2_data(self) -> dict[str, Any]:
-        raise NotImplementedError
-
-    @classmethod
-    def from_layer2(cls, data: dict[str, Any]) -> Self:
-        raise NotImplementedError
