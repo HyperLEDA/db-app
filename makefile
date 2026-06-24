@@ -30,6 +30,8 @@ check-migrations:
 	fi; \
 
 check-schema:
+	docker compose stop hyperledadb migrate wait-for-migrate
+	docker compose rm -f -v hyperledadb migrate wait-for-migrate
 	docker compose up -d hyperledadb migrate wait-for-migrate
 	npx --yes schemalint@2.3.2
 
