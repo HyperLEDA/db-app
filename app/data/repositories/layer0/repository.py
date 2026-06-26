@@ -126,9 +126,3 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         return self.records_repo.assign_record_pgcs(record_ids)
-
-    def remove_records(self, table_name: str, record_ids: list[str]) -> dict[str, int]:
-        return self.table_repo.remove_records(table_name, record_ids)
-
-    def drop_raw_table(self, table_name: str) -> None:
-        return self.table_repo.drop_raw_table(table_name)
