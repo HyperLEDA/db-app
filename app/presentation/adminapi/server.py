@@ -58,6 +58,10 @@ class API:
         response = self.actions.get_table_list(request)
         return server.APIOkResponse(data=response)
 
+    def get_catalogs(self) -> server.APIOkResponse[interface.GetCatalogsResponse]:
+        response = self.actions.get_catalogs()
+        return server.APIOkResponse(data=response)
+
     def get_records(
         self, request: Annotated[interface.GetRecordsRequest, fastapi.Query()]
     ) -> server.APIOkResponse[interface.GetRecordsResponse]:
@@ -171,6 +175,13 @@ of the previously created table without any alterations.""",
                 api.get_table_list,
                 "List tables",
                 "Returns a paginated list of tables matching the search query by name or description",
+            ),
+            server.Route(
+                "/v1/catalogs",
+                http.HTTPMethod.GET,
+                api.get_catalogs,
+                "List layer 1 catalog structures",
+                "Returns the writable column structure of every layer 1 catalog.",
             ),
             server.Route(
                 "/v1/records",
