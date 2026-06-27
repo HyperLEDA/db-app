@@ -60,7 +60,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         )
         expected = [model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="test")])]
 
-        self.assertEqual(actual, expected)
+        lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_several_objects(self):
         objects: list[model.Layer2CatalogObject] = [
@@ -83,7 +83,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.assertEqual(actual, expected)
+        lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_several_catalogs(self):
         objects = [
@@ -117,7 +117,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             ),
         ]
 
-        self.assertEqual(actual, expected)
+        lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_several_filters(self):
         objects = [
@@ -167,7 +167,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqual(actual, expected)
+        lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_pagination(self):
         objects: list[model.Layer2CatalogObject] = [
@@ -321,7 +321,11 @@ class Layer2RepositoryTest(unittest.TestCase):
             10,
             0,
         )
-        self.assertEqual(actual, [model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="d2")])])
+        lib.assert_layer2_catalog_objects_equal(
+            self,
+            actual,
+            [model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="d2")])],
+        )
 
     def test_query_photometry_total(self) -> None:
         self._get_table("phot_table")

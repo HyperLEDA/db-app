@@ -68,7 +68,8 @@ class Layer2ImportTest(unittest.TestCase):
             1234, [model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2), model.DesignationCatalogObject("test1")]
         )
 
-        self.assertEqual(actual, [expected])
+        self.assertEqual(len(actual), 1)
+        lib.assert_layer2_catalog_objects_equal(self, actual, [expected])
 
     def test_updated_objects(self):
         self.test_import_two_catalogs()
@@ -104,4 +105,4 @@ class Layer2ImportTest(unittest.TestCase):
         expected = model.DesignationCatalogObject("test3")
         self.assertEqual(len(actual), 1)
         self.assertEqual(len(actual[0].data), 1)
-        self.assertEqual(actual[0].data[0], expected)
+        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)

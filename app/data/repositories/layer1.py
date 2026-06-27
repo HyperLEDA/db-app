@@ -219,19 +219,30 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         if not catalogs:
             return []
 
+        readable: list[tuple[model.RawCatalog, type[model.CatalogObject], list[str]]] = []
+        for catalog in catalogs:
+            object_cls = model.get_catalog_object_type(catalog)
+            try:
+                keys = object_cls.layer1_keys()
+            except NotImplementedError:
+                continue
+            readable.append((catalog, object_cls, keys))
+
+        if not readable:
+            return []
+
         cte_parts = []
         select_parts = []
         join_parts = []
         where_conditions = []
         params = []
 
-        for i, catalog in enumerate(catalogs):
-            object_cls = model.get_catalog_object_type(catalog)
+        for i, (catalog, object_cls, layer1_keys) in enumerate(readable):
             table_name_layer1 = object_cls.layer1_table()
             alias = f"t{i}"
 
             catalog_columns = []
-            for column in object_cls.layer1_keys():
+            for column in layer1_keys:
                 catalog_columns.append(f'{column} AS "{catalog.value}|{column}"')
 
             cte_query = f"""
@@ -251,7 +262,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             cte_query += ")"
             cte_parts.append(cte_query)
 
-            select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer1_keys()])
+            select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in layer1_keys])
             select_parts.append(
                 f'CASE WHEN {alias}.record_id IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
             )
@@ -267,19 +278,19 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             params.append(table_name)
 
         if offset:
-            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(catalogs))]) + ")"
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(readable))]) + ")"
             where_conditions.append(f"{coalesce_expr} > %s")
             params.append(offset)
 
         query = f"""
             WITH {", ".join(cte_parts)}
-            SELECT COALESCE({", ".join([f"t{i}.record_id" for i in range(len(catalogs))])}) AS record_id,
+            SELECT COALESCE({", ".join([f"t{i}.record_id" for i in range(len(readable))])}) AS record_id,
                    {", ".join(select_parts)}
             {" ".join(join_parts)}
         """
 
         if table_name:
-            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(catalogs))]) + ")"
+            coalesce_expr = "COALESCE(" + ", ".join([f"t{i}.record_id" for i in range(len(readable))]) + ")"
             query += f"""
             JOIN layer0.records ON {coalesce_expr} = layer0.records.id
             JOIN layer0.tables ON layer0.records.table_id = layer0.tables.id
@@ -296,9 +307,13 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         records = self._storage.query(query, params=params)
 
-        return self._group_by_record_id(records, catalogs)
+        return self._group_by_record_id(records, readable)
 
-    def _group_by_record_id(self, records: list[dict], catalogs: list[model.RawCatalog]) -> list[model.Record]:
+    def _group_by_record_id(
+        self,
+        records: list[dict],
+        readable: list[tuple[model.RawCatalog, type[model.CatalogObject], list[str]]],
+    ) -> list[model.Record]:
         record_data: dict[str, list[model.CatalogObject]] = {}
 
         for row in records:
@@ -306,14 +321,10 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             if record_id not in record_data:
                 record_data[record_id] = []
 
-            for catalog in catalogs:
+            for catalog, object_cls, layer1_keys in readable:
                 present_key = f"{catalog.value}|_present"
                 if row.get(present_key, False):
-                    object_cls = model.get_catalog_object_type(catalog)
-
-                    catalog_data = {}
-                    for column in object_cls.layer1_keys():
-                        catalog_data[column] = row.get(f"{catalog.value}|{column}")
+                    catalog_data = {column: row.get(f"{catalog.value}|{column}") for column in layer1_keys}
 
                     if catalog_data:
                         catalog_object = object_cls.from_layer1(catalog_data)

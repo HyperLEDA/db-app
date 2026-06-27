@@ -8,18 +8,8 @@ class DesignationCatalogObject(interface.CatalogObject):
     def __init__(self, design: str, **kwargs) -> None:
         self.designation = design
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, DesignationCatalogObject):
-            return False
-
-        return self.designation == value.designation
-
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.DESIGNATION
-
-    @classmethod
-    def layer1_table(cls) -> str:
-        return "designation.data"
 
     @classmethod
     def layer1_keys(cls) -> list[str]:
