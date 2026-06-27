@@ -53,7 +53,6 @@ class CatalogManager:
                     catalog=catalog.value,
                     title=title,
                     description=description,
-                    layer1_table=layer1_table,
                     fields=fields,
                 )
             )

@@ -53,7 +53,6 @@ class CatalogsAPITest(unittest.TestCase):
     def test_get_catalogs_icrs(self) -> None:
         catalogs = self._catalogs_by_name()
         icrs = catalogs["icrs"]
-        self.assertEqual(icrs["layer1_table"], "icrs.data")
         fields = {f["name"]: f for f in icrs["fields"]}
         self.assertEqual(set(fields), {"ra", "dec", "e_ra", "e_dec"})
         for name in ("ra", "dec", "e_ra", "e_dec"):
@@ -67,7 +66,6 @@ class CatalogsAPITest(unittest.TestCase):
     def test_get_catalogs_geometry(self) -> None:
         catalogs = self._catalogs_by_name()
         geometry = catalogs["geometry"]
-        self.assertEqual(geometry["layer1_table"], "photometry.ellipse")
         fields = {f["name"]: f for f in geometry["fields"]}
         self.assertEqual(
             set(fields),

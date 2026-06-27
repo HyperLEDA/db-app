@@ -390,7 +390,6 @@ class CatalogSchema(pydantic.BaseModel):
     catalog: str
     title: str
     description: str
-    layer1_table: str
     fields: list[CatalogField]
 
 
