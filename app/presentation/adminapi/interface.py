@@ -377,6 +377,44 @@ class AssignRecordPgcsResponse(pydantic.BaseModel):
     pass
 
 
+class CatalogField(pydantic.BaseModel):
+    name: str
+    data_type: DatatypeEnum
+    unit: str | None = None
+    required: bool = True
+    ucd: str | None = None
+    description: str = ""
+
+
+class CatalogSchema(pydantic.BaseModel):
+    catalog: str
+    title: str
+    description: str
+    layer1_table: str
+    fields: list[CatalogField]
+
+
+class GetCatalogsResponse(pydantic.BaseModel):
+    catalogs: list[CatalogSchema]
+
+
+def postgres_type_to_datatype(pg_type: str) -> DatatypeEnum:
+    normalized = pg_type.lower().strip()
+    if normalized in {"text", "character varying", "character", "char", "user-defined"}:
+        return DatatypeEnum["str"]
+    if normalized in {"double precision", "real", "numeric"}:
+        return DatatypeEnum["float"]
+    if normalized in {"integer", "smallint"}:
+        return DatatypeEnum["int"]
+    if normalized == "bigint":
+        return DatatypeEnum["long"]
+    if normalized == "timestamp without time zone":
+        return DatatypeEnum["timestamp without time zone"]
+    if normalized in DatatypeEnum.__members__:
+        return DatatypeEnum[normalized]
+    raise ValueError(f"unsupported postgres type: {pg_type}")
+
+
 class Actions(abc.ABC):
     @abc.abstractmethod
     def add_data(self, r: AddDataRequest) -> AddDataResponse:
@@ -392,6 +430,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def get_table_list(self, r: GetTableListRequest) -> GetTableListResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_catalogs(self) -> GetCatalogsResponse:
         pass
 
     @abc.abstractmethod
