@@ -113,6 +113,7 @@ class TableUploadManager:
                 bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
                 description=r.description,
+                reference_id=r.reference_id,
             ),
         )
 
@@ -211,6 +212,8 @@ class TableUploadManager:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
         metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
+        if meta.reference_id is not None:
+            metadata["reference_id"] = meta.reference_id
 
         progress = self.table_stats_cache.get().tables.get(r.table_name)
         if progress is None:

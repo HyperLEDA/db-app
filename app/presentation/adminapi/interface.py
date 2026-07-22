@@ -114,6 +114,10 @@ class CreateTableRequest(WriteRequest):
     )
     datatype: enums.DataType
     description: str = pydantic.Field(description="Human-readable description of the table")
+    reference_id: str | None = pydantic.Field(
+        default=None,
+        description="Optional external reference identifier for linking to external systems",
+    )
 
 
 class CreateTableResponse(pydantic.BaseModel):

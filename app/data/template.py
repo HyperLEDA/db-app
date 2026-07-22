@@ -29,8 +29,8 @@ LIMIT 1
 """
 
 INSERT_TABLE_REGISTRY_ITEM = """
-INSERT INTO layer0.tables (bib, table_name, datatype)
-VALUES (%s, %s, %s)
+INSERT INTO layer0.tables (bib, table_name, datatype, reference_id)
+VALUES (%s, %s, %s, %s)
 RETURNING id
 """
 

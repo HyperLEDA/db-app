@@ -42,6 +42,7 @@ class Layer0TableMeta:
     modification_dt: datetime.datetime | None = None
     description: str | None = None
     table_id: int | None = None
+    reference_id: str | None = None
 
 
 @dataclass
@@ -51,6 +52,7 @@ class Layer0TableListItem:
     num_fields: int
     modification_dt: datetime.datetime
     bibcode: str
+    reference_id: str | None = None
 
 
 @dataclass

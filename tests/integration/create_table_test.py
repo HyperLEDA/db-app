@@ -101,3 +101,53 @@ class CreateTableTest(unittest.TestCase):
         meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
         self.assertEqual(meta.description, "updated table description")
         self.assertEqual(meta.meta["datatype"], enums.DataType.PRELIMINARY)
+
+    def test_create_table_with_reference_id(self):
+        source_code = self.source_manager.create_source(
+            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
+        ).code
+        table_name = "table_with_reference"
+
+        response, created = self.upload_manager.create_table(
+            presentation.CreateTableRequest(
+                table_name=table_name,
+                columns=[
+                    presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["text"]),
+                ],
+                bibcode=source_code,
+                datatype=enums.DataType.REGULAR,
+                description="test table with reference",
+                reference_id="external-table-id-12345",
+            )
+        )
+
+        self.assertTrue(created)
+        self.assertEqual(response.id, 1)
+
+        # Verify the reference_id was stored in the database
+        meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
+        self.assertEqual(meta.meta.get("reference_id"), "external-table-id-12345")
+
+    def test_create_table_without_reference_id(self):
+        source_code = self.source_manager.create_source(
+            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
+        ).code
+        table_name = "table_without_reference"
+
+        response, created = self.upload_manager.create_table(
+            presentation.CreateTableRequest(
+                table_name=table_name,
+                columns=[
+                    presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["text"]),
+                ],
+                bibcode=source_code,
+                datatype=enums.DataType.REGULAR,
+                description="test table without reference",
+            )
+        )
+
+        self.assertTrue(created)
+
+        # Verify the reference_id is None when not provided
+        meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
+        self.assertIsNone(meta.meta.get("reference_id"))

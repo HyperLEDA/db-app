@@ -77,7 +77,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         with self.with_tx():
             row = self._storage.query_one(
                 template.INSERT_TABLE_REGISTRY_ITEM,
-                params=[data.bibliography_id, data.table_name, data.datatype],
+                params=[data.bibliography_id, data.table_name, data.datatype, data.reference_id],
             )
             table_id = int(row.get("id"))
 
@@ -460,6 +460,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             modification_dt,
             table_metadata["param"].get("description"),
             table_id=registry_item["id"],
+            reference_id=registry_item.get("reference_id"),
         )
 
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
@@ -534,6 +535,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             t.modification_dt,
             COALESCE(ti.param->>'description', '') AS description,
             b.code AS bibcode,
+            t.reference_id,
             (
                 SELECT COUNT(*)::int
                 FROM meta.column_info c
@@ -566,6 +568,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 num_fields=int(row["num_fields"]),
                 modification_dt=row["modification_dt"],
                 bibcode=row["bibcode"],
+                reference_id=row["reference_id"],
             )
             for row in rows
         ]
