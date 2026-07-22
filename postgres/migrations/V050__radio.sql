@@ -7,10 +7,10 @@ ALTER TYPE common.quality RENAME VALUE 'sus' TO 'suspected' ;
 ALTER TYPE common.quality RENAME VALUE '>' TO 'lower_limit' ;
 ALTER TYPE common.quality RENAME VALUE '<' TO 'upper_limit' ;
 
-ALTER TYPE common.quality RENAME TO qualityType ;
+ALTER TYPE common.quality RENAME TO quality_type ;
 -- ALTER TYPE common.QualityType SET SCHEMA common ;
 
-COMMENT ON TYPE common.QualityType	IS '{
+COMMENT ON TYPE common.quality_type	IS '{
 "description": "Quality flag of the measurement",
 "values": {
   "regular": "regular measurement",
@@ -22,8 +22,8 @@ COMMENT ON TYPE common.QualityType	IS '{
   }
 }' ;
 
-CREATE TYPE common.VelocityConventionType AS ENUM ( 'optical', 'radio', 'relativistic' ) ;
-COMMENT ON TYPE common.VelocityConventionType IS '{
+CREATE TYPE common.velocity_convention_type AS ENUM ( 'optical', 'radio', 'relativistic' ) ;
+COMMENT ON TYPE common.velocity_convention_type IS '{
 "description": "Velocity convention",
 "values": {
   "optical": "Voptical=c(λ-λ0)/λ0=cz",
@@ -40,8 +40,8 @@ CREATE SCHEMA IF NOT EXISTS radio ;
 COMMENT ON SCHEMA radio IS 'Catalog of the radio observations';
 SELECT meta.setparams('radio', '{"description": "Catalog of the radio observations"}');
 
-CREATE TYPE radio.FluxMethodType AS ENUM ( 'sum', 'fit' ) ;
-COMMENT ON TYPE radio.FluxMethodType	IS '{
+CREATE TYPE radio.flux_method_type AS ENUM ( 'sum', 'fit' ) ;
+COMMENT ON TYPE radio.flux_method_type	IS '{
 "description": "Method of the flux measurement",
 "values": {
   "sum":"Integrated radio line flux by summing all velocity channels",
@@ -49,8 +49,8 @@ COMMENT ON TYPE radio.FluxMethodType	IS '{
   }
 }' ;
 
-CREATE TYPE radio.WidthMethodType AS ENUM ( 'max', 'peak', 'w2p', 'mean', 'int', 'edge', 'model' ) ;
-COMMENT ON TYPE radio.WidthMethodType	IS '{
+CREATE TYPE radio.width_method_type AS ENUM ( 'max', 'peak', 'w2p', 'mean', 'int', 'edge', 'model' ) ;
+COMMENT ON TYPE radio.width_method_type	IS '{
 "description": "Method of the line width measurement",
 "values": {
   "max": "Maximal-value-based width",
@@ -63,8 +63,8 @@ COMMENT ON TYPE radio.WidthMethodType	IS '{
   }
 }' ;
 
-CREATE TYPE radio.TelescopeType AS ENUM ( 'single-dish', 'interferometer' ) ;
-COMMENT ON TYPE radio.TelescopeType	IS '{
+CREATE TYPE radio.telescope_type AS ENUM ( 'single-dish', 'interferometer' ) ;
+COMMENT ON TYPE radio.telescope_type	IS '{
 "description": "Radio telescope types",
 "values": {
   "single-dish": "Single-dish reflector",
@@ -107,7 +107,7 @@ INSERT INTO radio.lines (id,species,transition,frequency) VALUES
 ------------- Telescopes --------------------
 CREATE TABLE radio.telescopes (
   id	Text	PRIMARY KEY
-, type	radio.TelescopeType	NOT NULL
+, type	radio.telescope_type	NOT NULL
 , description	Text	NOT NULL
 ) ;
 
@@ -147,7 +147,7 @@ CREATE TABLE radio.datasets (
 , telescope_id	Text	NOT NULL	REFERENCES radio.telescopes (id) ON DELETE restrict ON UPDATE cascade
 , line_id	Text	NOT NULL	DEFAULT 'HI'
 , resolution	real	NOT NULL
-, velocity_convention	common.VelocityConventionType	NOT NULL	DEFAULT 'optical'
+, velocity_convention	common.velocity_convention_type	NOT NULL	DEFAULT 'optical'
 , flux_correction	boolean	NOT NULL	DEFAULT false
 , resolution_correction	boolean	NOT NULL	DEFAULT false
 , redshift_correction	boolean	NOT NULL	DEFAULT false
@@ -179,8 +179,8 @@ CREATE TABLE radio.line_flux (
   record_id	Text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , flux	real	NOT NULL
 , e_flux	real
-, quality	common.QualityType	NOT NULL	DEFAULT 'regular'
-, method	radio.FluxMethodType	NOT NULL	DEFAULT 'sum'
+, quality	common.quality_type	NOT NULL	DEFAULT 'regular'
+, method	radio.flux_method_type	NOT NULL	DEFAULT 'sum'
 , PRIMARY KEY (record_id, method)
 );
 CREATE INDEX ON radio.line_flux (record_id) ;
@@ -226,7 +226,7 @@ CREATE TABLE radio.line_width (
   record_id	Text	NOT NULL	REFERENCES layer0.records(id) ON UPDATE cascade ON DELETE restrict
 , width	real	NOT NULL
 , e_width	real
-, method	radio.WidthMethodType	NOT NULL	DEFAULT 'peak'
+, method	radio.width_method_type	NOT NULL	DEFAULT 'peak'
 , level	real	NOT NULL	DEFAULT 50
 , PRIMARY KEY (record_id, method, level)
 );
