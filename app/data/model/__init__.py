@@ -12,8 +12,8 @@ from app.data.model.interface import (
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.nature import NatureCatalogObject
 from app.data.model.note import NoteCatalogObject
-from app.data.model.radio import RadioCatalogObject
 from app.data.model.photometry import PhotometryIsophotalCatalogObject, PhotometryTotalCatalogObject
+from app.data.model.radio import RadioCatalogObject
 from app.data.model.records import (
     CrossmatchRecordRow,
     DesignationRecord,
