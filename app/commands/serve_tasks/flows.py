@@ -9,6 +9,7 @@ from prefect import flow
 from prefect.deployments.runner import RunnerDeployment
 from prefect.flows import Flow
 from prefect.logging import get_run_logger
+from pydantic import Field
 
 from app import tasks
 
@@ -19,6 +20,26 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import-redshift",
     "layer2-import-nature",
 )
+
+BATCH_SIZE_DESCRIPTION = "Number of rows in a single query"
+DRY_RUN_DESCRIPTION = (
+    "Calculate all values but do not write them to the database. Useful to test changes in the task itself."
+)
+SINCE_DESCRIPTION = (
+    "If set, upload all PGC objects that were updated since that time. "
+    "If not set, will use timestamp of the last update."
+)
+CLEANUP_ORPHANS_DESCRIPTION = (
+    "Remove PGC objects that were left without corresponding records. "
+    "Useful if any records were deleted or changed PGC numbers since the last update."
+)
+CATALOGS_DESCRIPTION = "Catalogs to import: designation, icrs, redshift, nature. If not set, imports all."
+
+BATCH_SIZE_FIELD = Field(default=100000, description=BATCH_SIZE_DESCRIPTION)
+DRY_RUN_FIELD = Field(default=False, description=DRY_RUN_DESCRIPTION)
+SINCE_FIELD = Field(default=None, description=SINCE_DESCRIPTION)
+CLEANUP_ORPHANS_FIELD = Field(default=True, description=CLEANUP_ORPHANS_DESCRIPTION)
+CATALOGS_FIELD = Field(default=None, description=CATALOGS_DESCRIPTION)
 
 
 def schedule_env_var(task_name: str) -> str:
@@ -94,11 +115,11 @@ def run_task(
     description="Aggregates designation, ICRS, redshift, and nature from layer 1 into layer 2.",
 )
 def layer2_import(
-    batch_size: int = 100000,
-    dry_run: bool = False,
-    since: datetime.datetime | None = None,
-    cleanup_orphans: bool = True,
-    catalogs: list[str] | None = None,
+    batch_size: int = BATCH_SIZE_FIELD,
+    dry_run: bool = DRY_RUN_FIELD,
+    since: datetime.datetime | None = SINCE_FIELD,
+    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
+    catalogs: list[str] | None = CATALOGS_FIELD,
 ) -> None:
     run_task(
         "layer2-import",
@@ -116,10 +137,10 @@ def layer2_import(
     description="Majority-vote designations from layer 1 into layer 2.",
 )
 def layer2_import_designation(
-    batch_size: int = 100000,
-    dry_run: bool = False,
-    since: datetime.datetime | None = None,
-    cleanup_orphans: bool = True,
+    batch_size: int = BATCH_SIZE_FIELD,
+    dry_run: bool = DRY_RUN_FIELD,
+    since: datetime.datetime | None = SINCE_FIELD,
+    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
 ) -> None:
     run_task(
         "layer2-import-designation",
@@ -136,10 +157,10 @@ def layer2_import_designation(
     description="Mean ICRS coordinates from layer 1 into layer 2.",
 )
 def layer2_import_icrs(
-    batch_size: int = 100000,
-    dry_run: bool = False,
-    since: datetime.datetime | None = None,
-    cleanup_orphans: bool = True,
+    batch_size: int = BATCH_SIZE_FIELD,
+    dry_run: bool = DRY_RUN_FIELD,
+    since: datetime.datetime | None = SINCE_FIELD,
+    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
 ) -> None:
     run_task(
         "layer2-import-icrs",
@@ -156,10 +177,10 @@ def layer2_import_icrs(
     description="Mean redshifts (cz) from layer 1 into layer 2.",
 )
 def layer2_import_redshift(
-    batch_size: int = 100000,
-    dry_run: bool = False,
-    since: datetime.datetime | None = None,
-    cleanup_orphans: bool = True,
+    batch_size: int = BATCH_SIZE_FIELD,
+    dry_run: bool = DRY_RUN_FIELD,
+    since: datetime.datetime | None = SINCE_FIELD,
+    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
 ) -> None:
     run_task(
         "layer2-import-redshift",
@@ -176,10 +197,10 @@ def layer2_import_redshift(
     description="Majority-vote object nature/type from layer 1 into layer 2.",
 )
 def layer2_import_nature(
-    batch_size: int = 100000,
-    dry_run: bool = False,
-    since: datetime.datetime | None = None,
-    cleanup_orphans: bool = True,
+    batch_size: int = BATCH_SIZE_FIELD,
+    dry_run: bool = DRY_RUN_FIELD,
+    since: datetime.datetime | None = SINCE_FIELD,
+    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
 ) -> None:
     run_task(
         "layer2-import-nature",
