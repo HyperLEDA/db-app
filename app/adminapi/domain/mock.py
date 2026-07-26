@@ -1,9 +1,10 @@
 import datetime
 from unittest import mock
 
+from app.adminapi import clients
 from app.adminapi import presentation as adminapi
 from app.adminapi.domain import actions
-from app.lib import auth, clients
+from app.lib import auth
 
 
 def get_mock_table_stats_cache() -> mock.MagicMock:

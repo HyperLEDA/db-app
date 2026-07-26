@@ -5,10 +5,9 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app.adminapi import domain, presentation
+from app.adminapi import clients, domain, presentation
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.data import model, repositories
-from app.lib import clients
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 from tests import lib

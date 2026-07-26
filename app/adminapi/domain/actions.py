@@ -1,9 +1,10 @@
 from typing import final
 
+from app.adminapi import clients
 from app.adminapi import presentation as adminapi
 from app.adminapi.domain import catalogs, crossmatch, layer1_write, login, pgc, sources, table_upload
 from app.data import repositories
-from app.lib import auth, cache, clients
+from app.lib import auth, cache
 
 
 @final
