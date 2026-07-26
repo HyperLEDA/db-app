@@ -377,6 +377,17 @@ class AssignRecordPgcsResponse(pydantic.BaseModel):
     pass
 
 
+class MergePgcsRequest(WriteRequest):
+    target_pgc: int
+    source_pgcs: list[int] = pydantic.Field(min_length=1)
+
+
+class MergePgcsResponse(pydantic.BaseModel):
+    target_pgc: int
+    merged_pgcs: list[int]
+    reassigned_records: int
+
+
 class CatalogField(pydantic.BaseModel):
     name: str
     data_type: DatatypeEnum
@@ -469,4 +480,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def assign_record_pgcs(self, r: AssignRecordPgcsRequest) -> AssignRecordPgcsResponse:
+        pass
+
+    @abc.abstractmethod
+    def merge_pgcs(self, r: MergePgcsRequest) -> MergePgcsResponse:
         pass

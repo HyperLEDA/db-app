@@ -116,6 +116,13 @@ class API:
         response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
 
+    def merge_pgcs(
+        self,
+        request: interface.MergePgcsRequest,
+    ) -> server.APIOkResponse[interface.MergePgcsResponse]:
+        response = self.actions.merge_pgcs(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -313,6 +320,25 @@ At least one status block must be present.
                 """Assigns PGC numbers to records that already have crossmatch results with
 `triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.
 Records in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.""",
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/pgc/merge",
+                http.HTTPMethod.POST,
+                api.merge_pgcs,
+                "Merge PGC objects",
+                """Reassigns all layer0 records from one or more source PGCs onto a surviving target PGC.
+Layer 1 data follows via record_id. Layer 2 is not updated here; run `layer2-import` with orphan
+cleanup afterward to rebuild the target and remove orphaned source rows.
+
+**Example:**
+```json
+{
+  "target_pgc": 100,
+  "source_pgcs": [200, 300]
+}
+```""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

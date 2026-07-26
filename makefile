@@ -137,7 +137,7 @@ restart-db:
 start-prefect:
 	uv run prefect server start
 
-serve-tasks:
+start-tasks:
 	uv run app serve-tasks
 
 docs:
@@ -159,8 +159,7 @@ build-docs:
 		mkdocs build
 
 cleanup:
-	rm -rf uv.lock .venv \
-		.pytest_cache .ruff_cache \
+	rm -rf .venv .pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
 		.coverage htmlcov site
 

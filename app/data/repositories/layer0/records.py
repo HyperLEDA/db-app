@@ -257,6 +257,18 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
             self._storage.execute_batch(update_query, rows)
 
+    def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
+        rows = self._storage.query(
+            """
+            UPDATE layer0.records
+            SET pgc = %s
+            WHERE pgc = ANY(%s)
+            RETURNING id
+            """,
+            params=[target_pgc, source_pgcs],
+        )
+        return len(rows)
+
     def _progress_table_filter(self, table_names: list[str] | None) -> tuple[str, list[Any]]:
         if table_names is None:
             return "", []
