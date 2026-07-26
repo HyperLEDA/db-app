@@ -5,12 +5,12 @@ import psycopg
 import structlog
 from starlette import testclient
 
-from app.commands.dataapi import command as dataapi_command
+import app.dataapi.command as dataapi_command
 from app.data import repositories
-from app.domain import dataapi as domain
-from app.domain.dataapi import actions as dataapi_actions
+from app.dataapi import domain
+from app.dataapi.domain import actions as dataapi_actions
+from app.dataapi.presentation.server import Server
 from app.lib import auth
-from app.presentation.dataapi.server import Server
 from tests import lib
 
 

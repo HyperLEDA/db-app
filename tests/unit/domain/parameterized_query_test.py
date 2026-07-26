@@ -1,7 +1,7 @@
 import unittest
 
 from app.data import model
-from app.domain.dataapi import parameterized_query
+from app.dataapi.domain import parameterized_query
 
 DEFAULT = [
     model.RawCatalog.DESIGNATION,

@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
 
+from app.adminapi.domain import table_stats
 from app.data import model
-from app.domain.adminapi import table_stats
 
 
 class TableStatsTest(unittest.TestCase):

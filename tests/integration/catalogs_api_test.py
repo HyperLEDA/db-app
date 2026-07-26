@@ -3,12 +3,12 @@ import unittest
 import structlog
 from starlette import testclient
 
+from app.adminapi import domain
+from app.adminapi.domain.mock import get_mock_table_stats_cache
+from app.adminapi.presentation.server import Server
 from app.data import repositories
-from app.domain import adminapi as domain
-from app.domain.adminapi.mock import get_mock_table_stats_cache
 from app.lib import audit, auth, clients
 from app.lib.web import server
-from app.presentation.adminapi.server import Server
 from tests import lib
 
 

@@ -3,11 +3,11 @@ import uuid
 
 import structlog
 
+from app.adminapi import presentation as adminapi
+from app.adminapi.domain import crossmatch
 from app.data import model, repositories
-from app.domain.adminapi import crossmatch
 from app.lib.storage import enums
 from app.lib.web import errors
-from app.presentation import adminapi
 from tests import lib
 
 

@@ -1,6 +1,6 @@
 import unittest
 
-from app.commands.serve_tasks import flows
+from app.tasks import flows
 
 
 class ServeTasksTest(unittest.TestCase):

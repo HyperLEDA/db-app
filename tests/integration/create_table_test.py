@@ -2,12 +2,11 @@ import unittest
 
 import structlog
 
+from app.adminapi import domain, presentation
+from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.data import repositories
-from app.domain import adminapi as domain
-from app.domain.adminapi.mock import get_mock_table_stats_cache
 from app.lib import clients
 from app.lib.storage import enums
-from app.presentation import adminapi as presentation
 from tests import lib
 
 
