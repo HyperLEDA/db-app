@@ -31,11 +31,15 @@ class Layer2ImportICRSTask(interface.Task):
         batch_size: int = 100000,
         dry_run: bool = False,
         silent: bool = False,
+        since: datetime.datetime | str | None = None,
+        cleanup_orphans: bool = True,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
         self.dry_run = dry_run
         self.silent = silent
+        self.since = interface.parse_since(since)
+        self.cleanup_orphans = cleanup_orphans
 
     @classmethod
     def name(cls) -> str:
@@ -48,13 +52,17 @@ class Layer2ImportICRSTask(interface.Task):
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
-        last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ICRS)
+        if self.since is not None:
+            last_update_dt = self.since
+        else:
+            last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ICRS)
         layer1_units = self.layer1_repository.get_column_units(model.RawCatalog.ICRS)
         layer2_units = self.layer2_repository.get_column_units("layer2", "icrs")
         self.log.info(
             "Starting Layer 2 ICRS import",
             last_update=last_update_dt.ctime(),
             dry_run=self.dry_run,
+            cleanup_orphans=self.cleanup_orphans,
         )
 
         objects_to_save = 0
@@ -91,11 +99,13 @@ class Layer2ImportICRSTask(interface.Task):
                 total_processed=objects_to_save,
             )
 
-        orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.ICRS])
-        pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
-        orphans_to_delete = len(pgcs_to_remove)
-        if pgcs_to_remove and not self.dry_run:
-            self.layer2_repository.remove_pgcs([model.RawCatalog.ICRS], pgcs_to_remove)
+        orphans_to_delete = 0
+        if self.cleanup_orphans:
+            orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.ICRS])
+            pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
+            orphans_to_delete = len(pgcs_to_remove)
+            if pgcs_to_remove and not self.dry_run:
+                self.layer2_repository.remove_pgcs([model.RawCatalog.ICRS], pgcs_to_remove)
 
         if not self.dry_run:
             self.layer2_repository.update_last_update_time(

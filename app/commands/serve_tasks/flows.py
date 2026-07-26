@@ -1,6 +1,7 @@
+import datetime
 import logging
 import os
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 import structlog
@@ -59,17 +60,26 @@ def _flow_logger() -> structlog.stdlib.BoundLogger:
     )
 
 
-def run_task(task_name: str, batch_size: int = 100000, dry_run: bool = False) -> None:
+def run_task(
+    task_name: str,
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+    catalogs: Sequence[str] | None = None,
+) -> None:
     log = _flow_logger()
-    task = tasks.get_task(
-        task_name,
-        log,
-        {
-            "batch_size": int(batch_size),
-            "dry_run": bool(dry_run),
-            "silent": True,
-        },
-    )
+    params: dict[str, Any] = {
+        "batch_size": int(batch_size),
+        "dry_run": bool(dry_run),
+        "silent": True,
+        "cleanup_orphans": bool(cleanup_orphans),
+    }
+    if since is not None:
+        params["since"] = since
+    if catalogs is not None:
+        params["catalogs"] = list(catalogs)
+    task = tasks.get_task(task_name, log, params)
     cfg = tasks.Config()
     task.prepare(cfg)
     try:
@@ -83,8 +93,21 @@ def run_task(task_name: str, batch_size: int = 100000, dry_run: bool = False) ->
     name="Layer 2 import (all catalogs)",
     description="Aggregates designation, ICRS, redshift, and nature from layer 1 into layer 2.",
 )
-def layer2_import(batch_size: int = 100000, dry_run: bool = False) -> None:
-    run_task("layer2-import", batch_size=batch_size, dry_run=dry_run)
+def layer2_import(
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+    catalogs: list[str] | None = None,
+) -> None:
+    run_task(
+        "layer2-import",
+        batch_size=batch_size,
+        dry_run=dry_run,
+        since=since,
+        cleanup_orphans=cleanup_orphans,
+        catalogs=catalogs,
+    )
 
 
 @flow(
@@ -92,8 +115,19 @@ def layer2_import(batch_size: int = 100000, dry_run: bool = False) -> None:
     name="Layer 2 import — designation",
     description="Majority-vote designations from layer 1 into layer 2.",
 )
-def layer2_import_designation(batch_size: int = 100000, dry_run: bool = False) -> None:
-    run_task("layer2-import-designation", batch_size=batch_size, dry_run=dry_run)
+def layer2_import_designation(
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+) -> None:
+    run_task(
+        "layer2-import-designation",
+        batch_size=batch_size,
+        dry_run=dry_run,
+        since=since,
+        cleanup_orphans=cleanup_orphans,
+    )
 
 
 @flow(
@@ -101,8 +135,19 @@ def layer2_import_designation(batch_size: int = 100000, dry_run: bool = False) -
     name="Layer 2 import — ICRS",
     description="Mean ICRS coordinates from layer 1 into layer 2.",
 )
-def layer2_import_icrs(batch_size: int = 100000, dry_run: bool = False) -> None:
-    run_task("layer2-import-icrs", batch_size=batch_size, dry_run=dry_run)
+def layer2_import_icrs(
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+) -> None:
+    run_task(
+        "layer2-import-icrs",
+        batch_size=batch_size,
+        dry_run=dry_run,
+        since=since,
+        cleanup_orphans=cleanup_orphans,
+    )
 
 
 @flow(
@@ -110,8 +155,19 @@ def layer2_import_icrs(batch_size: int = 100000, dry_run: bool = False) -> None:
     name="Layer 2 import — redshift",
     description="Mean redshifts (cz) from layer 1 into layer 2.",
 )
-def layer2_import_redshift(batch_size: int = 100000, dry_run: bool = False) -> None:
-    run_task("layer2-import-redshift", batch_size=batch_size, dry_run=dry_run)
+def layer2_import_redshift(
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+) -> None:
+    run_task(
+        "layer2-import-redshift",
+        batch_size=batch_size,
+        dry_run=dry_run,
+        since=since,
+        cleanup_orphans=cleanup_orphans,
+    )
 
 
 @flow(
@@ -119,8 +175,19 @@ def layer2_import_redshift(batch_size: int = 100000, dry_run: bool = False) -> N
     name="Layer 2 import — nature",
     description="Majority-vote object nature/type from layer 1 into layer 2.",
 )
-def layer2_import_nature(batch_size: int = 100000, dry_run: bool = False) -> None:
-    run_task("layer2-import-nature", batch_size=batch_size, dry_run=dry_run)
+def layer2_import_nature(
+    batch_size: int = 100000,
+    dry_run: bool = False,
+    since: datetime.datetime | None = None,
+    cleanup_orphans: bool = True,
+) -> None:
+    run_task(
+        "layer2-import-nature",
+        batch_size=batch_size,
+        dry_run=dry_run,
+        since=since,
+        cleanup_orphans=cleanup_orphans,
+    )
 
 
 FLOWS_BY_NAME: dict[str, Flow] = {
