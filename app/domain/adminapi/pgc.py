@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import repositories
-from app.lib.web.errors import NotFoundError, RuleValidationError
+from app.lib.web.errors import NotFoundError
 from app.presentation import adminapi
 
 
@@ -16,11 +16,6 @@ class PgcManager:
         self.layer0_repo = layer0_repo
 
     def merge_pgcs(self, r: adminapi.MergePgcsRequest) -> adminapi.MergePgcsResponse:
-        if r.target_pgc in r.source_pgcs:
-            raise RuleValidationError("target_pgc must not appear in source_pgcs")
-        if len(r.source_pgcs) != len(set(r.source_pgcs)):
-            raise RuleValidationError("source_pgcs must not contain duplicates")
-
         all_pgcs = [r.target_pgc, *r.source_pgcs]
         existing = self.common_repo.get_existing_pgcs(all_pgcs)
         if r.target_pgc not in existing:

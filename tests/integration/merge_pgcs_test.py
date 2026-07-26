@@ -1,6 +1,7 @@
 import unittest
 import uuid
 
+import pydantic
 import structlog
 
 from app.data import model, repositories
@@ -67,16 +68,12 @@ class MergePgcsTest(unittest.TestCase):
         self.assertEqual(self._pgc_for(source_b_id), target_pgc)
 
     def test_reject_target_in_sources(self) -> None:
-        self.common_repo.register_pgcs([100, 200])
-
-        with self.assertRaises(errors.RuleValidationError):
-            self.manager.merge_pgcs(adminapi.MergePgcsRequest(target_pgc=100, source_pgcs=[100, 200]))
+        with self.assertRaises(pydantic.ValidationError):
+            adminapi.MergePgcsRequest(target_pgc=100, source_pgcs=[100, 200])
 
     def test_reject_duplicate_sources(self) -> None:
-        self.common_repo.register_pgcs([100, 200])
-
-        with self.assertRaises(errors.RuleValidationError):
-            self.manager.merge_pgcs(adminapi.MergePgcsRequest(target_pgc=100, source_pgcs=[200, 200]))
+        with self.assertRaises(pydantic.ValidationError):
+            adminapi.MergePgcsRequest(target_pgc=100, source_pgcs=[200, 200])
 
     def test_reject_missing_target(self) -> None:
         source_pgc = 9_000_001
