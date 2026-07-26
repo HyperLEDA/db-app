@@ -63,7 +63,9 @@ check:
 		--config=pyproject.toml
 	@echo "Linter ok."
 
-	@uv run lint-imports
+	@output=$$(uv run lint-imports 2>&1); exit_code=$$?; \
+	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
+	exit $$exit_code
 	@echo "Import contracts ok."
 
 	@output=$$(uv run basedpyright 2>&1); exit_code=$$?; \
