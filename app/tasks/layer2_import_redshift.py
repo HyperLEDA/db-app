@@ -7,9 +7,9 @@ import structlog
 from astropy import units as u
 
 from app.data import model, repositories
-from app.lib import containers, logging
+from app.lib import containers
 from app.lib.storage import postgres
-from app.tasks import interface
+from app.tasks import interface, logging
 
 REDSHIFT_COLUMNS = ["cz", "e_cz"]
 VELOCITY_UNIT = "km/s"

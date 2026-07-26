@@ -7,9 +7,9 @@ import structlog
 from astropy import units as u
 
 from app.data import model, repositories
-from app.lib import containers, logging
+from app.lib import containers
 from app.lib.storage import postgres
-from app.tasks import interface
+from app.tasks import interface, logging
 
 ICRS_COLUMNS = ["ra", "e_ra", "dec", "e_dec"]
 DEG = "deg"
