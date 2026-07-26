@@ -28,7 +28,7 @@ class APIOkResponse[T: Any](pydantic.BaseModel):
 class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     path: str
     method: http.HTTPMethod
-    handler: Callable[..., APIOkResponse[RespT] | fastapi.Response]
+    handler: Callable[..., APIOkResponse[RespT]]
     summary: str
     description: str = ""
     allowed_roles: list[auth.Role] | None = None
