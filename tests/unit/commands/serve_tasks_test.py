@@ -24,11 +24,12 @@ class ServeTasksTest(unittest.TestCase):
 
     def test_build_deployments_without_schedules(self) -> None:
         deployments = flows.build_deployments({})
-        self.assertEqual(len(deployments), 5)
+        self.assertEqual(len(deployments), 6)
         self.assertEqual(
             [d.name for d in deployments],
             list(flows.LAYER2_TASK_NAMES),
         )
+        self.assertIn("layer2-orphan-cleanup", [d.name for d in deployments])
         for deployment in deployments:
             self.assertEqual(len(deployment.schedules or []), 0)
 

@@ -137,6 +137,12 @@ restart-db:
 	make stop-db
 	make start-db
 
+start-prefect:
+	uv run prefect server start
+
+serve-tasks:
+	uv run app serve-tasks
+
 docs:
 	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \

@@ -6,9 +6,9 @@ from collections.abc import Sequence
 
 import pandas
 import requests
+import structlog
 
-from app.commands.runtask import RunTaskCommand
-from app.lib import commands
+from app import tasks
 from app.lib.storage import enums
 from app.presentation import adminapi
 from tests import lib
@@ -440,13 +440,18 @@ def assign_record_pgcs(session: requests.Session, table_name: str):
 
 @lib.test_logging_decorator
 def layer2_import():
-    commands.run(
-        RunTaskCommand(
-            "layer2-import",
-            input_data={"batch_size": OBJECTS_NUM // 5, "silent": True},
-            log_level="warn",
-        ),
+    log = structlog.get_logger()
+    task = tasks.get_task(
+        "layer2-import",
+        log,
+        {"batch_size": OBJECTS_NUM // 5, "silent": True},
     )
+    cfg = tasks.Config()
+    task.prepare(cfg)
+    try:
+        task.run()
+    finally:
+        task.cleanup()
 
 
 @lib.test_logging_decorator
