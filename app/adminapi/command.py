@@ -8,10 +8,10 @@ import pydantic_settings as settings
 import structlog
 import yaml
 
-from app.adminapi import clients, domain, presentation
+from app.adminapi import cache, clients, domain, presentation
 from app.adminapi.domain import table_stats
 from app.data import repositories
-from app.lib import audit, auth, cache, commands, config, tracing
+from app.lib import audit, auth, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server

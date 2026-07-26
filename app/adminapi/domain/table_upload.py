@@ -11,13 +11,13 @@ from astropy import units
 from astropy import units as u
 from astroquery import nasa_ads as ads
 
-from app.adminapi import clients
+from app.adminapi import cache, clients
 from app.adminapi import presentation as adminapi
 from app.adminapi.domain import table_stats
 from app.data import model, repositories
 from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
 from app.data.repositories.layer0.common import RAWDATA_SCHEMA
-from app.lib import astronomy, cache, concurrency
+from app.lib import astronomy, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
 

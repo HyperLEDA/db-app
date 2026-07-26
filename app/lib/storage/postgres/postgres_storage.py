@@ -12,7 +12,6 @@ from psycopg_pool import ConnectionPool
 
 from app.lib.storage import enums
 from app.lib.storage.postgres import config
-from app.lib.web.errors import InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -85,14 +84,14 @@ class PgStorage:
 
     def get_pool(self) -> ConnectionPool:
         if self._pool is None:
-            raise InternalError("connection pool is not initialized")
+            raise RuntimeError("connection pool is not initialized")
         return self._pool
 
     def get_connection(self) -> psycopg.Connection:
         conn = self.get_thread_conn()
         if conn is not None:
             return conn
-        raise InternalError("no active transaction connection on this thread")
+        raise RuntimeError("no active transaction connection on this thread")
 
     def disconnect(self) -> None:
         if self._pool is not None:

@@ -7,8 +7,8 @@ from time import monotonic
 
 import pydantic
 
-from app.lib.cache import BackgroundCache
-from app.lib.cache.background_cache import _run_in_context
+from app.adminapi.cache import BackgroundCache
+from app.adminapi.cache.background_cache import _run_in_context
 
 
 class SampleSnapshot(pydantic.BaseModel):
