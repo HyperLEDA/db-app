@@ -1,14 +1,9 @@
 import click
 
 from app.lib import commands
+from app.tasks.command import ServeTasksCommand
 
 
-@click.command(
-    "serve-tasks",
-    short_help="Registers layer2 import Prefect deployments and serves them.",
-)
-def serve_tasks() -> None:
-    # Lazy-load: ServeTasksCommand pulls in Prefect, which slows other commands
-    from app.tasks.command import ServeTasksCommand  # noqa: PLC0415
-
+@click.command(short_help="Registers layer2 import Prefect deployments and serves them.")
+def main() -> None:
     commands.run(ServeTasksCommand())

@@ -51,7 +51,6 @@ class DataAPIServerTest(unittest.TestCase):
             [
                 "uv",
                 "run",
-                "app",
                 "dataapi",
                 "-c",
                 "configs/dev/dataapi.yaml",

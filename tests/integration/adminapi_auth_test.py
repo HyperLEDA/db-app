@@ -41,7 +41,6 @@ class AdminAPIAuthTest(unittest.TestCase):
             [
                 "uv",
                 "run",
-                "app",
                 "adminapi",
                 "-c",
                 "configs/dev/adminapi.yaml",

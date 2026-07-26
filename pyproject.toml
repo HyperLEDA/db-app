@@ -14,7 +14,6 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
     "regex>=2024.11.6",
-    "rq>=2.1.0",
     "structlog>=25.1.0",
     "swagger-ui-py>=23.9.23",
     "fastapi>=0.116.1",
@@ -35,7 +34,10 @@ dependencies = [
 ]
 
 [project.scripts]
-"app" = "app.cli:cli"
+app = "app.cli:cli"
+adminapi = "app.adminapi.cli:main"
+dataapi = "app.dataapi.cli:main"
+tasks = "app.tasks.cli:main"
 
 [build-system]
 requires = ["hatchling"]

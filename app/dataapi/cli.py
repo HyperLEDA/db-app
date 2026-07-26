@@ -14,5 +14,5 @@ from app.lib import commands
     default=lambda: os.environ.get("CONFIG", ""),
     help="Path to configuration file",
 )
-def dataapi(config: str) -> None:
+def main(config: str) -> None:
     commands.run(DataAPICommand(config))

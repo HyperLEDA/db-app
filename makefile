@@ -116,13 +116,13 @@ update-template:
 ## General targets
 
 adminapi:
-	uv run app adminapi -c configs/dev/adminapi.yaml
+	uv run adminapi -c configs/dev/adminapi.yaml
 
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
-	uv run app dataapi -c configs/dev/dataapi.yaml
+	uv run dataapi -c configs/dev/dataapi.yaml
 
 start-db:
 	docker-compose up -d
@@ -138,7 +138,7 @@ start-prefect:
 	uv run prefect server start
 
 start-tasks:
-	uv run app serve-tasks
+	uv run tasks
 
 docs:
 	uvx \
