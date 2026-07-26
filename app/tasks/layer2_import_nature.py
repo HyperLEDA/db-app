@@ -3,6 +3,7 @@ from typing import final
 
 import structlog
 
+from app.data import enums as data_enums
 from app.data import model, repositories
 from app.lib import containers
 from app.lib.storage import postgres
@@ -32,7 +33,7 @@ class Layer2ImportNatureTask(interface.Task):
         return "layer2-import-nature"
 
     def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log)
+        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)

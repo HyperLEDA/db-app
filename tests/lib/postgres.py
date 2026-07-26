@@ -6,6 +6,7 @@ import psycopg
 import structlog
 from testcontainers import postgres as pgcontainer
 
+from app.data import enums as data_enums
 from app.lib.storage import postgres
 from tests.lib import web
 
@@ -52,7 +53,7 @@ class TestPostgresStorage:
                 dbname="hyperleda",
             )
 
-        self.storage = postgres.PgStorage(self.config, logger)
+        self.storage = postgres.PgStorage(self.config, logger, data_enums.PG_ENUM_REGISTRY)
 
         self.migrations_dir = migrations_dir
 

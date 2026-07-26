@@ -6,6 +6,7 @@ import pydantic_settings as settings
 import structlog
 import yaml
 
+from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import domain, presentation, responders
 from app.lib import auth, commands, config, tracing
@@ -32,7 +33,7 @@ class DataAPICommand(commands.Command):
         tracing.setup_tracing("dataapi", self.config.tracing)
 
         self.pg_auth = postgres.PgStorage(self.config.storage.auth, log)
-        self.pg_main = postgres.PgStorage(self.config.storage.main, log)
+        self.pg_main = postgres.PgStorage(self.config.storage.main, log, data_enums.PG_ENUM_REGISTRY)
 
         authenticator: auth.Authenticator = (
             auth.PostgresAuthenticator(self.pg_auth) if self.config.auth_enabled else auth.NoopAuthenticator()
