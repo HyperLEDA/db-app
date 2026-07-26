@@ -328,17 +328,7 @@ Records in `pending` triage or with collided metadata are rejected. The request 
                 http.HTTPMethod.POST,
                 api.merge_pgcs,
                 "Merge PGC objects",
-                """Reassigns all layer0 records from one or more source PGCs onto a surviving target PGC.
-Layer 1 data follows via record_id. Layer 2 is not updated here; run `layer2-import` with orphan
-cleanup afterward to rebuild the target and remove orphaned source rows.
-
-**Example:**
-```json
-{
-  "target_pgc": 100,
-  "source_pgcs": [200, 300]
-}
-```""",
+                """Reassigns all records from one or more source PGCs onto a surviving target PGC.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),
