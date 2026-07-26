@@ -57,6 +57,16 @@ class CommonRepository(postgres.TransactionalPGRepository):
             params=pgcs,
         )
 
+    def get_existing_pgcs(self, pgcs: list[int]) -> set[int]:
+        if not pgcs:
+            return set()
+
+        rows = self._storage.query(
+            "SELECT id FROM common.pgc WHERE id = ANY(%s)",
+            params=[pgcs],
+        )
+        return {int(row["id"]) for row in rows}
+
     def get_schema(self, schema_name: str, table_name: str) -> TableSchemaInfo:
         errgr = concurrency.ErrorGroup()
         table_task = errgr.run(

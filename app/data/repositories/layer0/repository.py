@@ -126,3 +126,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         return self.records_repo.assign_record_pgcs(record_ids)
+
+    def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
+        return self.records_repo.merge_pgcs(target_pgc, source_pgcs)

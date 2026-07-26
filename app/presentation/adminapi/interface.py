@@ -377,6 +377,27 @@ class AssignRecordPgcsResponse(pydantic.BaseModel):
     pass
 
 
+class MergePgcsRequest(WriteRequest):
+    target_pgc: int
+    source_pgcs: list[int] = pydantic.Field(min_length=1)
+
+    @pydantic.model_validator(mode="after")
+    def check_sources(self) -> "MergePgcsRequest":
+        if self.target_pgc in self.source_pgcs:
+            raise ValueError("target_pgc must not appear in source_pgcs")
+
+        if len(self.source_pgcs) != len(set(self.source_pgcs)):
+            raise ValueError("source_pgcs must not contain duplicates")
+
+        return self
+
+
+class MergePgcsResponse(pydantic.BaseModel):
+    target_pgc: int
+    merged_pgcs: list[int]
+    reassigned_records: int
+
+
 class CatalogField(pydantic.BaseModel):
     name: str
     data_type: DatatypeEnum
@@ -469,4 +490,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def assign_record_pgcs(self, r: AssignRecordPgcsRequest) -> AssignRecordPgcsResponse:
+        pass
+
+    @abc.abstractmethod
+    def merge_pgcs(self, r: MergePgcsRequest) -> MergePgcsResponse:
         pass

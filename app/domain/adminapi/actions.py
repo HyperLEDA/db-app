@@ -1,7 +1,7 @@
 from typing import final
 
 from app.data import repositories
-from app.domain.adminapi import catalogs, crossmatch, layer1_write, login, sources, table_upload
+from app.domain.adminapi import catalogs, crossmatch, layer1_write, login, pgc, sources, table_upload
 from app.lib import auth, cache, clients
 from app.presentation import adminapi
 
@@ -28,6 +28,7 @@ class Actions(adminapi.Actions):
             table_stats_cache,
         )
         self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer1_repo, layer2_repo)
+        self.pgc_manager = pgc.PgcManager(common_repo, layer0_repo)
         self.layer1_writer = layer1_write.Layer1Writer(layer1_repo)
         self.catalog_manager = catalogs.CatalogManager(layer1_repo)
 
@@ -72,3 +73,6 @@ class Actions(adminapi.Actions):
 
     def assign_record_pgcs(self, r: adminapi.AssignRecordPgcsRequest) -> adminapi.AssignRecordPgcsResponse:
         return self.crossmatch_manager.assign_record_pgcs(r)
+
+    def merge_pgcs(self, r: adminapi.MergePgcsRequest) -> adminapi.MergePgcsResponse:
+        return self.pgc_manager.merge_pgcs(r)
