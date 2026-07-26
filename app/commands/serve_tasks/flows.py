@@ -19,6 +19,7 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import-icrs",
     "layer2-import-redshift",
     "layer2-import-nature",
+    "layer2-orphan-cleanup",
 )
 
 BATCH_SIZE_DESCRIPTION = "Number of rows in a single query"
@@ -34,6 +35,9 @@ CLEANUP_ORPHANS_DESCRIPTION = (
     "Useful if any records were deleted or changed PGC numbers since the last update."
 )
 CATALOGS_DESCRIPTION = "Catalogs to import: designation, icrs, redshift, nature. If not set, imports all."
+WRITE_ORPHANS_DESCRIPTION = (
+    "If true, remove orphaned PGC objects from layer 2 tables. If false, only report how many orphans would be removed."
+)
 
 
 class Layer2CatalogTaskParams(BaseModel):
@@ -47,8 +51,13 @@ class Layer2ImportParams(Layer2CatalogTaskParams):
     catalogs: list[str] | None = Field(default=None, description=CATALOGS_DESCRIPTION)
 
 
+class Layer2OrphanCleanupParams(BaseModel):
+    write: bool = Field(default=False, description=WRITE_ORPHANS_DESCRIPTION)
+
+
 DEFAULT_LAYER2_CATALOG_TASK_PARAMS = Layer2CatalogTaskParams()
 DEFAULT_LAYER2_IMPORT_PARAMS = Layer2ImportParams()
+DEFAULT_LAYER2_ORPHAN_CLEANUP_PARAMS = Layer2OrphanCleanupParams()
 
 
 def schedule_env_var(task_name: str) -> str:
@@ -198,12 +207,31 @@ def layer2_import_nature(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALO
     )
 
 
+@flow(
+    log_prints=False,
+    name="Layer 2 orphan cleanup",
+    description="Find and optionally remove PGC objects left without corresponding layer 1 records.",
+)
+def layer2_orphan_cleanup(
+    params: Layer2OrphanCleanupParams = DEFAULT_LAYER2_ORPHAN_CLEANUP_PARAMS,
+) -> None:
+    log = _flow_logger()
+    task = tasks.get_task("layer2-orphan-cleanup", log, {"write": bool(params.write)})
+    cfg = tasks.Config()
+    task.prepare(cfg)
+    try:
+        task.run()
+    finally:
+        task.cleanup()
+
+
 FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import": layer2_import,
     "layer2-import-designation": layer2_import_designation,
     "layer2-import-icrs": layer2_import_icrs,
     "layer2-import-redshift": layer2_import_redshift,
     "layer2-import-nature": layer2_import_nature,
+    "layer2-orphan-cleanup": layer2_orphan_cleanup,
 }
 
 
