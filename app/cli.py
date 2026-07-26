@@ -6,7 +6,6 @@ from app.commands.adminapi import AdminAPICommand
 from app.commands.dataapi import DataAPICommand
 from app.commands.generate_spec import GenerateSpecCommand
 from app.commands.runtask import RunTaskCommand
-from app.commands.serve_tasks import ServeTasksCommand
 from app.lib import commands
 
 
@@ -83,6 +82,12 @@ def generate_spec(output: str):
     commands.run(GenerateSpecCommand(output))
 
 
-@cli.command("serve-tasks", short_help=ServeTasksCommand.help())
+@cli.command(
+    "serve-tasks",
+    short_help="Registers layer2 import Prefect deployments and serves them.",
+)
 def serve_tasks() -> None:
+    # Lazy-load: ServeTasksCommand pulls in Prefect, which slows other commands
+    from app.commands.serve_tasks import ServeTasksCommand  # noqa: PLC0415
+
     commands.run(ServeTasksCommand())
