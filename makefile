@@ -79,7 +79,7 @@ check:
 	@uv run pytest \
 		--quiet \
 		--config-file=pyproject.toml \
-		tests/env_test.py tests/unit
+		tests/env_test.py tests/*/unit
 	@echo "Testing ok."
 
 fix:

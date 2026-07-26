@@ -18,7 +18,7 @@ class MetadataAPITest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get()
-        cfg_path = pathlib.Path(__file__).resolve().parents[2] / "configs" / "dev" / "dataapi.yaml"
+        cfg_path = pathlib.Path(__file__).resolve().parents[3] / "configs" / "dev" / "dataapi.yaml"
         cls.cfg = dataapi_command.parse_config(str(cfg_path))
         cls.log = structlog.get_logger()
 
