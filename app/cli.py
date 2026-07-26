@@ -6,6 +6,7 @@ from app.commands.adminapi import AdminAPICommand
 from app.commands.dataapi import DataAPICommand
 from app.commands.generate_spec import GenerateSpecCommand
 from app.commands.runtask import RunTaskCommand
+from app.commands.serve_tasks import ServeTasksCommand
 from app.lib import commands
 
 
@@ -80,3 +81,8 @@ def runtask(
 )
 def generate_spec(output: str):
     commands.run(GenerateSpecCommand(output))
+
+
+@cli.command("serve-tasks", short_help=ServeTasksCommand.help())
+def serve_tasks() -> None:
+    commands.run(ServeTasksCommand())
