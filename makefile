@@ -124,9 +124,6 @@ adminapi-dev:
 dataapi:
 	uv run app dataapi -c configs/dev/dataapi.yaml
 
-generate-spec:
-	uv run app generate-spec -o res.json
-
 start-db:
 	docker-compose up -d
 
@@ -144,35 +141,28 @@ serve-tasks:
 	uv run app serve-tasks
 
 docs:
-	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs gh-deploy
 
 build-docs:
-	uv run app generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs build
 
 cleanup:
 	rm -rf uv.lock .venv \
 		.pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
-		.coverage htmlcov site \
-		docs/gen
+		.coverage htmlcov site
 
 ## Testing
 

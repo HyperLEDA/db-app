@@ -52,9 +52,7 @@ class ParameterizedQueryManager:
         self.enabled_catalogs = enabled_catalogs
         self.catalog_config = catalog_cfg
 
-    def _build_filters_and_params(
-        self, query: dataapi.QuerySimpleRequest | dataapi.FITSRequest
-    ) -> tuple[layer2.Filter, layer2.SearchParams]:
+    def _build_filters_and_params(self, query: dataapi.QuerySimpleRequest) -> tuple[layer2.Filter, layer2.SearchParams]:
         filters = []
         search_params = []
 
@@ -73,20 +71,6 @@ class ParameterizedQueryManager:
             filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
         return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params)
-
-    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
-        filters, search_params = self._build_filters_and_params(query)
-
-        objects = self.layer2_repo.query_catalogs(
-            self.enabled_catalogs,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
-        )
-
-        responder = responders.FITSResponder()
-        return responder.build_response_from_catalog(objects)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config)

@@ -192,74 +192,9 @@ class QuerySimpleResponse(pydantic.BaseModel):
     schema_: Schema = pydantic.Field(alias="schema")
 
 
-class QueryRequest(pydantic.BaseModel):
-    q: str = pydantic.Field(
-        description="Query string",
-    )
-    page_size: int = pydantic.Field(
-        default=10,
-        description="Number of objects per page",
-    )
-    page: int = pydantic.Field(
-        default=0,
-        description="Page number",
-    )
-
-
-class QueryResponse(pydantic.BaseModel):
-    objects: list[PGCObject]
-
-
-class FITSRequest(pydantic.BaseModel):
-    pgcs: list[int] | None = pydantic.Field(
-        default=None,
-        description="List of PGC numbers",
-    )
-    ra: float | None = pydantic.Field(
-        default=None,
-        description="Right ascension of the center of the search area in degrees",
-    )
-    dec: float | None = pydantic.Field(
-        default=None,
-        description="Declination of the center of the search area in degrees",
-    )
-    radius: float | None = pydantic.Field(
-        default=None,
-        description="Radius of the search area in degrees",
-    )
-    name: str | None = pydantic.Field(
-        default=None,
-        description="Name of the object",
-    )
-    cz: float | None = pydantic.Field(
-        default=None,
-        description="Redshift value",
-    )
-    cz_err_percent: float | None = pydantic.Field(
-        default=None,
-        description="Acceptable deviation of the redshift value in percent",
-    )
-    page_size: int = pydantic.Field(
-        default=25,
-        description="Number of objects per page",
-    )
-    page: int = pydantic.Field(
-        default=0,
-        description="Page number",
-    )
-
-
 class Actions(abc.ABC):
     @abc.abstractmethod
     def query_simple(self, query: QuerySimpleRequest) -> QuerySimpleResponse:
-        pass
-
-    @abc.abstractmethod
-    def query(self, query: QueryRequest) -> QueryResponse:
-        pass
-
-    @abc.abstractmethod
-    def query_fits(self, query: FITSRequest) -> bytes:
         pass
 
     @abc.abstractmethod

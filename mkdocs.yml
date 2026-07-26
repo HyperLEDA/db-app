@@ -24,7 +24,6 @@ nav:
   - Главная: index.md
   - Документация администратора:
       - administrator/index.md
-      - API: administrator/openapi.md
       - Загрузка таблиц из Vizier: administrator/vizier.md
       - Описание каталогов: administrator/catalogs.md
   - Документация разработчика:
@@ -39,11 +38,6 @@ nav:
 plugins:
   - search
   - section-index
-  - neoteroi.mkdocsoad:
-      use_pymdownx: true
-
-extra_css:
-  - css/mkdocsoad.css
 
 markdown_extensions:
   - toc:

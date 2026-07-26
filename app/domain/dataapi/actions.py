@@ -2,7 +2,7 @@ from typing import final
 
 from app.data import model, repositories
 from app.domain import responders
-from app.domain.dataapi import parameterized_query, search_parsers, tap_types
+from app.domain.dataapi import parameterized_query, tap_types
 from app.presentation import dataapi
 
 ENABLED_CATALOGS = [
@@ -48,22 +48,6 @@ class Actions(dataapi.Actions):
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
             layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
-
-    def query(self, query: dataapi.QueryRequest) -> dataapi.QueryResponse:
-        filters, search_params = search_parsers.query_to_filters(query.q, search_parsers.DEFAULT_PARSERS)
-        objects = self.layer2_repo.query_catalogs(
-            ENABLED_CATALOGS,
-            filters,
-            search_params,
-            query.page_size,
-            query.page,
-        )
-        responder = responders.StructuredResponder(self.catalog_cfg)
-        pgc_objects = responder.build_response_from_catalog(objects).objects
-        return dataapi.QueryResponse(objects=pgc_objects)
-
-    def query_fits(self, query: dataapi.FITSRequest) -> bytes:
-        return self.parameterized_query_manager.query_fits(query)
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         return self.parameterized_query_manager.query_simple(query)

@@ -4,7 +4,6 @@ import click
 
 from app.commands.adminapi import AdminAPICommand
 from app.commands.dataapi import DataAPICommand
-from app.commands.generate_spec import GenerateSpecCommand
 from app.lib import commands
 
 
@@ -35,18 +34,6 @@ def adminapi(config: str):
 )
 def dataapi(config: str):
     commands.run(DataAPICommand(config))
-
-
-@cli.command(short_help=GenerateSpecCommand.help())
-@click.option(
-    "-o",
-    "--output",
-    type=str,
-    required=True,
-    help="Where to put resulting JSON",
-)
-def generate_spec(output: str):
-    commands.run(GenerateSpecCommand(output))
 
 
 @cli.command(
