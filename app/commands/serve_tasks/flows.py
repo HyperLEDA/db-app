@@ -9,7 +9,7 @@ from prefect import flow
 from prefect.deployments.runner import RunnerDeployment
 from prefect.flows import Flow
 from prefect.logging import get_run_logger
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from app import tasks
 
@@ -35,11 +35,20 @@ CLEANUP_ORPHANS_DESCRIPTION = (
 )
 CATALOGS_DESCRIPTION = "Catalogs to import: designation, icrs, redshift, nature. If not set, imports all."
 
-BATCH_SIZE_FIELD = Field(default=100000, description=BATCH_SIZE_DESCRIPTION)
-DRY_RUN_FIELD = Field(default=False, description=DRY_RUN_DESCRIPTION)
-SINCE_FIELD = Field(default=None, description=SINCE_DESCRIPTION)
-CLEANUP_ORPHANS_FIELD = Field(default=True, description=CLEANUP_ORPHANS_DESCRIPTION)
-CATALOGS_FIELD = Field(default=None, description=CATALOGS_DESCRIPTION)
+
+class Layer2CatalogTaskParams(BaseModel):
+    batch_size: int = Field(default=100000, description=BATCH_SIZE_DESCRIPTION)
+    dry_run: bool = Field(default=False, description=DRY_RUN_DESCRIPTION)
+    since: datetime.datetime | None = Field(default=None, description=SINCE_DESCRIPTION)
+    cleanup_orphans: bool = Field(default=True, description=CLEANUP_ORPHANS_DESCRIPTION)
+
+
+class Layer2ImportParams(Layer2CatalogTaskParams):
+    catalogs: list[str] | None = Field(default=None, description=CATALOGS_DESCRIPTION)
+
+
+DEFAULT_LAYER2_CATALOG_TASK_PARAMS = Layer2CatalogTaskParams()
+DEFAULT_LAYER2_IMPORT_PARAMS = Layer2ImportParams()
 
 
 def schedule_env_var(task_name: str) -> str:
@@ -114,20 +123,14 @@ def run_task(
     name="Layer 2 import (all catalogs)",
     description="Aggregates designation, ICRS, redshift, and nature from layer 1 into layer 2.",
 )
-def layer2_import(
-    batch_size: int = BATCH_SIZE_FIELD,
-    dry_run: bool = DRY_RUN_FIELD,
-    since: datetime.datetime | None = SINCE_FIELD,
-    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
-    catalogs: list[str] | None = CATALOGS_FIELD,
-) -> None:
+def layer2_import(params: Layer2ImportParams = DEFAULT_LAYER2_IMPORT_PARAMS) -> None:
     run_task(
         "layer2-import",
-        batch_size=batch_size,
-        dry_run=dry_run,
-        since=since,
-        cleanup_orphans=cleanup_orphans,
-        catalogs=catalogs,
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
+        catalogs=params.catalogs,
     )
 
 
@@ -137,17 +140,14 @@ def layer2_import(
     description="Majority-vote designations from layer 1 into layer 2.",
 )
 def layer2_import_designation(
-    batch_size: int = BATCH_SIZE_FIELD,
-    dry_run: bool = DRY_RUN_FIELD,
-    since: datetime.datetime | None = SINCE_FIELD,
-    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
+    params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS,
 ) -> None:
     run_task(
         "layer2-import-designation",
-        batch_size=batch_size,
-        dry_run=dry_run,
-        since=since,
-        cleanup_orphans=cleanup_orphans,
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
     )
 
 
@@ -156,18 +156,13 @@ def layer2_import_designation(
     name="Layer 2 import — ICRS",
     description="Mean ICRS coordinates from layer 1 into layer 2.",
 )
-def layer2_import_icrs(
-    batch_size: int = BATCH_SIZE_FIELD,
-    dry_run: bool = DRY_RUN_FIELD,
-    since: datetime.datetime | None = SINCE_FIELD,
-    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
-) -> None:
+def layer2_import_icrs(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
     run_task(
         "layer2-import-icrs",
-        batch_size=batch_size,
-        dry_run=dry_run,
-        since=since,
-        cleanup_orphans=cleanup_orphans,
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
     )
 
 
@@ -177,17 +172,14 @@ def layer2_import_icrs(
     description="Mean redshifts (cz) from layer 1 into layer 2.",
 )
 def layer2_import_redshift(
-    batch_size: int = BATCH_SIZE_FIELD,
-    dry_run: bool = DRY_RUN_FIELD,
-    since: datetime.datetime | None = SINCE_FIELD,
-    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
+    params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS,
 ) -> None:
     run_task(
         "layer2-import-redshift",
-        batch_size=batch_size,
-        dry_run=dry_run,
-        since=since,
-        cleanup_orphans=cleanup_orphans,
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
     )
 
 
@@ -196,18 +188,13 @@ def layer2_import_redshift(
     name="Layer 2 import — nature",
     description="Majority-vote object nature/type from layer 1 into layer 2.",
 )
-def layer2_import_nature(
-    batch_size: int = BATCH_SIZE_FIELD,
-    dry_run: bool = DRY_RUN_FIELD,
-    since: datetime.datetime | None = SINCE_FIELD,
-    cleanup_orphans: bool = CLEANUP_ORPHANS_FIELD,
-) -> None:
+def layer2_import_nature(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
     run_task(
         "layer2-import-nature",
-        batch_size=batch_size,
-        dry_run=dry_run,
-        since=since,
-        cleanup_orphans=cleanup_orphans,
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
     )
 
 
