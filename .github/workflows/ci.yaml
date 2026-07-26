@@ -41,7 +41,11 @@ jobs:
           tags: local/app:latest
 
       - name: Run image help
-        run: docker run --rm --entrypoint "app" local/app:latest --help
+        run: |
+          docker run --rm --entrypoint "app" local/app:latest --help
+          docker run --rm --entrypoint "adminapi" local/app:latest --help
+          docker run --rm --entrypoint "dataapi" local/app:latest --help
+          docker run --rm --entrypoint "tasks" local/app:latest --help
 
       - name: Save image
         run: docker save local/app:latest -o image.tar

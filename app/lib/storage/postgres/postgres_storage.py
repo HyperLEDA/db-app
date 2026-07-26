@@ -10,9 +10,7 @@ from psycopg import rows, sql
 from psycopg.types import enum, numeric
 from psycopg_pool import ConnectionPool
 
-from app.lib.storage import enums
 from app.lib.storage.postgres import config
-from app.lib.web.errors import InternalError
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -36,24 +34,25 @@ DEFAULT_DUMPERS: list[tuple[type, type]] = [
     (np.int64, NumpyIntDumper),
 ]
 
-DEFAULT_ENUMS: list[tuple[type[enum.Enum], str]] = [
-    (enums.DataType, "common.datatype"),
-    (enums.RecordTriageStatus, "layer0.triage_status"),
-]
-
 
 class PgStorage:
-    def __init__(self, cfg: config.PgStorageConfig, logger: structlog.stdlib.BoundLogger) -> None:
+    def __init__(
+        self,
+        cfg: config.PgStorageConfig,
+        logger: structlog.stdlib.BoundLogger,
+        enum_registry: Sequence[tuple[type[enum.Enum], str]] = (),
+    ) -> None:
         self._config = cfg
         self._pool: ConnectionPool | None = None
         self._logger = logger
         self._local = threading.local()
+        self._enum_registry: list[tuple[type[enum.Enum], str]] = list(enum_registry)
         self._extra_enums: list[tuple[type[enum.Enum], str]] = []
 
     def _configure_connection(self, conn: psycopg.Connection) -> None:
         for python_type, dumper in DEFAULT_DUMPERS:
             conn.adapters.register_dumper(python_type, dumper)
-        for enum_type, pg_type in DEFAULT_ENUMS + self._extra_enums:
+        for enum_type, pg_type in self._enum_registry + self._extra_enums:
             type_info = enum.EnumInfo.fetch(conn, pg_type)
             if type_info is None:
                 raise RuntimeError(f"Unable to find enum {pg_type} in DB")
@@ -85,14 +84,14 @@ class PgStorage:
 
     def get_pool(self) -> ConnectionPool:
         if self._pool is None:
-            raise InternalError("connection pool is not initialized")
+            raise RuntimeError("connection pool is not initialized")
         return self._pool
 
     def get_connection(self) -> psycopg.Connection:
         conn = self.get_thread_conn()
         if conn is not None:
             return conn
-        raise InternalError("no active transaction connection on this thread")
+        raise RuntimeError("no active transaction connection on this thread")
 
     def disconnect(self) -> None:
         if self._pool is not None:

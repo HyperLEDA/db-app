@@ -2,8 +2,8 @@ import unittest
 
 from parameterized import parameterized
 
-import app.commands.adminapi.command as adminapi
-import app.commands.dataapi.command as dataapi
+import app.adminapi.command as adminapi
+import app.dataapi.command as dataapi
 
 
 class TestEnvironment(unittest.TestCase):

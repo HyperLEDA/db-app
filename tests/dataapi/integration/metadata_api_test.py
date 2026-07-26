@@ -1,0 +1,147 @@
+import pathlib
+import unittest
+
+import psycopg
+import structlog
+from starlette import testclient
+
+import app.dataapi.command as dataapi_command
+from app.data import repositories
+from app.dataapi import domain
+from app.dataapi.domain import actions as dataapi_actions
+from app.dataapi.presentation.server import Server
+from app.lib import auth
+from tests import lib
+
+
+class MetadataAPITest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.pg_storage = lib.TestPostgresStorage.get()
+        cfg_path = pathlib.Path(__file__).resolve().parents[3] / "configs" / "dev" / "dataapi.yaml"
+        cls.cfg = dataapi_command.parse_config(str(cfg_path))
+        cls.log = structlog.get_logger()
+
+    def setUp(self) -> None:
+        self.pg = self.pg_storage.get_storage()
+        self.actions = domain.Actions(
+            layer2_repo=repositories.Layer2Repository(self.pg, self.log),
+            catalog_cfg=self.cfg.catalogs,
+            metadata_repo=repositories.MetadataRepository(self.pg),
+        )
+        self.client = testclient.TestClient(
+            Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
+        )
+
+    def tearDown(self) -> None:
+        self.pg_storage.clear()
+
+    def test_tap_tables_default_max(self) -> None:
+        response = self.client.get("/api/v1/tap/tables")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["data"]
+        self.assertIn("schemas", data)
+        self.assertGreater(len(data["schemas"]), 0)
+        common = next(s for s in data["schemas"] if s["schema_name"] == "common")
+        bib = next(t for t in common["tables"] if t["name"] == 'common."bib"')
+        self.assertEqual(bib["type"], "table")
+        self.assertIn("columns", bib)
+        self.assertIsInstance(bib["columns"], list)
+        self.assertGreater(len(bib["columns"]), 0)
+        id_col = next(c for c in bib["columns"] if c["name"] == "id")
+        self.assertEqual(id_col["datatype"], "int")
+
+    def test_tap_tables_min(self) -> None:
+        response = self.client.get("/api/v1/tap/tables", params={"detail": "min"})
+        self.assertEqual(response.status_code, 200)
+        for schema in response.json()["data"]["schemas"]:
+            for table in schema["tables"]:
+                self.assertNotIn("columns", table)
+
+    def test_tap_tables_whitelist(self) -> None:
+        response = self.client.get("/api/v1/tap/tables")
+        self.assertEqual(response.status_code, 200)
+        table_names: set[str] = set()
+        for schema in response.json()["data"]["schemas"]:
+            self.assertIn(schema["schema_name"], dataapi_actions.METADATA_ALLOWED_SCHEMAS)
+            table_names.update(t["name"] for t in schema["tables"])
+        self.assertNotIn('common."users"', table_names)
+        self.assertNotIn('common."tokens"', table_names)
+
+    def test_tap_sync_basic(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name, objclass, description FROM nature.object_type ORDER BY type_name LIMIT 1",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        col_names = [c["name"] for c in table["columns"]]
+        self.assertEqual(col_names, ["type_name", "objclass", "description"])
+        type_name_col = table["columns"][0]
+        self.assertEqual(type_name_col["datatype"], "char")
+        self.assertEqual(type_name_col["arraysize"], "*")
+        self.assertEqual(len(table["data"]), 1)
+        self.assertEqual(len(table["data"][0]), 3)
+
+    def test_tap_sync_maxrec(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name",
+                "maxrec": 2,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual(len(table["data"]), 2)
+
+    def test_tap_sync_maxrec_not_bypassed_by_line_comment(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name --",
+                "maxrec": 2,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual(len(table["data"]), 2)
+
+    def test_tap_sync_maxrec_not_bypassed_by_unterminated_block_comment(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": ("SELECT type_name FROM nature.object_type ORDER BY type_name) AS _tap_sync LIMIT 10000 /*"),
+                "maxrec": 2,
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_tap_sync_rejects_semicolon_separated_queries(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": (
+                    "SELECT type_name FROM nature.object_type LIMIT 1; SELECT type_name FROM nature.object_type LIMIT 1"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_tap_sync_like_with_percent_wildcard(self) -> None:
+        response = self.client.get(
+            "/api/v1/tap/sync",
+            params={
+                "query": "SELECT type_name FROM nature.object_type WHERE type_name NOT LIKE '%gal%'",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        table = response.json()["data"]["resource"]["table"]
+        self.assertEqual([c["name"] for c in table["columns"]], ["type_name"])
+        self.assertTrue(all("gal" not in row[0].lower() for row in table["data"]))
+
+    def test_tap_sync_query_timeout(self) -> None:
+        with self.assertRaises(psycopg.errors.QueryCanceled):
+            self.pg.query("SELECT pg_sleep(2)", timeout_seconds=1)

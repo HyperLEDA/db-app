@@ -3,8 +3,8 @@ import uuid
 
 import requests
 
+from app.adminapi import presentation as adminapi
 from app.lib.storage import enums
-from app.presentation import adminapi
 from tests import lib
 
 TABLE_DESCRIPTION_NEW = "Regression: patched table description"

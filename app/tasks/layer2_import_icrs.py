@@ -6,10 +6,11 @@ import pandas as pd
 import structlog
 from astropy import units as u
 
+from app.data import enums as data_enums
 from app.data import model, repositories
-from app.lib import containers, logging
+from app.lib import containers
 from app.lib.storage import postgres
-from app.tasks import interface
+from app.tasks import interface, logging
 
 ICRS_COLUMNS = ["ra", "e_ra", "dec", "e_dec"]
 DEG = "deg"
@@ -46,7 +47,7 @@ class Layer2ImportICRSTask(interface.Task):
         return "layer2-import-icrs"
 
     def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log)
+        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)

@@ -63,6 +63,11 @@ check:
 		--config=pyproject.toml
 	@echo "Linter ok."
 
+	@output=$$(uv run lint-imports 2>&1); exit_code=$$?; \
+	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
+	exit $$exit_code
+	@echo "Import contracts ok."
+
 	@output=$$(uv run basedpyright 2>&1); exit_code=$$?; \
 	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
 	exit $$exit_code
@@ -74,7 +79,7 @@ check:
 	@uv run pytest \
 		--quiet \
 		--config-file=pyproject.toml \
-		tests/env_test.py tests/unit
+		tests/env_test.py tests/*/unit
 	@echo "Testing ok."
 
 fix:
@@ -116,13 +121,13 @@ update-template:
 ## General targets
 
 adminapi:
-	uv run app adminapi -c configs/dev/adminapi.yaml
+	uv run adminapi -c configs/dev/adminapi.yaml
 
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
-	uv run app dataapi -c configs/dev/dataapi.yaml
+	uv run dataapi -c configs/dev/dataapi.yaml
 
 start-db:
 	docker-compose up -d
@@ -138,7 +143,7 @@ start-prefect:
 	uv run prefect server start
 
 start-tasks:
-	uv run app serve-tasks
+	uv run tasks
 
 docs:
 	uvx \
