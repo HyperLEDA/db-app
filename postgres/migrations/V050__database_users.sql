@@ -59,3 +59,6 @@ $$;
 
 GRANT db_reader TO hyperleda_reader;
 GRANT db_writer TO hyperleda_writer;
+
+ALTER SYSTEM SET log_statement = 'mod';
+SELECT pg_reload_conf();
