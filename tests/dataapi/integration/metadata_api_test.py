@@ -6,11 +6,13 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
+from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import domain
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
 from app.lib import auth
+from app.lib.storage import postgres
 from tests import lib
 
 
@@ -22,12 +24,26 @@ class MetadataAPITest(unittest.TestCase):
         cls.cfg = dataapi_command.parse_config(str(cfg_path))
         cls.log = structlog.get_logger()
 
+        reader_config = postgres.PgStorageConfig(
+            endpoint=cls.pg_storage.config.endpoint,
+            port=cls.pg_storage.config.port,
+            user="hyperleda_reader",
+            password="password",
+            dbname=cls.pg_storage.config.dbname,
+        )
+        cls.reader_storage = postgres.PgStorage(reader_config, cls.log, data_enums.PG_ENUM_REGISTRY)
+        cls.reader_storage.connect()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.reader_storage.disconnect()
+
     def setUp(self) -> None:
         self.pg = self.pg_storage.get_storage()
         self.actions = domain.Actions(
-            layer2_repo=repositories.Layer2Repository(self.pg, self.log),
+            layer2_repo=repositories.Layer2Repository(self.reader_storage, self.log),
             catalog_cfg=self.cfg.catalogs,
-            metadata_repo=repositories.MetadataRepository(self.pg),
+            metadata_repo=repositories.MetadataRepository(self.reader_storage),
         )
         self.client = testclient.TestClient(
             Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
@@ -145,3 +161,7 @@ class MetadataAPITest(unittest.TestCase):
     def test_tap_sync_query_timeout(self) -> None:
         with self.assertRaises(psycopg.errors.QueryCanceled):
             self.pg.query("SELECT pg_sleep(2)", timeout_seconds=1)
+
+    def test_reader_cannot_write(self) -> None:
+        with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+            self.reader_storage.exec("INSERT INTO common.bib (year, author, title) VALUES (2000, ARRAY['x'], 'y')")

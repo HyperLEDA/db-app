@@ -15,8 +15,8 @@ storage:
     endpoint: hyperledadb
     port: 5432
     dbname: hyperleda
-    user: hyperleda
-    password: fake
+    user: hyperleda_reader
+    password: password
 
 tracing:
   endpoint: tracing-collector:4317

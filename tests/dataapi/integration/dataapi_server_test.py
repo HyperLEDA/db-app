@@ -42,8 +42,8 @@ class DataAPIServerTest(unittest.TestCase):
         os.environ["STORAGE_AUTH_PASSWORD"] = str(cls.pg_storage.config.password)
         os.environ["STORAGE_MAIN_ENDPOINT"] = "localhost"
         os.environ["STORAGE_MAIN_PORT"] = str(cls.pg_storage.port)
-        os.environ["STORAGE_MAIN_USER"] = str(cls.pg_storage.config.user)
-        os.environ["STORAGE_MAIN_PASSWORD"] = str(cls.pg_storage.config.password)
+        os.environ["STORAGE_MAIN_USER"] = "hyperleda_reader"
+        os.environ["STORAGE_MAIN_PASSWORD"] = "password"
 
         logger.info("starting server", port=cls.server_port)
 
