@@ -19,6 +19,7 @@ class RawCatalog(enum.Enum):
     PHOTOMETRY__ISOPHOTAL = "photometry_isophotal"
     GEOMETRY = "geometry"
     NOTE = "note"
+    RADIO = "radio"
 
 
 RUNTIME_RAW_CATALOGS: frozenset[RawCatalog] = frozenset(

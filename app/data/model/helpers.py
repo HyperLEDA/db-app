@@ -1,4 +1,4 @@
-from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, redshift
+from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, radio, redshift
 
 _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]] = {
     interface.RawCatalog.DESIGNATION: designation.DesignationCatalogObject,
@@ -9,6 +9,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]]
     interface.RawCatalog.PHOTOMETRY__ISOPHOTAL: photometry.PhotometryIsophotalCatalogObject,
     interface.RawCatalog.GEOMETRY: geometry.GeometryCatalogObject,
     interface.RawCatalog.NOTE: note.NoteCatalogObject,
+    interface.RawCatalog.RADIO: radio.RadioCatalogObject,
 }
 
 
