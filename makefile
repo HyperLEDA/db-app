@@ -9,7 +9,7 @@ MIGRATIONS_DIR = postgres/migrations
 check-migrations:
 	@invalid=$$( \
 		ls $(MIGRATIONS_DIR) \
-		| grep -vE '^V[0-9]{3}__[a-z0-9_]+\.sql$$' \
+		| grep -vE '^V[0-9]{3}__[A-Za-z0-9_]+\.sql$$' \
 		|| true \
 	); \
 	dups=$$( \
