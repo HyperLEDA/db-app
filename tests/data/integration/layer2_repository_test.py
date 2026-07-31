@@ -2,6 +2,7 @@ import datetime
 import unittest
 
 import structlog
+from astropy import table
 
 from app.data import model, repositories
 from app.data.repositories import layer2
@@ -25,17 +26,18 @@ class Layer2RepositoryTest(unittest.TestCase):
         by_table: dict[str, list[tuple[int, model.CatalogObject]]] = {}
         for obj in objects:
             for catalog_obj in obj.data:
-                table = catalog_obj.layer2_table()
-                if table not in by_table:
-                    by_table[table] = []
-                by_table[table].append((obj.pgc, catalog_obj))
-        for table, table_entries in by_table.items():
+                layer2_table = catalog_obj.layer2_table()
+                if layer2_table not in by_table:
+                    by_table[layer2_table] = []
+                by_table[layer2_table].append((obj.pgc, catalog_obj))
+        for table_name, table_entries in by_table.items():
             if not table_entries:
                 continue
             columns = table_entries[0][1].layer2_keys()
-            pgcs = [pgc for pgc, _ in table_entries]
-            data = [[catalog_obj.layer2_data()[c] for c in columns] for _, catalog_obj in table_entries]
-            self.layer2_repo.save(table, columns, pgcs, data)
+            qtable_data: dict[str, list[object]] = {"pgc": [pgc for pgc, _ in table_entries]}
+            for column in columns:
+                qtable_data[column] = [catalog_obj.layer2_data()[column] for _, catalog_obj in table_entries]
+            self.layer2_repo.save(table_name, table.QTable(qtable_data))
 
     def _get_table(self, table_name: str) -> int:
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")

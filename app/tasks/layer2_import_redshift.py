@@ -61,7 +61,6 @@ class Layer2ImportRedshiftTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.REDSHIFT)
-        layer2_units = self.layer2_repository.get_column_units("layer2", "cz")
         self.log.info(
             "Starting Layer 2 redshift import",
             last_update=last_update_dt.ctime(),
@@ -82,15 +81,10 @@ class Layer2ImportRedshiftTask(interface.Task):
                 tbl[col] = tbl[col].to(u.Unit(VELOCITY_UNIT))
             agg = aggregate_redshift(tbl)
 
-            for col in REDSHIFT_COLUMNS:
-                agg[col] = agg[col].to(u.Unit(layer2_units[col]))
-            pgcs = list(agg["pgc"])
-            data = np.column_stack([agg[col].value for col in REDSHIFT_COLUMNS]).tolist()
-
-            if pgcs:
-                objects_to_save += len(pgcs)
+            if len(agg) > 0:
+                objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.cz", REDSHIFT_COLUMNS, pgcs, data)
+                    self.layer2_repository.save("layer2.cz", agg)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,

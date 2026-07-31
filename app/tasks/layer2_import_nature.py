@@ -78,17 +78,15 @@ class Layer2ImportNatureTask(interface.Task):
             batch_size=self.batch_size,
         ):
             agg = aggregate_nature(tbl)
-            pgcs = list(agg["pgc"])
-            data = [[str(t)] for t in agg["type_name"]]
 
             for type_name in agg["type_name"]:
                 key = str(type_name)
                 type_distribution[key] = type_distribution.get(key, 0) + 1
 
-            if pgcs:
-                objects_to_save += len(pgcs)
+            if len(agg) > 0:
+                objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.nature", ["type_name"], pgcs, data)
+                    self.layer2_repository.save("layer2.nature", agg)
 
             self.log.info(
                 "Processed batch",

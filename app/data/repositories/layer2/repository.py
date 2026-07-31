@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from typing import Any
 
 import structlog
+from astropy import table
+from astropy import units as u
 from psycopg import rows
 
 from app.data import model
@@ -74,17 +76,31 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
             self._storage.exec(query, params=[pgcs])
 
-    def save(self, table: str, columns: list[str], pgcs: list[int], data: list[list[Any]]) -> None:
-        if not pgcs:
+    def save(self, table_name: str, data: table.QTable) -> None:
+        if len(data) == 0:
             return
-        all_columns = ["pgc"] + columns
+
+        schema, relation = table_name.split(".", maxsplit=1)
+        column_units = self.get_column_units(schema, relation)
+
+        work = table.QTable(data, copy=True)
+        columns = [name for name in work.colnames if name != "pgc"]
+        for col in columns:
+            target_unit = column_units.get(col)
+            if target_unit is not None and work[col].unit is not None:
+                work[col] = work[col].to(u.Unit(target_unit))
+
+        all_columns = ["pgc", *columns]
         placeholders = ",".join(["%s"] * len(all_columns))
         on_conflict = ", ".join([f"{c} = EXCLUDED.{c}" for c in all_columns])
         query = (
-            f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) "
+            f"INSERT INTO {table_name} ({', '.join(all_columns)}) VALUES ({placeholders}) "
             f"ON CONFLICT (pgc) DO UPDATE SET {on_conflict}"
         )
-        rows = [[pgc, *row] for pgc, row in zip(pgcs, data, strict=True)]
+
+        pgcs = [int(pgc) for pgc in work["pgc"]]
+        col_values = [_column_as_list(work[col]) for col in columns]
+        rows = [[pgc, *[vals[i] for vals in col_values]] for i, pgc in enumerate(pgcs)]
         with self.with_tx():
             self._storage.execute_batch(query, rows)
 
@@ -524,3 +540,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             return []
 
         return res["obj"]
+
+
+def _column_as_list(col: Any) -> list[Any]:
+    if getattr(col, "unit", None) is not None:
+        return col.value.tolist()
+    return [v.item() if hasattr(v, "item") else v for v in col]

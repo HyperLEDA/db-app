@@ -10,8 +10,6 @@ from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
 
-DESIGNATION_COLUMNS = ["design"]
-
 
 def aggregate_designation(tbl: table.QTable) -> table.QTable:
     grouped = tbl.group_by("pgc")
@@ -24,6 +22,7 @@ def aggregate_designation(tbl: table.QTable) -> table.QTable:
             name_counts[key] = name_counts.get(key, 0) + 1
         pgcs.append(int(group["pgc"][0]))
         designs.append(max(name_counts, key=lambda k: name_counts[k]))
+
     return table.QTable({"pgc": pgcs, "design": designs})
 
 
@@ -77,12 +76,10 @@ class Layer2ImportDesignationTask(interface.Task):
             batch_size=self.batch_size,
         ):
             agg = aggregate_designation(tbl)
-            pgcs = list(agg["pgc"])
-            data = [[str(d)] for d in agg["design"]]
-            if pgcs:
-                objects_to_save += len(pgcs)
+            if len(agg) > 0:
+                objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.designation", DESIGNATION_COLUMNS, pgcs, data)
+                    self.layer2_repository.save("layer2.designation", agg)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
