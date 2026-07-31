@@ -14,12 +14,18 @@ from app.tasks import interface, logging
 
 
 def aggregate_redshift(tbl: table.QTable) -> table.QTable:
-    grouped = tbl.group_by("pgc")
-    means = grouped["cz", "e_cz"].groups.aggregate(np.mean)
+    work = table.QTable(tbl, copy=True)
+    work["w_cz"] = 1.0 / work["e_cz"] ** 2
+    work["cz_w"] = work["cz"] * work["w_cz"]
+
+    grouped = work.group_by("pgc")
+    sums = grouped["cz_w", "w_cz"].groups.aggregate(np.sum)
+    means = grouped[["e_cz"]].groups.aggregate(np.mean)
+
     return table.QTable(
         {
             Redshift.PGC: grouped.groups.keys["pgc"],
-            Redshift.CZ: means["cz"],
+            Redshift.CZ: sums["cz_w"] / sums["w_cz"],
             Redshift.E_CZ: means["e_cz"],
         }
     )
@@ -58,6 +64,7 @@ class Layer2ImportRedshiftTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.REDSHIFT)
+        
         self.log.info(
             "Starting Layer 2 redshift import",
             last_update=last_update_dt.ctime(),

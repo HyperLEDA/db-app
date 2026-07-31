@@ -12,6 +12,7 @@ from app.tasks import (
     layer2_import_designation,
     layer2_import_icrs,
     layer2_import_nature,
+    layer2_import_redshift,
 )
 
 
@@ -32,6 +33,21 @@ class AggregateIcrsTest(unittest.TestCase):
         self.assertAlmostEqual(float(agg["dec"][0].to_value(deg)), 32.0)
         self.assertAlmostEqual(float(agg["e_ra"][0].to_value(deg)), 1.5)
         self.assertAlmostEqual(float(agg["e_dec"][0].to_value(deg)), 1.5)
+
+
+class AggregateRedshiftTest(unittest.TestCase):
+    def test_weighted_mean_cz(self) -> None:
+        kms = u.Unit("km/s")
+        tbl = table.QTable(
+            {
+                "pgc": [1, 1],
+                "cz": [1000.0, 2000.0] * kms,
+                "e_cz": [10.0, 20.0] * kms,
+            }
+        )
+        agg = layer2_import_redshift.aggregate_redshift(tbl)
+        self.assertAlmostEqual(float(agg["cz"][0].to_value(kms)), 1200.0)
+        self.assertAlmostEqual(float(agg["e_cz"][0].to_value(kms)), 15.0)
 
 
 class AggregateNatureTest(unittest.TestCase):
