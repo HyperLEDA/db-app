@@ -6,6 +6,7 @@ from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import Nature
 from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
@@ -24,7 +25,7 @@ def aggregate_nature(tbl: table.QTable) -> table.QTable:
         pgcs.append(int(group["pgc"][0]))
         type_names.append(max(type_counts, key=lambda k: type_counts[k]))
 
-    return table.QTable({"pgc": pgcs, "type_name": type_names})
+    return table.QTable({Nature.PGC: pgcs, Nature.TYPE_NAME: type_names})
 
 
 @final
@@ -79,7 +80,7 @@ class Layer2ImportNatureTask(interface.Task):
         ):
             agg = aggregate_nature(tbl)
 
-            for type_name in agg["type_name"]:
+            for type_name in agg[Nature.TYPE_NAME]:
                 key = str(type_name)
                 type_distribution[key] = type_distribution.get(key, 0) + 1
 

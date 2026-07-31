@@ -4,16 +4,13 @@ from typing import final
 import numpy as np
 import structlog
 from astropy import table
-from astropy import units as u
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import Redshift
 from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
-
-REDSHIFT_COLUMNS = ["cz", "e_cz"]
-VELOCITY_UNIT = "km/s"
 
 
 def aggregate_redshift(tbl: table.QTable) -> table.QTable:
@@ -21,9 +18,9 @@ def aggregate_redshift(tbl: table.QTable) -> table.QTable:
     means = grouped["cz", "e_cz"].groups.aggregate(np.mean)
     return table.QTable(
         {
-            "pgc": grouped.groups.keys["pgc"],
-            "cz": means["cz"],
-            "e_cz": means["e_cz"],
+            Redshift.PGC: grouped.groups.keys["pgc"],
+            Redshift.CZ: means["cz"],
+            Redshift.E_CZ: means["e_cz"],
         }
     )
 
@@ -77,8 +74,6 @@ class Layer2ImportRedshiftTask(interface.Task):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            for col in REDSHIFT_COLUMNS:
-                tbl[col] = tbl[col].to(u.Unit(VELOCITY_UNIT))
             agg = aggregate_redshift(tbl)
 
             if len(agg) > 0:

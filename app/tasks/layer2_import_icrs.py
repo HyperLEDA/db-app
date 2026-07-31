@@ -4,16 +4,13 @@ from typing import final
 import numpy as np
 import structlog
 from astropy import table
-from astropy import units as u
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import ICRS
 from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
-
-ICRS_COLUMNS = ["ra", "e_ra", "dec", "e_dec"]
-DEG = "deg"
 
 
 def aggregate_icrs(tbl: table.QTable) -> table.QTable:
@@ -29,11 +26,11 @@ def aggregate_icrs(tbl: table.QTable) -> table.QTable:
 
     return table.QTable(
         {
-            "pgc": grouped.groups.keys["pgc"],
-            "ra": sums["ra_w"] / sums["w_ra"],
-            "e_ra": means["e_ra"],
-            "dec": sums["dec_w"] / sums["w_dec"],
-            "e_dec": means["e_dec"],
+            ICRS.PGC: grouped.groups.keys["pgc"],
+            ICRS.RA: sums["ra_w"] / sums["w_ra"],
+            ICRS.E_RA: means["e_ra"],
+            ICRS.DEC: sums["dec_w"] / sums["w_dec"],
+            ICRS.E_DEC: means["e_dec"],
         }
     )
 
@@ -87,8 +84,6 @@ class Layer2ImportICRSTask(interface.Task):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            for col in ICRS_COLUMNS:
-                tbl[col] = tbl[col].to(u.Unit(DEG))
             agg = aggregate_icrs(tbl)
 
             if len(agg) > 0:

@@ -6,6 +6,7 @@ from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import Designation
 from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
@@ -23,7 +24,7 @@ def aggregate_designation(tbl: table.QTable) -> table.QTable:
         pgcs.append(int(group["pgc"][0]))
         designs.append(max(name_counts, key=lambda k: name_counts[k]))
 
-    return table.QTable({"pgc": pgcs, "design": designs})
+    return table.QTable({Designation.PGC: pgcs, Designation.DESIGN: designs})
 
 
 @final
