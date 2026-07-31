@@ -2,28 +2,30 @@ import datetime
 import unittest
 from unittest import mock
 
-import pandas as pd
 import structlog
+from astropy import table
+from astropy import units as u
 
 from app.tasks import interface, layer2_import, layer2_import_icrs
 
 
 class AggregateIcrsTest(unittest.TestCase):
     def test_weighted_mean_ra_dec(self) -> None:
-        df = pd.DataFrame(
+        deg = u.Unit("deg")
+        tbl = table.QTable(
             {
                 "pgc": [1, 1],
-                "ra": [10.0, 20.0],
-                "e_ra": [1.0, 2.0],
-                "dec": [30.0, 40.0],
-                "e_dec": [1.0, 2.0],
+                "ra": [10.0, 20.0] * deg,
+                "e_ra": [1.0, 2.0] * deg,
+                "dec": [30.0, 40.0] * deg,
+                "e_dec": [1.0, 2.0] * deg,
             }
         )
-        agg = layer2_import_icrs.aggregate_icrs(df)
-        self.assertAlmostEqual(float(agg.loc[1, "ra"]), 12.0)
-        self.assertAlmostEqual(float(agg.loc[1, "dec"]), 32.0)
-        self.assertAlmostEqual(float(agg.loc[1, "e_ra"]), 1.5)
-        self.assertAlmostEqual(float(agg.loc[1, "e_dec"]), 1.5)
+        agg = layer2_import_icrs.aggregate_icrs(tbl)
+        self.assertAlmostEqual(float(agg["ra"][0].to_value(deg)), 12.0)
+        self.assertAlmostEqual(float(agg["dec"][0].to_value(deg)), 32.0)
+        self.assertAlmostEqual(float(agg["e_ra"][0].to_value(deg)), 1.5)
+        self.assertAlmostEqual(float(agg["e_dec"][0].to_value(deg)), 1.5)
 
 
 class ParseSinceTest(unittest.TestCase):

@@ -2,8 +2,8 @@ import datetime
 from typing import final
 
 import numpy as np
-import pandas as pd
 import structlog
+from astropy import table
 from astropy import units as u
 
 from app.data import enums as data_enums
@@ -16,27 +16,24 @@ ICRS_COLUMNS = ["ra", "e_ra", "dec", "e_dec"]
 DEG = "deg"
 
 
-def _array_to_deg(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(unit_str)).to(u.Unit(DEG)).value)
+def aggregate_icrs(tbl: table.QTable) -> table.QTable:
+    work = table.QTable(tbl, copy=True)
+    work["w_ra"] = 1.0 / work["e_ra"] ** 2
+    work["w_dec"] = 1.0 / work["e_dec"] ** 2
+    work["ra_w"] = work["ra"] * work["w_ra"]
+    work["dec_w"] = work["dec"] * work["w_dec"]
 
+    grouped = work.group_by("pgc")
+    sums = grouped["ra_w", "w_ra", "dec_w", "w_dec"].groups.aggregate(np.sum)
+    means = grouped["e_ra", "e_dec"].groups.aggregate(np.mean)
 
-def _array_from_deg(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(DEG)).to(u.Unit(unit_str)).value)
-
-
-def aggregate_icrs(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df["w_ra"] = 1.0 / np.asarray(df["e_ra"], dtype=float) ** 2
-    df["w_dec"] = 1.0 / np.asarray(df["e_dec"], dtype=float) ** 2
-    df["ra_w"] = df["ra"] * df["w_ra"]
-    df["dec_w"] = df["dec"] * df["w_dec"]
-    g = df.groupby("pgc", as_index=True)
-    return pd.DataFrame(
+    return table.QTable(
         {
-            "ra": g["ra_w"].sum() / g["w_ra"].sum(),
-            "e_ra": g["e_ra"].mean(),
-            "dec": g["dec_w"].sum() / g["w_dec"].sum(),
-            "e_dec": g["e_dec"].mean(),
+            "pgc": grouped.groups.keys["pgc"],
+            "ra": sums["ra_w"] / sums["w_ra"],
+            "e_ra": means["e_ra"],
+            "dec": sums["dec_w"] / sums["w_dec"],
+            "e_dec": means["e_dec"],
         }
     )
 
@@ -74,7 +71,6 @@ class Layer2ImportICRSTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ICRS)
-        layer1_units = self.layer1_repository.get_column_units(model.RawCatalog.ICRS)
         layer2_units = self.layer2_repository.get_column_units("layer2", "icrs")
         self.log.info(
             "Starting Layer 2 ICRS import",
@@ -84,36 +80,32 @@ class Layer2ImportICRSTask(interface.Task):
         )
 
         objects_to_save = 0
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_icrs_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            df = pd.DataFrame(
-                [(r.pgc, r.data.ra, r.data.e_ra, r.data.dec, r.data.e_dec) for r in records],
-                columns=["pgc"] + ICRS_COLUMNS,
-            )
             for col in ICRS_COLUMNS:
-                unit = layer1_units.get(col, DEG)
-                df[col] = _array_to_deg(np.asarray(df[col].values), unit)
-            agg = aggregate_icrs(df)
+                tbl[col] = tbl[col].to(u.Unit(DEG))
+            agg = aggregate_icrs(tbl)
+
             for col in ICRS_COLUMNS:
-                unit = layer2_units.get(col, DEG)
-                agg[col] = _array_from_deg(np.asarray(agg[col].values), unit)
-            pgcs = agg.index.tolist()
-            data = agg[ICRS_COLUMNS].values.tolist()
+                agg[col] = agg[col].to(u.Unit(layer2_units[col]))
+            pgcs = list(agg["pgc"])
+            data = np.column_stack([agg[col].value for col in ICRS_COLUMNS]).tolist()
 
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:
                     self.layer2_repository.save("layer2.icrs", ICRS_COLUMNS, pgcs, data)
+
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 

@@ -2,6 +2,8 @@ import datetime
 from typing import Any
 
 import structlog
+from astropy import table
+from astropy import units as u
 
 from app.data import model
 from app.lib.storage import postgres
@@ -89,10 +91,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             for r in rows
         ]
 
-    def get_new_icrs_records(
-        self, dt: datetime.datetime, limit: int, offset: int
-    ) -> list[model.StructuredData[model.ICRSRecord]]:
-        query = """SELECT o.pgc, l1.record_id, l1.ra, l1.e_ra, l1.dec, l1.e_dec
+    def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        query = """SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec
         FROM icrs.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
         WHERE o.pgc IN (
@@ -105,19 +105,16 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
-        return [
-            model.StructuredData(
-                pgc=int(r["pgc"]),
-                record_id=r["record_id"],
-                data=model.ICRSRecord(
-                    ra=float(r["ra"]),
-                    e_ra=float(r["e_ra"]),
-                    dec=float(r["dec"]),
-                    e_dec=float(r["e_dec"]),
-                ),
-            )
-            for r in rows
-        ]
+        units = self.get_column_units(model.RawCatalog.ICRS)
+        return table.QTable(
+            {
+                "pgc": [int(r["pgc"]) for r in rows],
+                "ra": u.Quantity([float(r["ra"]) for r in rows], u.Unit(units["ra"])),
+                "e_ra": u.Quantity([float(r["e_ra"]) for r in rows], u.Unit(units["e_ra"])),
+                "dec": u.Quantity([float(r["dec"]) for r in rows], u.Unit(units["dec"])),
+                "e_dec": u.Quantity([float(r["e_dec"]) for r in rows], u.Unit(units["e_dec"])),
+            }
+        )
 
     def get_new_redshift_records(
         self, dt: datetime.datetime, limit: int, offset: int
