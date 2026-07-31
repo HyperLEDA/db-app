@@ -9,12 +9,17 @@ from app.data import enums as data_enums
 from app.data import model, repositories
 from app.data.schema.layer2 import ICRS
 from app.lib import containers
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.tasks import interface, logging
 
 
 def aggregate_icrs(tbl: table.QTable) -> table.QTable:
     work = table.QTable(tbl, copy=True)
+    is_compilation = np.asarray(work["datatype"]) == enums.DataType.COMPILATION.value
+    pgc = np.asarray(work["pgc"])
+    has_primary = np.isin(pgc, pgc[~is_compilation])
+    work = work[~is_compilation | ~has_primary]
+
     work["w_ra"] = 1.0 / work["e_ra"] ** 2
     work["w_dec"] = 1.0 / work["e_dec"] ** 2
     work["ra_w"] = work["ra"] * work["w_ra"]

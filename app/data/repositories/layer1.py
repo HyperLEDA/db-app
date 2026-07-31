@@ -88,9 +88,10 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
 
     def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec
+        query = """SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype
         FROM icrs.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
+        JOIN layer0.tables AS t ON o.table_id = t.id
         WHERE o.pgc IN (
             SELECT DISTINCT o.pgc
             FROM icrs.data AS l1
@@ -109,13 +110,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 "e_ra": u.Quantity([float(r["e_ra"]) for r in rows], u.Unit(units["e_ra"])),
                 "dec": u.Quantity([float(r["dec"]) for r in rows], u.Unit(units["dec"])),
                 "e_dec": u.Quantity([float(r["e_dec"]) for r in rows], u.Unit(units["e_dec"])),
+                "datatype": [r["datatype"].value for r in rows],
             }
         )
 
     def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.cz, l1.e_cz
+        query = """SELECT o.pgc, l1.cz, l1.e_cz, t.datatype
         FROM cz.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
+        JOIN layer0.tables AS t ON o.table_id = t.id
         WHERE o.pgc IN (
             SELECT DISTINCT o.pgc
             FROM cz.data AS l1
@@ -132,6 +135,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 "pgc": [int(r["pgc"]) for r in rows],
                 "cz": u.Quantity([float(r["cz"]) for r in rows], u.Unit(units["cz"])),
                 "e_cz": u.Quantity([float(r["e_cz"]) for r in rows], u.Unit(units["e_cz"])),
+                "datatype": [r["datatype"].value for r in rows],
             }
         )
 
