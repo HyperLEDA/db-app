@@ -2,26 +2,37 @@ import datetime
 from typing import final
 
 import numpy as np
-import pandas as pd
 import structlog
-from astropy import units as u
+from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import Redshift
 from app.lib import containers
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.tasks import interface, logging
 
-REDSHIFT_COLUMNS = ["cz", "e_cz"]
-VELOCITY_UNIT = "km/s"
 
+def aggregate_redshift(tbl: table.QTable) -> table.QTable:
+    work = table.QTable(tbl, copy=True)
+    is_compilation = np.asarray(work["datatype"]) == enums.DataType.COMPILATION.value
+    pgc = np.asarray(work["pgc"])
+    has_primary = np.isin(pgc, pgc[~is_compilation])
+    work = work[~is_compilation | ~has_primary]
 
-def _array_to_velocity(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(unit_str)).to(u.Unit(VELOCITY_UNIT)).value)
+    work["w_cz"] = 1.0 / work["e_cz"] ** 2
+    work["cz_w"] = work["cz"] * work["w_cz"]
 
+    grouped = work.group_by("pgc")
+    sums = grouped["cz_w", "w_cz"].groups.aggregate(np.sum)
 
-def _array_from_velocity(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(VELOCITY_UNIT)).to(u.Unit(unit_str)).value)
+    return table.QTable(
+        {
+            Redshift.PGC: grouped.groups.keys["pgc"],
+            Redshift.CZ: sums["cz_w"] / sums["w_cz"],
+            Redshift.E_CZ: sums["w_cz"] ** (-0.5),
+        }
+    )
 
 
 @final
@@ -57,8 +68,7 @@ class Layer2ImportRedshiftTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.REDSHIFT)
-        layer1_units = self.layer1_repository.get_column_units(model.RawCatalog.REDSHIFT)
-        layer2_units = self.layer2_repository.get_column_units("layer2", "cz")
+
         self.log.info(
             "Starting Layer 2 redshift import",
             last_update=last_update_dt.ctime(),
@@ -67,36 +77,24 @@ class Layer2ImportRedshiftTask(interface.Task):
         )
 
         objects_to_save = 0
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_redshift_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            df = pd.DataFrame(
-                [(r.pgc, r.data.cz, r.data.e_cz) for r in records],
-                columns=["pgc"] + REDSHIFT_COLUMNS,
-            )
-            for col in REDSHIFT_COLUMNS:
-                unit = layer1_units.get(col, VELOCITY_UNIT)
-                df[col] = _array_to_velocity(np.asarray(df[col].values), unit)
-            agg = df.groupby("pgc", as_index=True)[REDSHIFT_COLUMNS].mean()
-            for col in REDSHIFT_COLUMNS:
-                unit = layer2_units.get(col, VELOCITY_UNIT)
-                agg[col] = _array_from_velocity(np.asarray(agg[col].values), unit)
-            pgcs = agg.index.tolist()
-            data = agg[REDSHIFT_COLUMNS].values.tolist()
+            agg = aggregate_redshift(tbl)
 
-            if pgcs:
-                objects_to_save += len(pgcs)
+            if len(agg) > 0:
+                objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.cz", REDSHIFT_COLUMNS, pgcs, data)
+                    self.layer2_repository.save("layer2.cz", agg)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 

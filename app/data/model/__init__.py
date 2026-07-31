@@ -20,7 +20,6 @@ from app.data.model.records import (
     NatureRecord,
     Record,
     RedshiftRecord,
-    StructuredData,
 )
 from app.data.model.redshift import RedshiftCatalogObject
 from app.data.model.table import (
@@ -49,7 +48,6 @@ __all__ = [
     "NatureRecord",
     "RedshiftRecord",
     "Record",
-    "StructuredData",
     "Layer2CatalogObject",
     "Layer2Object",
     "TableRecord",

@@ -2,26 +2,41 @@ import datetime
 from typing import final
 
 import numpy as np
-import pandas as pd
 import structlog
-from astropy import units as u
+from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
+from app.data.schema.layer2 import ICRS
 from app.lib import containers
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.tasks import interface, logging
 
-ICRS_COLUMNS = ["ra", "e_ra", "dec", "e_dec"]
-DEG = "deg"
 
+def aggregate_icrs(tbl: table.QTable) -> table.QTable:
+    work = table.QTable(tbl, copy=True)
+    is_compilation = np.asarray(work["datatype"]) == enums.DataType.COMPILATION.value
+    pgc = np.asarray(work["pgc"])
+    has_primary = np.isin(pgc, pgc[~is_compilation])
+    work = work[~is_compilation | ~has_primary]
 
-def _array_to_deg(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(unit_str)).to(u.Unit(DEG)).value)
+    work["w_ra"] = 1.0 / work["e_ra"] ** 2
+    work["w_dec"] = 1.0 / work["e_dec"] ** 2
+    work["ra_w"] = work["ra"] * work["w_ra"]
+    work["dec_w"] = work["dec"] * work["w_dec"]
 
+    grouped = work.group_by("pgc")
+    sums = grouped["ra_w", "w_ra", "dec_w", "w_dec"].groups.aggregate(np.sum)
 
-def _array_from_deg(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(DEG)).to(u.Unit(unit_str)).value)
+    return table.QTable(
+        {
+            ICRS.PGC: grouped.groups.keys["pgc"],
+            ICRS.RA: sums["ra_w"] / sums["w_ra"],
+            ICRS.E_RA: sums["w_ra"] ** (-0.5),
+            ICRS.DEC: sums["dec_w"] / sums["w_dec"],
+            ICRS.E_DEC: sums["w_dec"] ** (-0.5),
+        }
+    )
 
 
 @final
@@ -57,8 +72,6 @@ class Layer2ImportICRSTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.ICRS)
-        layer1_units = self.layer1_repository.get_column_units(model.RawCatalog.ICRS)
-        layer2_units = self.layer2_repository.get_column_units("layer2", "icrs")
         self.log.info(
             "Starting Layer 2 ICRS import",
             last_update=last_update_dt.ctime(),
@@ -67,36 +80,25 @@ class Layer2ImportICRSTask(interface.Task):
         )
 
         objects_to_save = 0
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_icrs_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            df = pd.DataFrame(
-                [(r.pgc, r.data.ra, r.data.e_ra, r.data.dec, r.data.e_dec) for r in records],
-                columns=["pgc"] + ICRS_COLUMNS,
-            )
-            for col in ICRS_COLUMNS:
-                unit = layer1_units.get(col, DEG)
-                df[col] = _array_to_deg(np.asarray(df[col].values), unit)
-            agg = df.groupby("pgc", as_index=True)[ICRS_COLUMNS].mean()
-            for col in ICRS_COLUMNS:
-                unit = layer2_units.get(col, DEG)
-                agg[col] = _array_from_deg(np.asarray(agg[col].values), unit)
-            pgcs = agg.index.tolist()
-            data = agg[ICRS_COLUMNS].values.tolist()
+            agg = aggregate_icrs(tbl)
 
-            if pgcs:
-                objects_to_save += len(pgcs)
+            if len(agg) > 0:
+                objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.icrs", ICRS_COLUMNS, pgcs, data)
+                    self.layer2_repository.save("layer2.icrs", agg)
+
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 

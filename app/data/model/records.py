@@ -24,13 +24,6 @@ class Record:
         return None
 
 
-@dataclass
-class StructuredData[T]:
-    pgc: int
-    record_id: str
-    data: T
-
-
 # Record classes below represent how data for each particular record is written
 # and read directly to and from the tables. Most likely they will correspond
 # to actual columns for tables. However, this may no necessarily be true for

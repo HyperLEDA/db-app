@@ -112,6 +112,7 @@ select = [
 ]
 
 [tool.basedpyright]
+pythonVersion = "3.13"
 typeCheckingMode = "off"
 venvPath = "."
 venv = ".venv"
