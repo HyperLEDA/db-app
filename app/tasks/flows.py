@@ -163,7 +163,7 @@ def layer2_import_designation(
 @flow(
     log_prints=False,
     name="Layer 2 import — ICRS",
-    description="Mean ICRS coordinates from layer 1 into layer 2.",
+    description="Aggregates ICRS coordinates from layer 1 into layer 2.",
 )
 def layer2_import_icrs(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
     run_task(

@@ -69,8 +69,10 @@ class PgStorage:
             self._config.get_dsn(),
             min_size=10,
             max_size=50,
+            open=True,
             kwargs={"row_factory": rows.dict_row, "autocommit": True},
             configure=self._configure_connection,
+            check=ConnectionPool.check_connection,
         )
 
     def register_type(self, enum_type: type[enum.Enum], pg_type: str) -> None:

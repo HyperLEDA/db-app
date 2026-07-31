@@ -24,6 +24,23 @@ def _array_from_deg(arr: np.ndarray, unit_str: str) -> np.ndarray:
     return np.asarray((arr * u.Unit(DEG)).to(u.Unit(unit_str)).value)
 
 
+def aggregate_icrs(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["w_ra"] = 1.0 / np.asarray(df["e_ra"], dtype=float) ** 2
+    df["w_dec"] = 1.0 / np.asarray(df["e_dec"], dtype=float) ** 2
+    df["ra_w"] = df["ra"] * df["w_ra"]
+    df["dec_w"] = df["dec"] * df["w_dec"]
+    g = df.groupby("pgc", as_index=True)
+    return pd.DataFrame(
+        {
+            "ra": g["ra_w"].sum() / g["w_ra"].sum(),
+            "e_ra": g["e_ra"].mean(),
+            "dec": g["dec_w"].sum() / g["w_dec"].sum(),
+            "e_dec": g["e_dec"].mean(),
+        }
+    )
+
+
 @final
 class Layer2ImportICRSTask(interface.Task):
     def __init__(
@@ -82,7 +99,7 @@ class Layer2ImportICRSTask(interface.Task):
             for col in ICRS_COLUMNS:
                 unit = layer1_units.get(col, DEG)
                 df[col] = _array_to_deg(np.asarray(df[col].values), unit)
-            agg = df.groupby("pgc", as_index=True)[ICRS_COLUMNS].mean()
+            agg = aggregate_icrs(df)
             for col in ICRS_COLUMNS:
                 unit = layer2_units.get(col, DEG)
                 agg[col] = _array_from_deg(np.asarray(agg[col].values), unit)
