@@ -6,7 +6,13 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app.tasks import interface, layer2_import, layer2_import_icrs, layer2_import_nature
+from app.tasks import (
+    interface,
+    layer2_import,
+    layer2_import_designation,
+    layer2_import_icrs,
+    layer2_import_nature,
+)
 
 
 class AggregateIcrsTest(unittest.TestCase):
@@ -40,6 +46,20 @@ class AggregateNatureTest(unittest.TestCase):
         by_pgc = {int(pgc): str(type_name) for pgc, type_name in zip(agg["pgc"], agg["type_name"], strict=True)}
         self.assertEqual(by_pgc[1], "G")
         self.assertEqual(by_pgc[2], "QSO")
+
+
+class AggregateDesignationTest(unittest.TestCase):
+    def test_majority_design(self) -> None:
+        tbl = table.QTable(
+            {
+                "pgc": [1, 1, 1, 2],
+                "design": ["NGC 224", "NGC 224", "M 31", "NGC 598"],
+            }
+        )
+        agg = layer2_import_designation.aggregate_designation(tbl)
+        by_pgc = {int(pgc): str(design) for pgc, design in zip(agg["pgc"], agg["design"], strict=True)}
+        self.assertEqual(by_pgc[1], "NGC 224")
+        self.assertEqual(by_pgc[2], "NGC 598")
 
 
 class ParseSinceTest(unittest.TestCase):

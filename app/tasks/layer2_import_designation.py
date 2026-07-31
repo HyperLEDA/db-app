@@ -2,6 +2,7 @@ import datetime
 from typing import final
 
 import structlog
+from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
@@ -10,6 +11,20 @@ from app.lib.storage import postgres
 from app.tasks import interface, logging
 
 DESIGNATION_COLUMNS = ["design"]
+
+
+def aggregate_designation(tbl: table.QTable) -> table.QTable:
+    grouped = tbl.group_by("pgc")
+    pgcs: list[int] = []
+    designs: list[str] = []
+    for group in grouped.groups:
+        name_counts: dict[str, int] = {}
+        for design in group["design"]:
+            key = str(design)
+            name_counts[key] = name_counts.get(key, 0) + 1
+        pgcs.append(int(group["pgc"][0]))
+        designs.append(max(name_counts, key=lambda k: name_counts[k]))
+    return table.QTable({"pgc": pgcs, "design": designs})
 
 
 @final
@@ -53,28 +68,17 @@ class Layer2ImportDesignationTask(interface.Task):
         )
 
         objects_to_save = 0
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_designation_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            records_by_pgc = containers.group_by(records, key_func=lambda r: r.pgc)
-            pgcs: list[int] = []
-            data: list[list[str]] = []
-            for pgc, pgc_records in records_by_pgc.items():
-                name_counts: dict[str, int] = {}
-                for rec in pgc_records:
-                    d = rec.data.design
-                    name_counts[d] = name_counts.get(d, 0) + 1
-                max_name = ""
-                for name, count in name_counts.items():
-                    if count > name_counts.get(max_name, 0):
-                        max_name = name
-                pgcs.append(pgc)
-                data.append([max_name])
+            agg = aggregate_designation(tbl)
+            pgcs = list(agg["pgc"])
+            data = [[str(d)] for d in agg["design"]]
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:
@@ -82,7 +86,7 @@ class Layer2ImportDesignationTask(interface.Task):
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 

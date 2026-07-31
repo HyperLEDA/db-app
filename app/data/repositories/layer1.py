@@ -135,10 +135,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             }
         )
 
-    def get_new_designation_records(
-        self, dt: datetime.datetime, limit: int, offset: int
-    ) -> list[model.StructuredData[model.DesignationRecord]]:
-        query = """SELECT o.pgc, l1.record_id, l1.design
+    def get_new_designation_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        query = """SELECT o.pgc, l1.design
         FROM designation.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
         WHERE o.pgc IN (
@@ -151,14 +149,12 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
-        return [
-            model.StructuredData(
-                pgc=int(r["pgc"]),
-                record_id=r["record_id"],
-                data=model.DesignationRecord(design=r["design"]),
-            )
-            for r in rows
-        ]
+        return table.QTable(
+            {
+                "pgc": [int(r["pgc"]) for r in rows],
+                "design": [r["design"] for r in rows],
+            }
+        )
 
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         if not record_ids:
