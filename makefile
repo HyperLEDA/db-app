@@ -175,7 +175,14 @@ test-all: check
 	@uv run pytest \
 		--config-file=pyproject.toml \
 		--quiet \
-		tests
+		tests \
+		--ignore=tests/bench
+
+test-bench:
+	@uv run pytest \
+		--config-file=pyproject.toml \
+		-s \
+		tests/bench
 
 test-regression:
 	uv run tests.py regression-tests
