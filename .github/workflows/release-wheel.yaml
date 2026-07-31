@@ -25,6 +25,7 @@ jobs:
         with:
           name: wheel
           path: dist/*.whl
+          retention-days: 1
 
   publish-release:
     runs-on: ubuntu-latest
