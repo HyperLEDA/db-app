@@ -112,10 +112,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             }
         )
 
-    def get_new_redshift_records(
-        self, dt: datetime.datetime, limit: int, offset: int
-    ) -> list[model.StructuredData[model.RedshiftRecord]]:
-        query = """SELECT o.pgc, l1.record_id, l1.cz, l1.e_cz
+    def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        query = """SELECT o.pgc, l1.cz, l1.e_cz
         FROM cz.data AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
         WHERE o.pgc IN (
@@ -128,17 +126,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
-        return [
-            model.StructuredData(
-                pgc=int(r["pgc"]),
-                record_id=r["record_id"],
-                data=model.RedshiftRecord(
-                    cz=float(r["cz"]),
-                    e_cz=float(r["e_cz"]),
-                ),
-            )
-            for r in rows
-        ]
+        units = self.get_column_units(model.RawCatalog.REDSHIFT)
+        return table.QTable(
+            {
+                "pgc": [int(r["pgc"]) for r in rows],
+                "cz": u.Quantity([float(r["cz"]) for r in rows], u.Unit(units["cz"])),
+                "e_cz": u.Quantity([float(r["e_cz"]) for r in rows], u.Unit(units["e_cz"])),
+            }
+        )
 
     def get_new_designation_records(
         self, dt: datetime.datetime, limit: int, offset: int

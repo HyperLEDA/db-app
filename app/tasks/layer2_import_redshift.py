@@ -2,8 +2,8 @@ import datetime
 from typing import final
 
 import numpy as np
-import pandas as pd
 import structlog
+from astropy import table
 from astropy import units as u
 
 from app.data import enums as data_enums
@@ -16,12 +16,16 @@ REDSHIFT_COLUMNS = ["cz", "e_cz"]
 VELOCITY_UNIT = "km/s"
 
 
-def _array_to_velocity(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(unit_str)).to(u.Unit(VELOCITY_UNIT)).value)
-
-
-def _array_from_velocity(arr: np.ndarray, unit_str: str) -> np.ndarray:
-    return np.asarray((arr * u.Unit(VELOCITY_UNIT)).to(u.Unit(unit_str)).value)
+def aggregate_redshift(tbl: table.QTable) -> table.QTable:
+    grouped = tbl.group_by("pgc")
+    means = grouped["cz", "e_cz"].groups.aggregate(np.mean)
+    return table.QTable(
+        {
+            "pgc": grouped.groups.keys["pgc"],
+            "cz": means["cz"],
+            "e_cz": means["e_cz"],
+        }
+    )
 
 
 @final
@@ -57,7 +61,6 @@ class Layer2ImportRedshiftTask(interface.Task):
             last_update_dt = self.since
         else:
             last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.REDSHIFT)
-        layer1_units = self.layer1_repository.get_column_units(model.RawCatalog.REDSHIFT)
         layer2_units = self.layer2_repository.get_column_units("layer2", "cz")
         self.log.info(
             "Starting Layer 2 redshift import",
@@ -67,27 +70,22 @@ class Layer2ImportRedshiftTask(interface.Task):
         )
 
         objects_to_save = 0
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_redshift_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            df = pd.DataFrame(
-                [(r.pgc, r.data.cz, r.data.e_cz) for r in records],
-                columns=["pgc"] + REDSHIFT_COLUMNS,
-            )
             for col in REDSHIFT_COLUMNS:
-                unit = layer1_units.get(col, VELOCITY_UNIT)
-                df[col] = _array_to_velocity(np.asarray(df[col].values), unit)
-            agg = df.groupby("pgc", as_index=True)[REDSHIFT_COLUMNS].mean()
+                tbl[col] = tbl[col].to(u.Unit(VELOCITY_UNIT))
+            agg = aggregate_redshift(tbl)
+
             for col in REDSHIFT_COLUMNS:
-                unit = layer2_units.get(col, VELOCITY_UNIT)
-                agg[col] = _array_from_velocity(np.asarray(agg[col].values), unit)
-            pgcs = agg.index.tolist()
-            data = agg[REDSHIFT_COLUMNS].values.tolist()
+                agg[col] = agg[col].to(u.Unit(layer2_units[col]))
+            pgcs = list(agg["pgc"])
+            data = np.column_stack([agg[col].value for col in REDSHIFT_COLUMNS]).tolist()
 
             if pgcs:
                 objects_to_save += len(pgcs)
@@ -96,7 +94,7 @@ class Layer2ImportRedshiftTask(interface.Task):
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 
