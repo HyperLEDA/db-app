@@ -22,15 +22,14 @@ def aggregate_icrs(tbl: table.QTable) -> table.QTable:
 
     grouped = work.group_by("pgc")
     sums = grouped["ra_w", "w_ra", "dec_w", "w_dec"].groups.aggregate(np.sum)
-    means = grouped["e_ra", "e_dec"].groups.aggregate(np.mean)
 
     return table.QTable(
         {
             ICRS.PGC: grouped.groups.keys["pgc"],
             ICRS.RA: sums["ra_w"] / sums["w_ra"],
-            ICRS.E_RA: means["e_ra"],
+            ICRS.E_RA: sums["w_ra"] ** (-0.5),
             ICRS.DEC: sums["dec_w"] / sums["w_dec"],
-            ICRS.E_DEC: means["e_dec"],
+            ICRS.E_DEC: sums["w_dec"] ** (-0.5),
         }
     )
 

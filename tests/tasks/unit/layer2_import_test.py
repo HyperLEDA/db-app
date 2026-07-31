@@ -31,8 +31,9 @@ class AggregateIcrsTest(unittest.TestCase):
         agg = layer2_import_icrs.aggregate_icrs(tbl)
         self.assertAlmostEqual(float(agg["ra"][0].to_value(deg)), 12.0)
         self.assertAlmostEqual(float(agg["dec"][0].to_value(deg)), 32.0)
-        self.assertAlmostEqual(float(agg["e_ra"][0].to_value(deg)), 1.5)
-        self.assertAlmostEqual(float(agg["e_dec"][0].to_value(deg)), 1.5)
+        formal_err = (1.0 / 1.0**2 + 1.0 / 2.0**2) ** (-0.5)
+        self.assertAlmostEqual(float(agg["e_ra"][0].to_value(deg)), formal_err)
+        self.assertAlmostEqual(float(agg["e_dec"][0].to_value(deg)), formal_err)
 
 
 class AggregateRedshiftTest(unittest.TestCase):
@@ -47,7 +48,8 @@ class AggregateRedshiftTest(unittest.TestCase):
         )
         agg = layer2_import_redshift.aggregate_redshift(tbl)
         self.assertAlmostEqual(float(agg["cz"][0].to_value(kms)), 1200.0)
-        self.assertAlmostEqual(float(agg["e_cz"][0].to_value(kms)), 15.0)
+        formal_err = (1.0 / 10.0**2 + 1.0 / 20.0**2) ** (-0.5)
+        self.assertAlmostEqual(float(agg["e_cz"][0].to_value(kms)), formal_err)
 
 
 class AggregateNatureTest(unittest.TestCase):
