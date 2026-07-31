@@ -178,7 +178,7 @@ def layer2_import_icrs(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_
 @flow(
     log_prints=False,
     name="Layer 2 import — redshift",
-    description="Mean redshifts (cz) from layer 1 into layer 2.",
+    description="Aggregates redshifts (cz) from layer 1 into layer 2.",
 )
 def layer2_import_redshift(
     params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS,
