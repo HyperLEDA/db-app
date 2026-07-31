@@ -2,12 +2,29 @@ import datetime
 from typing import final
 
 import structlog
+from astropy import table
 
 from app.data import enums as data_enums
 from app.data import model, repositories
 from app.lib import containers
 from app.lib.storage import postgres
 from app.tasks import interface, logging
+
+
+def aggregate_nature(tbl: table.QTable) -> table.QTable:
+    grouped = tbl.group_by("pgc")
+    pgcs: list[int] = []
+    type_names: list[str] = []
+
+    for group in grouped.groups:
+        type_counts: dict[str, int] = {}
+        for type_name in group["type_name"]:
+            key = str(type_name)
+            type_counts[key] = type_counts.get(key, 0) + 1
+        pgcs.append(int(group["pgc"][0]))
+        type_names.append(max(type_counts, key=lambda k: type_counts[k]))
+
+    return table.QTable({"pgc": pgcs, "type_name": type_names})
 
 
 @final
@@ -52,33 +69,31 @@ class Layer2ImportNatureTask(interface.Task):
 
         objects_to_save = 0
         type_distribution: dict[str, int] = {}
-        for offset, records in containers.read_batches(
+        for offset, tbl in containers.read_batches(
             self.layer1_repository.get_new_nature_records,
             lambda data: len(data) == 0,
             0,
-            lambda d, _: d[-1].pgc,
+            lambda d, _: int(d["pgc"][-1]),
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            records_by_pgc = containers.group_by(records, key_func=lambda r: r.pgc)
-            pgcs: list[int] = []
-            data: list[list[str]] = []
-            for pgc, pgc_records in records_by_pgc.items():
-                type_counts: dict[str, int] = {}
-                for rec in pgc_records:
-                    type_counts[rec.data.type_name] = type_counts.get(rec.data.type_name, 0) + 1
-                max_type = max(type_counts, key=lambda k: type_counts[k])
-                type_distribution[max_type] = type_distribution.get(max_type, 0) + 1
-                pgcs.append(pgc)
-                data.append([max_type])
+            agg = aggregate_nature(tbl)
+            pgcs = list(agg["pgc"])
+            data = [[str(t)] for t in agg["type_name"]]
+
+            for type_name in agg["type_name"]:
+                key = str(type_name)
+                type_distribution[key] = type_distribution.get(key, 0) + 1
+
             if pgcs:
                 objects_to_save += len(pgcs)
                 if not self.dry_run:
                     self.layer2_repository.save("layer2.nature", ["type_name"], pgcs, data)
+
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,
-                batch_size=len(records),
+                batch_size=len(tbl),
                 total_processed=objects_to_save,
             )
 
