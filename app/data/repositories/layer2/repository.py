@@ -6,7 +6,7 @@ from typing import Any
 import structlog
 from astropy import table
 from astropy import units as u
-from psycopg import rows
+from psycopg import rows, sql
 
 from app.data import model
 from app.data.model import Layer2CatalogObject, Layer2Object
@@ -91,18 +91,30 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 work[col] = work[col].to(u.Unit(target_unit))
 
         all_columns = ["pgc", *columns]
-        placeholders = ",".join(["%s"] * len(all_columns))
-        on_conflict = ", ".join([f"{c} = EXCLUDED.{c}" for c in all_columns])
-        query = (
-            f"INSERT INTO {table_name} ({', '.join(all_columns)}) VALUES ({placeholders}) "
-            f"ON CONFLICT (pgc) DO UPDATE SET {on_conflict}"
+        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
+        table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
+        on_conflict = sql.SQL(", ").join(
+            sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in all_columns
         )
 
         pgcs = [int(pgc) for pgc in work["pgc"]]
         col_values = [_column_as_list(work[col]) for col in columns]
-        rows = [[pgc, *[vals[i] for vals in col_values]] for i, pgc in enumerate(pgcs)]
+
         with self.with_tx():
-            self._storage.execute_batch(query, rows)
+            cur = self._storage.get_connection().cursor()
+            cur.execute(
+                sql.SQL("CREATE TEMP TABLE save_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
+                    table_ident
+                )
+            )
+            with cur.copy(sql.SQL("COPY save_staging ({}) FROM STDIN").format(column_idents)) as copy:
+                for i, pgc in enumerate(pgcs):
+                    copy.write_row((pgc, *[vals[i] for vals in col_values]))
+            cur.execute(
+                sql.SQL("INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}").format(
+                    table_ident, column_idents, column_idents, on_conflict
+                )
+            )
 
     def _construct_batch_query(
         self,
