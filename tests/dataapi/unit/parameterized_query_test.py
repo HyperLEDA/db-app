@@ -121,3 +121,24 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         got = self._search_params().get_params()
         self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
         self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+
+    def test_supergalactic_coordinate_search_converts_to_icrs(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        sg = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).supergalactic
+
+        query = interface.QuerySimpleRequest(
+            sgl=float(sg.sgl.deg),
+            sgb=float(sg.sgb.deg),
+            radius=0.1,
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)

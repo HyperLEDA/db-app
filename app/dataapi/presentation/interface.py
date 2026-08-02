@@ -222,6 +222,32 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=None,
         description="Galactic latitude of the center of the search area in degrees [-90, 90]",
     )
+    sgl: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(0, 360)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
+        default=None,
+        description="Supergalactic longitude of the center of the search area in degrees [0, 360]",
+    )
+    sgb: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(-90, 90)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
+        default=None,
+        description="Supergalactic latitude of the center of the search area in degrees [-90, 90]",
+    )
     radius: (
         Annotated[
             u.Quantity,
@@ -279,11 +305,19 @@ class QuerySimpleRequest(pydantic.BaseModel):
             raise ValueError("ra and dec must be specified together")
         if (self.glon is None) != (self.glat is None):
             raise ValueError("glon and glat must be specified together")
+        if (self.sgl is None) != (self.sgb is None):
+            raise ValueError("sgl and sgb must be specified together")
 
-        has_equatorial = self.ra is not None
-        has_galactic = self.glon is not None
-        if has_equatorial and has_galactic:
-            raise ValueError("Only one coordinate system may be specified: equatorial (ra/dec) or galactic (glon/glat)")
+        systems = [
+            self.ra is not None,
+            self.glon is not None,
+            self.sgl is not None,
+        ]
+        if sum(systems) > 1:
+            raise ValueError(
+                "Only one coordinate system may be specified: "
+                "equatorial (ra/dec), galactic (glon/glat), or supergalactic (sgl/sgb)"
+            )
         return self
 
     @pydantic.model_validator(mode="after")
@@ -294,6 +328,8 @@ class QuerySimpleRequest(pydantic.BaseModel):
                 self.dec,
                 self.glon,
                 self.glat,
+                self.sgl,
+                self.sgb,
                 self.radius,
                 self.name,
                 self.cz,

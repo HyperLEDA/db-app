@@ -1,7 +1,6 @@
 import warnings
 
 from astropy import constants
-from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
 from uncertainties import ufloat
@@ -24,26 +23,6 @@ def parse_coordinate_epoch(epoch: str) -> Time | None:
         return Time(epoch)
     except (ValueError, TypeError, OSError) as exc:
         raise ValueError(f"Invalid coordinate epoch {epoch!r}; expected an equinox like J2000 or B1950") from exc
-
-
-def equatorial_to_icrs(
-    ra: u.Quantity,
-    dec: u.Quantity,
-    epoch: str = "J2000",
-) -> tuple[u.Quantity, u.Quantity]:
-    equinox = parse_coordinate_epoch(epoch)
-    if equinox is None:
-        return ra, dec
-
-    coord = coords.SkyCoord(ra=ra, dec=dec, frame=coords.FK5(equinox=equinox))
-    icrs = coord.transform_to("icrs")
-    return icrs.ra, icrs.dec
-
-
-def galactic_to_icrs(glon: u.Quantity, glat: u.Quantity) -> tuple[u.Quantity, u.Quantity]:
-    coord = coords.SkyCoord(l=glon, b=glat, frame="galactic")
-    icrs = coord.transform_to("icrs")
-    return icrs.ra, icrs.dec
 
 
 def to(value: u.Quantity, unit: str | None = None) -> float:

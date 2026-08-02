@@ -1,3 +1,5 @@
+from astropy import coordinates as coords
+
 from app.data import model, repositories
 from app.data.repositories import layer2
 from app.dataapi import presentation as dataapi
@@ -62,13 +64,26 @@ class ParameterizedQueryManager:
 
         if query.radius is not None:
             if query.ra is not None and query.dec is not None:
-                ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.eq_epoch)
+                equinox = astronomy.parse_coordinate_epoch(query.eq_epoch)
+                if equinox is None:
+                    ra, dec = query.ra, query.dec
+                else:
+                    coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
+                    icrs = coord.transform_to("icrs")
+                    ra, dec = icrs.ra, icrs.dec
+
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
                 search_params.append(layer2.ICRSSearchParams(ra, dec))
             elif query.glon is not None and query.glat is not None:
-                ra, dec = astronomy.galactic_to_icrs(query.glon, query.glat)
+                icrs = coords.SkyCoord(l=query.glon, b=query.glat, frame="galactic").transform_to("icrs")
+
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-                search_params.append(layer2.ICRSSearchParams(ra, dec))
+                search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
+            elif query.sgl is not None and query.sgb is not None:
+                icrs = coords.SkyCoord(sgl=query.sgl, sgb=query.sgb, frame="supergalactic").transform_to("icrs")
+
+                filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
+                search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
 
         if query.name is not None:
             filters.append(layer2.DesignationLikeFilter())
