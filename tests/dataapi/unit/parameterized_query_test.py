@@ -71,6 +71,9 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
     def _search_params(self) -> layer2.SearchParams:
         return self.layer2_repo.query_catalogs.call_args.args[2]
 
+    def _ordering(self) -> layer2.Ordering | None:
+        return self.layer2_repo.query_catalogs.call_args.kwargs.get("ordering")
+
     def test_coordinate_search_defaults_to_j2000(self):
         ra_fk5, dec_fk5 = 10.0, 20.0
         expected = coords.SkyCoord(
@@ -87,6 +90,18 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         got = self._search_params().get_params()
         self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
         self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
+        ordering = self._ordering()
+        self.assertIsInstance(ordering, layer2.ICRSDistanceOrdering)
+        assert ordering is not None
+        self.assertEqual(ordering.get_params(), [expected.dec.deg, expected.ra.deg])
+
+    def test_name_search_has_no_distance_ordering(self):
+        query = interface.QuerySimpleRequest(name="NGC")
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.assertIsNone(self._ordering())
 
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112

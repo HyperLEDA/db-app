@@ -55,9 +55,12 @@ class ParameterizedQueryManager:
         self.enabled_catalogs = enabled_catalogs
         self.catalog_config = catalog_cfg
 
-    def _build_filters_and_params(self, query: dataapi.QuerySimpleRequest) -> tuple[layer2.Filter, layer2.SearchParams]:
+    def _build_filters_and_params(
+        self, query: dataapi.QuerySimpleRequest
+    ) -> tuple[layer2.Filter, layer2.SearchParams, layer2.Ordering | None]:
         filters = []
         search_params = []
+        ordering: layer2.Ordering | None = None
 
         if query.pgcs is not None:
             filters.append(layer2.PGCOneOfFilter(query.pgcs))
@@ -76,6 +79,7 @@ class ParameterizedQueryManager:
             if icrs is not None:
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
                 search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
+                ordering = layer2.ICRSDistanceOrdering(icrs.ra, icrs.dec)
 
         if query.name is not None:
             filters.append(layer2.DesignationLikeFilter())
@@ -84,7 +88,7 @@ class ParameterizedQueryManager:
         if (query.cz is not None) and (query.cz_err_percent is not None):
             filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
 
-        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params)
+        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config)
@@ -99,7 +103,7 @@ class ParameterizedQueryManager:
             return responder.build_response(objects)
 
         catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
-        filters, search_params = self._build_filters_and_params(query)
+        filters, search_params, ordering = self._build_filters_and_params(query)
 
         objects = self.layer2_repo.query_catalogs(
             catalogs,
@@ -107,5 +111,6 @@ class ParameterizedQueryManager:
             search_params,
             query.page_size,
             query.page,
+            ordering=ordering,
         )
         return responder.build_response_from_catalog(objects)
