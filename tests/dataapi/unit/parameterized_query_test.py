@@ -72,12 +72,21 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         return self.layer2_repo.query_catalogs.call_args.args[2]
 
     def test_coordinate_search_defaults_to_j2000(self):
-        query = interface.QuerySimpleRequest(ra=10.0, dec=20.0, radius=0.1)
+        ra_fk5, dec_fk5 = 10.0, 20.0
+        expected = coords.SkyCoord(
+            ra=ra_fk5 * u.Unit("deg"),
+            dec=dec_fk5 * u.Unit("deg"),
+            frame=coords.FK5(equinox=Time("J2000")),
+        ).transform_to("icrs")
+
+        query = interface.QuerySimpleRequest(ra=ra_fk5, dec=dec_fk5, radius=0.1)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        self.assertEqual(self._search_params().get_params(), {"ra": 10.0, "dec": 20.0})
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
+        self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
 
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112

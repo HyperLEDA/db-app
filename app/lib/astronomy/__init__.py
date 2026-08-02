@@ -8,17 +8,12 @@ from uncertainties.umath import cos, sin
 
 warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
 
-_J2000_EPOCHS = frozenset({"J2000", "J2000.0"})
-
 
 def const(const_name: str) -> u.Quantity:
     return getattr(constants, const_name)
 
 
-def parse_coordinate_epoch(epoch: str) -> Time | None:
-    if epoch.upper() in _J2000_EPOCHS:
-        return None
-
+def parse_coordinate_epoch(epoch: str) -> Time:
     try:
         return Time(epoch)
     except (ValueError, TypeError, OSError) as exc:

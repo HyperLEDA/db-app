@@ -65,15 +65,11 @@ class ParameterizedQueryManager:
         if query.radius is not None:
             if query.ra is not None and query.dec is not None:
                 equinox = astronomy.parse_coordinate_epoch(query.eq_epoch)
-                if equinox is None:
-                    ra, dec = query.ra, query.dec
-                else:
-                    coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
-                    icrs = coord.transform_to("icrs")
-                    ra, dec = icrs.ra, icrs.dec
+                coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
+                icrs = coord.transform_to("icrs")
 
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-                search_params.append(layer2.ICRSSearchParams(ra, dec))
+                search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
             elif query.glon is not None and query.glat is not None:
                 icrs = coords.SkyCoord(l=query.glon, b=query.glat, frame="galactic").transform_to("icrs")
 
