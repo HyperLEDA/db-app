@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import pydantic
 from astropy import units as u
-from pydantic import AfterValidator, BeforeValidator, PlainSerializer, WithJsonSchema
+from pydantic import AfterValidator, BeforeValidator, WithJsonSchema
 
 from app.dataapi.presentation import tap
 from app.lib import astronomy
@@ -20,19 +20,17 @@ def _as_deg(value: Any) -> u.Quantity:
     return float(value) * u.Unit("deg")
 
 
-def _in_range(low: float, high: float) -> Callable[[u.Quantity], u.Quantity]:
+def _in_range(low: float, high: float | None = None) -> Callable[[u.Quantity], u.Quantity]:
     def validate(value: u.Quantity) -> u.Quantity:
-        if not low <= _degree_to_float(value) <= high:
+        degrees = _degree_to_float(value)
+        if high is None:
+            if degrees <= low:
+                raise ValueError(f"Input should be greater than {low}")
+        elif not low <= degrees <= high:
             raise ValueError(f"Input should be in [{low}, {high}]")
         return value
 
     return validate
-
-
-def _positive_deg(value: u.Quantity) -> u.Quantity:
-    if _degree_to_float(value) <= 0:
-        raise ValueError("Input should be greater than 0")
-    return value
 
 
 class EquatorialCoordinates(pydantic.BaseModel):
@@ -175,7 +173,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(0, 360)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -188,7 +185,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(-90, 90)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -201,7 +197,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(0, 360)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -214,7 +209,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(-90, 90)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -227,7 +221,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(0, 360)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -240,7 +233,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
             u.Quantity,
             BeforeValidator(_as_deg),
             AfterValidator(_in_range(-90, 90)),
-            PlainSerializer(_degree_to_float, return_type=float),
             WithJsonSchema({"type": "number"}),
         ]
         | None
@@ -252,8 +244,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
         Annotated[
             u.Quantity,
             BeforeValidator(_as_deg),
-            AfterValidator(_positive_deg),
-            PlainSerializer(_degree_to_float, return_type=float),
+            AfterValidator(_in_range(0)),
             WithJsonSchema({"type": "number"}),
         ]
         | None
