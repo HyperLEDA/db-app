@@ -62,8 +62,7 @@ For example, if both coordinates and designation are specified, object must be i
 the specified designation.
 
 Several notes:
-- You cannot specify both PGC numbers and additional queries. If both are specified, only PGC numbers
-will be used to query.
+- You cannot specify both PGC numbers and additional filters. If both are specified, the request is rejected.
 - Coordinate searches use equatorial (ra/dec), galactic (glon/glat), or
 supergalactic (sgl/sgb) coordinates with radius. Only one coordinate system may be specified.
 For equatorial coordinates, eq_epoch sets the equinox (default J2000); non-J2000 coordinates
