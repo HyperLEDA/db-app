@@ -8,6 +8,8 @@ from astropy import units as u
 from app.data import model
 from app.lib.storage import postgres
 
+DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
+
 
 class Layer1Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
@@ -130,11 +132,16 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         ORDER BY o.pgc ASC"""
         rows = self._storage.query(query, params=[dt, offset, limit])
         units = self.get_column_units(model.RawCatalog.REDSHIFT)
+        e_cz_unit = u.Unit(units["e_cz"])
+        default_e_cz = float(DEFAULT_E_CZ.to_value(e_cz_unit))
         return table.QTable(
             {
                 "pgc": [int(r["pgc"]) for r in rows],
                 "cz": u.Quantity([float(r["cz"]) for r in rows], u.Unit(units["cz"])),
-                "e_cz": u.Quantity([float(r["e_cz"]) for r in rows], u.Unit(units["e_cz"])),
+                "e_cz": u.Quantity(
+                    [float(r["e_cz"]) if r["e_cz"] is not None else default_e_cz for r in rows],
+                    e_cz_unit,
+                ),
                 "datatype": [r["datatype"].value for r in rows],
             }
         )
@@ -195,10 +202,12 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             "SELECT record_id, cz, e_cz FROM cz.data WHERE record_id = ANY(%s)",
             params=[record_ids],
         )
+        units = self.get_column_units(model.RawCatalog.REDSHIFT)
+        default_e_cz = float(DEFAULT_E_CZ.to_value(u.Unit(units["e_cz"])))
         by_id = {
             r["record_id"]: model.RedshiftRecord(
                 cz=float(r["cz"]),
-                e_cz=float(r["e_cz"]),
+                e_cz=float(r["e_cz"]) if r["e_cz"] is not None else default_e_cz,
             )
             for r in rows
         }

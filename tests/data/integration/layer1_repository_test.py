@@ -167,3 +167,49 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
 
         self.assertEqual(result, [{"design": "M 31"}, {"design": "NGC 224"}])
+
+    def test_get_new_redshift_records_defaults_null_e_cz(self) -> None:
+        self._get_table("cz_table")
+        self.layer0_repo.register_records("cz_table", ["r1", "r2"])
+        self.common_repo.register_pgcs([10, 20])
+        self.layer0_repo.upsert_pgc({"r1": 10, "r2": 20})
+        self.layer1_repo.save_structured_data(
+            model.RedshiftCatalogObject.layer1_table(),
+            model.RedshiftCatalogObject.layer1_keys(),
+            ["r1", "r2"],
+            [[1000.0, 10.0], [2000.0, None]],
+        )
+
+        result = self.layer1_repo.get_new_redshift_records(
+            datetime.datetime.fromtimestamp(0, tz=datetime.UTC), limit=10, offset=0
+        )
+
+        self.assertEqual(len(result), 2)
+        by_pgc = {
+            int(pgc): (float(cz.to_value(u.Unit("km/s"))), float(e_cz.to_value(u.Unit("km/s"))))
+            for pgc, cz, e_cz in zip(result["pgc"], result["cz"], result["e_cz"], strict=True)
+        }
+        self.assertEqual(by_pgc, {10: (1000.0, 10.0), 20: (2000.0, 100.0)})
+
+    def test_get_redshift_records_defaults_null_e_cz(self) -> None:
+        self._get_table("cz_table")
+        self.layer0_repo.register_records("cz_table", ["r1", "r2"])
+        self.layer1_repo.save_structured_data(
+            model.RedshiftCatalogObject.layer1_table(),
+            model.RedshiftCatalogObject.layer1_keys(),
+            ["r1", "r2"],
+            [[1000.0, 10.0], [2000.0, None]],
+        )
+
+        result = self.layer1_repo.get_redshift_records(["r1", "r2", "missing"])
+
+        self.assertEqual(len(result), 3)
+        self.assertIsNotNone(result[0])
+        self.assertIsNotNone(result[1])
+        self.assertIsNone(result[2])
+        assert result[0] is not None
+        assert result[1] is not None
+        self.assertEqual(result[0].cz, 1000.0)
+        self.assertEqual(result[0].e_cz, 10.0)
+        self.assertEqual(result[1].cz, 2000.0)
+        self.assertEqual(result[1].e_cz, 100.0)
