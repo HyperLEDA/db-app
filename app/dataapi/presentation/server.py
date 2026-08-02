@@ -64,8 +64,10 @@ the specified designation.
 Several notes:
 - You cannot specify both PGC numbers and additional queries. If both are specified, only PGC numbers
 will be used to query.
-- Coordinate searches use ra/dec/radius; the epoch parameter sets the equinox of those coordinates
-(default J2000). Non-J2000 coordinates are precessed to ICRS before searching.
+- Coordinate searches use either equatorial (ra/dec) or galactic (glon/glat) coordinates with radius.
+Only one coordinate system may be specified. For equatorial coordinates, epoch sets the equinox
+(default J2000); non-J2000 coordinates are precessed to ICRS. Galactic coordinates are converted
+to ICRS before searching.
 - Use the catalogs query parameter to limit which catalogs are returned (e.g. catalogs=icrs&catalogs=designation).
 - The answer is paginated to improve performance.""",
             ),

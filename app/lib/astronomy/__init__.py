@@ -40,6 +40,16 @@ def equatorial_to_icrs(ra: float, dec: float, epoch: str = "J2000") -> tuple[flo
     return float(icrs.ra.deg), float(icrs.dec.deg)
 
 
+def galactic_to_icrs(glon: float, glat: float) -> tuple[float, float]:
+    coord = coords.SkyCoord(
+        l=glon * u.Unit("deg"),
+        b=glat * u.Unit("deg"),
+        frame="galactic",
+    )
+    icrs = coord.transform_to(coords.ICRS())
+    return float(icrs.ra.deg), float(icrs.dec.deg)
+
+
 def to(value: u.Quantity, unit: str | None = None) -> float:
     if unit is None:
         if value.unit.is_equivalent(u.one):

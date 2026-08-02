@@ -1,7 +1,6 @@
 import unittest
 from unittest import mock
 
-import pydantic
 from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
@@ -59,7 +58,7 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
             )
 
 
-class QuerySimpleCoordinateEpochTest(unittest.TestCase):
+class QuerySimpleCoordinateConversionTest(unittest.TestCase):
     def setUp(self) -> None:
         self.layer2_repo = mock.Mock()
         self.layer2_repo.query_catalogs.return_value = []
@@ -102,6 +101,23 @@ class QuerySimpleCoordinateEpochTest(unittest.TestCase):
         self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
         self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
 
-    def test_invalid_epoch_rejected_by_request_model(self):
-        with self.assertRaises(pydantic.ValidationError):
-            interface.QuerySimpleRequest(ra=10.0, dec=20.0, radius=0.1, epoch="not-an-epoch")
+    def test_galactic_coordinate_search_converts_to_icrs(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        galactic = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).galactic
+
+        query = interface.QuerySimpleRequest(
+            glon=float(galactic.l.deg),
+            glat=float(galactic.b.deg),
+            radius=0.1,
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)

@@ -173,3 +173,15 @@ class AstronomyTest(unittest.TestCase):
     def test_parse_coordinate_epoch_invalid(self):
         with self.assertRaisesRegex(ValueError, "Invalid coordinate epoch"):
             astronomy.parse_coordinate_epoch("not-an-epoch")
+
+    def test_galactic_to_icrs_roundtrip(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        galactic = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).galactic
+
+        ra_icrs, dec_icrs = astronomy.galactic_to_icrs(float(galactic.l.deg), float(galactic.b.deg))
+        self.assertAlmostEqual(ra_icrs, ra_j2000, places=5)
+        self.assertAlmostEqual(dec_icrs, dec_j2000, places=5)

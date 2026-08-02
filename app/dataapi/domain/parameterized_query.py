@@ -60,10 +60,15 @@ class ParameterizedQueryManager:
         if query.pgcs is not None:
             filters.append(layer2.PGCOneOfFilter(query.pgcs))
 
-        if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
-            ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.epoch)
-            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(layer2.ICRSSearchParams(ra, dec))
+        if query.radius is not None:
+            if query.ra is not None and query.dec is not None:
+                ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.epoch)
+                filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
+                search_params.append(layer2.ICRSSearchParams(ra, dec))
+            elif query.glon is not None and query.glat is not None:
+                ra, dec = astronomy.galactic_to_icrs(query.glon, query.glat)
+                filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
+                search_params.append(layer2.ICRSSearchParams(ra, dec))
 
         if query.name is not None:
             filters.append(layer2.DesignationLikeFilter())

@@ -151,6 +151,18 @@ class QuerySimpleRequest(pydantic.BaseModel):
         le=90,
         description="Declination of the center of the search area in degrees",
     )
+    glon: float | None = pydantic.Field(
+        default=None,
+        ge=0,
+        le=360,
+        description="Galactic longitude of the center of the search area in degrees",
+    )
+    glat: float | None = pydantic.Field(
+        default=None,
+        ge=-90,
+        le=90,
+        description="Galactic latitude of the center of the search area in degrees",
+    )
     radius: float | None = pydantic.Field(
         default=None,
         gt=0,
@@ -158,7 +170,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
     )
     epoch: str = pydantic.Field(
         default="J2000",
-        description=("Equinox of the query coordinates (e.g. J2000, B1950)"),
+        description="Equinox of equatorial query coordinates (e.g. J2000, B1950)",
     )
     name: str | None = pydantic.Field(
         default=None,
@@ -195,9 +207,31 @@ class QuerySimpleRequest(pydantic.BaseModel):
         return value
 
     @pydantic.model_validator(mode="after")
+    def _coordinate_sets(self) -> "QuerySimpleRequest":
+        if (self.ra is None) != (self.dec is None):
+            raise ValueError("ra and dec must be specified together")
+        if (self.glon is None) != (self.glat is None):
+            raise ValueError("glon and glat must be specified together")
+
+        has_equatorial = self.ra is not None
+        has_galactic = self.glon is not None
+        if has_equatorial and has_galactic:
+            raise ValueError("Only one coordinate system may be specified: equatorial (ra/dec) or galactic (glon/glat)")
+        return self
+
+    @pydantic.model_validator(mode="after")
     def _pgcs_exclusive_with_filters(self) -> "QuerySimpleRequest":
         if self.pgcs:
-            filters = [self.ra, self.dec, self.radius, self.name, self.cz, self.cz_err_percent]
+            filters = [
+                self.ra,
+                self.dec,
+                self.glon,
+                self.glat,
+                self.radius,
+                self.name,
+                self.cz,
+                self.cz_err_percent,
+            ]
             if any(f is not None for f in filters):
                 raise ValueError("When pgcs is specified, no other filters are allowed")
         return self
