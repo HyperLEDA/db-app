@@ -91,7 +91,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             ra=float(b1950.ra.deg),
             dec=float(b1950.dec.deg),
             radius=0.1,
-            epoch="B1950",
+            eq_epoch="B1950",
         )
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()

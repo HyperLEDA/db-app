@@ -168,7 +168,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
         gt=0,
         description="Radius of the search area in degrees",
     )
-    epoch: str = pydantic.Field(
+    eq_epoch: str = pydantic.Field(
         default="J2000",
         description="Equinox of equatorial query coordinates (e.g. J2000, B1950)",
     )
@@ -200,9 +200,9 @@ class QuerySimpleRequest(pydantic.BaseModel):
         ),
     )
 
-    @pydantic.field_validator("epoch")
+    @pydantic.field_validator("eq_epoch")
     @classmethod
-    def _validate_epoch(cls, value: str) -> str:
+    def _validate_eq_epoch(cls, value: str) -> str:
         astronomy.parse_coordinate_epoch(value)
         return value
 

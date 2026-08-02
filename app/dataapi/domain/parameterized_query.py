@@ -62,7 +62,7 @@ class ParameterizedQueryManager:
 
         if query.radius is not None:
             if query.ra is not None and query.dec is not None:
-                ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.epoch)
+                ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.eq_epoch)
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
                 search_params.append(layer2.ICRSSearchParams(ra, dec))
             elif query.glon is not None and query.glat is not None:
