@@ -141,21 +141,24 @@ class QuerySimpleRequest(pydantic.BaseModel):
     )
     ra: float | None = pydantic.Field(
         default=None,
+        ge=0,
+        le=360,
         description="Right ascension of the center of the search area in degrees",
     )
     dec: float | None = pydantic.Field(
         default=None,
+        ge=-90,
+        le=90,
         description="Declination of the center of the search area in degrees",
     )
     radius: float | None = pydantic.Field(
         default=None,
+        gt=0,
         description="Radius of the search area in degrees",
     )
     epoch: str = pydantic.Field(
         default="J2000",
-        description=(
-            "Equinox of the query coordinates (e.g. J2000, B1950). Default is J2000."
-        ),
+        description=("Equinox of the query coordinates (e.g. J2000, B1950)"),
     )
     name: str | None = pydantic.Field(
         default=None,
