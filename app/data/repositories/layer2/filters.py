@@ -161,11 +161,22 @@ class Ordering(abc.ABC):
     def get_query(self) -> str:
         pass
 
+    @abc.abstractmethod
+    def get_params(self) -> list[Any]:
+        pass
+
 
 @final
 class ICRSDistanceOrdering(Ordering):
+    def __init__(self, ra: u.Quantity, dec: u.Quantity) -> None:
+        self._ra = astronomy.to(ra, "deg")
+        self._dec = astronomy.to(dec, "deg")
+
     def get_query(self) -> str:
         return """ST_Distance(
-            ST_MakePoint((sp.params->>'dec')::float, (sp.params->>'ra')::float - 180),
+            ST_MakePoint(%s, %s - 180),
             ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra - 180)
         ), pgc"""
+
+    def get_params(self) -> list[Any]:
+        return [self._dec, self._ra]

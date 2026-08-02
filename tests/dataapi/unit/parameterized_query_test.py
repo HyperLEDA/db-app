@@ -90,7 +90,10 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         got = self._search_params().get_params()
         self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
         self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
-        self.assertIsInstance(self._ordering(), layer2.ICRSDistanceOrdering)
+        ordering = self._ordering()
+        self.assertIsInstance(ordering, layer2.ICRSDistanceOrdering)
+        assert ordering is not None
+        self.assertEqual(ordering.get_params(), [expected.dec.deg, expected.ra.deg])
 
     def test_name_search_has_no_distance_ordering(self):
         query = interface.QuerySimpleRequest(name="NGC")

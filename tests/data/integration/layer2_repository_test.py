@@ -80,7 +80,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             layer2.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
             10,
             0,
-            ordering=layer2.ICRSDistanceOrdering(),
+            ordering=layer2.ICRSDistanceOrdering(12 * u.Unit("deg"), 12 * u.Unit("deg")),
         )
         expected = [
             model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),

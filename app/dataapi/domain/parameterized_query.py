@@ -79,7 +79,7 @@ class ParameterizedQueryManager:
             if icrs is not None:
                 filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
                 search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
-                ordering = layer2.ICRSDistanceOrdering()
+                ordering = layer2.ICRSDistanceOrdering(icrs.ra, icrs.dec)
 
         if query.name is not None:
             filters.append(layer2.DesignationLikeFilter())

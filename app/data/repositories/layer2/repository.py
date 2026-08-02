@@ -179,6 +179,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             condition_statements.append(f"(sp.search_type = '{search_type}' AND {search_filter.get_query()})")
             params.extend(search_filter.get_params())
 
+        if ordering is not None:
+            params.extend(ordering.get_params())
+
         params.extend([limit, offset])
 
         return query.format(
