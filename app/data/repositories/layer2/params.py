@@ -2,6 +2,9 @@ import abc
 from typing import Any, final
 
 from astropy import coordinates as coords
+from astropy import units as u
+
+from app.lib import astronomy
 
 
 class SearchParams(abc.ABC):
@@ -19,13 +22,20 @@ class ICRSSearchParams(SearchParams):
     def name(self) -> str:
         return "icrs"
 
-    def __init__(self, ra: float | None = None, dec: float | None = None, coords: coords.SkyCoord | None = None):
+    def __init__(
+        self,
+        ra: u.Quantity | None = None,
+        dec: u.Quantity | None = None,
+        coords: coords.SkyCoord | None = None,
+    ):
         if coords is not None:
-            ra = coords.ra.deg
-            dec = coords.dec.deg
+            ra = coords.ra
+            dec = coords.dec
+        if ra is None or dec is None:
+            raise ValueError("ra and dec are required when coords is not provided")
 
-        self._ra = ra
-        self._dec = dec
+        self._ra = astronomy.to(ra, "deg")
+        self._dec = astronomy.to(dec, "deg")
 
     def get_params(self) -> dict[str, Any]:
         return {"ra": self._ra, "dec": self._dec}

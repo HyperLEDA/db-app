@@ -149,3 +149,7 @@ class AstronomyTest(unittest.TestCase):
     def test_to_dimensionless_quantity(self):
         z = astronomy.to((4195.0 * u.Unit("km/s")) / astronomy.const("c"))
         self.assertAlmostEqual(z, 0.013993013793562478)
+
+    def test_parse_coordinate_epoch_invalid(self):
+        with self.assertRaisesRegex(ValueError, "Invalid coordinate epoch"):
+            astronomy.parse_coordinate_epoch("not-an-epoch")

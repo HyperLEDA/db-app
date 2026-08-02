@@ -2,6 +2,7 @@ import warnings
 
 from astropy import constants
 from astropy import units as u
+from astropy.time import Time
 from uncertainties import ufloat
 from uncertainties.umath import cos, sin
 
@@ -10,6 +11,13 @@ warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 
 
 def const(const_name: str) -> u.Quantity:
     return getattr(constants, const_name)
+
+
+def parse_coordinate_epoch(epoch: str) -> Time:
+    try:
+        return Time(epoch)
+    except (ValueError, TypeError, OSError) as exc:
+        raise ValueError(f"Invalid coordinate epoch {epoch!r}; expected an equinox like J2000 or B1950") from exc
 
 
 def to(value: u.Quantity, unit: str | None = None) -> float:

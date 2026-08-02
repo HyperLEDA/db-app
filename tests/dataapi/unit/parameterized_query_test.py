@@ -1,7 +1,14 @@
 import unittest
+from unittest import mock
+
+from astropy import coordinates as coords
+from astropy import units as u
+from astropy.time import Time
 
 from app.data import model
+from app.data.repositories import layer2
 from app.dataapi.domain import parameterized_query
+from app.dataapi.presentation import interface
 
 DEFAULT = [
     model.RawCatalog.DESIGNATION,
@@ -49,3 +56,98 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
                 ["note"],
                 DEFAULT,
             )
+
+
+class QuerySimpleCoordinateConversionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.layer2_repo = mock.Mock()
+        self.layer2_repo.query_catalogs.return_value = []
+        self.manager = parameterized_query.ParameterizedQueryManager(
+            layer2_repo=self.layer2_repo,
+            enabled_catalogs=DEFAULT,
+            catalog_cfg=mock.Mock(),
+        )
+
+    def _search_params(self) -> layer2.SearchParams:
+        return self.layer2_repo.query_catalogs.call_args.args[2]
+
+    def test_coordinate_search_defaults_to_j2000(self):
+        ra_fk5, dec_fk5 = 10.0, 20.0
+        expected = coords.SkyCoord(
+            ra=ra_fk5 * u.Unit("deg"),
+            dec=dec_fk5 * u.Unit("deg"),
+            frame=coords.FK5(equinox=Time("J2000")),
+        ).transform_to("icrs")
+
+        query = interface.QuerySimpleRequest(ra=ra_fk5, dec=dec_fk5, radius=0.1)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
+        self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
+
+    def test_coordinate_search_precesses_b1950(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        b1950 = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).transform_to(coords.FK5(equinox=Time("B1950")))
+
+        query = interface.QuerySimpleRequest(
+            ra=float(b1950.ra.deg),
+            dec=float(b1950.dec.deg),
+            radius=0.1,
+            eq_epoch="B1950",
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+
+    def test_galactic_coordinate_search_converts_to_icrs(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        galactic = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).galactic
+
+        query = interface.QuerySimpleRequest(
+            glon=float(galactic.l.deg),
+            glat=float(galactic.b.deg),
+            radius=0.1,
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+
+    def test_supergalactic_coordinate_search_converts_to_icrs(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        sg = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).supergalactic
+
+        query = interface.QuerySimpleRequest(
+            sgl=float(sg.sgl.deg),
+            sgb=float(sg.sgb.deg),
+            radius=0.1,
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
