@@ -1,9 +1,38 @@
 import abc
+from collections.abc import Callable
+from typing import Annotated, Any
 
 import pydantic
+from astropy import units as u
+from pydantic import AfterValidator, BeforeValidator, PlainSerializer, WithJsonSchema
 
 from app.dataapi.presentation import tap
 from app.lib import astronomy
+
+
+def _degree_to_float(value: u.Quantity) -> float:
+    return float(value.to_value(u.Unit("deg")))
+
+
+def _as_deg(value: Any) -> u.Quantity:
+    if isinstance(value, u.Quantity):
+        return value.to(u.Unit("deg"))
+    return float(value) * u.Unit("deg")
+
+
+def _in_range(low: float, high: float) -> Callable[[u.Quantity], u.Quantity]:
+    def validate(value: u.Quantity) -> u.Quantity:
+        if not low <= _degree_to_float(value) <= high:
+            raise ValueError(f"Input should be in [{low}, {high}]")
+        return value
+
+    return validate
+
+
+def _positive_deg(value: u.Quantity) -> u.Quantity:
+    if _degree_to_float(value) <= 0:
+        raise ValueError("Input should be greater than 0")
+    return value
 
 
 class EquatorialCoordinates(pydantic.BaseModel):
@@ -135,38 +164,76 @@ class Schema(pydantic.BaseModel):
 
 
 class QuerySimpleRequest(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
+
     pgcs: list[int] | None = pydantic.Field(
         default=None,
         description="List of PGC numbers. If specified, no other filters are allowed",
     )
-    ra: float | None = pydantic.Field(
+    ra: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(0, 360)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
         default=None,
-        ge=0,
-        le=360,
-        description="Right ascension of the center of the search area in degrees",
+        description="Right ascension of the center of the search area in degrees [0, 360]",
     )
-    dec: float | None = pydantic.Field(
+    dec: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(-90, 90)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
         default=None,
-        ge=-90,
-        le=90,
-        description="Declination of the center of the search area in degrees",
+        description="Declination of the center of the search area in degrees [-90, 90]",
     )
-    glon: float | None = pydantic.Field(
+    glon: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(0, 360)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
         default=None,
-        ge=0,
-        le=360,
-        description="Galactic longitude of the center of the search area in degrees",
+        description="Galactic longitude of the center of the search area in degrees [0, 360]",
     )
-    glat: float | None = pydantic.Field(
+    glat: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_in_range(-90, 90)),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
         default=None,
-        ge=-90,
-        le=90,
-        description="Galactic latitude of the center of the search area in degrees",
+        description="Galactic latitude of the center of the search area in degrees [-90, 90]",
     )
-    radius: float | None = pydantic.Field(
+    radius: (
+        Annotated[
+            u.Quantity,
+            BeforeValidator(_as_deg),
+            AfterValidator(_positive_deg),
+            PlainSerializer(_degree_to_float, return_type=float),
+            WithJsonSchema({"type": "number"}),
+        ]
+        | None
+    ) = pydantic.Field(
         default=None,
-        gt=0,
-        description="Radius of the search area in degrees",
+        description="Radius of the search area in degrees (must be > 0)",
     )
     eq_epoch: str = pydantic.Field(
         default="J2000",
