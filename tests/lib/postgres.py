@@ -6,6 +6,7 @@ import psycopg
 import structlog
 from testcontainers import postgres as pgcontainer
 
+from app.data import enums as data_enums
 from app.lib.storage import postgres
 from tests.lib import web
 
@@ -52,7 +53,7 @@ class TestPostgresStorage:
                 dbname="hyperleda",
             )
 
-        self.storage = postgres.PgStorage(self.config, logger)
+        self.storage = postgres.PgStorage(self.config, logger, data_enums.PG_ENUM_REGISTRY)
 
         self.migrations_dir = migrations_dir
 
@@ -135,9 +136,17 @@ class TestPostgresStorage:
             "SELECT table_schema, table_name FROM information_schema.tables "
             "WHERE table_schema = 'layer2' OR table_schema = 'layer0'"
         ):
-            self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
+            try:
+                self.storage.exec(f"TRUNCATE {table['table_schema']}.{table['table_name']} CASCADE")
+            except psycopg.Error as e:
+                logger.warning(
+                    "truncate skipped", schema=table["table_schema"], table=table["table_name"], error=str(e)
+                )
 
-        self.storage.exec("INSERT INTO layer2.last_update VALUES (to_timestamp(0))")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'designation')")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'icrs')")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'redshift')")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'nature')")
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage

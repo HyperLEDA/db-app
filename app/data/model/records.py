@@ -1,24 +1,14 @@
 from dataclasses import dataclass
 
 from app.data.model import interface
+from app.lib.storage import enums
 
 
 @dataclass
-class CIResultObjectNew:
-    pass
-
-
-@dataclass
-class CIResultObjectExisting:
-    pgc: int
-
-
-@dataclass
-class CIResultObjectCollision:
-    pgcs: set[int]
-
-
-CIResult = CIResultObjectNew | CIResultObjectExisting | CIResultObjectCollision
+class CrossmatchRecordRow:
+    record_id: str
+    triage_status: enums.RecordTriageStatus
+    candidates: list[int]
 
 
 @dataclass
@@ -34,13 +24,31 @@ class Record:
         return None
 
 
-@dataclass
-class RecordCrossmatch:
-    record: Record
-    processing_result: CIResult
+# Record classes below represent how data for each particular record is written
+# and read directly to and from the tables. Most likely they will correspond
+# to actual columns for tables. However, this may no necessarily be true for
+# catalogs which have more than one line per record.
 
 
 @dataclass
-class RecordWithPGC:
-    pgc: int
-    record: Record
+class DesignationRecord:
+    design: str
+
+
+@dataclass
+class ICRSRecord:
+    ra: float
+    e_ra: float
+    dec: float
+    e_dec: float
+
+
+@dataclass
+class RedshiftRecord:
+    cz: float
+    e_cz: float
+
+
+@dataclass
+class NatureRecord:
+    type_name: str

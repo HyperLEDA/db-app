@@ -1,0 +1,30 @@
+name: Check migrations
+
+on:
+  push:
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check migration file names
+        run: make check-migrations
+
+      - name: Start database and apply migrations
+        run: docker compose up -d hyperledadb migrate wait-for-migrate
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint database schema
+        env:
+          PGHOST: localhost
+          PGPORT: 6432
+          PGUSER: hyperleda
+          PGPASSWORD: password
+          PGDATABASE: hyperleda
+        run: npx --yes schemalint@2.3.2

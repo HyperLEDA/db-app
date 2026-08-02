@@ -8,8 +8,13 @@ class DataType(enum.Enum):
     COMPILATION = "compilation"
 
 
-class RecordCrossmatchStatus(str, enum.Enum):
+class RecordCrossmatchStatus(enum.StrEnum):
     UNPROCESSED = "unprocessed"
     NEW = "new"
     COLLIDED = "collided"
     EXISTING = "existing"
+
+
+class RecordTriageStatus(enum.StrEnum):
+    PENDING = "pending"
+    RESOLVED = "resolved"

@@ -3,7 +3,7 @@ import pathlib
 import click
 
 from tests.lib import colors
-from tests.regression import upload_simple_table
+from tests.regression import patch_table_metadata, tap_compliance, upload_simple_table
 
 
 @click.group()
@@ -11,7 +11,11 @@ def cli():
     pass
 
 
-tests = [upload_simple_table]
+tests = [
+    upload_simple_table,
+    patch_table_metadata,
+    tap_compliance,
+]
 
 
 @cli.command()

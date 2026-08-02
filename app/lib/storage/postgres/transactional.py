@@ -9,9 +9,10 @@ class TransactionalPGRepository:
 
     @contextmanager
     def with_tx(self):
-        conn = self._storage.get_connection()
-        try:
-            with conn.transaction():
-                yield
-        except Exception as e:
-            raise e
+        with self._storage.get_pool().connection() as conn:
+            self._storage.set_thread_conn(conn)
+            try:
+                with conn.transaction():
+                    yield
+            finally:
+                self._storage.set_thread_conn(None)

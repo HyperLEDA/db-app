@@ -1,8 +1,10 @@
+from collections.abc import Sequence
+
 import structlog
 from astropy import table
 
 from app.data import model
-from app.data.repositories.layer0 import homogenization, modifiers, records, tables
+from app.data.repositories.layer0 import records, tables
 from app.lib.storage import enums, postgres
 
 
@@ -13,8 +15,6 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
         self.table_repo = tables.Layer0TableRepository(storage)
         self.records_repo = records.Layer0RecordRepository(storage)
-        self.homogenization_repo = homogenization.Layer0HomogenizationRepository(storage)
-        self.modifier_repo = modifiers.Layer0ModifiersRepository(storage)
 
     def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         return self.table_repo.create_table(data)
@@ -35,14 +35,39 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def fetch_raw_data(
         self,
-        table_name: str,
+        table_name: str | None = None,
         offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
         limit: int | None = None,
+        record_id: str | None = None,
+        row_offset: int | None = None,
     ) -> model.Layer0RawData:
-        return self.table_repo.fetch_raw_data(table_name, offset, columns, order_column, order_direction, limit)
+        return self.table_repo.fetch_raw_data(
+            table_name,
+            offset,
+            columns,
+            order_column,
+            order_direction,
+            limit,
+            record_id,
+            row_offset,
+        )
+
+    def fetch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_offset: int,
+        order_direction: str = "asc",
+        has_pgc: bool | None = None,
+        pgc_value: int | None = None,
+        triage_status: str | None = None,
+    ) -> list[model.TableRecord]:
+        return self.table_repo.fetch_records(
+            table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status
+        )
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata(table_name)
@@ -50,45 +75,57 @@ class Layer0Repository(postgres.TransactionalPGRepository):
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
         return self.table_repo.fetch_metadata_by_name(table_name)
 
+    def search_tables(
+        self,
+        query: str,
+        page_size: int,
+        page: int,
+    ) -> list[model.Layer0TableListItem]:
+        return self.table_repo.search_tables(query, page_size, page)
+
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
+
+    def update_table_metadata(self, table_name: str, description: str) -> None:
+        return self.table_repo.update_table_metadata(table_name, description)
+
+    def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
+        return self.table_repo.update_table_datatype(table_name, datatype)
+
+    def is_raw_table_name_taken(self, table_name: str) -> bool:
+        return self.table_repo.is_raw_table_name_taken(table_name)
+
+    def rename_raw_table(self, old_table_name: str, new_table_name: str) -> None:
+        return self.table_repo.rename_raw_table(old_table_name, new_table_name)
 
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self.records_repo.register_records(table_name, record_ids)
 
-    def get_table_statistics(self, table_name: str) -> model.TableStatistics:
-        return self.records_repo.get_table_statistics(table_name)
+    def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
+        return self.records_repo.get_table_progress(table_names)
 
     def get_processed_records(
         self,
         limit: int,
         offset: str | None = None,
+        row_offset: int | None = None,
         table_name: str | None = None,
-        status: enums.RecordCrossmatchStatus | None = None,
+        status: Sequence[enums.RecordCrossmatchStatus] | None = None,
+        triage_status: Sequence[enums.RecordTriageStatus] | None = None,
         record_id: str | None = None,
-    ) -> list[model.RecordCrossmatch]:
-        return self.records_repo.get_processed_records(limit, offset, table_name, status, record_id)
+    ) -> list[model.CrossmatchRecordRow]:
+        return self.records_repo.get_processed_records(
+            limit, offset, row_offset, table_name, status, triage_status, record_id
+        )
 
-    def add_crossmatch_result(self, data: dict[str, model.CIResult]) -> None:
-        return self.records_repo.add_crossmatch_result(data)
+    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
+        return self.records_repo.set_crossmatch_results(rows)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         return self.records_repo.upsert_pgc(pgcs)
 
-    def get_homogenization_rules(self) -> list[model.HomogenizationRule]:
-        return self.homogenization_repo.get_homogenization_rules()
+    def assign_record_pgcs(self, record_ids: list[str]) -> None:
+        return self.records_repo.assign_record_pgcs(record_ids)
 
-    def get_homogenization_params(self) -> list[model.HomogenizationParams]:
-        return self.homogenization_repo.get_homogenization_params()
-
-    def add_homogenization_rules(self, rules: list[model.HomogenizationRule]) -> None:
-        return self.homogenization_repo.add_homogenization_rules(rules)
-
-    def add_homogenization_params(self, params: list[model.HomogenizationParams]) -> None:
-        return self.homogenization_repo.add_homogenization_params(params)
-
-    def get_modifiers(self, table_name: str) -> list[model.Modifier]:
-        return self.modifier_repo.get_modifiers(table_name)
-
-    def add_modifier(self, table_name: str, modifiers: list[model.Modifier]) -> None:
-        return self.modifier_repo.add_modifiers(table_name, modifiers)
+    def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
+        return self.records_repo.merge_pgcs(target_pgc, source_pgcs)

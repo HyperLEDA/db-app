@@ -2,14 +2,15 @@ import os
 import random
 import time
 import uuid
+from collections.abc import Sequence
 
 import pandas
 import requests
+import structlog
 
-from app.commands.runtask import RunTaskCommand
-from app.lib import commands
+from app import tasks
+from app.adminapi import presentation as adminapi
 from app.lib.storage import enums
-from app.presentation import adminapi
 from tests import lib
 
 random.seed(time.time())
@@ -19,41 +20,15 @@ COORD_RADIUS = 10
 COORD_RA_CENTER = random.uniform(COORD_RADIUS, 360 - COORD_RADIUS)
 COORD_DEC_CENTER = random.uniform(-90 + COORD_RADIUS, 90 - COORD_RADIUS)
 
-SMALL_CLUSTER_OBJECTS_NUM = 20
-SMALL_CLUSTER_RADIUS = 20 / 3600
-SMALL_CLUSTER_RA_CENTER = random.uniform(SMALL_CLUSTER_RADIUS, 360 - SMALL_CLUSTER_RADIUS)
-SMALL_CLUSTER_DEC_CENTER = random.uniform(-90 + SMALL_CLUSTER_RADIUS, 90 - SMALL_CLUSTER_RADIUS)
+TABLE2_OBJECTS_NUM = 20
+TABLE2_RADIUS = 20 / 3600
+TABLE2_RA_CENTER = random.uniform(TABLE2_RADIUS, 360 - TABLE2_RADIUS)
+TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 
+PHOTOMETRY_BANDS = ["V", "B", "R"]
+PHOTOMETRY_METHOD = "psf"
 
-@lib.test_logging_decorator
-def create_marking(session: requests.Session, table_name: str):
-    request_data = adminapi.CreateMarkingRequest(
-        table_name=table_name,
-        catalogs=[
-            adminapi.CatalogToMark(
-                name="icrs",
-                parameters={
-                    "ra": adminapi.ParameterToMark(column_name="ra"),
-                    "dec": adminapi.ParameterToMark(column_name="dec"),
-                    "e_ra": adminapi.ParameterToMark(column_name="e_ra"),
-                    "e_dec": adminapi.ParameterToMark(column_name="e_dec"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-            adminapi.CatalogToMark(
-                name="designation",
-                parameters={
-                    "design": adminapi.ParameterToMark(column_name="name"),
-                },
-                key=None,
-                additional_params=None,
-            ),
-        ],
-    )
-
-    response = session.post("/v1/marking", json=request_data.model_dump(mode="json"))
-    response.raise_for_status()
+SIMPLE_FILTER_QUERY_CATALOGS = ["designation", "icrs", "redshift", "nature"]
 
 
 @lib.test_logging_decorator
@@ -132,188 +107,363 @@ def upload_data(
 
     request_data = adminapi.AddDataRequest(
         table_name=table_name,
-        data=df.to_dict("records"),  # type: ignore
+        data=df.to_dict("records"),
     )
 
     response = session.post("/v1/table/data", json=request_data.model_dump(mode="json"))
     response.raise_for_status()
 
 
+def get_records(session: requests.Session, table_name: str, page_size: int) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(table_name=table_name, page=0, page_size=page_size)
+    response = session.get(
+        "/v1/records",
+        params=request_data.model_dump(mode="json", exclude_none=True),
+    )
+    response.raise_for_status()
+    return response.json()["data"]["records"]
+
+
 @lib.test_logging_decorator
-def start_marking(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "layer0-marking",
-            "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name, "batch_size": 200, "workers": 8},
-            log_level="warn",
+def upload_structured_data(session: requests.Session, records: list[dict]) -> None:
+    ids = [r["id"] for r in records]
+    orig = [r["original_data"] for r in records]
+
+    upload_designation_catalog(session, ids=ids, original_data=orig)
+    upload_icrs_catalog(session, ids=ids, original_data=orig)
+    upload_notes_catalog(session, ids=ids, original_data=orig)
+    upload_photometry_catalog(session, ids=ids)
+    upload_photometry_isophotal_catalog(session, ids=ids)
+    upload_geometry_catalog(session, ids=ids)
+
+
+@lib.test_logging_decorator
+def upload_designation_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
+    designation_request = adminapi.SaveStructuredDataRequest(
+        catalog="designation",
+        columns=["design"],
+        units={},
+        ids=ids,
+        data=[[o["name"]] for o in original_data],
+    )
+    response = session.post("/v1/data/structured", json=designation_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_icrs_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
+    ra_deg = 15.0
+    icrs_request = adminapi.SaveStructuredDataRequest(
+        catalog="icrs",
+        columns=["ra", "dec", "e_ra", "e_dec"],
+        units={"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
+        ids=ids,
+        data=[[float(o["ra"]) * ra_deg, float(o["dec"]), float(o["e_ra"]), float(o["e_dec"])] for o in original_data],
+    )
+    response = session.post("/v1/data/structured", json=icrs_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_photometry_catalog(session: requests.Session, ids: list[str]) -> None:
+    phot_ids: list[str] = []
+    phot_data: list[list[object]] = []
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            phot_ids.append(rid)
+            mag = random.uniform(5.0, 25.0)
+            e_mag = random.uniform(0.01, 0.3)
+            phot_data.append([band, mag, e_mag, PHOTOMETRY_METHOD])
+
+    photometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="photometry_total",
+        columns=["band", "mag", "e_mag", "method"],
+        units={"mag": "mag", "e_mag": "mag"},
+        ids=phot_ids,
+        data=phot_data,
+    )
+    response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_photometry_isophotal_catalog(session: requests.Session, ids: list[str]) -> None:
+    phot_ids: list[str] = []
+    phot_data: list[list[object]] = []
+    isophote_level = 25.0
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            phot_ids.append(rid)
+            mag = random.uniform(5.0, 25.0)
+            e_mag = random.uniform(0.01, 0.3)
+            phot_data.append([band, isophote_level, mag, e_mag])
+
+    photometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="photometry_isophotal",
+        columns=["band", "isophote", "mag", "e_mag"],
+        units={"isophote": "mag/arcmin2", "mag": "mag", "e_mag": "mag"},
+        ids=phot_ids,
+        data=phot_data,
+    )
+    response = session.post("/v1/data/structured", json=photometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_geometry_catalog(session: requests.Session, ids: list[str]) -> None:
+    geom_ids: list[str] = []
+    geom_data: list[list[object]] = []
+    isophote_level = 25.0
+    for rid in ids:
+        for band in PHOTOMETRY_BANDS:
+            geom_ids.append(rid)
+            a = random.uniform(10.0, 100.0)
+            b = random.uniform(5.0, a)
+            pa = random.uniform(0.0, 179.0)
+            geom_data.append([band, "isophotal", isophote_level, a, 0.1, b, 0.1, pa, 0.5])
+
+    geometry_request = adminapi.SaveStructuredDataRequest(
+        catalog="geometry",
+        columns=["band", "method", "isophote", "a", "e_a", "b", "e_b", "pa", "e_pa"],
+        units={
+            "isophote": "mag/arcmin2",
+            "a": "arcsec",
+            "e_a": "arcsec",
+            "b": "arcsec",
+            "e_b": "arcsec",
+            "pa": "deg",
+            "e_pa": "deg",
+        },
+        ids=geom_ids,
+        data=geom_data,
+    )
+    response = session.post("/v1/data/structured", json=geometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_notes_catalog(session: requests.Session, ids: list[str], original_data: list[dict]) -> None:
+    notes_request = adminapi.SaveStructuredDataRequest(
+        catalog="note",
+        columns=["note"],
+        units={},
+        ids=ids,
+        data=[[f"note: {o['name']}"] for o in original_data],
+    )
+    response = session.post("/v1/data/structured", json=notes_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def check_records(session: requests.Session, table_name: str, expected_count: int) -> None:
+    records = get_records(session, table_name, expected_count * 2)
+    assert len(records) == expected_count, f"Expected {expected_count} records, got {len(records)}"
+    for record in records:
+        _assert_record_catalogs(record)
+
+
+@lib.test_logging_decorator
+def set_crossmatch_new(
+    session: requests.Session,
+    record_ids: list[str],
+    triage_statuses: Sequence[enums.RecordTriageStatus | None],
+):
+    request_data = adminapi.SetCrossmatchResultsRequest(
+        statuses=adminapi.StatusesPayload(
+            new=adminapi.NewStatusPayload(
+                record_ids=record_ids,
+                triage_statuses=list(triage_statuses),
+            ),
         ),
     )
-
-
-@lib.test_logging_decorator
-def start_crossmatch(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "crossmatch",
-            "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name},
-            log_level="warn",
-        ),
+    response = session.post(
+        "/v1/records/crossmatch",
+        json=request_data.model_dump(mode="json"),
     )
+    response.raise_for_status()
+
+
+def get_records_by_triage(
+    session: requests.Session,
+    table_name: str,
+    triage_status: adminapi.CrossmatchTriageStatus,
+    page_size: int,
+) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(
+        table_name=table_name,
+        page=0,
+        page_size=page_size,
+        triage_status=triage_status,
+    )
+    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    return response.json()["data"]["records"]
+
+
+def get_records_by_upload_status(
+    session: requests.Session,
+    table_name: str,
+    upload_status: adminapi.UploadStatus,
+    page_size: int,
+) -> list[dict]:
+    request_data = adminapi.GetRecordsRequest(
+        table_name=table_name,
+        page=0,
+        page_size=page_size,
+        upload_status=upload_status,
+    )
+    response = session.get("/v1/records", params=request_data.model_dump(mode="json"))
+    response.raise_for_status()
+    return response.json()["data"]["records"]
+
+
+def _assert_record_catalogs(record: dict) -> None:
+    assert record["catalogs"]["icrs"] is not None
+    assert record["catalogs"]["designation"] is not None
+    icrs = record["catalogs"]["icrs"]
+    assert "ra" in icrs and "dec" in icrs and "ra_error" in icrs and "dec_error" in icrs
+    designation = record["catalogs"]["designation"]
+    assert "name" in designation and designation["name"] is not None
 
 
 @lib.test_logging_decorator
-def check_table_info(session: requests.Session, table_name: str):
+def check_triage_via_records(
+    session: requests.Session,
+    table_name: str,
+    expected_pending: int,
+    expected_resolved: int,
+):
+    pending_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.PENDING, OBJECTS_NUM * 2
+    )
+    resolved_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.RESOLVED, OBJECTS_NUM * 2
+    )
+    assert len(pending_records) == expected_pending, (
+        f"Expected {expected_pending} pending records, got {len(pending_records)}"
+    )
+    assert len(resolved_records) == expected_resolved, (
+        f"Expected {expected_resolved} resolved records, got {len(resolved_records)}"
+    )
+    for record in pending_records + resolved_records:
+        _assert_record_catalogs(record)
+
+
+@lib.test_logging_decorator
+def check_pgc_after_submit_via_records(
+    session: requests.Session,
+    table_name: str,
+    expected_with_pgc: int,
+    expected_without_pgc: int,
+):
+    records_with_pgc = get_records_by_upload_status(
+        session, table_name, adminapi.UploadStatus.UPLOADED, OBJECTS_NUM * 2
+    )
+    pending_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.PENDING, OBJECTS_NUM * 2
+    )
+    assert len(records_with_pgc) == expected_with_pgc, (
+        f"Expected {expected_with_pgc} records with pgc, got {len(records_with_pgc)}"
+    )
+    assert len(pending_records) == expected_without_pgc, (
+        f"Expected {expected_without_pgc} pending records (no pgc), got {len(pending_records)}"
+    )
+    for record in records_with_pgc:
+        assert record.get("pgc") is not None
+        _assert_record_catalogs(record)
+    for record in pending_records:
+        assert record.get("pgc") is None
+        _assert_record_catalogs(record)
+
+
+@lib.test_logging_decorator
+def check_table_list(session: requests.Session, table_name: str):
+    response = session.get("/v1/tables", params={"query": table_name})
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "tables" in data
+    tables_list = data["tables"]
+    matching = [t for t in tables_list if t["name"] == table_name]
+    assert len(matching) >= 1, f"Expected at least one table with name {table_name}"
+    for item in tables_list:
+        assert "name" in item
+        assert "description" in item
+        assert "num_entries" in item
+        assert "num_fields" in item
+        assert "bibcode" in item
+        assert "progress" in item
+
+
+@lib.test_logging_decorator
+def check_get_table(
+    session: requests.Session,
+    table_name: str,
+    expected_columns: int,
+    expected_rows: int,
+    expected_unprocessed: int,
+    expected_pending_triage: int,
+    expected_resolved_unsubmitted: int,
+):
     request_data = adminapi.GetTableRequest(table_name=table_name)
-
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
-
     table_info = response.json()["data"]
-    if table_info["statistics"] is None:
-        raise ValueError("Processing status is None")
-
-    assert table_info["statistics"]["new"] == OBJECTS_NUM
+    assert "id" in table_info
+    assert "description" in table_info
+    assert "column_info" in table_info
+    assert len(table_info["column_info"]) == expected_columns
+    assert "bibliography" in table_info
+    assert "meta" in table_info
+    assert "progress" in table_info
+    progress = table_info["progress"]
+    assert progress["total_records"] == expected_rows
+    assert progress["unprocessed"] == expected_unprocessed
+    assert progress["pending_triage"] == expected_pending_triage
+    assert progress["resolved_unsubmitted"] == expected_resolved_unsubmitted
 
 
 @lib.test_logging_decorator
-def check_crossmatch_results(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.NEW,
-        page_size=OBJECTS_NUM * 2,
+def assign_record_pgcs(session: requests.Session, table_name: str):
+    resolved_records = get_records_by_triage(
+        session, table_name, adminapi.CrossmatchTriageStatus.RESOLVED, OBJECTS_NUM * 2
     )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
+    record_ids = [r["id"] for r in resolved_records]
+    if not record_ids:
+        return
+    request_data = adminapi.AssignRecordPgcsRequest(record_ids=record_ids)
+    response = session.post(
+        "/v1/records/pgcs",
+        json=request_data.model_dump(mode="json"),
+    )
     response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-
-    assert len(crossmatch_data["records"]) == OBJECTS_NUM
-
-    first_record = crossmatch_data["records"][0]
-
-    request_data = adminapi.GetRecordCrossmatchRequest(record_id=first_record["record_id"])
-
-    first_record_response = session.get("/v1/record/crossmatch", params=request_data.model_dump(mode="json"))
-    first_record_response.raise_for_status()
-    first_record_detail = first_record_response.json()["data"]
-    assert first_record_detail["crossmatch"]["status"] == enums.RecordCrossmatchStatus.NEW
-
-    for record in crossmatch_data["records"]:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
-
-
-@lib.test_logging_decorator
-def check_crossmatch_existing_results(session: requests.Session, table_name: str):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.EXISTING,
-        page_size=OBJECTS_NUM * 2,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-    existing_records = crossmatch_data["records"]
-
-    expected_min = int(OBJECTS_NUM * 0.8)
-    assert len(existing_records) >= expected_min, (
-        f"Expected at least {expected_min} existing records, got {len(existing_records)}"
-    )
-
-    for record in existing_records:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-        assert record["metadata"]["pgc"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
-
-
-@lib.test_logging_decorator
-def check_crossmatch_collided_results(session: requests.Session, table_name: str, expected_min_collided: int):
-    request_data = adminapi.GetRecordsCrossmatchRequest(
-        table_name=table_name,
-        status=enums.RecordCrossmatchStatus.COLLIDED,
-        page_size=SMALL_CLUSTER_OBJECTS_NUM * 2,
-    )
-
-    response = session.get("/v1/records/crossmatch", params=request_data.model_dump(mode="json"))
-    response.raise_for_status()
-
-    crossmatch_data = response.json()["data"]
-    collided_records = crossmatch_data["records"]
-
-    assert len(collided_records) >= expected_min_collided, (
-        f"Expected at least {expected_min_collided} collided records, got {len(collided_records)}"
-    )
-
-    for record in collided_records:
-        assert record["catalogs"]["coordinates"] is not None
-        assert record["catalogs"]["designation"] is not None
-
-        coords = record["catalogs"]["coordinates"]
-        assert "equatorial" in coords
-        assert "ra" in coords["equatorial"]
-        assert "dec" in coords["equatorial"]
-        assert "e_ra" in coords["equatorial"]
-        assert "e_dec" in coords["equatorial"]
-
-        designation = record["catalogs"]["designation"]
-        assert "name" in designation
-        assert designation["name"] is not None
-
-
-@lib.test_logging_decorator
-def submit_crossmatch(table_name: str):
-    commands.run(
-        RunTaskCommand(
-            "submit-crossmatch",
-            "configs/dev/tasks.yaml",
-            input_data={"table_name": table_name, "batch_size": OBJECTS_NUM // 2},
-            log_level="warn",
-        ),
-    )
 
 
 @lib.test_logging_decorator
 def layer2_import():
-    commands.run(
-        RunTaskCommand(
-            "layer2-import",
-            "configs/dev/tasks.yaml",
-            input_data={"batch_size": OBJECTS_NUM // 5},
-            log_level="warn",
-        ),
+    log = structlog.get_logger()
+    task = tasks.get_task(
+        "layer2-import",
+        log,
+        {"batch_size": OBJECTS_NUM // 5, "silent": True},
     )
+    cfg = tasks.Config()
+    task.prepare(cfg)
+    try:
+        task.run()
+    finally:
+        task.cleanup()
 
 
 @lib.test_logging_decorator
-def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
-    response = session.get("/v1/query/simple", params={"name": name_prefix, "page_size": 100})
+def check_pgc_names(session: lib.TestSession, name_prefix: str):
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     name_results = response.json()["data"]
 
@@ -325,12 +475,100 @@ def check_dataapi_name_query(session: lib.TestSession, name_prefix: str):
 
 
 @lib.test_logging_decorator
-def check_dataapi_coord_query(session: lib.TestSession, ra: float, dec: float, radius: float):
-    response = session.get("/v1/query/simple", params={"ra": ra, "dec": dec, "radius": radius, "page_size": 100})
+def check_pgc_coordinates(session: lib.TestSession, ra: float, dec: float, radius: float):
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "ra": ra,
+            "dec": dec,
+            "radius": radius,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
     response.raise_for_status()
     coord_results = response.json()["data"]
 
     assert len(coord_results["objects"]) > 0
+
+
+@lib.test_logging_decorator
+def check_pgc(session: lib.TestSession, name_prefix: str, ra: float, dec: float, radius: float) -> None:
+    check_pgc_names(session, name_prefix)
+    check_pgc_notes(session, name_prefix)
+    check_pgc_photometry(session, name_prefix)
+    check_pgc_coordinates(session, ra, dec, radius)
+
+
+@lib.test_logging_decorator
+def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
+    response.raise_for_status()
+    name_results = response.json()["data"]
+    pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
+
+    response = session.get(
+        "/v1/query/simple",
+        params={"pgcs": pgcs, "page_size": 100, "catalogs": ["note"]},
+    )
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+    assert len(data["objects"]) > 0
+
+    for obj in data["objects"]:
+        catalogs = obj["catalogs"]
+        assert "notes" in catalogs and catalogs["notes"] is not None
+        assert len(catalogs["notes"]) > 0
+        note_entry = catalogs["notes"][0]
+        assert note_entry["note"] is not None and note_entry["note"] != ""
+        source = note_entry["source"]
+        assert source["bibcode"] is not None and source["bibcode"] != ""
+        assert source["title"] is not None and source["title"] != ""
+        assert len(source["authors"]) > 0
+        assert source["year"] > 0
+
+
+@lib.test_logging_decorator
+def check_pgc_photometry(session: lib.TestSession, name_prefix: str) -> None:
+    response = session.get(
+        "/v1/query/simple",
+        params={
+            "name": name_prefix,
+            "page_size": 100,
+            "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
+        },
+    )
+    response.raise_for_status()
+    name_results = response.json()["data"]
+    pgcs = [int(obj["pgc"]) for obj in name_results["objects"] if obj.get("pgc") is not None]
+
+    response = session.get(
+        "/v1/query/simple",
+        params={"pgcs": pgcs, "page_size": 100, "catalogs": ["photometry_total"]},
+    )
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert "objects" in data
+    assert len(data["objects"]) > 0
+
+    for obj in data["objects"]:
+        catalogs = obj["catalogs"]
+        assert "photometry_total" in catalogs and catalogs["photometry_total"] is not None
+        assert len(catalogs["photometry_total"]) > 0
+        bands = {entry["band"] for entry in catalogs["photometry_total"]}
+        assert set(PHOTOMETRY_BANDS).issubset(bands)
+        for entry in catalogs["photometry_total"]:
+            assert entry["wavelength"] > 0
+            assert entry["mag"] is not None
+            assert entry["method"] == PHOTOMETRY_METHOD
 
 
 def get_adminapi_session() -> lib.TestSession:
@@ -348,17 +586,17 @@ def get_dataapi_session() -> lib.TestSession:
 
 
 def run():
-    adminapi = get_adminapi_session()
+    adminapi_session = get_adminapi_session()
     dataapi = get_dataapi_session()
 
     test_seed = 42
 
-    code = create_bibliography(adminapi)
+    code = create_bibliography(adminapi_session)
 
-    # ---- Create table with all `new` objects and upload it to layer 2 ----
-    table_name = create_table(adminapi, code)
+    # ---- Table 1: all new rows, mark as resolved via POST /crossmatch, submit ----
+    table_name = create_table(adminapi_session, code)
     upload_data(
-        adminapi,
+        adminapi_session,
         table_name,
         objects_num=OBJECTS_NUM,
         ra_center=COORD_RA_CENTER,
@@ -367,62 +605,82 @@ def run():
         seed=test_seed,
     )
 
-    create_marking(adminapi, table_name)
-    start_marking(table_name)
-    start_crossmatch(table_name)
+    check_table_list(adminapi_session, table_name)
+    check_get_table(
+        adminapi_session,
+        table_name,
+        expected_columns=6,
+        expected_rows=OBJECTS_NUM,
+        expected_unprocessed=OBJECTS_NUM,
+        expected_pending_triage=0,
+        expected_resolved_unsubmitted=0,
+    )
 
-    check_table_info(adminapi, table_name)
-    check_crossmatch_results(adminapi, table_name)
+    records = get_records(adminapi_session, table_name, OBJECTS_NUM * 2)
+    upload_structured_data(adminapi_session, records)
+    check_records(adminapi_session, table_name, OBJECTS_NUM)
 
-    submit_crossmatch(table_name)
+    record_ids = [r["id"] for r in records]
+    set_crossmatch_new(
+        adminapi_session,
+        record_ids,
+        triage_statuses=[enums.RecordTriageStatus.RESOLVED] * len(record_ids),
+    )
+    check_get_table(
+        adminapi_session,
+        table_name,
+        expected_columns=6,
+        expected_rows=OBJECTS_NUM,
+        expected_unprocessed=0,
+        expected_pending_triage=0,
+        expected_resolved_unsubmitted=OBJECTS_NUM,
+    )
+
+    assign_record_pgcs(adminapi_session, table_name)
     layer2_import()
 
-    check_dataapi_name_query(dataapi, "NGC")
-    check_dataapi_coord_query(dataapi, COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
+    check_pgc(dataapi, "NGC", COORD_RA_CENTER, COORD_DEC_CENTER, COORD_RADIUS / 2)
 
-    # ---- Create table with all `existing` objects and upload it to layer 2 ----
-    table_name_2 = create_table(adminapi, code)
+    # ---- Table 2: smaller cluster, some pending/resolved; check via /records; submit; check pgc ----
+    table_name_2 = create_table(adminapi_session, code)
     upload_data(
-        adminapi,
+        adminapi_session,
         table_name_2,
-        objects_num=OBJECTS_NUM,
-        ra_center=COORD_RA_CENTER,
-        dec_center=COORD_DEC_CENTER,
-        radius=COORD_RADIUS,
-        seed=test_seed,
+        objects_num=TABLE2_OBJECTS_NUM,
+        ra_center=TABLE2_RA_CENTER,
+        dec_center=TABLE2_DEC_CENTER,
+        radius=TABLE2_RADIUS,
+        seed=test_seed + 1,
     )
-    upload_data(
-        adminapi,
+
+    records_2 = get_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM * 2)
+    upload_structured_data(adminapi_session, records_2)
+    check_records(adminapi_session, table_name_2, TABLE2_OBJECTS_NUM)
+
+    record_ids_2 = [r["id"] for r in records_2]
+
+    n_pending = TABLE2_OBJECTS_NUM // 2
+    n_resolved = TABLE2_OBJECTS_NUM - n_pending
+    set_crossmatch_new(
+        adminapi_session,
+        record_ids_2,
+        triage_statuses=[enums.RecordTriageStatus.PENDING] * n_pending
+        + [enums.RecordTriageStatus.RESOLVED] * n_resolved,
+    )
+    check_get_table(
+        adminapi_session,
         table_name_2,
-        objects_num=SMALL_CLUSTER_OBJECTS_NUM,
-        ra_center=SMALL_CLUSTER_RA_CENTER,
-        dec_center=SMALL_CLUSTER_DEC_CENTER,
-        radius=SMALL_CLUSTER_RADIUS,
-        seed=random.randint(0, 1000000),
+        expected_columns=6,
+        expected_rows=TABLE2_OBJECTS_NUM,
+        expected_unprocessed=0,
+        expected_pending_triage=n_pending,
+        expected_resolved_unsubmitted=n_resolved,
     )
 
-    create_marking(adminapi, table_name_2)
-    start_marking(table_name_2)
-    start_crossmatch(table_name_2)
+    check_triage_via_records(adminapi_session, table_name_2, expected_pending=n_pending, expected_resolved=n_resolved)
 
-    check_crossmatch_existing_results(adminapi, table_name_2)
-    submit_crossmatch(table_name_2)
-    layer2_import()
+    assign_record_pgcs(adminapi_session, table_name_2)
 
-    # ---- Create table with `collided` objects ----
-    table_name_3 = create_table(adminapi, code)
-    upload_data(
-        adminapi,
-        table_name_3,
-        objects_num=SMALL_CLUSTER_OBJECTS_NUM // 2,
-        ra_center=SMALL_CLUSTER_RA_CENTER,
-        dec_center=SMALL_CLUSTER_DEC_CENTER,
-        radius=SMALL_CLUSTER_RADIUS,
-        seed=random.randint(0, 1000000),
+    check_pgc_after_submit_via_records(
+        adminapi_session, table_name_2, expected_with_pgc=n_resolved, expected_without_pgc=n_pending
     )
-
-    create_marking(adminapi, table_name_3)
-    start_marking(table_name_3)
-    start_crossmatch(table_name_3)
-
-    check_crossmatch_collided_results(adminapi, table_name_3, expected_min_collided=SMALL_CLUSTER_OBJECTS_NUM // 4)

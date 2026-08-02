@@ -3,7 +3,7 @@ import warnings
 from astropy import constants
 from astropy import units as u
 from uncertainties import ufloat
-from uncertainties.umath import cos, sin  # type: ignore
+from uncertainties.umath import cos, sin
 
 warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
 
@@ -14,6 +14,8 @@ def const(const_name: str) -> u.Quantity:
 
 def to(value: u.Quantity, unit: str | None = None) -> float:
     if unit is None:
+        if value.unit.is_equivalent(u.one):
+            return float(value.decompose().value)
         return value.value
 
     return float(value.to(u.Unit(unit)).value)
@@ -72,7 +74,7 @@ def velocity_wr_apex(
     lat_apex_u = ufloat(lat_apex.value, lat_apex_err_val)
 
     result = vel_u - vel_apex_u * (
-        sin(lat_u) * sin(lat_apex_u) + cos(lat_u) * cos(lat_apex_u) * cos(lon_u - lon_apex_u)  # type: ignore
+        sin(lat_u) * sin(lat_apex_u) + cos(lat_u) * cos(lat_apex_u) * cos(lon_u - lon_apex_u)
     )
 
     return u.Quantity(result.nominal_value, unit="km/s"), u.Quantity(result.std_dev, unit="km/s")
