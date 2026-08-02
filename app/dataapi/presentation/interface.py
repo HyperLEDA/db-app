@@ -309,6 +309,11 @@ class QuerySimpleRequest(pydantic.BaseModel):
                 "Only one coordinate system may be specified: "
                 "equatorial (ra/dec), galactic (glon/glat), or supergalactic (sgl/sgb)"
             )
+        if self.radius is not None and sum(systems) == 0:
+            raise ValueError(
+                "When radius is specified, at least one coordinate set must be specified: "
+                "equatorial (ra/dec), galactic (glon/glat), or supergalactic (sgl/sgb)"
+            )
         return self
 
     @pydantic.model_validator(mode="after")
