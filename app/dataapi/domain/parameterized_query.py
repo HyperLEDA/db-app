@@ -2,6 +2,7 @@ from app.data import model, repositories
 from app.data.repositories import layer2
 from app.dataapi import presentation as dataapi
 from app.dataapi import responders
+from app.lib import astronomy
 
 CATALOGS_FOR_PGC_QUERY = [
     model.RawCatalog.DESIGNATION,
@@ -60,8 +61,9 @@ class ParameterizedQueryManager:
             filters.append(layer2.PGCOneOfFilter(query.pgcs))
 
         if (query.ra is not None) and (query.dec is not None) and (query.radius is not None):
+            ra, dec = astronomy.equatorial_to_icrs(query.ra, query.dec, query.epoch)
             filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(layer2.ICRSSearchParams(query.ra, query.dec))
+            search_params.append(layer2.ICRSSearchParams(ra, dec))
 
         if query.name is not None:
             filters.append(layer2.DesignationLikeFilter())

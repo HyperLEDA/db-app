@@ -1,15 +1,43 @@
 import warnings
 
 from astropy import constants
+from astropy import coordinates as coords
 from astropy import units as u
+from astropy.time import Time
 from uncertainties import ufloat
 from uncertainties.umath import cos, sin
 
 warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
 
+_J2000_EPOCHS = frozenset({"J2000", "J2000.0"})
+
 
 def const(const_name: str) -> u.Quantity:
     return getattr(constants, const_name)
+
+
+def parse_coordinate_epoch(epoch: str) -> Time | None:
+    if epoch.upper() in _J2000_EPOCHS:
+        return None
+
+    try:
+        return Time(epoch)
+    except (ValueError, TypeError, OSError) as exc:
+        raise ValueError(f"Invalid coordinate epoch {epoch!r}; expected an equinox like J2000 or B1950") from exc
+
+
+def equatorial_to_icrs(ra: float, dec: float, epoch: str = "J2000") -> tuple[float, float]:
+    equinox = parse_coordinate_epoch(epoch)
+    if equinox is None:
+        return ra, dec
+
+    coord = coords.SkyCoord(
+        ra=ra * u.Unit("deg"),
+        dec=dec * u.Unit("deg"),
+        frame=coords.FK5(equinox=equinox),
+    )
+    icrs = coord.transform_to(coords.ICRS())
+    return float(icrs.ra.deg), float(icrs.dec.deg)
 
 
 def to(value: u.Quantity, unit: str | None = None) -> float:

@@ -3,6 +3,7 @@ import abc
 import pydantic
 
 from app.dataapi.presentation import tap
+from app.lib import astronomy
 
 
 class EquatorialCoordinates(pydantic.BaseModel):
@@ -150,6 +151,12 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=None,
         description="Radius of the search area in degrees",
     )
+    epoch: str = pydantic.Field(
+        default="J2000",
+        description=(
+            "Equinox of the query coordinates (e.g. J2000, B1950). Default is J2000."
+        ),
+    )
     name: str | None = pydantic.Field(
         default=None,
         description="Name of the object",
@@ -177,6 +184,12 @@ class QuerySimpleRequest(pydantic.BaseModel):
             "If omitted, default set of catalogs is returned."
         ),
     )
+
+    @pydantic.field_validator("epoch")
+    @classmethod
+    def _validate_epoch(cls, value: str) -> str:
+        astronomy.parse_coordinate_epoch(value)
+        return value
 
     @pydantic.model_validator(mode="after")
     def _pgcs_exclusive_with_filters(self) -> "QuerySimpleRequest":

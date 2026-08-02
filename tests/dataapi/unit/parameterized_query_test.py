@@ -1,7 +1,15 @@
 import unittest
+from unittest import mock
+
+import pydantic
+from astropy import coordinates as coords
+from astropy import units as u
+from astropy.time import Time
 
 from app.data import model
+from app.data.repositories import layer2
 from app.dataapi.domain import parameterized_query
+from app.dataapi.presentation import interface
 
 DEFAULT = [
     model.RawCatalog.DESIGNATION,
@@ -49,3 +57,51 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
                 ["note"],
                 DEFAULT,
             )
+
+
+class QuerySimpleCoordinateEpochTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.layer2_repo = mock.Mock()
+        self.layer2_repo.query_catalogs.return_value = []
+        self.manager = parameterized_query.ParameterizedQueryManager(
+            layer2_repo=self.layer2_repo,
+            enabled_catalogs=DEFAULT,
+            catalog_cfg=mock.Mock(),
+        )
+
+    def _search_params(self) -> layer2.SearchParams:
+        return self.layer2_repo.query_catalogs.call_args.args[2]
+
+    def test_coordinate_search_defaults_to_j2000(self):
+        query = interface.QuerySimpleRequest(ra=10.0, dec=20.0, radius=0.1)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.assertEqual(self._search_params().get_params(), {"ra": 10.0, "dec": 20.0})
+
+    def test_coordinate_search_precesses_b1950(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        b1950 = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).transform_to(coords.FK5(equinox=Time("B1950")))
+
+        query = interface.QuerySimpleRequest(
+            ra=float(b1950.ra.deg),
+            dec=float(b1950.dec.deg),
+            radius=0.1,
+            epoch="B1950",
+        )
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        got = self._search_params().get_params()
+        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
+        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+
+    def test_invalid_epoch_rejected_by_request_model(self):
+        with self.assertRaises(pydantic.ValidationError):
+            interface.QuerySimpleRequest(ra=10.0, dec=20.0, radius=0.1, epoch="not-an-epoch")

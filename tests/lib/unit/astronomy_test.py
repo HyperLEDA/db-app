@@ -2,7 +2,9 @@ import unittest
 import warnings
 
 import numpy as np
+from astropy import coordinates as coords
 from astropy import units as u
+from astropy.time import Time
 from parameterized import param, parameterized
 from uncertainties import ufloat
 
@@ -149,3 +151,25 @@ class AstronomyTest(unittest.TestCase):
     def test_to_dimensionless_quantity(self):
         z = astronomy.to((4195.0 * u.Unit("km/s")) / astronomy.const("c"))
         self.assertAlmostEqual(z, 0.013993013793562478)
+
+    def test_equatorial_to_icrs_j2000_passthrough(self):
+        ra, dec = 187.70593, 12.39112
+        self.assertEqual(astronomy.equatorial_to_icrs(ra, dec), (ra, dec))
+        self.assertEqual(astronomy.equatorial_to_icrs(ra, dec, "j2000"), (ra, dec))
+        self.assertEqual(astronomy.equatorial_to_icrs(ra, dec, "J2000.0"), (ra, dec))
+
+    def test_equatorial_to_icrs_b1950_roundtrip(self):
+        ra_j2000, dec_j2000 = 187.70593, 12.39112
+        b1950 = coords.SkyCoord(
+            ra=ra_j2000 * u.Unit("deg"),
+            dec=dec_j2000 * u.Unit("deg"),
+            frame="icrs",
+        ).transform_to(coords.FK5(equinox=Time("B1950")))
+
+        ra_icrs, dec_icrs = astronomy.equatorial_to_icrs(float(b1950.ra.deg), float(b1950.dec.deg), "B1950")
+        self.assertAlmostEqual(ra_icrs, ra_j2000, places=5)
+        self.assertAlmostEqual(dec_icrs, dec_j2000, places=5)
+
+    def test_parse_coordinate_epoch_invalid(self):
+        with self.assertRaisesRegex(ValueError, "Invalid coordinate epoch"):
+            astronomy.parse_coordinate_epoch("not-an-epoch")
