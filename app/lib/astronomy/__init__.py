@@ -26,28 +26,24 @@ def parse_coordinate_epoch(epoch: str) -> Time | None:
         raise ValueError(f"Invalid coordinate epoch {epoch!r}; expected an equinox like J2000 or B1950") from exc
 
 
-def equatorial_to_icrs(ra: float, dec: float, epoch: str = "J2000") -> tuple[float, float]:
+def equatorial_to_icrs(
+    ra: u.Quantity,
+    dec: u.Quantity,
+    epoch: str = "J2000",
+) -> tuple[u.Quantity, u.Quantity]:
     equinox = parse_coordinate_epoch(epoch)
     if equinox is None:
         return ra, dec
 
-    coord = coords.SkyCoord(
-        ra=ra * u.Unit("deg"),
-        dec=dec * u.Unit("deg"),
-        frame=coords.FK5(equinox=equinox),
-    )
-    icrs = coord.transform_to(coords.ICRS())
-    return float(icrs.ra.deg), float(icrs.dec.deg)
+    coord = coords.SkyCoord(ra=ra, dec=dec, frame=coords.FK5(equinox=equinox))
+    icrs = coord.transform_to("icrs")
+    return icrs.ra, icrs.dec
 
 
-def galactic_to_icrs(glon: float, glat: float) -> tuple[float, float]:
-    coord = coords.SkyCoord(
-        l=glon * u.Unit("deg"),
-        b=glat * u.Unit("deg"),
-        frame="galactic",
-    )
-    icrs = coord.transform_to(coords.ICRS())
-    return float(icrs.ra.deg), float(icrs.dec.deg)
+def galactic_to_icrs(glon: u.Quantity, glat: u.Quantity) -> tuple[u.Quantity, u.Quantity]:
+    coord = coords.SkyCoord(l=glon, b=glat, frame="galactic")
+    icrs = coord.transform_to("icrs")
+    return icrs.ra, icrs.dec
 
 
 def to(value: u.Quantity, unit: str | None = None) -> float:

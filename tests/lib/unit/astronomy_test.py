@@ -153,35 +153,32 @@ class AstronomyTest(unittest.TestCase):
         self.assertAlmostEqual(z, 0.013993013793562478)
 
     def test_equatorial_to_icrs_j2000_passthrough(self):
-        ra, dec = 187.70593, 12.39112
+        ra = 187.70593 * u.Unit("deg")
+        dec = 12.39112 * u.Unit("deg")
         self.assertEqual(astronomy.equatorial_to_icrs(ra, dec), (ra, dec))
         self.assertEqual(astronomy.equatorial_to_icrs(ra, dec, "j2000"), (ra, dec))
         self.assertEqual(astronomy.equatorial_to_icrs(ra, dec, "J2000.0"), (ra, dec))
 
     def test_equatorial_to_icrs_b1950_roundtrip(self):
-        ra_j2000, dec_j2000 = 187.70593, 12.39112
-        b1950 = coords.SkyCoord(
-            ra=ra_j2000 * u.Unit("deg"),
-            dec=dec_j2000 * u.Unit("deg"),
-            frame="icrs",
-        ).transform_to(coords.FK5(equinox=Time("B1950")))
+        ra_j2000 = 187.70593 * u.Unit("deg")
+        dec_j2000 = 12.39112 * u.Unit("deg")
+        b1950 = coords.SkyCoord(ra=ra_j2000, dec=dec_j2000, frame="icrs").transform_to(
+            coords.FK5(equinox=Time("B1950"))
+        )
 
-        ra_icrs, dec_icrs = astronomy.equatorial_to_icrs(float(b1950.ra.deg), float(b1950.dec.deg), "B1950")
-        self.assertAlmostEqual(ra_icrs, ra_j2000, places=5)
-        self.assertAlmostEqual(dec_icrs, dec_j2000, places=5)
+        ra_icrs, dec_icrs = astronomy.equatorial_to_icrs(b1950.ra, b1950.dec, "B1950")
+        self.assertAlmostEqual(astronomy.to(ra_icrs, "deg"), astronomy.to(ra_j2000, "deg"), places=5)
+        self.assertAlmostEqual(astronomy.to(dec_icrs, "deg"), astronomy.to(dec_j2000, "deg"), places=5)
 
     def test_parse_coordinate_epoch_invalid(self):
         with self.assertRaisesRegex(ValueError, "Invalid coordinate epoch"):
             astronomy.parse_coordinate_epoch("not-an-epoch")
 
     def test_galactic_to_icrs_roundtrip(self):
-        ra_j2000, dec_j2000 = 187.70593, 12.39112
-        galactic = coords.SkyCoord(
-            ra=ra_j2000 * u.Unit("deg"),
-            dec=dec_j2000 * u.Unit("deg"),
-            frame="icrs",
-        ).galactic
+        ra_j2000 = 187.70593 * u.Unit("deg")
+        dec_j2000 = 12.39112 * u.Unit("deg")
+        galactic = coords.SkyCoord(ra=ra_j2000, dec=dec_j2000, frame="icrs").galactic
 
-        ra_icrs, dec_icrs = astronomy.galactic_to_icrs(float(galactic.l.deg), float(galactic.b.deg))
-        self.assertAlmostEqual(ra_icrs, ra_j2000, places=5)
-        self.assertAlmostEqual(dec_icrs, dec_j2000, places=5)
+        ra_icrs, dec_icrs = astronomy.galactic_to_icrs(galactic.l, galactic.b)
+        self.assertAlmostEqual(astronomy.to(ra_icrs, "deg"), astronomy.to(ra_j2000, "deg"), places=5)
+        self.assertAlmostEqual(astronomy.to(dec_icrs, "deg"), astronomy.to(dec_j2000, "deg"), places=5)

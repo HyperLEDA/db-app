@@ -3,6 +3,7 @@ import unittest
 
 import structlog
 from astropy import table
+from astropy import units as u
 
 from app.data import model, repositories
 from app.data.repositories import layer2
@@ -75,8 +76,8 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS],
-            layer2.ICRSCoordinatesInRadiusFilter(10),
-            layer2.ICRSSearchParams(12, 12),
+            layer2.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
+            layer2.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
             10,
             0,
         )
@@ -147,12 +148,12 @@ class Layer2RepositoryTest(unittest.TestCase):
             layer2.AndFilter(
                 [
                     layer2.DesignationEqualsFilter("test2"),
-                    layer2.ICRSCoordinatesInRadiusFilter(10),
+                    layer2.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
                 ]
             ),
             layer2.CombinedSearchParams(
                 [
-                    layer2.ICRSSearchParams(12, 12),
+                    layer2.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
                 ]
             ),
             10,
@@ -185,8 +186,8 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS],
-            layer2.ICRSCoordinatesInRadiusFilter(10),
-            layer2.ICRSSearchParams(12, 12),
+            layer2.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
+            layer2.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
             2,
             1,
         )
@@ -207,10 +208,10 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs_batch(
             [model.RawCatalog.ICRS],
-            {"icrs": layer2.ICRSCoordinatesInRadiusFilter(10)},
+            {"icrs": layer2.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg"))},
             {
-                "obj1": layer2.ICRSSearchParams(10, 10),
-                "obj2": layer2.ICRSSearchParams(13, 13),
+                "obj1": layer2.ICRSSearchParams(10 * u.Unit("deg"), 10 * u.Unit("deg")),
+                "obj2": layer2.ICRSSearchParams(13 * u.Unit("deg"), 13 * u.Unit("deg")),
             },
             20,
             0,

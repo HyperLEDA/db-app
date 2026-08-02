@@ -1,7 +1,7 @@
 import abc
 from typing import Any, final
 
-from astropy.units import quantity
+from astropy import units as u
 
 from app.lib import astronomy
 
@@ -123,11 +123,8 @@ class ICRSCoordinatesInRadiusFilter(Filter):
     def name(cls) -> str:
         return "coordinates_in_radius"
 
-    def __init__(self, radius: float | quantity.Quantity):
-        if isinstance(radius, quantity.Quantity):
-            radius = astronomy.to(radius, "deg")
-
-        self._radius = radius
+    def __init__(self, radius: u.Quantity):
+        self._radius = astronomy.to(radius, "deg")
 
     def get_query(self):
         return """
