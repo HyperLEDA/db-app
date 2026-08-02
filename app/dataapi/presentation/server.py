@@ -67,6 +67,7 @@ Several notes:
 supergalactic (sgl/sgb) coordinates with radius. Only one coordinate system may be specified.
 For equatorial coordinates, eq_epoch sets the equinox (default J2000); non-J2000 coordinates
 are precessed to ICRS. Galactic and supergalactic coordinates are converted to ICRS before searching.
+When coordinates are specified, results are sorted by increasing distance to the search center.
 - Use the catalogs query parameter to limit which catalogs are returned (e.g. catalogs=icrs&catalogs=designation).
 - The answer is paginated to improve performance.""",
             ),

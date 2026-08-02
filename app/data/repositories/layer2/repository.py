@@ -123,6 +123,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
+        ordering: repofilters.Ordering | None = None,
     ) -> tuple[str, list[Any]]:
         if not search_params:
             # If no search parameters, return empty result
@@ -139,6 +140,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             FROM search_params sp
             CROSS JOIN {joined_tables}
             WHERE {conditions}
+            {order_by}
             LIMIT %s OFFSET %s
         """
 
@@ -184,6 +186,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             columns=",".join(columns),
             joined_tables=joined_tables,
             conditions=" OR ".join(condition_statements),
+            order_by=f"ORDER BY {ordering.get_query()}" if ordering is not None else "",
         ), params
 
     def query_catalogs_batch(
@@ -193,8 +196,11 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
+        ordering: repofilters.Ordering | None = None,
     ) -> dict[str, list[model.Layer2CatalogObject]]:
-        query, params = self._construct_batch_query(catalogs, search_types, search_params, limit, offset)
+        query, params = self._construct_batch_query(
+            catalogs, search_types, search_params, limit, offset, ordering=ordering
+        )
 
         records = self._storage.query(query, params=params)
 
@@ -543,9 +549,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         search_params: params.SearchParams,
         limit: int,
         offset: int,
+        ordering: repofilters.Ordering | None = None,
     ) -> list[model.Layer2CatalogObject]:
         res = self.query_catalogs_batch(
-            catalogs, {search_params.name(): filters}, {"obj": search_params}, limit, offset
+            catalogs,
+            {search_params.name(): filters},
+            {"obj": search_params},
+            limit,
+            offset,
+            ordering=ordering,
         )
 
         if "obj" not in res:
