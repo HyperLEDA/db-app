@@ -2,6 +2,8 @@ server:
   host: 0.0.0.0
   port: 8080
   path_prefix: /admin/api
+  allowed_origins:
+    - "*"
 
 auth_enabled: false
 
@@ -13,12 +15,9 @@ storage:
   user: hyperleda
   password: password
 
-queue:
-  endpoint: localhost
-  # endpoint: host.docker.internal # if inside a docker container
-  port: 6379
-  queue_name: default
-
 clients:
-  enabled: true
   ads_token: token
+
+tracing:
+  endpoint: localhost:4317
+  enabled: true

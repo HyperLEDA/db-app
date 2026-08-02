@@ -9,3 +9,4 @@ class ServerConfig(config.ConfigSettings):
     port: int
     host: str
     path_prefix: str = "/api"
+    allowed_origins: list[str] = []

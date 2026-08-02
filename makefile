@@ -1,31 +1,133 @@
-PYTHON := python
-
-.PHONY: docs
-
-all: test
-
-## General targets
-
 install:
 	uv sync
 
 install-dev:
 	uv sync --all-extras
 
+MIGRATIONS_DIR = postgres/migrations
+
+check-migrations:
+	@invalid=$$( \
+		ls $(MIGRATIONS_DIR) \
+		| grep -vE '^V[0-9]{3}__[A-Za-z0-9_]+\.sql$$' \
+		|| true \
+	); \
+	dups=$$( \
+		ls $(MIGRATIONS_DIR) \
+		| sed -n 's/^V\([0-9]\{3\}\)__.*/\1/p' \
+		| sort \
+		| uniq -d \
+	); \
+	if [ -n "$$invalid" ]; then \
+		echo "Invalid migration names:"; \
+		echo "$$invalid"; \
+		exit 1; \
+	fi; \
+	if [ -n "$$dups" ]; then \
+		echo "Duplicate migration versions:"; \
+		echo "$$dups"; \
+		exit 1; \
+	fi; \
+
+check-schema:
+	docker compose stop hyperledadb migrate wait-for-migrate
+	docker compose rm -f -v hyperledadb migrate wait-for-migrate
+	docker compose up -d hyperledadb migrate wait-for-migrate
+	npx --yes schemalint@2.3.2
+
+check:
+	@output=$$(copier check-update --answers-file .template.yaml 2>&1) || true; \
+	if echo "$$output" | grep -q "up-to-date"; then \
+		true; \
+	elif echo "$$output" | grep -q "New template version"; then \
+		echo "Template update available, run make update-template"; \
+	else \
+		echo "$$output"; \
+	fi
+
+	@find . \
+		-name "*.py" \
+		-not -path "./.venv/*" \
+		-not -path "./.git/*" \
+		-exec uv run python -m py_compile {} +
+	@echo "Compilation ok."
+
+	@uv run ruff format \
+		--quiet \
+		--config=pyproject.toml \
+		--check
+	@echo "Formatting ok."
+
+	@uv run ruff check \
+		--quiet \
+		--config=pyproject.toml
+	@echo "Linter ok."
+
+	@output=$$(uv run lint-imports 2>&1); exit_code=$$?; \
+	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
+	exit $$exit_code
+	@echo "Import contracts ok."
+
+	@output=$$(uv run basedpyright 2>&1); exit_code=$$?; \
+	if [ $$exit_code -ne 0 ]; then echo "$$output"; fi; \
+	exit $$exit_code
+	@echo "Typechecking ok."
+
+	@$(MAKE) check-migrations
+	@echo "Migrations ok."
+
+	@uv run pytest \
+		--quiet \
+		--config-file=pyproject.toml \
+		tests/env_test.py tests/*/unit
+	@echo "Testing ok."
+
+fix:
+	@uv run ruff format \
+		--quiet \
+		--config=pyproject.toml
+
+	@uv run ruff check \
+		--quiet \
+		--config=pyproject.toml \
+		--fix
+
+check-deadcode:
+	@uvx vulture
+
+wheel:
+	uv build --wheel
+
+# only for mac as this is faster
+build:
+	docker build . \
+		--platform linux/arm64
+
+new-branch:
+	@read -p "Branch name: " branch_name && \
+	branch_name=$${branch_name// /-} && \
+	base=$$(git remote show origin | sed -n '/HEAD branch/s/.*: //p') && \
+	echo "Selecting $$base branch as default" && \
+	git fetch origin $$base && \
+	git checkout -b $$branch_name origin/$$base && \
+	git push -u origin $$branch_name
+
+update-template:
+	copier update \
+		--skip-answered \
+		--conflict inline \
+		--answers-file .template.yaml
+
+## General targets
+
 adminapi:
-	uv run main.py adminapi -c configs/dev/adminapi.yaml
+	uv run adminapi -c configs/dev/adminapi.yaml
 
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
 dataapi:
-	uv run main.py dataapi -c configs/dev/dataapi.yaml
-
-generate-spec:
-	uv run main.py generate-spec -o res.json
-
-default-rules:
-	PGPASSWORD=password psql -h localhost -p 6432 --dbname hyperleda -U hyperleda -c "\copy layer0.homogenization_rules (catalog,parameter,key,filters,priority) FROM 'tests/assets/default_rules.csv' WITH ( FORMAT csv, HEADER true, QUOTE '\"', DELIMITER ',');"
+	uv run dataapi -c configs/dev/dataapi.yaml
 
 start-db:
 	docker-compose up -d
@@ -37,72 +139,59 @@ restart-db:
 	make stop-db
 	make start-db
 
+start-prefect:
+	uv run prefect server start
+
+start-tasks:
+	uv run tasks
+
 docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs serve -a localhost:8080
 
 deploy-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs gh-deploy
 
 build-docs:
-	uv run main.py generate-spec -o docs/gen/swagger.json
 	uvx \
 		--with 'mkdocs-material>=9.5.50' \
 		--with 'mkdocs-section-index>=0.3.9' \
-		--with 'neoteroi-mkdocs>=1.1.0' \
 		mkdocs build
 
 cleanup:
-	rm -rf uv.lock .venv \
-		.pytest_cache .mypy_cache .vizier_cache .ruff_cache \
+	rm -rf .venv .pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
-		.coverage htmlcov site \
-		docs/gen
+		.coverage htmlcov site
 
 ## Testing
 
-check:
-	uvx ruff format --config=pyproject.toml --check
-	uvx ruff check --config=pyproject.toml
-
 # pytest is used to run unittest test cases
-test: check
-	uv run pytest --config-file=pyproject.toml tests/env_test.py
-	uv run pytest --config-file=pyproject.toml tests/unit
-
 test-all: check
-	uv run pytest --config-file=pyproject.toml tests
+	@uv run pytest \
+		--config-file=pyproject.toml \
+		--quiet \
+		tests \
+		--ignore=tests/bench
+
+test-bench:
+	@uv run pytest \
+		--config-file=pyproject.toml \
+		-s \
+		tests/bench
 
 test-regression:
 	uv run tests.py regression-tests
-
-mypy:
-	uvx mypy app --config-file pyproject.toml
-	uvx mypy tests --config-file pyproject.toml
 
 coverage:
 	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
 	uvx coverage html
 
-## Fix code
-
-fix:
-	uvx ruff format --config=pyproject.toml
-	uvx ruff check --config=pyproject.toml --fix
-
-fix-unsafe:
-	uvx ruff check --config=pyproject.toml --unsafe-fixes --fix
-
-## Deploy
+## Release
 
 GIT_VERSION = `git rev-parse --short master`
 
@@ -113,9 +202,3 @@ image-build:
 image-push:
 	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
 	docker push ghcr.io/hyperleda/hyperleda:latest
-
-deploy-test:
-	uv run infra/deploy.py infra/settings/test.yaml
-
-deploy-prod:
-	uv run infra/deploy.py infra/settings/prod.yaml

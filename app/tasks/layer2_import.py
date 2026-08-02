@@ -1,18 +1,28 @@
 import datetime
+from collections.abc import Sequence
 from typing import final
 
 import structlog
 
-from app.data import model, repositories
-from app.lib import containers
+from app.data import enums as data_enums
+from app.data import repositories
 from app.lib.storage import postgres
-from app.tasks import interface
+from app.tasks import (
+    interface,
+    layer2_import_designation,
+    layer2_import_icrs,
+    layer2_import_nature,
+    layer2_import_redshift,
+)
 
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-]
+CATALOG_TASKS = {
+    "designation": layer2_import_designation.Layer2ImportDesignationTask,
+    "icrs": layer2_import_icrs.Layer2ImportICRSTask,
+    "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
+    "nature": layer2_import_nature.Layer2ImportNatureTask,
+}
+
+DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature")
 
 
 @final
@@ -20,65 +30,54 @@ class Layer2ImportTask(interface.Task):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
-        batch_size: int = 1500,
+        batch_size: int = 100000,
+        dry_run: bool = False,
+        silent: bool = False,
+        since: datetime.datetime | str | None = None,
+        cleanup_orphans: bool = True,
+        catalogs: Sequence[str] | None = None,
     ) -> None:
         self.log = logger
         self.batch_size = batch_size
+        self.dry_run = dry_run
+        self.silent = silent
+        self.since = interface.parse_since(since)
+        self.cleanup_orphans = cleanup_orphans
+        if catalogs:
+            unknown = [c for c in catalogs if c not in CATALOG_TASKS]
+            if unknown:
+                raise ValueError(f"Unknown catalogs: {', '.join(unknown)}")
+            self.catalogs = list(catalogs)
+        else:
+            self.catalogs = list(DEFAULT_CATALOGS)
 
     @classmethod
     def name(cls) -> str:
         return "layer2-import"
 
-    def prepare(self, config: interface.Config):
-        self.pg_storage = postgres.PgStorage(config.storage, self.log)
+    def prepare(self, config: interface.Config) -> None:
+        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
-
         self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
-    def run(self):
-        last_update_dt = self.layer2_repository.get_last_update_time()
-
-        self.log.info("Starting Layer 2 import", last_update=last_update_dt.ctime())
-
-        for catalog in catalogs:
-            for offset, new_records in containers.read_batches(
-                self.layer1_repository.get_new_observations,
-                lambda data: len(data) == 0,
-                0,
-                lambda d, _: d[-1].pgc,
-                last_update_dt,
+    def run(self) -> None:
+        for catalog in self.catalogs:
+            task_cls = CATALOG_TASKS[catalog]
+            task = task_cls(
+                logger=self.log,
                 batch_size=self.batch_size,
-                catalog=catalog,
-            ):
-                self.log.info(
-                    "Processing batch",
-                    catalog=catalog.value,
-                    last_pgc=offset,
-                    batch_size=len(new_records),
-                )
+                dry_run=self.dry_run,
+                silent=self.silent,
+                since=self.since,
+                cleanup_orphans=self.cleanup_orphans,
+            )
+            task.pg_storage = self.pg_storage
+            task.layer1_repository = self.layer1_repository
+            task.layer2_repository = self.layer2_repository
+            task.run()
 
-                records_by_pgc = containers.group_by(new_records, key_func=lambda record: record.pgc)
+        self.log.info("Layer 2 import completed", catalogs=self.catalogs)
 
-                aggregated_objects: list[model.Layer2CatalogObject] = []
-
-                for pgc, records in records_by_pgc.items():
-                    catalog_objects = []
-                    for record_with_pgc in records:
-                        for catalog_object in record_with_pgc.record.data:
-                            if catalog_object.catalog() == catalog:
-                                catalog_objects.append(catalog_object)
-
-                    if catalog_objects:
-                        aggregated_object = model.get_catalog_object_type(catalog).aggregate(catalog_objects)
-                        aggregated_objects.append(model.Layer2CatalogObject(pgc, aggregated_object))
-
-                self.layer2_repository.save_data(aggregated_objects)
-
-            self.log.info("Updated catalog", catalog=catalog.value)
-
-        self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC))
-        self.log.info("Layer 2 import completed", last_update=last_update_dt.ctime())
-
-    def cleanup(self):
+    def cleanup(self) -> None:
         self.pg_storage.disconnect()

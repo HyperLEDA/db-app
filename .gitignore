@@ -102,6 +102,7 @@ celerybeat.pid
 # Environments
 .env.*
 .env
+!.env.example
 .venv
 env/
 venv/
@@ -144,5 +145,4 @@ cython_debug/
 
 # Other
 uml
-uv.lock
 .vizier_cache/

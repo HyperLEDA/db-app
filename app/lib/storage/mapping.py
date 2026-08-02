@@ -1,5 +1,3 @@
-import numpy as np
-
 TYPE_TEXT = "text"
 TYPE_INTEGER = "integer"
 TYPE_BIGINT = "bigint"
@@ -33,23 +31,3 @@ type_map = {
     # JSON Schema types
     "number": TYPE_DOUBLE_PRECISION,
 }
-
-
-def get_type(t: str) -> str:
-    if t in type_map:
-        return type_map[t]
-
-    return TYPE_TEXT
-
-
-def get_type_from_dtype(t: np.dtype) -> str:
-    if t.kind in {"U", "S", "O"}:
-        return TYPE_TEXT
-
-    if t in [np.float16, np.float32, np.float64]:
-        return TYPE_DOUBLE_PRECISION
-
-    if t in [np.int16, np.int32, np.int64]:
-        return TYPE_INTEGER
-
-    raise ValueError(f"unknown type: {t}")

@@ -7,6 +7,10 @@ import structlog
 from starlette import types
 from starlette.middleware import base as middlewares
 
+from app.lib.web.middlewares.auth import identity_from_request
+
+_SENSITIVE_HEADERS = frozenset({"authorization", "cookie", "x-api-key"})
+
 
 class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     def __init__(
@@ -26,7 +30,9 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
         if self.log_bodies:
             data["body"] = await r.body()
 
-        data["headers"] = dict(r.headers)
+        data["headers"] = {
+            key: "<redacted>" if key.lower() in _SENSITIVE_HEADERS else value for key, value in r.headers.items()
+        }
         data["query"] = dict(r.query_params)
 
         data["url"] = str(r.base_url)
@@ -42,10 +48,18 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
 
         return data
 
+    def _username(self, request: fastapi.Request) -> str | None:
+        auth_ctx = identity_from_request(request)
+        return auth_ctx.user.login if auth_ctx is not None else None
+
     async def dispatch(
         self, request: fastapi.Request, call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]]
     ) -> fastapi.Response:
-        self.logger.info("HTTP request", **(await self._log_request(request)))
+        username = self._username(request)
+        request_log = await self._log_request(request)
+        if username is not None:
+            request_log["username"] = username
+        self.logger.info("HTTP request", **request_log)
 
         start = time.perf_counter()
         response = await call_next(request)
@@ -53,6 +67,9 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
 
         elapsed_ms = (end - start) * 1000
 
-        self.logger.info("HTTP response", elapsed_ms=elapsed_ms, **self._log_response(response))
+        response_log = self._log_response(response)
+        if username is not None:
+            response_log["username"] = username
+        self.logger.info("HTTP response", elapsed_ms=elapsed_ms, **response_log)
 
         return response

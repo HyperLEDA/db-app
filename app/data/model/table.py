@@ -10,8 +10,17 @@ from app.lib.storage import enums
 
 @dataclass
 class Layer0RawData:
-    table_id: int
+    table_name: str
     data: pandas.DataFrame
+
+
+@dataclass
+class TableRecord:
+    id: str
+    original_data: dict[str, Any]
+    pgc: int | None
+    triage_status: str
+    crossmatch_candidates: list[int]
 
 
 @dataclass
@@ -36,37 +45,32 @@ class Layer0TableMeta:
 
 
 @dataclass
+class Layer0TableListItem:
+    table_name: str
+    description: str
+    num_fields: int
+    modification_dt: datetime.datetime
+    bibcode: str
+
+
+@dataclass
 class Layer0CreationResponse:
     table_id: int
     created: bool
 
 
 @dataclass
-class TableStatistics:
-    statuses: dict[enums.RecordCrossmatchStatus, int]
-    last_modified_dt: datetime.datetime
-    total_rows: int
-    total_original_rows: int
+class CatalogProgress:
+    structured: int
+    in_layer2: int
+    layer2_pending: int
 
 
 @dataclass
-class HomogenizationRule:
-    catalog: str
-    parameter: str
-    filters: dict[str, str]
-    key: str = ""
-    priority: int | None = None
-
-
-@dataclass
-class HomogenizationParams:
-    catalog: str
-    params: dict[str, Any]
-    key: str = ""
-
-
-@dataclass
-class Modifier:
-    column_name: str
-    modifier_name: str
-    params: dict[str, Any]
+class TableProgress:
+    total_records: int
+    unprocessed: int
+    pending_triage: int
+    resolved_unsubmitted: int
+    submitted: int
+    catalogs: dict[str, CatalogProgress]

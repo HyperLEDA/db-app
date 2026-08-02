@@ -1,42 +1,19 @@
-import json
+from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, redshift
 
-from app.data.model import designation, icrs, interface, redshift
-
-
-class CatalogObjectEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if not isinstance(obj, interface.CatalogObject):
-            return json.JSONEncoder.default(self, obj)
-
-        data = obj.layer0_data()
-        data["catalog"] = obj.catalog().value
-
-        return data
-
-
-class Layer0CatalogObjectDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        super().__init__(object_hook=self.object_hook, **kwargs)
-
-    def object_hook(self, obj):
-        if "catalog" not in obj:
-            return obj
-
-        catalog = interface.RawCatalog(obj.pop("catalog"))
-
-        return new_catalog_object(catalog, **obj)
+_CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]] = {
+    interface.RawCatalog.DESIGNATION: designation.DesignationCatalogObject,
+    interface.RawCatalog.ICRS: icrs.ICRSCatalogObject,
+    interface.RawCatalog.REDSHIFT: redshift.RedshiftCatalogObject,
+    interface.RawCatalog.NATURE: nature.NatureCatalogObject,
+    interface.RawCatalog.PHOTOMETRY__TOTAL: photometry.PhotometryTotalCatalogObject,
+    interface.RawCatalog.PHOTOMETRY__ISOPHOTAL: photometry.PhotometryIsophotalCatalogObject,
+    interface.RawCatalog.GEOMETRY: geometry.GeometryCatalogObject,
+    interface.RawCatalog.NOTE: note.NoteCatalogObject,
+}
 
 
 def get_catalog_object_type(catalog: interface.RawCatalog) -> type[interface.CatalogObject]:
-    if catalog == interface.RawCatalog.DESIGNATION:
-        return designation.DesignationCatalogObject
-    if catalog == interface.RawCatalog.ICRS:
-        return icrs.ICRSCatalogObject
-    if catalog == interface.RawCatalog.REDSHIFT:
-        return redshift.RedshiftCatalogObject
-
-    raise ValueError(f"Unknown catalog: {catalog}")
-
-
-def new_catalog_object(catalog: interface.RawCatalog, **kwargs) -> interface.CatalogObject:
-    return get_catalog_object_type(catalog)(**kwargs)
+    try:
+        return _CATALOG_OBJECT_TYPES[catalog]
+    except KeyError as e:
+        raise ValueError(f"Unknown catalog: {catalog}") from e

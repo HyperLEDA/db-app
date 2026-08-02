@@ -1,12 +1,25 @@
-from typing import Any, final
+from dataclasses import dataclass
+from typing import final
 
 import structlog
-from psycopg.types import json
 
-from app import entities
 from app.data import model, template
-from app.lib.storage import enums, postgres
-from app.lib.web.errors import DatabaseError
+from app.lib import concurrency
+from app.lib.storage import postgres
+
+
+@dataclass
+class ColumnSchemaInfo:
+    name: str
+    description: str | None
+    unit: str | None
+    ucd: str | None
+
+
+@dataclass
+class TableSchemaInfo:
+    table_description: str
+    columns: list[ColumnSchemaInfo]
 
 
 @final
@@ -26,9 +39,6 @@ class CommonRepository(postgres.TransactionalPGRepository):
             params=[code, year, authors, title],
         )
 
-        if result is None:
-            raise DatabaseError("no result returned from query")
-
         return int(result["id"])
 
     def get_source_entry(self, source_name: str) -> model.Bibliography:
@@ -41,31 +51,60 @@ class CommonRepository(postgres.TransactionalPGRepository):
 
         return model.Bibliography(**row)
 
-    def insert_task(self, task: entities.Task) -> int:
-        row = self._storage.query_one(
-            "INSERT INTO common.tasks (task_name, payload) VALUES (%s, %s) RETURNING id",
-            params=[task.task_name, json.Jsonb(task.payload)],
+    def register_pgcs(self, pgcs: list[int]):
+        self._storage.exec(
+            f"INSERT INTO common.pgc (id) VALUES {','.join(['(%s)'] * len(pgcs))} ON CONFLICT (id) DO NOTHING",
+            params=pgcs,
         )
 
-        row_id = row.get("id")
-        if row_id is None:
-            raise DatabaseError("found row but it has no 'id' field")
+    def get_existing_pgcs(self, pgcs: list[int]) -> set[int]:
+        if not pgcs:
+            return set()
 
-        return int(row_id)
-
-    def get_task_info(self, task_id: int) -> entities.Task:
-        row = self._storage.query_one(template.GET_TASK_INFO, params=[task_id])
-
-        return entities.Task(**row)
-
-    def set_task_status(self, task_id: int, task_status: enums.TaskStatus) -> None:
-        self._storage.exec(
-            "UPDATE common.tasks SET status = %s WHERE id = %s",
-            params=[task_status, task_id],
+        rows = self._storage.query(
+            "SELECT id FROM common.pgc WHERE id = ANY(%s)",
+            params=[pgcs],
         )
+        return {int(row["id"]) for row in rows}
 
-    def fail_task(self, task_id: int, message: dict[str, Any]) -> None:
-        self._storage.exec(
-            "UPDATE common.tasks SET status = %s, message = %s WHERE id = %s",
-            params=[enums.TaskStatus.FAILED, json.Jsonb(message), task_id],
+    def get_schema(self, schema_name: str, table_name: str) -> TableSchemaInfo:
+        errgr = concurrency.ErrorGroup()
+        table_task = errgr.run(
+            self._storage.query_one,
+            "SELECT param FROM meta.table_info WHERE schema_name=%s AND table_name=%s",
+            params=[schema_name, table_name],
+        )
+        column_task = errgr.run(
+            self._storage.query,
+            "SELECT column_name, param FROM meta.column_info WHERE schema_name=%s AND table_name=%s",
+            params=[schema_name, table_name],
+        )
+        errgr.wait()
+
+        table_row = table_task.result()
+        table_description = ""
+        if table_row.get("param") is not None:
+            param = table_row["param"]
+            if isinstance(param, dict):
+                table_description = param.get("description") or ""
+
+        column_rows = column_task.result()
+        columns = []
+        for row in column_rows:
+            param = row.get("param") or {}
+            if not isinstance(param, dict):
+                param = {}
+            columns.append(
+                ColumnSchemaInfo(
+                    name=row["column_name"],
+                    description=param.get("description"),
+                    unit=param.get("unit"),
+                    ucd=param.get("ucd"),
+                )
+            )
+        return TableSchemaInfo(table_description=table_description, columns=columns)
+
+    def get_nature_object_types(self) -> list[dict]:
+        return self._storage.query(
+            "SELECT type_name, description FROM nature.object_type",
         )

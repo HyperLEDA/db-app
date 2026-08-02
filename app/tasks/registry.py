@@ -2,20 +2,26 @@ from typing import Any
 
 import structlog
 
-from app.tasks import crossmatch, interface, layer0_marking, layer2_import, submit_crossmatch
+from app.tasks import (
+    interface,
+    layer2_import,
+    layer2_import_designation,
+    layer2_import_icrs,
+    layer2_import_nature,
+    layer2_import_redshift,
+    layer2_orphan_cleanup,
+)
 
 tasks: list[type[interface.Task]] = [
-    crossmatch.CrossmatchTask,
-    layer0_marking.Layer0MarkingTask,
-    submit_crossmatch.SubmitCrossmatchTask,
     layer2_import.Layer2ImportTask,
+    layer2_import_designation.Layer2ImportDesignationTask,
+    layer2_import_icrs.Layer2ImportICRSTask,
+    layer2_import_nature.Layer2ImportNatureTask,
+    layer2_import_redshift.Layer2ImportRedshiftTask,
+    layer2_orphan_cleanup.Layer2OrphanCleanupTask,
 ]
 
 task_by_name = {task.name(): task for task in tasks}
-
-
-def list_tasks() -> list[str]:
-    return [task.name() for task in tasks]
 
 
 def get_task(task_name: str, logger: structlog.stdlib.BoundLogger, params: dict[str, Any]) -> interface.Task:
