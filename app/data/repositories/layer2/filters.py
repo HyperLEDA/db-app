@@ -6,7 +6,7 @@ from astropy import units as u
 
 from app.lib import astronomy
 
-# Because postgis is a geography extension we have to do some trickery to convert degrees on the celestial sphere 
+# Because postgis is a geography extension we have to do some trickery to convert degrees on the celestial sphere
 # efficiently to Earth's coordinates. This is just an Earth's radius.
 _SPHERE_RADIUS_M = 6371008.7714
 

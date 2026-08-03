@@ -1,3 +1,4 @@
+import logging
 import os
 import statistics
 import time
@@ -10,6 +11,7 @@ from app.data import repositories
 from app.dataapi import command, domain, presentation
 from app.lib import auth
 from app.lib.storage import postgres
+from tests import lib
 
 N_OBJECTS = int(os.environ.get("BENCH_QUERY_N_OBJECTS", "200000"))
 
@@ -121,6 +123,20 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
     )
 
     return testclient.TestClient(server.app), f"{config.server.path_prefix}/v1/query/simple"
+
+
+def setup_query_simple_bench() -> tuple[lib.TestPostgresStorage, testclient.TestClient, str]:
+    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.WARNING))
+    pg_storage = lib.TestPostgresStorage.get()
+    storage = pg_storage.get_storage()
+
+    print(f"\nSeeding {N_OBJECTS} layer2 objects...")
+    seed_started = time.perf_counter()
+    seed_layer2(storage, N_OBJECTS)
+    print(f"Seed completed in {time.perf_counter() - seed_started:.2f}s")
+
+    client, url = build_client(storage)
+    return pg_storage, client, url
 
 
 def measure(request: Callable[[], int], label: str) -> float:
