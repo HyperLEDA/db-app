@@ -220,6 +220,128 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         self.assertEqual(len(actual), 2)
 
+    def _query_icrs_in_radius(
+        self,
+        ra: float,
+        dec: float,
+        radius: float,
+        catalogs: list[model.RawCatalog] | None = None,
+        ordering: layer2.Ordering | None = None,
+    ) -> list[model.Layer2CatalogObject]:
+        return self.layer2_repo.query_catalogs(
+            catalogs or [model.RawCatalog.ICRS],
+            layer2.ICRSCoordinatesInRadiusFilter(radius * u.Unit("deg")),
+            layer2.ICRSSearchParams(ra * u.Unit("deg"), dec * u.Unit("deg")),
+            10,
+            0,
+            ordering=ordering,
+        )
+
+    def test_cone_search_wraps_around_ra_zero(self):
+        objects: list[model.Layer2CatalogObject] = [
+            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=359.99, dec=0, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=0.01, dec=0, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=180, dec=0, e_ra=0.1, e_dec=0.1)]),
+        ]
+
+        self.common_repo.register_pgcs([1, 2, 3])
+        self._save_layer2_data(objects)
+
+        actual = self._query_icrs_in_radius(ra=0.0, dec=0.0, radius=0.05)
+
+        self.assertEqual({obj.pgc for obj in actual}, {1, 2})
+
+    def test_cone_search_accounts_for_declination_convergence(self):
+        # At dec=+80 a 2 degree offset in RA is only ~0.3 degrees of true angular separation,
+        # so pgc 2 is inside a 0.5 degree cone even though its RA differs by far more than that.
+        objects: list[model.Layer2CatalogObject] = [
+            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=100, dec=80, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=102, dec=80, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=100, dec=79, e_ra=0.1, e_dec=0.1)]),
+        ]
+
+        self.common_repo.register_pgcs([1, 2, 3])
+        self._save_layer2_data(objects)
+
+        actual = self._query_icrs_in_radius(ra=100.0, dec=80.0, radius=0.5)
+
+        self.assertEqual({obj.pgc for obj in actual}, {1, 2})
+
+    def test_distance_ordering_sorts_by_true_angular_separation(self):
+        # pgc 1 is 2.0 degrees away and pgc 2 is 2.5 degrees away. Swapping ra and dec in the
+        # ordering expression would reverse this, so the order pins down the argument order.
+        objects: list[model.Layer2CatalogObject] = [
+            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=14, dec=60, e_ra=0.1, e_dec=0.1)]),
+            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=10, dec=62.5, e_ra=0.1, e_dec=0.1)]),
+        ]
+
+        self.common_repo.register_pgcs([1, 2])
+        self._save_layer2_data(objects)
+
+        actual = self._query_icrs_in_radius(
+            ra=10.0,
+            dec=60.0,
+            radius=5.0,
+            ordering=layer2.ICRSDistanceOrdering(10 * u.Unit("deg"), 60 * u.Unit("deg")),
+        )
+
+        self.assertEqual([obj.pgc for obj in actual], [1, 2])
+
+    def test_coordinate_filter_when_icrs_catalog_not_requested(self):
+        objects = [
+            model.Layer2CatalogObject(
+                1,
+                [
+                    model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
+                    model.RedshiftCatalogObject(cz=100, e_cz=1),
+                ],
+            ),
+        ]
+
+        self.common_repo.register_pgcs([1])
+        self._save_layer2_data(objects)
+
+        actual = self._query_icrs_in_radius(
+            ra=10.0,
+            dec=10.0,
+            radius=1.0,
+            catalogs=[model.RawCatalog.REDSHIFT],
+        )
+
+        lib.assert_layer2_catalog_objects_equal(
+            self,
+            actual,
+            [model.Layer2CatalogObject(1, [model.RedshiftCatalogObject(cz=100, e_cz=1)])],
+        )
+
+    def test_designation_filter_when_designation_catalog_not_requested(self):
+        objects = [
+            model.Layer2CatalogObject(
+                1,
+                [
+                    model.DesignationCatalogObject(design="test"),
+                    model.RedshiftCatalogObject(cz=100, e_cz=1),
+                ],
+            ),
+        ]
+
+        self.common_repo.register_pgcs([1])
+        self._save_layer2_data(objects)
+
+        actual = self.layer2_repo.query_catalogs(
+            [model.RawCatalog.REDSHIFT],
+            layer2.DesignationEqualsFilter("test"),
+            layer2.CombinedSearchParams([]),
+            10,
+            0,
+        )
+
+        lib.assert_layer2_catalog_objects_equal(
+            self,
+            actual,
+            [model.Layer2CatalogObject(1, [model.RedshiftCatalogObject(cz=100, e_cz=1)])],
+        )
+
     def test_get_last_update_time_returns_stored_dt(self) -> None:
         dt_icrs = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
         dt_nature = self.layer2_repo.get_last_update_time(model.RawCatalog.NATURE)

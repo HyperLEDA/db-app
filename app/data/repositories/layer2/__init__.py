@@ -9,7 +9,6 @@ from app.data.repositories.layer2.filters import (
     Ordering,
     OrFilter,
     PGCOneOfFilter,
-    RedshiftCloseFilter,
 )
 from app.data.repositories.layer2.params import (
     CombinedSearchParams,
@@ -30,7 +29,6 @@ __all__ = [
     "ICRSCoordinatesInRadiusFilter",
     "ICRSDistanceOrdering",
     "Ordering",
-    "RedshiftCloseFilter",
     "DesignationEqualsFilter",
     "DesignationCloseFilter",
     "PGCOneOfFilter",

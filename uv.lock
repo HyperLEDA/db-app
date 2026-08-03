@@ -101,6 +101,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "basedpyright" },
+    { name = "httpx" },
     { name = "httpx2" },
     { name = "import-linter" },
     { name = "pandas-stubs" },
@@ -142,6 +143,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = "~=1.39.0" },
+    { name = "httpx", specifier = "~=0.28.0" },
     { name = "httpx2", specifier = "~=2.9.0" },
     { name = "import-linter", specifier = "~=2.13.0" },
     { name = "pandas-stubs", specifier = "~=3.0.0" },

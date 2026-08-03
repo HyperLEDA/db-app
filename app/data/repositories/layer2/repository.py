@@ -169,9 +169,20 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 f'THEN true ELSE false END AS "{catalog.value}|_present"'
             )
 
-        joined_tables = " FULL JOIN ".join(
-            [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
-        )
+        # This is to avoid using FULL JOINs as this is very slow for cases
+        # where we only want to select from one table, e.g. only coordinate cone search
+        driving_tables = {search_filter.driving_table() for search_filter in search_types.values()}
+        driving_table = driving_tables.pop() if len(driving_tables) == 1 else None
+
+        if driving_table is not None:
+            other_tables = [table_name for table_name in table_names if table_name != driving_table]
+            joined_tables = " LEFT JOIN ".join(
+                [driving_table] + [f"{table_name} USING (pgc)" for table_name in other_tables]
+            )
+        else:
+            joined_tables = " FULL JOIN ".join(
+                [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
+            )
 
         condition_statements = []
 

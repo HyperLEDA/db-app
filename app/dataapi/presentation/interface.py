@@ -260,14 +260,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=None,
         description="Name of the object",
     )
-    cz: float | None = pydantic.Field(
-        default=None,
-        description="Redshift value",
-    )
-    cz_err_percent: float | None = pydantic.Field(
-        default=None,
-        description="Acceptable deviation of the redshift value in percent",
-    )
     page_size: int = pydantic.Field(
         default=25,
         description="Number of objects per page",
@@ -328,8 +320,6 @@ class QuerySimpleRequest(pydantic.BaseModel):
                 self.sgb,
                 self.radius,
                 self.name,
-                self.cz,
-                self.cz_err_percent,
             ]
             if any(f is not None for f in filters):
                 raise ValueError("When pgcs is specified, no other filters are allowed")
