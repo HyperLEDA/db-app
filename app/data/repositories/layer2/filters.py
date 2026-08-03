@@ -1,9 +1,14 @@
 import abc
+import math
 from typing import Any, final
 
 from astropy import units as u
 
 from app.lib import astronomy
+
+# Because postgis is a geography extension we have to do some trickery to convert degrees on the celestial sphere 
+# efficiently to Earth's coordinates. This is just an Earth's radius.
+_SPHERE_RADIUS_M = 6371008.7714
 
 
 class Filter(abc.ABC):
@@ -14,6 +19,12 @@ class Filter(abc.ABC):
     @abc.abstractmethod
     def get_params(self) -> list[Any]:
         pass
+
+    # Table this filter is strict on: an object missing from it can never match. Such a table can
+    # drive the join, letting the rest be LEFT JOINed onto it instead of combined with FULL JOIN.
+    # None means the filter can match objects missing from any single table, so FULL JOIN must stay.
+    def driving_table(self) -> str | None:
+        return None
 
 
 @final
@@ -52,6 +63,15 @@ class AndFilter(Filter):
 
         return params
 
+    # Every conjunct must hold, so any strict child can drive the join.
+    def driving_table(self) -> str | None:
+        for f in self._filters:
+            table = f.driving_table()
+            if table is not None:
+                return table
+
+        return None
+
 
 @final
 class OrFilter(Filter):
@@ -71,6 +91,14 @@ class OrFilter(Filter):
             params.extend(f.get_params())
         return params
 
+    # Only one branch has to hold, so a table may drive the join only if every branch requires it.
+    def driving_table(self) -> str | None:
+        tables = {f.driving_table() for f in self._filters}
+        if len(tables) == 1:
+            return tables.pop()
+
+        return None
+
 
 @final
 class DesignationEqualsFilter(Filter):
@@ -86,6 +114,9 @@ class DesignationEqualsFilter(Filter):
 
     def get_params(self):
         return [self._designation]
+
+    def driving_table(self) -> str | None:
+        return "layer2.designation"
 
 
 @final
@@ -103,6 +134,9 @@ class DesignationCloseFilter(Filter):
     def get_params(self):
         return [self._distance, self._distance]
 
+    def driving_table(self) -> str | None:
+        return "layer2.designation"
+
 
 @final
 class DesignationLikeFilter(Filter):
@@ -116,6 +150,9 @@ class DesignationLikeFilter(Filter):
     def get_params(self):
         return []
 
+    def driving_table(self) -> str | None:
+        return "layer2.designation"
+
 
 @final
 class ICRSCoordinatesInRadiusFilter(Filter):
@@ -124,19 +161,23 @@ class ICRSCoordinatesInRadiusFilter(Filter):
         return "coordinates_in_radius"
 
     def __init__(self, radius: u.Quantity):
-        self._radius = astronomy.to(radius, "deg")
+        self._radius_m = math.radians(astronomy.to(radius, "deg")) * _SPHERE_RADIUS_M
 
     def get_query(self):
         return """
         ST_DWithin(
-            ST_MakePoint((sp.params->>'dec')::float, (sp.params->>'ra')::float-180), 
-            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180),
-            %s
+            ST_MakePoint((sp.params->>'ra')::float, (sp.params->>'dec')::float)::geography,
+            ST_MakePoint(layer2.icrs.ra, layer2.icrs.dec)::geography,
+            %s,
+            false
         )
         """
 
     def get_params(self):
-        return [self._radius]
+        return [self._radius_m]
+
+    def driving_table(self) -> str | None:
+        return "layer2.icrs"
 
 
 class Ordering(abc.ABC):
@@ -157,9 +198,10 @@ class ICRSDistanceOrdering(Ordering):
 
     def get_query(self) -> str:
         return """ST_Distance(
-            ST_MakePoint(%s, %s - 180),
-            ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra - 180)
+            ST_MakePoint(%s, %s)::geography,
+            ST_MakePoint(layer2.icrs.ra, layer2.icrs.dec)::geography,
+            false
         ), pgc"""
 
     def get_params(self) -> list[Any]:
-        return [self._dec, self._ra]
+        return [self._ra, self._dec]
