@@ -103,6 +103,24 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
 
         self.assertIsNone(self._ordering())
 
+    def test_page_is_converted_to_offset(self):
+        query = interface.QuerySimpleRequest(name="NGC", page=2, page_size=25)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.assertEqual(self.layer2_repo.query_catalogs.call_args.args[3], 25)
+        self.assertEqual(self.layer2_repo.query_catalogs.call_args.args[4], 50)
+
+    def test_pgc_page_is_converted_to_offset(self):
+        query = interface.QuerySimpleRequest(pgcs=[1, 2, 3], page=1, page_size=10)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[2], 10)
+        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[3], 10)
+
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112
         b1950 = coords.SkyCoord(

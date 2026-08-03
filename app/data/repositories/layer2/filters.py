@@ -129,7 +129,7 @@ class ICRSCoordinatesInRadiusFilter(Filter):
     def get_query(self):
         return """
         ST_DWithin(
-            ST_MakePoint((sp.params->>'dec')::float, (params->>'ra')::float-180), 
+            ST_MakePoint((sp.params->>'dec')::float, (sp.params->>'ra')::float-180), 
             ST_MakePoint(layer2.icrs.dec, layer2.icrs.ra-180),
             %s
         )

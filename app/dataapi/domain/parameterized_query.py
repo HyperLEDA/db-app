@@ -92,13 +92,14 @@ class ParameterizedQueryManager:
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config)
+        offset = query.page * query.page_size
         if query.pgcs:
             catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
             objects = self.layer2_repo.query_pgc(
                 catalogs,
                 query.pgcs,
                 query.page_size,
-                query.page,
+                offset,
             )
             return responder.build_response(objects)
 
@@ -110,7 +111,7 @@ class ParameterizedQueryManager:
             filters,
             search_params,
             query.page_size,
-            query.page,
+            offset,
             ordering=ordering,
         )
         return responder.build_response_from_catalog(objects)
