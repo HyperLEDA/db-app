@@ -274,7 +274,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
     )
     page: int = pydantic.Field(
         default=0,
-        description="Page number",
+        description="0-based page number",
     )
     catalogs: list[str] | None = pydantic.Field(
         default=None,
