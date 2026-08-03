@@ -85,9 +85,6 @@ class ParameterizedQueryManager:
             filters.append(layer2.DesignationLikeFilter())
             search_params.append(layer2.DesignationSearchParams(query.name))
 
-        if (query.cz is not None) and (query.cz_err_percent is not None):
-            filters.append(layer2.RedshiftCloseFilter(query.cz, query.cz_err_percent))
-
         return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
