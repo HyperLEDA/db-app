@@ -43,6 +43,48 @@ class PGCOneOfFilter(Filter):
         return self._pgcs
 
 
+def pgc_prefix_ranges(prefix: int, max_pgc: int) -> list[tuple[int, int]]:
+    if prefix < 1 or max_pgc < 1:
+        return []
+
+    prefix_digits = len(str(prefix))
+    ranges: list[tuple[int, int]] = []
+    length = prefix_digits
+    while True:
+        factor = 10 ** (length - prefix_digits)
+        lo = prefix * factor
+        if lo > max_pgc:
+            break
+        ranges.append((lo, (prefix + 1) * factor))
+        length += 1
+
+    return ranges
+
+
+@final
+class PGCPrefixFilter(Filter):
+    @classmethod
+    def name(cls) -> str:
+        return "pgc_prefix"
+
+    def __init__(self, prefix: int, max_pgc: int):
+        self._ranges = pgc_prefix_ranges(prefix, max_pgc)
+
+    def get_query(self) -> str:
+        if not self._ranges:
+            return "FALSE"
+        return " OR ".join(["(pgc >= %s AND pgc < %s)"] * len(self._ranges))
+
+    def get_params(self) -> list[Any]:
+        params: list[Any] = []
+        for lo, hi in self._ranges:
+            params.extend([lo, hi])
+        return params
+
+    def driving_table(self) -> str | None:
+        return "(SELECT id AS pgc FROM common.pgc) AS pgc_drive"
+
+
 @final
 class AndFilter(Filter):
     @classmethod
@@ -205,3 +247,12 @@ class ICRSDistanceOrdering(Ordering):
 
     def get_params(self) -> list[Any]:
         return [self._ra, self._dec]
+
+
+@final
+class PGCOrdering(Ordering):
+    def get_query(self) -> str:
+        return "pgc"
+
+    def get_params(self) -> list[Any]:
+        return []

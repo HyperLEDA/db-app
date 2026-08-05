@@ -9,6 +9,8 @@ from app.data.repositories.layer2.filters import (
     Ordering,
     OrFilter,
     PGCOneOfFilter,
+    PGCOrdering,
+    PGCPrefixFilter,
 )
 from app.data.repositories.layer2.params import (
     CombinedSearchParams,
@@ -32,6 +34,8 @@ __all__ = [
     "DesignationEqualsFilter",
     "DesignationCloseFilter",
     "PGCOneOfFilter",
+    "PGCOrdering",
+    "PGCPrefixFilter",
     "AndFilter",
     "OrFilter",
 ]

@@ -184,3 +184,39 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         got = self._search_params().get_params()
         self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
         self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+
+    def _filters(self) -> layer2.Filter:
+        return self.layer2_repo.query_catalogs.call_args.args[1]
+
+    def test_pgc_like_uses_prefix_filter_and_pgc_ordering(self):
+        self.layer2_repo.get_max_pgc.return_value = 200000
+        query = interface.QuerySimpleRequest(pgc_like=12)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        filt = self._filters()
+        expected = layer2.PGCPrefixFilter(12, 200000)
+        self.assertEqual(filt.get_params(), expected.get_params())
+        self.assertEqual(filt.driving_table(), expected.driving_table())
+        self.assertIsInstance(self._ordering(), layer2.PGCOrdering)
+
+    def test_pgc_like_with_coordinates_keeps_distance_ordering(self):
+        self.layer2_repo.get_max_pgc.return_value = 200000
+        query = interface.QuerySimpleRequest(ra=10.0, dec=20.0, radius=0.1, pgc_like=12)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.assertIsInstance(self._ordering(), layer2.ICRSDistanceOrdering)
+
+    def test_pgc_like_skips_filter_when_max_pgc_missing(self):
+        self.layer2_repo.get_max_pgc.return_value = None
+        query = interface.QuerySimpleRequest(pgc_like=12)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        filt = self._filters()
+        self.assertEqual(filt.get_params(), [])
+        self.assertIsInstance(self._ordering(), layer2.PGCOrdering)
