@@ -260,6 +260,11 @@ class QuerySimpleRequest(pydantic.BaseModel):
         default=None,
         description="Name of the object",
     )
+    pgc_like: int | None = pydantic.Field(
+        default=None,
+        description="Objects whose PGC number starts with this digit prefix",
+        gt=0,
+    )
     page_size: int = pydantic.Field(
         default=25,
         description="Number of objects per page",
@@ -320,6 +325,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
                 self.sgb,
                 self.radius,
                 self.name,
+                self.pgc_like,
             ]
             if any(f is not None for f in filters):
                 raise ValueError("When pgcs is specified, no other filters are allowed")
