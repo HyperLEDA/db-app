@@ -1,7 +1,6 @@
 import unittest
 from unittest import mock
 
-import pydantic
 from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
