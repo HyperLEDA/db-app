@@ -108,8 +108,9 @@ CREATE TABLE spectroscopy.energy_flux (
 , e_flux	real
 , quality	common.QualityType	NOT NULL	DEFAULT 'regular'
 , PRIMARY KEY (record_id, line_id)
+, CHECK (flux > 0)
+, CHECK (e_flux IS NULL OR e_flux >= 0)
 );
-CREATE INDEX ON spectroscopy.energy_flux (record_id) ;
 CREATE INDEX ON spectroscopy.energy_flux (line_id) ;
 CREATE INDEX ON spectroscopy.energy_flux (quality) ;
 
