@@ -1,15 +1,38 @@
 import time
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 import fastapi
 import structlog
+from opentelemetry import trace
 from starlette import types
 from starlette.middleware import base as middlewares
 
 from app.lib.web.middlewares.auth import identity_from_request
 
 _SENSITIVE_HEADERS = frozenset({"authorization", "cookie", "x-api-key"})
+
+
+def _request_id() -> str:
+    ctx = trace.get_current_span().get_span_context()
+    if ctx.is_valid:
+        return format(ctx.trace_id, "032x")
+    return str(uuid.uuid4())
+
+
+def _client_ip(request: fastapi.Request) -> str | None:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",", maxsplit=1)[0].strip() or None
+
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip() or None
+
+    if request.client is None:
+        return None
+    return request.client.host
 
 
 class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
@@ -55,21 +78,34 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     async def dispatch(
         self, request: fastapi.Request, call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]]
     ) -> fastapi.Response:
-        username = self._username(request)
-        request_log = await self._log_request(request)
-        if username is not None:
-            request_log["username"] = username
-        self.logger.info("HTTP request", **request_log)
+        structlog.contextvars.clear_contextvars()
+        client_ip = _client_ip(request)
+        context: dict[str, str] = {"request_id": _request_id()}
+        if client_ip is not None:
+            context["client_ip"] = client_ip
+        structlog.contextvars.bind_contextvars(**context)
+        try:
+            username = self._username(request)
+            request_log = await self._log_request(request)
+            if username is not None:
+                request_log["username"] = username
+            if client_ip is not None:
+                request_log["client_ip"] = client_ip
+            self.logger.info("HTTP request", **request_log)
 
-        start = time.perf_counter()
-        response = await call_next(request)
-        end = time.perf_counter()
+            start = time.perf_counter()
+            response = await call_next(request)
+            end = time.perf_counter()
 
-        elapsed_ms = (end - start) * 1000
+            elapsed_ms = (end - start) * 1000
 
-        response_log = self._log_response(response)
-        if username is not None:
-            response_log["username"] = username
-        self.logger.info("HTTP response", elapsed_ms=elapsed_ms, **response_log)
+            response_log = self._log_response(response)
+            if username is not None:
+                response_log["username"] = username
+            if client_ip is not None:
+                response_log["client_ip"] = client_ip
+            self.logger.info("HTTP response", elapsed_ms=elapsed_ms, **response_log)
 
-        return response
+            return response
+        finally:
+            structlog.contextvars.clear_contextvars()

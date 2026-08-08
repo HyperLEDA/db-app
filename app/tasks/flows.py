@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import structlog
@@ -12,6 +12,7 @@ from prefect.logging import get_run_logger
 from pydantic import BaseModel, Field
 
 from app import tasks
+from app.lib import structlog_config
 
 LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import",
@@ -70,14 +71,6 @@ def cron_from_env(task_name: str, environ: Mapping[str, str] | None = None) -> s
     return value or None
 
 
-def _prefect_message_renderer(_logger: object, _method_name: str, event_dict: MutableMapping[str, Any]) -> str:
-    event = str(event_dict.pop("event", ""))
-    parts = [event] if event else []
-    for key, value in event_dict.items():
-        parts.append(f"{key}={value}")
-    return " ".join(parts)
-
-
 def _flow_logger() -> structlog.stdlib.BoundLogger:
     log_level = os.getenv("LOG_LEVEL", "info")
     run_logger = get_run_logger()
@@ -90,11 +83,7 @@ def _flow_logger() -> structlog.stdlib.BoundLogger:
         run_logger.setLevel(level)
     return structlog.wrap_logger(
         run_logger,
-        processors=[
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            _prefect_message_renderer,
-        ],
+        processors=structlog_config.PROCESSORS,
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
     )
 

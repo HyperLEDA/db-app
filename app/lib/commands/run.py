@@ -2,13 +2,14 @@ import os
 
 import structlog
 
+from app.lib import structlog_config
 from app.lib.commands import interface
 
 
 def run(command: interface.Command):
     log_level = os.getenv("LOG_LEVEL", "info")
 
-    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(log_level))
+    structlog_config.configure(log_level)
 
     logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
