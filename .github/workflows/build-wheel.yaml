@@ -1,7 +1,10 @@
-name: Build wheel
+name: "[python] Build wheel"
 
 on:
   - push
+
+permissions:
+  contents: read
 
 jobs:
   build-wheel:
