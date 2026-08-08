@@ -85,14 +85,6 @@ class ParameterizedQueryManager:
             filters.append(layer2.DesignationLikeFilter())
             search_params.append(layer2.DesignationSearchParams(query.name))
 
-        if query.pgc_like is not None:
-            max_pgc = self.layer2_repo.get_max_pgc()
-            if max_pgc is not None:
-                filters.append(layer2.PGCPrefixFilter(query.pgc_like, max_pgc))
-
-        if ordering is None and query.pgc_like is not None:
-            ordering = layer2.PGCOrdering()
-
         return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
 
     def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:

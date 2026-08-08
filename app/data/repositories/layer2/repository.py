@@ -28,11 +28,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         self._storage = storage
 
-    def get_max_pgc(self) -> int | None:
-        row = self._storage.query_one("SELECT max(id) AS max_pgc FROM common.pgc")
-        max_pgc = row["max_pgc"]
-        return int(max_pgc) if max_pgc is not None else None
-
     def get_last_update_time(self, catalog: model.RawCatalog) -> datetime.datetime:
         return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=[catalog.value])[
             "dt"
