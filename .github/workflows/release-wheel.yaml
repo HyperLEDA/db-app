@@ -52,7 +52,7 @@ jobs:
         run: mv dist/*.whl dist/uploader-latest-py3-none-any.whl
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.normalize.outputs.release_tag }}
           name: Release ${{ steps.normalize.outputs.release_tag }}
