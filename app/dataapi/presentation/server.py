@@ -63,7 +63,6 @@ the specified designation.
 
 Several notes:
 - You cannot specify both PGC numbers and additional filters. If both are specified, the request is rejected.
-- pgc_like matches objects whose PGC number starts with the given digit prefix.
 - Coordinate searches use equatorial (ra/dec), galactic (glon/glat), or
 supergalactic (sgl/sgb) coordinates with radius. Only one coordinate system may be specified.
 For equatorial coordinates, eq_epoch sets the equinox (default J2000); non-J2000 coordinates
