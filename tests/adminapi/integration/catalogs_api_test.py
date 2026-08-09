@@ -79,6 +79,32 @@ class CatalogsAPITest(unittest.TestCase):
         self.assertEqual(fields["isophote"]["unit"], "mag/arcmin2")
         self.assertEqual(fields["method"]["data_type"], "str")
 
+    def test_get_catalogs_spectroscopy_integrated_flux_density(self) -> None:
+        catalogs = self._catalogs_by_name()
+        catalog = catalogs["spectroscopy_integrated_flux_density"]
+        fields = {f["name"]: f for f in catalog["fields"]}
+        self.assertEqual(set(fields), {"line_id", "flux", "e_flux", "method", "quality"})
+        self.assertTrue(fields["line_id"]["required"])
+        self.assertTrue(fields["flux"]["required"])
+        self.assertFalse(fields["e_flux"]["required"])
+        self.assertTrue(fields["method"]["required"])
+        self.assertTrue(fields["quality"]["required"])
+        self.assertEqual(fields["flux"]["unit"], "Jy.km/s")
+        self.assertEqual(fields["e_flux"]["unit"], "Jy.km/s")
+        self.assertEqual(fields["method"]["data_type"], "str")
+
+    def test_get_catalogs_spectroscopy_energy_flux(self) -> None:
+        catalogs = self._catalogs_by_name()
+        catalog = catalogs["spectroscopy_energy_flux"]
+        fields = {f["name"]: f for f in catalog["fields"]}
+        self.assertEqual(set(fields), {"line_id", "flux", "e_flux", "quality"})
+        self.assertTrue(fields["line_id"]["required"])
+        self.assertTrue(fields["flux"]["required"])
+        self.assertFalse(fields["e_flux"]["required"])
+        self.assertTrue(fields["quality"]["required"])
+        self.assertEqual(fields["flux"]["unit"], "erg/cm2/s")
+        self.assertEqual(fields["e_flux"]["unit"], "erg/cm2/s")
+
     def test_runtime_catalogs_excluded(self) -> None:
         catalogs = self._catalogs_by_name()
         self.assertNotIn("additional_designations", catalogs)

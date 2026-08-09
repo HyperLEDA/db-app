@@ -18,6 +18,8 @@ class RawCatalog(enum.Enum):
     PHOTOMETRY__TOTAL = "photometry_total"
     PHOTOMETRY__ISOPHOTAL = "photometry_isophotal"
     GEOMETRY = "geometry"
+    SPECTROSCOPY__INTEGRATED_FLUX_DENSITY = "spectroscopy_integrated_flux_density"
+    SPECTROSCOPY__ENERGY_FLUX = "spectroscopy_energy_flux"
     NOTE = "note"
 
 

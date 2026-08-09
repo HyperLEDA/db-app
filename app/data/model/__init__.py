@@ -22,6 +22,10 @@ from app.data.model.records import (
     RedshiftRecord,
 )
 from app.data.model.redshift import RedshiftCatalogObject
+from app.data.model.spectroscopy import (
+    SpectroscopyEnergyFluxCatalogObject,
+    SpectroscopyIntegratedFluxDensityCatalogObject,
+)
 from app.data.model.table import (
     CatalogProgress,
     ColumnDescription,
@@ -61,6 +65,8 @@ __all__ = [
     "PhotometryTotalCatalogObject",
     "PhotometryIsophotalCatalogObject",
     "GeometryCatalogObject",
+    "SpectroscopyIntegratedFluxDensityCatalogObject",
+    "SpectroscopyEnergyFluxCatalogObject",
     "NoteCatalogObject",
     "get_catalog_object_type",
     "Bibliography",
