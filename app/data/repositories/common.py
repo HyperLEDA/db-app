@@ -8,6 +8,15 @@ from app.lib import concurrency
 from app.lib.storage import postgres
 
 
+def get_column_units(storage: postgres.PgStorage, schema: str, table: str) -> dict[str, str]:
+    rows = storage.query(
+        "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
+        "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
+        params=[schema, table],
+    )
+    return {row["column_name"]: row["unit"] for row in rows}
+
+
 @dataclass
 class ColumnSchemaInfo:
     name: str

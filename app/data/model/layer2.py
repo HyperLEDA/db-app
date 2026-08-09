@@ -9,11 +9,7 @@ class Layer2CatalogObject:
     data: list[interface.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
-        for obj in self.data:
-            if isinstance(obj, t):
-                return obj
-
-        return None
+        return interface.get_object(self.data, t)
 
 
 @dataclass
@@ -88,7 +84,7 @@ class PhotometryTotalCatalog:
 @dataclass
 class Catalogs:
     """
-    Dsscription of catalogs as they are stored on layer 2. To properly analyze them one probably needs
+    Description of catalogs as they are stored on layer 2. To properly analyze them one probably needs
     to read units from metadata of these tables.
     """
 

@@ -3,18 +3,9 @@ from collections.abc import Sequence
 from typing import Any
 
 from app.data import model, template
+from app.data.repositories.layer0.common import metadata_to_candidates
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
-
-
-def _metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
-    if metadata is None:
-        return []
-    if "pgc" in metadata and metadata["pgc"] is not None:
-        return [int(metadata["pgc"])]
-    if "possible_matches" in metadata and metadata["possible_matches"] is not None:
-        return [int(p) for p in metadata["possible_matches"]]
-    return []
 
 
 def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
@@ -114,7 +105,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             model.CrossmatchRecordRow(
                 record_id=row["id"],
                 triage_status=row["triage_status"],
-                candidates=_metadata_to_candidates(row["metadata"]),
+                candidates=metadata_to_candidates(row["metadata"]),
             )
             for row in rows
         ]
@@ -133,20 +124,19 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             for record_id, triage, candidates in rows
         ]
         with self.with_tx():
-            cursor = self._storage.get_connection().cursor()
-            cursor.executemany(query, db_rows)
+            with self._storage.get_connection().cursor() as cursor:
+                cursor.executemany(query, db_rows)
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:
             return
 
         with self.with_tx():
-            conn = self._storage.get_connection()
-            cur = conn.cursor()
-            cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
-            with cur.copy("COPY submit_staging (record_id) FROM STDIN") as copy:
-                for record_id in record_ids:
-                    copy.write_row((record_id,))
+            with self._storage.get_connection().cursor() as cur:
+                cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
+                with cur.copy("COPY submit_staging (record_id) FROM STDIN") as copy:
+                    for record_id in record_ids:
+                        copy.write_row((record_id,))
 
             invalid_rows = self._storage.query(
                 """
@@ -211,13 +201,9 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             pgcs_to_insert: dict[str, int] = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
 
             if new_rows:
-                minted = self._storage.query(
-                    f"""INSERT INTO common.pgc
-                    VALUES {",".join(["(DEFAULT)"] * len(new_rows))}
-                    RETURNING id"""
-                )
-                for row, minted_row in zip(new_rows, minted, strict=True):
-                    pgcs_to_insert[row["record_id"]] = int(minted_row["id"])
+                minted = self._mint_pgc_ids(len(new_rows))
+                for row, pgc_id in zip(new_rows, minted, strict=True):
+                    pgcs_to_insert[row["record_id"]] = pgc_id
 
             if pgcs_to_insert:
                 update_query = (
@@ -234,15 +220,8 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         new_records = [record_id for record_id, pgc in pgcs.items() if pgc is None]
 
         if new_records:
-            result = self._storage.query(
-                f"""INSERT INTO common.pgc 
-                VALUES {",".join(["(DEFAULT)"] * len(new_records))} 
-                RETURNING id""",
-            )
-
-            ids = [row["id"] for row in result]
-
-            for record_id, pgc_id in zip(new_records, ids, strict=False):
+            minted = self._mint_pgc_ids(len(new_records))
+            for record_id, pgc_id in zip(new_records, minted, strict=True):
                 pgcs_to_insert[record_id] = pgc_id
 
         for record_id, pgc in pgcs.items():
@@ -256,6 +235,14 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )
             rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
             self._storage.execute_batch(update_query, rows)
+
+    def _mint_pgc_ids(self, count: int) -> list[int]:
+        rows = self._storage.query(
+            f"""INSERT INTO common.pgc
+            VALUES {",".join(["(DEFAULT)"] * count)}
+            RETURNING id"""
+        )
+        return [int(row["id"]) for row in rows]
 
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         rows = self._storage.query(
