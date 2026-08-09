@@ -145,28 +145,10 @@ start-prefect:
 start-tasks:
 	uv run tasks
 
-docs:
-	uvx \
-		--with 'mkdocs-material>=9.5.50' \
-		--with 'mkdocs-section-index>=0.3.9' \
-		mkdocs serve -a localhost:8080
-
-deploy-docs:
-	uvx \
-		--with 'mkdocs-material>=9.5.50' \
-		--with 'mkdocs-section-index>=0.3.9' \
-		mkdocs gh-deploy
-
-build-docs:
-	uvx \
-		--with 'mkdocs-material>=9.5.50' \
-		--with 'mkdocs-section-index>=0.3.9' \
-		mkdocs build
-
 cleanup:
 	rm -rf .venv .pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
-		.coverage htmlcov site
+		.coverage htmlcov
 
 ## Testing
 
