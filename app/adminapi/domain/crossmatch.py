@@ -1,4 +1,5 @@
-from typing import Any, final
+from collections.abc import Callable
+from typing import Any, Protocol, final
 
 import structlog
 from astropy import coordinates
@@ -18,16 +19,25 @@ DATA_SCHEMA = adminapi.Schema(
     units=adminapi.UnitsSchema(
         coordinates={
             "equatorial": {"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
-            "galactic": {"lon": "deg", "lat": "deg", "e_lon": "deg", "e_lat": "deg"},
+            "galactic": {"lon": "deg", "lat": "deg", "e_lon": "arcsec", "e_lat": "arcsec"},
         },
         velocity={"heliocentric": {"v": "km/s", "e_v": "km/s"}},
     )
 )
 
 
+class _CatalogBearing(Protocol):
+    def get[T](self, t: type[T]) -> T | None: ...
+
+
 def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
     icrs_coords = coordinates.ICRS(ra=obj.ra * u.Unit("deg"), dec=obj.dec * u.Unit("deg"))
     galactic_coords = icrs_coords.transform_to(coordinates.Galactic())
+
+    # for simplicity this approach assumes errors in galactic coordinates to be the
+    # same, which might not necessarily be true for larger errors.
+    e_lon = astronomy.to(obj.e_ra * u.Unit("deg"), "arcsec")
+    e_lat = astronomy.to(obj.e_dec * u.Unit("deg"), "arcsec")
 
     return adminapi.Coordinates(
         equatorial=adminapi.EquatorialCoordinates(
@@ -39,8 +49,8 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
         galactic=adminapi.GalacticCoordinates(
             lon=galactic_coords.l.deg,
             lat=galactic_coords.b.deg,
-            e_lon=obj.e_ra,
-            e_lat=obj.e_dec,
+            e_lon=e_lon,
+            e_lat=e_lat,
         ),
     )
 
@@ -60,6 +70,34 @@ def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[adminapi.Red
     )
 
 
+def catalogs_from_object(obj: _CatalogBearing) -> adminapi.Catalogs:
+    catalogs = adminapi.Catalogs()
+
+    if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
+        catalogs.coordinates = icrs_to_response(icrs)
+
+    if (designation := obj.get(model.DesignationCatalogObject)) is not None:
+        catalogs.designation = adminapi.Designation(name=designation.designation)
+
+    if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
+        catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
+
+    return catalogs
+
+
+def _append_crossmatch_rows(
+    rows: list[tuple[str, enums.RecordTriageStatus, list[int]]],
+    record_ids: list[str],
+    triage_statuses: list[enums.RecordTriageStatus | None],
+    default_triage: enums.RecordTriageStatus,
+    candidates_for_index: Callable[[int], list[int]],
+) -> None:
+    for i, record_id in enumerate(record_ids):
+        triage_override = triage_statuses[i] if i < len(triage_statuses) else None
+        triage = triage_override if triage_override is not None else default_triage
+        rows.append((record_id, triage, candidates_for_index(i)))
+
+
 @final
 class CrossmatchManager:
     def __init__(
@@ -77,29 +115,33 @@ class CrossmatchManager:
         payload = r.statuses
 
         if payload.new is not None:
-            default_triage = enums.RecordTriageStatus.RESOLVED
-            for i, record_id in enumerate(payload.new.record_ids):
-                triage_override = payload.new.triage_statuses[i] if i < len(payload.new.triage_statuses) else None
-                triage = triage_override if triage_override is not None else default_triage
-                rows.append((record_id, triage, []))
+            _append_crossmatch_rows(
+                rows,
+                payload.new.record_ids,
+                payload.new.triage_statuses,
+                enums.RecordTriageStatus.RESOLVED,
+                lambda _: [],
+            )
 
         if payload.existing is not None:
-            default_triage = enums.RecordTriageStatus.RESOLVED
-            for i, record_id in enumerate(payload.existing.record_ids):
-                triage_override = (
-                    payload.existing.triage_statuses[i] if i < len(payload.existing.triage_statuses) else None
-                )
-                triage = triage_override if triage_override is not None else default_triage
-                rows.append((record_id, triage, [payload.existing.pgcs[i]]))
+            existing = payload.existing
+            _append_crossmatch_rows(
+                rows,
+                existing.record_ids,
+                existing.triage_statuses,
+                enums.RecordTriageStatus.RESOLVED,
+                lambda i: [existing.pgcs[i]],
+            )
 
         if payload.collided is not None:
-            default_triage = enums.RecordTriageStatus.PENDING
-            for i, record_id in enumerate(payload.collided.record_ids):
-                triage_override = (
-                    payload.collided.triage_statuses[i] if i < len(payload.collided.triage_statuses) else None
-                )
-                triage = triage_override if triage_override is not None else default_triage
-                rows.append((record_id, triage, list(payload.collided.possible_matches[i])))
+            collided = payload.collided
+            _append_crossmatch_rows(
+                rows,
+                collided.record_ids,
+                collided.triage_statuses,
+                enums.RecordTriageStatus.PENDING,
+                lambda i: list(collided.possible_matches[i]),
+            )
 
         if rows:
             self.layer0_repo.set_crossmatch_results(rows)
@@ -140,20 +182,9 @@ class CrossmatchManager:
             elif len(row.candidates) > 1:
                 metadata.possible_matches = row.candidates
 
-            catalogs = adminapi.Catalogs()
-
             record = layer1_data_map.get(row.record_id)
             if record is None:
                 raise RuntimeError(f"expected 1 record for id {row.record_id}, got none")
-
-            if (icrs := record.get(model.ICRSCatalogObject)) is not None:
-                catalogs.coordinates = icrs_to_response(icrs)
-
-            if (designation := record.get(model.DesignationCatalogObject)) is not None:
-                catalogs.designation = adminapi.Designation(name=designation.designation)
-
-            if (redshift := record.get(model.RedshiftCatalogObject)) is not None:
-                catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
             status = self._candidates_to_status(row.candidates)
 
@@ -163,7 +194,7 @@ class CrossmatchManager:
                     status=status,
                     triage_status=row.triage_status,
                     metadata=metadata,
-                    catalogs=catalogs,
+                    catalogs=catalogs_from_object(record),
                 )
             )
 
@@ -216,21 +247,10 @@ class CrossmatchManager:
         )
 
         for layer2_obj in layer2_objects:
-            catalogs = adminapi.Catalogs()
-
-            if (icrs := layer2_obj.get(model.ICRSCatalogObject)) is not None:
-                catalogs.coordinates = icrs_to_response(icrs)
-
-            if (designation := layer2_obj.get(model.DesignationCatalogObject)) is not None:
-                catalogs.designation = adminapi.Designation(name=designation.designation)
-
-            if (redshift := layer2_obj.get(model.RedshiftCatalogObject)) is not None:
-                catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
-
             response.candidates.append(
                 adminapi.PGCCandidate(
                     pgc=layer2_obj.pgc,
-                    catalogs=catalogs,
+                    catalogs=catalogs_from_object(layer2_obj),
                 )
             )
 

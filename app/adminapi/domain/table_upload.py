@@ -99,7 +99,7 @@ class TableUploadManager:
         self.table_stats_cache = table_stats_cache
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
-        source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
+        source_id = ensure_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
         for col in r.columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
@@ -415,10 +415,6 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
 
 def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:
-        """
-        This function applies special algorithm to an iterable to compute stable hash.
-        It ensures that values are sorted and that spacing is not an issue.
-        """
         data = []
 
         for key, val in dict(row).items():
@@ -436,7 +432,7 @@ def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
-def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
+def ensure_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
     if not regex.match(BIBCODE_REGEX, code):
         try:
             entry_id = repo.get_source_entry(code).id
@@ -460,7 +456,7 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
 
 
 def get_unit(u: str) -> units.Unit:
-    # astropy does not support "log" as a function on unit, so we need to explicitly change it do "dex".
+    # astropy does not support "log" as a function on unit, so we need to explicitly change it to "dex".
     # this might cause issues if the unit is a log-log unit or "10 * log" since we will only change the first log.
     # however, as of writing, astropy does not support such units anyway.
     if u.startswith("log(") and u.endswith(")"):

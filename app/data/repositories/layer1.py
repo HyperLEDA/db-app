@@ -4,6 +4,7 @@ from typing import Any
 import structlog
 from astropy import table
 from astropy import units as u
+from psycopg import sql
 
 from app.data import model
 from app.lib.storage import postgres
@@ -55,18 +56,26 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         if conflict_keys is None:
             conflict_keys = ["record_id"]
         all_columns = ["record_id"] + columns
-        placeholders = ",".join(["%s"] * len(all_columns))
+        schema, relation = table.split(".", maxsplit=1)
+        table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
+        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
+        placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in all_columns)
+        conflict_idents = sql.SQL(", ").join(sql.Identifier(c) for c in conflict_keys)
         update_columns = [c for c in all_columns if c not in conflict_keys]
-        conflict_clause = f"ON CONFLICT ({', '.join(conflict_keys)})"
         if update_columns:
-            on_conflict_set = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_columns)
-            conflict_action = f"{conflict_clause} DO UPDATE SET {on_conflict_set}"
+            on_conflict_set = sql.SQL(", ").join(
+                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in update_columns
+            )
+            conflict_action = sql.SQL("ON CONFLICT ({}) DO UPDATE SET {}").format(conflict_idents, on_conflict_set)
         else:
-            conflict_action = f"{conflict_clause} DO NOTHING"
-        query = f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) {conflict_action}"
+            conflict_action = sql.SQL("ON CONFLICT ({}) DO NOTHING").format(conflict_idents)
+        query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) {}").format(
+            table_ident, column_idents, placeholders, conflict_action
+        )
+        query_str = self._storage.query_str(query)
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            self._storage.execute_batch(query, rows)
+            self._storage.execute_batch(query_str, rows)
 
     def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         query = """SELECT o.pgc, l1.type_name

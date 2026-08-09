@@ -7,7 +7,7 @@ from parameterized import param, parameterized
 
 from app.adminapi import clients, domain, presentation
 from app.adminapi.domain.mock import get_mock_table_stats_cache
-from app.adminapi.domain.table_upload import domain_descriptions_to_data, get_source_id
+from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
 from app.data import model, repositories
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
@@ -159,7 +159,7 @@ class GetSourceIDTest(unittest.TestCase):
             param("some_custom_code", False),
         ]
     )
-    def test_get_source_id(self, code: str, ads_query_needed: bool):
+    def test_ensure_source_id(self, code: str, ads_query_needed: bool):
         lib.returns(self.manager.common_repo.create_bibliography, 41)
         lib.returns(self.manager.common_repo.get_source_entry, mock.MagicMock(id=42))
         lib.returns(
@@ -173,7 +173,7 @@ class GetSourceIDTest(unittest.TestCase):
             ],
         )
 
-        result = get_source_id(self.manager.common_repo, self.manager.clients.ads, code)
+        result = ensure_source_id(self.manager.common_repo, self.manager.clients.ads, code)
         if ads_query_needed:
             self.assertEqual(result, 41)
         else:
@@ -183,14 +183,14 @@ class GetSourceIDTest(unittest.TestCase):
         lib.raises(self.manager.clients.ads.query_simple, RuntimeError("Not found"))
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = get_source_id(self.manager.common_repo, self.manager.clients.ads, "2000A&A...534A..31G")
+            _ = ensure_source_id(self.manager.common_repo, self.manager.clients.ads, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
         lib.raises(self.manager.common_repo.get_source_entry, RuntimeError("Not found"))
         ads_client = mock.MagicMock()
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = get_source_id(self.manager.common_repo, ads_client, "some_internal_code")
+            _ = ensure_source_id(self.manager.common_repo, ads_client, "some_internal_code")
 
 
 class MappingTest(unittest.TestCase):
