@@ -23,12 +23,12 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-orphan-cleanup",
 )
 
-BATCH_SIZE_DESCRIPTION = "Number of rows in a single query"
+BATCH_SIZE_DESCRIPTION = "Number of distinct PGC objects fetched in a single query"
 DRY_RUN_DESCRIPTION = (
     "Calculate all values but do not write them to the database. Useful to test changes in the task itself."
 )
 SINCE_DESCRIPTION = (
-    "If set, upload all PGC objects that were updated since that time. "
+    "If set, aggregate all PGC objects that were updated since that time. "
     "If not set, will use timestamp of the last update."
 )
 CLEANUP_ORPHANS_DESCRIPTION = (

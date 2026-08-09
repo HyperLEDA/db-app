@@ -2,36 +2,30 @@ from typing import final
 
 import structlog
 
-from app.data import enums as data_enums
-from app.data import model, repositories
-from app.lib.storage import postgres
-from app.tasks import interface
+from app.data import model
+from app.tasks import layer2_common
 
 catalogs = [
     model.RawCatalog.ICRS,
     model.RawCatalog.DESIGNATION,
     model.RawCatalog.REDSHIFT,
+    model.RawCatalog.NATURE,
 ]
 
 
 @final
-class Layer2OrphanCleanupTask(interface.Task):
+class Layer2OrphanCleanupTask(layer2_common.Layer2StorageTask):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
         write: bool = False,
     ) -> None:
-        self.log = logger
+        super().__init__(logger)
         self.write = write
 
     @classmethod
     def name(cls) -> str:
         return "layer2-orphan-cleanup"
-
-    def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
-        self.pg_storage.connect()
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
         self.log.info("Starting Layer 2 orphan cleanup", write=self.write)
@@ -50,6 +44,3 @@ class Layer2OrphanCleanupTask(interface.Task):
             self.log.info("Removed orphaned PGCs from layer 2 tables")
 
         self.log.info("Layer 2 orphan cleanup completed")
-
-    def cleanup(self) -> None:
-        self.pg_storage.disconnect()

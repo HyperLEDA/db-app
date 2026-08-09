@@ -23,7 +23,7 @@ def parse_since(since: datetime.datetime | str | None) -> datetime.datetime | No
 
 class Task(abc.ABC):
     """
-    Represents an asynchronous task that performs some operation on data in the database.
+    Represents a task that performs some operation on data in the database.
     """
 
     @classmethod
