@@ -106,3 +106,32 @@ class Layer2ImportTest(unittest.TestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(len(actual[0].data), 1)
         lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
+
+    def test_layer1_only_update_recalculates_layer2(self) -> None:
+        self.test_import_two_catalogs()
+
+        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+
+        self.layer1_repo.save_structured_data(
+            "icrs.data",
+            ["ra", "e_ra", "dec", "e_dec"],
+            ["123"],
+            [[22.0, 0.2, 23.0, 0.2]],
+        )
+
+        self.task.run()
+
+        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        self.assertGreater(new_last_update_dt, last_update_dt)
+
+        actual = self.layer2_repo.query_catalogs(
+            [model.RawCatalog.ICRS],
+            layer2.PGCOneOfFilter([1234]),
+            layer2.CombinedSearchParams([]),
+            10,
+            0,
+        )
+        expected = model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2)
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(len(actual[0].data), 1)
+        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
