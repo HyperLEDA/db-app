@@ -1,6 +1,6 @@
 import time
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from typing import Any
 
 import fastapi
@@ -40,17 +40,17 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
         self,
         app: types.ASGIApp,
         logger: structlog.stdlib.BoundLogger,
-        log_bodies: bool = True,
+        log_bodies: Collection[tuple[str, str]] = (),
     ) -> None:
         self.logger = logger
-        self.log_bodies = log_bodies
+        self._log_bodies = frozenset(log_bodies)
 
         super().__init__(app)
 
     async def _log_request(self, r: fastapi.Request) -> dict[str, Any]:
         data = {}
 
-        if self.log_bodies:
+        if (r.url.path, r.method.lower()) in self._log_bodies:
             data["body"] = await r.body()
 
         data["headers"] = {

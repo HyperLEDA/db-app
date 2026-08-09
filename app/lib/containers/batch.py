@@ -15,7 +15,7 @@ def read_batches[OutputType: Any, OffsetType: Any](
     Iteratively calls `func` and yields the current offset and the return value of `func`.
     `*args` and `**kwargs` are used as additional arguments to the function.
 
-    `func` *must* have two at least two arguments: `limit` (an integer) and `offset` (any value).
+    `func` *must* have at least two arguments: `limit` (an integer) and `offset` (any value).
     They will be changed during the iteration.
     `offset_changer` is a function that, based on the last element read and the previous value of the offset,
     changes the offset to a new value. The simplest example of such a function would be:

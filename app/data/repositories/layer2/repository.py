@@ -11,6 +11,7 @@ from psycopg import rows, sql
 from app.data import model
 from app.data.model import Layer2CatalogObject, Layer2Object
 from app.data.model import layer2 as layer2_model
+from app.data.repositories.common import get_column_units as query_column_units
 from app.data.repositories.layer2 import filters as repofilters
 from app.data.repositories.layer2 import params
 from app.lib import concurrency, containers
@@ -40,12 +41,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         )
 
     def get_column_units(self, schema: str, table: str) -> dict[str, str]:
-        rows = self._storage.query(
-            "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
-            "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
-            params=[schema, table],
-        )
-        return {row["column_name"]: row["unit"] for row in rows}
+        return query_column_units(self._storage, schema, table)
 
     def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
@@ -101,20 +97,20 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         col_values = [_column_as_list(work[col]) for col in columns]
 
         with self.with_tx():
-            cur = self._storage.get_connection().cursor()
-            cur.execute(
-                sql.SQL("CREATE TEMP TABLE save_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
-                    table_ident
+            with self._storage.get_connection().cursor() as cur:
+                cur.execute(
+                    sql.SQL("CREATE TEMP TABLE save_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
+                        table_ident
+                    )
                 )
-            )
-            with cur.copy(sql.SQL("COPY save_staging ({}) FROM STDIN").format(column_idents)) as copy:
-                for i, pgc in enumerate(pgcs):
-                    copy.write_row((pgc, *[vals[i] for vals in col_values]))
-            cur.execute(
-                sql.SQL("INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}").format(
-                    table_ident, column_idents, column_idents, on_conflict
+                with cur.copy(sql.SQL("COPY save_staging ({}) FROM STDIN").format(column_idents)) as copy:
+                    for i, pgc in enumerate(pgcs):
+                        copy.write_row((pgc, *[vals[i] for vals in col_values]))
+                cur.execute(
+                    sql.SQL(
+                        "INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}"
+                    ).format(table_ident, column_idents, column_idents, on_conflict)
                 )
-            )
 
     def _construct_batch_query(
         self,
@@ -126,7 +122,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         ordering: repofilters.Ordering | None = None,
     ) -> tuple[str, list[Any]]:
         if not search_params:
-            # If no search parameters, return empty result
             return "SELECT NULL as record_id, NULL as pgc WHERE FALSE", []
 
         query = """
@@ -262,7 +257,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             for catalog, data in res.items():
                 object_cls = model.get_catalog_object_type(catalog)
 
-                # Only create catalog object if the object exists in this table
                 if presence_flags.get(catalog, False):
                     layer2_obj.data.append(object_cls.from_layer2(data))
 
@@ -334,19 +328,9 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         result: dict[int, list[layer2_model.AdditionalDesignation]] = {}
         for row in rows:
             pgc = int(row["pgc"])
-            author_val = row.get("author")
-            authors = (
-                author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
-            )
-            source = layer2_model.Source(
-                bibcode=str(row["code"]) if row.get("code") is not None else "",
-                title=str(row["title"]) if row.get("title") is not None else "",
-                authors=authors,
-                year=int(row["year"]) if row.get("year") is not None else 0,
-            )
             ad = layer2_model.AdditionalDesignation(
                 name=str(row["design"]) if row.get("design") is not None else "",
-                source=source,
+                source=_source_from_row(row),
             )
             result.setdefault(pgc, []).append(ad)
         return {pgc: layer2_model.AdditionalDesignationsCatalog(names=names) for pgc, names in result.items()}
@@ -361,17 +345,10 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         result: dict[int, list[layer2_model.NoteEntry]] = {}
         for row in rows:
             pgc = int(row["pgc"])
-            author_val = row.get("author")
-            authors = (
-                author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
+            note = layer2_model.NoteEntry(
+                note=str(row["note"]) if row.get("note") is not None else "",
+                source=_source_from_row(row),
             )
-            source = layer2_model.Source(
-                bibcode=str(row["code"]) if row.get("code") is not None else "",
-                title=str(row["title"]) if row.get("title") is not None else "",
-                authors=authors,
-                year=int(row["year"]) if row.get("year") is not None else 0,
-            )
-            note = layer2_model.NoteEntry(note=str(row["note"]) if row.get("note") is not None else "", source=source)
             result.setdefault(pgc, []).append(note)
         return {pgc: layer2_model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
 
@@ -578,6 +555,17 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             return []
 
         return res["obj"]
+
+
+def _source_from_row(row: Mapping[str, Any]) -> layer2_model.Source:
+    author_val = row.get("author")
+    authors = author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
+    return layer2_model.Source(
+        bibcode=str(row["code"]) if row.get("code") is not None else "",
+        title=str(row["title"]) if row.get("title") is not None else "",
+        authors=authors,
+        year=int(row["year"]) if row.get("year") is not None else 0,
+    )
 
 
 def _column_as_list(col: Any) -> list[Any]:

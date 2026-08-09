@@ -4,11 +4,8 @@ from typing import final
 
 import structlog
 
-from app.data import enums as data_enums
-from app.data import repositories
-from app.lib.storage import postgres
 from app.tasks import (
-    interface,
+    layer2_common,
     layer2_import_designation,
     layer2_import_icrs,
     layer2_import_nature,
@@ -26,7 +23,7 @@ DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature"
 
 
 @final
-class Layer2ImportTask(interface.Task):
+class Layer2ImportTask(layer2_common.Layer2CatalogImportTask):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -37,12 +34,14 @@ class Layer2ImportTask(interface.Task):
         cleanup_orphans: bool = True,
         catalogs: Sequence[str] | None = None,
     ) -> None:
-        self.log = logger
-        self.batch_size = batch_size
-        self.dry_run = dry_run
-        self.silent = silent
-        self.since = interface.parse_since(since)
-        self.cleanup_orphans = cleanup_orphans
+        super().__init__(
+            logger,
+            batch_size=batch_size,
+            dry_run=dry_run,
+            silent=silent,
+            since=since,
+            cleanup_orphans=cleanup_orphans,
+        )
         if catalogs:
             unknown = [c for c in catalogs if c not in CATALOG_TASKS]
             if unknown:
@@ -54,12 +53,6 @@ class Layer2ImportTask(interface.Task):
     @classmethod
     def name(cls) -> str:
         return "layer2-import"
-
-    def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
-        self.pg_storage.connect()
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
         for catalog in self.catalogs:
@@ -78,6 +71,3 @@ class Layer2ImportTask(interface.Task):
             task.run()
 
         self.log.info("Layer 2 import completed", catalogs=self.catalogs)
-
-    def cleanup(self) -> None:
-        self.pg_storage.disconnect()

@@ -4,32 +4,19 @@ from typing import final
 import structlog
 from astropy import table
 
-from app.data import enums as data_enums
-from app.data import model, repositories
+from app.data import model
 from app.data.schema.layer2 import Nature
 from app.lib import containers
-from app.lib.storage import postgres
-from app.tasks import interface, logging
+from app.tasks import layer2_common, logging
 
 
 def aggregate_nature(tbl: table.QTable) -> table.QTable:
-    grouped = tbl.group_by("pgc")
-    pgcs: list[int] = []
-    type_names: list[str] = []
-
-    for group in grouped.groups:
-        type_counts: dict[str, int] = {}
-        for type_name in group["type_name"]:
-            key = str(type_name)
-            type_counts[key] = type_counts.get(key, 0) + 1
-        pgcs.append(int(group["pgc"][0]))
-        type_names.append(max(type_counts, key=lambda k: type_counts[k]))
-
+    pgcs, type_names = layer2_common.majority_vote_by_pgc(tbl, "type_name")
     return table.QTable({Nature.PGC: pgcs, Nature.TYPE_NAME: type_names})
 
 
 @final
-class Layer2ImportNatureTask(interface.Task):
+class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -39,22 +26,18 @@ class Layer2ImportNatureTask(interface.Task):
         since: datetime.datetime | str | None = None,
         cleanup_orphans: bool = True,
     ) -> None:
-        self.log = logger
-        self.batch_size = batch_size
-        self.dry_run = dry_run
-        self.silent = silent
-        self.since = interface.parse_since(since)
-        self.cleanup_orphans = cleanup_orphans
+        super().__init__(
+            logger,
+            batch_size=batch_size,
+            dry_run=dry_run,
+            silent=silent,
+            since=since,
+            cleanup_orphans=cleanup_orphans,
+        )
 
     @classmethod
     def name(cls) -> str:
         return "layer2-import-nature"
-
-    def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
-        self.pg_storage.connect()
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
         if self.since is not None:
@@ -96,31 +79,14 @@ class Layer2ImportNatureTask(interface.Task):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = 0
-        if self.cleanup_orphans:
-            orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.NATURE])
-            pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
-            orphans_to_delete = len(pgcs_to_remove)
-            if pgcs_to_remove and not self.dry_run:
-                self.layer2_repository.remove_pgcs([model.RawCatalog.NATURE], pgcs_to_remove)
-
-        if not self.dry_run:
-            self.layer2_repository.update_last_update_time(
-                datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.NATURE
-            )
+        orphans_to_delete = self.finalize_catalog(model.RawCatalog.NATURE)
         self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:
             type_rows = [(t, c) for t, c in sorted(type_distribution.items())]
             logging.print_table(
                 ("Description", "Count"),
-                [
-                    ("Objects saved", objects_to_save),
-                    ("Orphans deleted", orphans_to_delete),
-                ],
+                layer2_common.import_summary_rows(objects_to_save, orphans_to_delete, dry_run=self.dry_run),
                 sections=[("Distribution by type", [(f"  {t}", c) for t, c in type_rows])] if type_rows else None,
                 min_column_widths=(30, 0),
             )
-
-    def cleanup(self) -> None:
-        self.pg_storage.disconnect()

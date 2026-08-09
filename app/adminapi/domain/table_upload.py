@@ -38,7 +38,6 @@ def _column_meta(columns: list[ColumnSchemaInfo], name: str) -> tuple[str, str]:
 def _build_catalog_schema(
     designation_schema: TableSchemaInfo,
     icrs_schema: TableSchemaInfo,
-    cz_schema: TableSchemaInfo,
     nature_schema: TableSchemaInfo,
     nature_object_types: dict[str, str],
 ) -> adminapi.RecordCatalogSchema:
@@ -47,8 +46,6 @@ def _build_catalog_schema(
     e_ra_desc, e_ra_unit = _column_meta(icrs_schema.columns, "e_ra")
     dec_desc, dec_unit = _column_meta(icrs_schema.columns, "dec")
     e_dec_desc, e_dec_unit = _column_meta(icrs_schema.columns, "e_dec")
-    cz_desc, _ = _column_meta(cz_schema.columns, "cz")
-    e_cz_desc, _ = _column_meta(cz_schema.columns, "e_cz")
     type_name_desc, _ = _column_meta(nature_schema.columns, "type_name")
     return adminapi.RecordCatalogSchema(
         designation=adminapi.RecordDesignationCatalogSchema(
@@ -70,8 +67,8 @@ def _build_catalog_schema(
         ),
         redshift=adminapi.RecordRedshiftCatalogSchema(
             description=adminapi.RecordRedshiftCatalogDescriptionSchema(
-                z=cz_desc,
-                z_error=e_cz_desc,
+                z="Heliocentric redshift",
+                z_error="Heliocentric redshift error",
             ),
         ),
         nature=adminapi.RecordNatureCatalogSchema(
@@ -99,7 +96,7 @@ class TableUploadManager:
         self.table_stats_cache = table_stats_cache
 
     def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
-        source_id = get_source_id(self.common_repo, self.clients.ads, r.bibcode)
+        source_id = ensure_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
         for col in r.columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
@@ -121,7 +118,7 @@ class TableUploadManager:
 
     def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
-        columns_by_id = {col.name: col for col in table_metadata.column_descriptions}
+        columns_by_name = {col.name: col for col in table_metadata.column_descriptions}
 
         if r.new_table_name is not None and r.new_table_name != r.table_name:
             if self.layer0_repo.is_raw_table_name_taken(r.new_table_name):
@@ -134,10 +131,10 @@ class TableUploadManager:
                 self.layer0_repo.update_table_datatype(r.table_name, r.datatype)
 
             for column_name, spec in r.columns.items():
-                if column_name not in columns_by_id:
+                if column_name not in columns_by_name:
                     raise NotFoundError("column", column_name)
 
-                column_metadata = columns_by_id[column_name]
+                column_metadata = columns_by_name[column_name]
                 if spec.ucd is not None:
                     column_metadata.ucd = spec.ucd
                 if spec.unit is not None:
@@ -271,11 +268,6 @@ class TableUploadManager:
             "icrs",
             "data",
         )
-        cz_schema_task = errgr.run(
-            self.common_repo.get_schema,
-            "cz",
-            "data",
-        )
         nature_schema_task = errgr.run(
             self.common_repo.get_schema,
             "nature",
@@ -290,7 +282,6 @@ class TableUploadManager:
         schema_info = schema_task.result()
         designation_schema = designation_schema_task.result()
         icrs_schema = icrs_schema_task.result()
-        cz_schema = cz_schema_task.result()
         nature_schema = nature_schema_task.result()
         nature_object_types_rows = nature_object_types_task.result()
         nature_object_types = {row["type_name"]: row["description"] for row in nature_object_types_rows}
@@ -340,8 +331,8 @@ class TableUploadManager:
                     if ir
                     else None,
                     redshift=adminapi.RecordRedshiftCatalog(
-                        z=astronomy.to((rr.cz * u.Unit("km/s")) / astronomy.const("c")),
-                        z_error=astronomy.to((rr.e_cz * u.Unit("km/s")) / astronomy.const("c")),
+                        z=astronomy.heliocentric_cz_to_z(rr.cz * u.Unit("km/s")),
+                        z_error=astronomy.heliocentric_cz_to_z(rr.e_cz * u.Unit("km/s")),
                     )
                     if rr
                     else None,
@@ -374,7 +365,6 @@ class TableUploadManager:
         catalog_schema = _build_catalog_schema(
             designation_schema,
             icrs_schema,
-            cz_schema,
             nature_schema,
             nature_object_types,
         )
@@ -415,10 +405,6 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
 
 def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
     def _compute_hash(row: pandas.Series) -> str:
-        """
-        This function applies special algorithm to an iterable to compute stable hash.
-        It ensures that values are sorted and that spacing is not an issue.
-        """
         data = []
 
         for key, val in dict(row).items():
@@ -436,7 +422,7 @@ def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
-def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
+def ensure_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
     if not regex.match(BIBCODE_REGEX, code):
         try:
             entry_id = repo.get_source_entry(code).id
@@ -460,7 +446,7 @@ def get_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass,
 
 
 def get_unit(u: str) -> units.Unit:
-    # astropy does not support "log" as a function on unit, so we need to explicitly change it do "dex".
+    # astropy does not support "log" as a function on unit, so we need to explicitly change it to "dex".
     # this might cause issues if the unit is a log-log unit or "10 * log" since we will only change the first log.
     # however, as of writing, astropy does not support such units anyway.
     if u.startswith("log(") and u.endswith(")"):

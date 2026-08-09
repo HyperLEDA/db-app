@@ -11,7 +11,7 @@ class ServeTasksCommand(commands.Command):
     @classmethod
     def help(cls) -> str:
         return """
-            Registers layer2 import Prefect deployments and serves them.
+            Registers layer2 Prefect tasks and serves them.
             Schedules are read from TASK_SCHEDULE_* environment variables
             (cron expressions; empty or unset means manual runs only).
         """

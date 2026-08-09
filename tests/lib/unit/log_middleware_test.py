@@ -138,6 +138,35 @@ class LoggingMiddlewareTest(unittest.TestCase):
         request_log = logger.info.call_args_list[0].kwargs
         self.assertEqual(request_log["client_ip"], "198.51.100.7")
 
+    def test_logs_request_body_only_for_configured_routes(self) -> None:
+        logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
+        app = fastapi.FastAPI()
+        app.add_middleware(
+            LoggingMiddleware,
+            logger=logger,
+            log_bodies={("/admin/api/v1/source", "post")},
+        )
+
+        app.add_api_route("/admin/api/v1/login", endpoint=lambda: {"ok": True}, methods=["POST"])
+        app.add_api_route("/admin/api/v1/source", endpoint=lambda: {"ok": True}, methods=["POST"])
+
+        client = testclient.TestClient(app)
+        login_response = client.post(
+            "/admin/api/v1/login",
+            json={"username": "alice", "password": "secret"},
+        )
+        source_response = client.post(
+            "/admin/api/v1/source",
+            json={"title": "t"},
+        )
+
+        self.assertEqual(login_response.status_code, 200)
+        self.assertEqual(source_response.status_code, 200)
+        login_log = logger.info.call_args_list[0].kwargs
+        source_log = logger.info.call_args_list[2].kwargs
+        self.assertNotIn("body", login_log)
+        self.assertIn("body", source_log)
+
 
 class _AuthStubMiddleware(middlewares.BaseHTTPMiddleware):
     async def dispatch(

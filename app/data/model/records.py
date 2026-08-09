@@ -17,16 +17,12 @@ class Record:
     data: list[interface.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
-        for obj in self.data:
-            if isinstance(obj, t):
-                return obj
-
-        return None
+        return interface.get_object(self.data, t)
 
 
 # Record classes below represent how data for each particular record is written
 # and read directly to and from the tables. Most likely they will correspond
-# to actual columns for tables. However, this may no necessarily be true for
+# to actual columns for tables. However, this may not necessarily be true for
 # catalogs which have more than one line per record.
 
 

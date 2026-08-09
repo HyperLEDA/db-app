@@ -4,8 +4,10 @@ from typing import Any
 import structlog
 from astropy import table
 from astropy import units as u
+from psycopg import sql
 
 from app.data import model
+from app.data.repositories.common import get_column_units as query_column_units
 from app.lib.storage import postgres
 
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -19,12 +21,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
     def get_column_units(self, catalog: model.RawCatalog) -> dict[str, str]:
         object_cls = model.get_catalog_object_type(catalog)
         schema, table_name = object_cls.layer1_table().split(".")
-        rows = self._storage.query(
-            "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
-            "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
-            params=[schema, table_name],
-        )
-        return {row["column_name"]: row["unit"] for row in rows}
+        return query_column_units(self._storage, schema, table_name)
 
     def get_catalog_columns(self, schema: str, table: str) -> list[dict[str, Any]]:
         return self._storage.query(
@@ -55,33 +52,53 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         if conflict_keys is None:
             conflict_keys = ["record_id"]
         all_columns = ["record_id"] + columns
-        placeholders = ",".join(["%s"] * len(all_columns))
+        schema, relation = table.split(".", maxsplit=1)
+        table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
+        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
+        placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in all_columns)
+        conflict_idents = sql.SQL(", ").join(sql.Identifier(c) for c in conflict_keys)
         update_columns = [c for c in all_columns if c not in conflict_keys]
-        conflict_clause = f"ON CONFLICT ({', '.join(conflict_keys)})"
         if update_columns:
-            on_conflict_set = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_columns)
-            conflict_action = f"{conflict_clause} DO UPDATE SET {on_conflict_set}"
+            on_conflict_set = sql.SQL(", ").join(
+                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in update_columns
+            )
+            conflict_action = sql.SQL("ON CONFLICT ({}) DO UPDATE SET {}").format(conflict_idents, on_conflict_set)
         else:
-            conflict_action = f"{conflict_clause} DO NOTHING"
-        query = f"INSERT INTO {table} ({', '.join(all_columns)}) VALUES ({placeholders}) {conflict_action}"
+            conflict_action = sql.SQL("ON CONFLICT ({}) DO NOTHING").format(conflict_idents)
+        query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) {}").format(
+            table_ident, column_idents, placeholders, conflict_action
+        )
+        query_str = self._storage.query_str(query)
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            self._storage.execute_batch(query, rows)
+            self._storage.execute_batch(query_str, rows)
 
-    def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.type_name
-        FROM nature.data AS l1
+    def _query_new_pgc_records(
+        self,
+        layer1_table: str,
+        select_columns: str,
+        dt: datetime.datetime,
+        limit: int,
+        offset: int,
+        extra_joins: str = "",
+    ) -> list[dict[str, Any]]:
+        query = f"""SELECT o.pgc, {select_columns}
+        FROM {layer1_table} AS l1
         JOIN layer0.records AS o ON l1.record_id = o.id
+        {extra_joins}
         WHERE o.pgc IN (
             SELECT DISTINCT o.pgc
-            FROM nature.data AS l1
+            FROM {layer1_table} AS l1
             JOIN layer0.records AS o ON l1.record_id = o.id
             WHERE o.modification_time > %s AND o.pgc > %s
             ORDER BY o.pgc
             LIMIT %s
         )
         ORDER BY o.pgc ASC"""
-        rows = self._storage.query(query, params=[dt, offset, limit])
+        return self._storage.query(query, params=[dt, offset, limit])
+
+    def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        rows = self._query_new_pgc_records("nature.data", "l1.type_name", dt, limit, offset)
         return table.QTable(
             {
                 "pgc": [int(r["pgc"]) for r in rows],
@@ -90,20 +107,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
 
     def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype
-        FROM icrs.data AS l1
-        JOIN layer0.records AS o ON l1.record_id = o.id
-        JOIN layer0.tables AS t ON o.table_id = t.id
-        WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM icrs.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
-            LIMIT %s
+        rows = self._query_new_pgc_records(
+            "icrs.data",
+            "l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype",
+            dt,
+            limit,
+            offset,
+            extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        ORDER BY o.pgc ASC"""
-        rows = self._storage.query(query, params=[dt, offset, limit])
         units = self.get_column_units(model.RawCatalog.ICRS)
         return table.QTable(
             {
@@ -117,20 +128,14 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
 
     def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.cz, l1.e_cz, t.datatype
-        FROM cz.data AS l1
-        JOIN layer0.records AS o ON l1.record_id = o.id
-        JOIN layer0.tables AS t ON o.table_id = t.id
-        WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM cz.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
-            LIMIT %s
+        rows = self._query_new_pgc_records(
+            "cz.data",
+            "l1.cz, l1.e_cz, t.datatype",
+            dt,
+            limit,
+            offset,
+            extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        ORDER BY o.pgc ASC"""
-        rows = self._storage.query(query, params=[dt, offset, limit])
         units = self.get_column_units(model.RawCatalog.REDSHIFT)
         e_cz_unit = u.Unit(units["e_cz"])
         default_e_cz = float(DEFAULT_E_CZ.to_value(e_cz_unit))
@@ -147,19 +152,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
 
     def get_new_designation_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        query = """SELECT o.pgc, l1.design
-        FROM designation.data AS l1
-        JOIN layer0.records AS o ON l1.record_id = o.id
-        WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM designation.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
-            LIMIT %s
-        )
-        ORDER BY o.pgc ASC"""
-        rows = self._storage.query(query, params=[dt, offset, limit])
+        rows = self._query_new_pgc_records("designation.data", "l1.design", dt, limit, offset)
         return table.QTable(
             {
                 "pgc": [int(r["pgc"]) for r in rows],

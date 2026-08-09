@@ -64,6 +64,8 @@ class AuthMiddleware(middlewares.BaseHTTPMiddleware):
             if ctx is None:
                 if token is not None:
                     return _api_error_response(errors.UnauthorizedError("Invalid token"))
+                if request.headers.get("Authorization", "").strip():
+                    return _api_error_response(errors.UnauthorizedError("Invalid authorization header"))
                 return _api_error_response(errors.UnauthorizedError("No authorization header"))
             if not allowed:
                 return _api_error_response(errors.ForbiddenError("Not enough permissions"))

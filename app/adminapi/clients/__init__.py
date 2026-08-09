@@ -5,8 +5,6 @@ from astroquery import vizier
 
 
 class Clients:
-    """Stores clients for network interactions"""
-
     def __init__(self, ads_token: str) -> None:
         self.ads = ads.ADSClass()
         self.ads.TOKEN = ads_token

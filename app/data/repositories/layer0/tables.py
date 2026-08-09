@@ -12,7 +12,7 @@ from astropy import units as u
 from psycopg import sql
 
 from app.data import model, repositories, template
-from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA
+from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
 from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -32,15 +32,73 @@ def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
     return out
 
 
-def _crossmatch_metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
-    if metadata is None:
-        return []
-    candidates: list[int] = []
-    if "pgc" in metadata and metadata["pgc"] is not None:
-        candidates.append(int(metadata["pgc"]))
-    if "possible_matches" in metadata and metadata["possible_matches"] is not None:
-        candidates.extend(int(p) for p in metadata["possible_matches"])
-    return candidates
+def _build_raw_table_select(
+    table_name: str,
+    columns: list[str] | None = None,
+    offset: str | None = None,
+    order_column: str | None = None,
+    order_direction: str = "asc",
+    limit: int | None = None,
+    record_id: str | None = None,
+    row_offset: int | None = None,
+) -> tuple[sql.Composed, list[Any]]:
+    if columns:
+        columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
+    else:
+        columns_sql = sql.SQL("*")
+
+    params: list[Any] = []
+    where_parts: list[sql.Composable] = []
+
+    if offset is not None:
+        where_parts.append(
+            sql.SQL("{} > %s").format(
+                sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+            )
+        )
+        params.append(offset)
+
+    if record_id is not None:
+        where_parts.append(
+            sql.SQL("{} = %s").format(
+                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
+            )
+        )
+        params.append(record_id)
+
+    parts: list[sql.Composable] = [
+        sql.SQL("SELECT {} FROM {}.{}").format(
+            columns_sql,
+            sql.Identifier(RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+    ]
+
+    if where_parts:
+        parts.append(sql.SQL(" WHERE "))
+        parts.append(sql.SQL(" AND ").join(where_parts))
+
+    if order_column is not None:
+        if order_direction not in ("asc", "desc"):
+            raise ValueError(f"invalid order direction: {order_direction}")
+        parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
+        parts.append(sql.SQL(order_direction))
+    elif row_offset is not None:
+        parts.append(
+            sql.SQL(" ORDER BY {} ").format(
+                sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+            )
+        )
+
+    if limit is not None:
+        parts.append(sql.SQL(" LIMIT %s"))
+        params.append(limit)
+
+    if row_offset is not None:
+        parts.append(sql.SQL(" OFFSET %s"))
+        params.append(row_offset)
+
+    return sql.Composed(parts), params
 
 
 @dataclass
@@ -138,7 +196,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         limit: int | None = None,
     ) -> table.Table:
         """
-        :param table_id: ID of the raw table
+        :param table_name: Name of the raw table
         :param columns: select only given columns
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
@@ -147,40 +205,15 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         """
 
         meta = self.fetch_metadata_by_name(table_name)
-
-        if columns:
-            columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
-        else:
-            columns_sql = sql.SQL("*")
-
-        params = []
-        parts: list[sql.Composable] = [
-            sql.SQL("SELECT {} FROM {}.{}").format(
-                columns_sql,
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-            )
-        ]
-
-        if offset is not None:
-            parts.append(
-                sql.SQL(" WHERE {} > %s").format(
-                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
-                )
-            )
-            params.append(offset)
-
-        if order_column is not None:
-            if order_direction not in ("asc", "desc"):
-                raise ValueError(f"invalid order direction: {order_direction}")
-            parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
-            parts.append(sql.SQL(order_direction))
-
-        if limit is not None:
-            parts.append(sql.SQL(" LIMIT %s"))
-            params.append(limit)
-
-        rows = self._storage.query(sql.Composed(parts), params=params)
+        query, params = _build_raw_table_select(
+            table_name,
+            columns=columns,
+            offset=offset,
+            order_column=order_column,
+            order_direction=order_direction,
+            limit=limit,
+        )
+        rows = self._storage.query(query, params=params)
         df = pandas.DataFrame(rows)
         tbl = table.Table()
         if len(df) == 0:
@@ -232,63 +265,17 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if table_name is None:
             raise ValueError("either table_name or record_id must be provided")
 
-        if columns:
-            columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
-        else:
-            columns_sql = sql.SQL("*")
-
-        params = []
-        where_parts: list[sql.Composable] = []
-
-        if offset is not None:
-            where_parts.append(
-                sql.SQL("{} > %s").format(
-                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
-                )
-            )
-            params.append(offset)
-
-        if record_id is not None:
-            where_parts.append(
-                sql.SQL("{} = %s").format(
-                    sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-                )
-            )
-            params.append(record_id)
-
-        parts: list[sql.Composable] = [
-            sql.SQL("SELECT {} FROM {}.{}").format(
-                columns_sql,
-                sql.Identifier(RAWDATA_SCHEMA),
-                sql.Identifier(table_name),
-            )
-        ]
-
-        if where_parts:
-            parts.append(sql.SQL(" WHERE "))
-            parts.append(sql.SQL(" AND ").join(where_parts))
-
-        if order_column is not None:
-            if order_direction not in ("asc", "desc"):
-                raise ValueError(f"invalid order direction: {order_direction}")
-            parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
-            parts.append(sql.SQL(order_direction))
-        elif row_offset is not None:
-            parts.append(
-                sql.SQL(" ORDER BY {} ").format(
-                    sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
-                )
-            )
-
-        if limit is not None:
-            parts.append(sql.SQL(" LIMIT %s"))
-            params.append(limit)
-
-        if row_offset is not None:
-            parts.append(sql.SQL(" OFFSET %s"))
-            params.append(row_offset)
-
-        rows = self._storage.query(sql.Composed(parts), params=params)
+        query, params = _build_raw_table_select(
+            table_name,
+            columns=columns,
+            offset=offset,
+            order_column=order_column,
+            order_direction=order_direction,
+            limit=limit,
+            record_id=record_id,
+            row_offset=row_offset,
+        )
+        rows = self._storage.query(query, params=params)
         return model.Layer0RawData(table_name, pandas.DataFrame(rows))
 
     def fetch_records(
@@ -389,7 +376,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 pgc_val = None
             raw_triage = row.get("triage_status")
             triage_val = raw_triage if raw_triage is not None else "unprocessed"
-            candidates = _crossmatch_metadata_to_candidates(row.get("crossmatch_metadata"))
+            candidates = metadata_to_candidates(row.get("crossmatch_metadata"))
             result.append(
                 model.TableRecord(
                     id=record_id,

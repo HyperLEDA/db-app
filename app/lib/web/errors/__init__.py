@@ -6,6 +6,7 @@ NOT_FOUND_ERROR = "not_found"
 UNAUTHORIZED_ERROR = "unauthorized"
 FORBIDDEN_ERROR = "forbidden"
 CONFLICT_ERROR = "conflict"
+RATE_LIMIT_ERROR = "rate_limit_exceeded"
 
 
 class APIError(abc.ABC, Exception):
@@ -120,3 +121,11 @@ class ConflictError(APIError):
         if self.sample_record_ids is not None:
             result["sample_record_ids"] = self.sample_record_ids
         return result
+
+
+class RateLimitError(APIError):
+    def __init__(self, message: str):
+        self.msg = message
+
+    def data(self) -> tuple[str, int, str]:
+        return (RATE_LIMIT_ERROR, 429, self.msg)

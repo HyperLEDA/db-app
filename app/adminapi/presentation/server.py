@@ -164,8 +164,9 @@ If two rows were identical this method will only insert the last one.""",
                 api.create_table,
                 "Get or create schema for the table.",
                 """Creates new schema for the table which can later be used to upload data.
-**Important**: If the table with the specified name already exists, does nothing and returns ID
-of the previously created table without any alterations.""",
+**Important**: If the table with the specified name already exists, returns the ID of the
+previously created table without altering its schema. The bibliography for the provided
+bibcode may still be created or updated.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),
@@ -268,6 +269,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 "Login",
                 "Authenticates user and returns token",
                 rate_limit="10/minute",
+                log_request_body=False,
             ),
             server.Route(
                 "/v1/logout",
@@ -328,7 +330,8 @@ Records in `pending` triage or with collided metadata are rejected. The request 
                 http.HTTPMethod.POST,
                 api.merge_pgcs,
                 "Merge PGC objects",
-                """Reassigns all records from one or more source PGCs onto a surviving target PGC.""",
+                """Reassigns all layer0 records from one or more source PGCs to a target PGC.
+Source PGC identifiers themselves are not removed.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

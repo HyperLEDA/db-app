@@ -5,20 +5,14 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import enums as data_enums
-from app.data import model, repositories
+from app.data import model
 from app.data.schema.layer2 import Redshift
 from app.lib import containers
-from app.lib.storage import enums, postgres
-from app.tasks import interface, logging
+from app.tasks import layer2_common, logging
 
 
 def aggregate_redshift(tbl: table.QTable) -> table.QTable:
-    work = table.QTable(tbl, copy=True)
-    is_compilation = np.asarray(work["datatype"]) == enums.DataType.COMPILATION.value
-    pgc = np.asarray(work["pgc"])
-    has_primary = np.isin(pgc, pgc[~is_compilation])
-    work = work[~is_compilation | ~has_primary]
+    work = layer2_common.exclude_compilations_with_primary(tbl)
 
     work["w_cz"] = 1.0 / work["e_cz"] ** 2
     work["cz_w"] = work["cz"] * work["w_cz"]
@@ -36,7 +30,7 @@ def aggregate_redshift(tbl: table.QTable) -> table.QTable:
 
 
 @final
-class Layer2ImportRedshiftTask(interface.Task):
+class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
     def __init__(
         self,
         logger: structlog.stdlib.BoundLogger,
@@ -46,22 +40,18 @@ class Layer2ImportRedshiftTask(interface.Task):
         since: datetime.datetime | str | None = None,
         cleanup_orphans: bool = True,
     ) -> None:
-        self.log = logger
-        self.batch_size = batch_size
-        self.dry_run = dry_run
-        self.silent = silent
-        self.since = interface.parse_since(since)
-        self.cleanup_orphans = cleanup_orphans
+        super().__init__(
+            logger,
+            batch_size=batch_size,
+            dry_run=dry_run,
+            silent=silent,
+            since=since,
+            cleanup_orphans=cleanup_orphans,
+        )
 
     @classmethod
     def name(cls) -> str:
         return "layer2-import-redshift"
-
-    def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
-        self.pg_storage.connect()
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 
     def run(self) -> None:
         if self.since is not None:
@@ -98,28 +88,11 @@ class Layer2ImportRedshiftTask(interface.Task):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = 0
-        if self.cleanup_orphans:
-            orphaned = self.layer2_repository.get_orphaned_pgcs([model.RawCatalog.REDSHIFT])
-            pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
-            orphans_to_delete = len(pgcs_to_remove)
-            if pgcs_to_remove and not self.dry_run:
-                self.layer2_repository.remove_pgcs([model.RawCatalog.REDSHIFT], pgcs_to_remove)
-
-        if not self.dry_run:
-            self.layer2_repository.update_last_update_time(
-                datetime.datetime.now(tz=datetime.UTC), model.RawCatalog.REDSHIFT
-            )
+        orphans_to_delete = self.finalize_catalog(model.RawCatalog.REDSHIFT)
         self.log.info("Layer 2 redshift import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:
             logging.print_table(
                 ("Description", "Count"),
-                [
-                    ("Objects saved", objects_to_save),
-                    ("Orphans deleted", orphans_to_delete),
-                ],
+                layer2_common.import_summary_rows(objects_to_save, orphans_to_delete, dry_run=self.dry_run),
             )
-
-    def cleanup(self) -> None:
-        self.pg_storage.disconnect()
