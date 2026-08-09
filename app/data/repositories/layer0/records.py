@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from app.data import model, template
+from app.data.repositories.common import touch_pgcs
 from app.data.repositories.layer0.common import metadata_to_candidates
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
@@ -213,6 +214,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 )
                 rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
                 self._storage.execute_batch(update_query, rows)
+                touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}
@@ -229,16 +231,22 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 pgcs_to_insert[record_id] = pgc
 
         if pgcs_to_insert:
+            previous_rows = self._storage.query(
+                "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
+                params=[list(pgcs_to_insert.keys())],
+            )
+            previous_pgcs = {int(row["pgc"]) for row in previous_rows}
             update_query = (
                 "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
                 "WHERE layer0.records.id = v.record_id"
             )
             rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
             self._storage.execute_batch(update_query, rows)
+            touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
 
     def _mint_pgc_ids(self, count: int) -> list[int]:
         rows = self._storage.query(
-            f"""INSERT INTO common.pgc
+            f"""INSERT INTO common.pgc (id)
             VALUES {",".join(["(DEFAULT)"] * count)}
             RETURNING id"""
         )
@@ -254,6 +262,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             """,
             params=[target_pgc, source_pgcs],
         )
+        touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
 
     def _progress_table_filter(self, table_names: list[str] | None) -> tuple[str, list[Any]]:
@@ -342,7 +351,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                    ) AS in_layer2,
                    COUNT(*) FILTER (
                        WHERE r.pgc IS NOT NULL
-                         AND (l2.pgc IS NULL OR r.modification_time > lu.dt)
+                         AND (l2.pgc IS NULL OR p.modification_time > lu.dt)
                    ) AS layer2_pending
             FROM (
                 SELECT DISTINCT record_id
@@ -350,6 +359,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             ) AS d
             JOIN layer0.records AS r ON r.id = d.record_id
             JOIN layer0.tables AS t ON r.table_id = t.id
+            LEFT JOIN common.pgc AS p ON p.id = r.pgc
             LEFT JOIN {layer2_table} AS l2 ON l2.pgc = r.pgc
             CROSS JOIN (
                 SELECT dt

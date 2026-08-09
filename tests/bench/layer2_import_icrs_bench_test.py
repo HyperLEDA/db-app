@@ -45,15 +45,22 @@ class Layer2ImportIcrsBenchTest(unittest.TestCase):
         )
         self.storage.exec(
             """
-            INSERT INTO layer0.records (id, table_id, pgc, modification_time)
+            INSERT INTO layer0.records (id, table_id, pgc)
             SELECT
                 'bench_icrs_' || i::text,
                 %s,
-                ((i - 1) / %s) + 1,
-                NOW()
+                ((i - 1) / %s) + 1
             FROM generate_series(1, %s) AS i
             """,
             params=[table_id, measurements_per_object, n_records],
+        )
+        self.storage.exec(
+            """
+            UPDATE common.pgc
+            SET modification_time = NOW()
+            WHERE id BETWEEN 1 AND %s
+            """,
+            params=[n_objects],
         )
         self.storage.exec(
             """

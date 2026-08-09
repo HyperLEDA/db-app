@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import uuid
 
@@ -59,12 +60,28 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
             ]
         )
 
+        old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+        self.pg_storage.storage.exec(
+            "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
+            params=[old_dt, existing_pgc],
+        )
+
         self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[new_id, existing_id]))
 
         new_pgc = self._pgc_for(new_id)
         self.assertIsNotNone(new_pgc)
         self.assertEqual(self._pgc_for(existing_id), existing_pgc)
         self.assertNotEqual(new_pgc, existing_pgc)
+        existing_mt = self.pg_storage.storage.query_one(
+            "SELECT modification_time FROM common.pgc WHERE id = %s",
+            params=[existing_pgc],
+        )["modification_time"]
+        self.assertGreater(existing_mt.replace(tzinfo=datetime.UTC), old_dt)
+        new_mt = self.pg_storage.storage.query_one(
+            "SELECT modification_time FROM common.pgc WHERE id = %s",
+            params=[new_pgc],
+        )["modification_time"]
+        self.assertGreater(new_mt.replace(tzinfo=datetime.UTC), old_dt)
 
     def test_reject_pending_records(self) -> None:
         table_name = "submit_pending"

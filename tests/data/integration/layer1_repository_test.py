@@ -213,3 +213,31 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.assertEqual(result[0].e_cz, 10.0)
         self.assertEqual(result[1].cz, 2000.0)
         self.assertEqual(result[1].e_cz, 100.0)
+
+    def test_save_structured_data_bumps_pgc_modification_time(self) -> None:
+        self._insert_nature_data("t_bump", ["rec1"], {"rec1": 5001}, [["G"]])
+        old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+        self.pg_storage.storage.exec(
+            "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
+            params=[old_dt, 5001],
+        )
+
+        self.layer1_repo.save_structured_data(
+            model.NatureCatalogObject.layer1_table(),
+            ["type_name"],
+            ["rec1"],
+            [["QSO"]],
+        )
+
+        row = self.pg_storage.storage.query_one(
+            "SELECT modification_time FROM common.pgc WHERE id = %s",
+            params=[5001],
+        )
+        self.assertGreater(row["modification_time"].replace(tzinfo=datetime.UTC), old_dt)
+
+        after_old = self.layer1_repo.get_new_nature_records(datetime.datetime(2000, 1, 2, tzinfo=datetime.UTC), 10, 0)
+        self.assertEqual(len(after_old), 1)
+        self.assertEqual(int(after_old["pgc"][0]), 5001)
+
+        future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
+        self.assertEqual(len(self.layer1_repo.get_new_nature_records(future, 10, 0)), 0)

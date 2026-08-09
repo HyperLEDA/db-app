@@ -8,6 +8,7 @@ from psycopg import sql
 
 from app.data import model
 from app.data.repositories.common import get_column_units as query_column_units
+from app.data.repositories.common import touch_pgcs
 from app.lib.storage import postgres
 
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -72,6 +73,11 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
             self._storage.execute_batch(query_str, rows)
+            pgc_rows = self._storage.query(
+                "SELECT DISTINCT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
+                params=[ids],
+            )
+            touch_pgcs(self._storage, [int(row["pgc"]) for row in pgc_rows])
 
     def _query_new_pgc_records(
         self,
@@ -90,7 +96,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             SELECT DISTINCT o.pgc
             FROM {layer1_table} AS l1
             JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.modification_time > %s AND o.pgc > %s
+            JOIN common.pgc AS p ON p.id = o.pgc
+            WHERE p.modification_time > %s AND o.pgc > %s
             ORDER BY o.pgc
             LIMIT %s
         )

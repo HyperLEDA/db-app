@@ -53,7 +53,7 @@ class CatalogObject(abc.ABC):
 
         Override when layer 1 rows are read back through ``query_records()``, e.g.
         in the crossmatch API. The list should include only catalog data columns,
-        not internal columns such as ``modification_time``.
+        not internal columns such as ``record_id``.
         """
         raise NotImplementedError
 

@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import uuid
 
@@ -40,6 +41,13 @@ class MergePgcsTest(unittest.TestCase):
         )
         return row["pgc"]
 
+    def _modification_time(self, pgc_id: int) -> datetime.datetime:
+        row = self.pg_storage.storage.query_one(
+            "SELECT modification_time FROM common.pgc WHERE id = %s",
+            params=[pgc_id],
+        )
+        return row["modification_time"]
+
     def test_merge_multiple_sources_onto_target(self) -> None:
         target_pgc = 100
         source_a = 200
@@ -56,6 +64,12 @@ class MergePgcsTest(unittest.TestCase):
             },
         )
 
+        old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+        self.pg_storage.storage.exec(
+            "UPDATE common.pgc SET modification_time = %s WHERE id = ANY(%s)",
+            params=[old_dt, [target_pgc, source_a, source_b]],
+        )
+
         response = self.manager.merge_pgcs(
             adminapi.MergePgcsRequest(target_pgc=target_pgc, source_pgcs=[source_a, source_b]),
         )
@@ -66,6 +80,9 @@ class MergePgcsTest(unittest.TestCase):
         self.assertEqual(self._pgc_for(target_id), target_pgc)
         self.assertEqual(self._pgc_for(source_a_id), target_pgc)
         self.assertEqual(self._pgc_for(source_b_id), target_pgc)
+        self.assertGreater(self._modification_time(target_pgc).replace(tzinfo=datetime.UTC), old_dt)
+        self.assertGreater(self._modification_time(source_a).replace(tzinfo=datetime.UTC), old_dt)
+        self.assertGreater(self._modification_time(source_b).replace(tzinfo=datetime.UTC), old_dt)
 
     def test_reject_target_in_sources(self) -> None:
         with self.assertRaises(pydantic.ValidationError):

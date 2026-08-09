@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import final
 
@@ -15,6 +16,15 @@ def get_column_units(storage: postgres.PgStorage, schema: str, table: str) -> di
         params=[schema, table],
     )
     return {row["column_name"]: row["unit"] for row in rows}
+
+
+def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
+    if not pgc_ids:
+        return
+    storage.exec(
+        "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
+        params=[list(pgc_ids)],
+    )
 
 
 @dataclass
@@ -75,6 +85,9 @@ class CommonRepository(postgres.TransactionalPGRepository):
             params=[pgcs],
         )
         return {int(row["id"]) for row in rows}
+
+    def touch_pgcs(self, pgc_ids: Sequence[int]) -> None:
+        touch_pgcs(self._storage, pgc_ids)
 
     def get_schema(self, schema_name: str, table_name: str) -> TableSchemaInfo:
         errgr = concurrency.ErrorGroup()

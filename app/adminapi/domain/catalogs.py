@@ -3,7 +3,7 @@ from typing import Any, final
 from app.adminapi import presentation as adminapi
 from app.data import model, repositories
 
-_INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id", "modification_time"})
+_INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
 
 _CATALOG_DISPLAY: dict[model.RawCatalog, tuple[str, str]] = {
     model.RawCatalog.ICRS: ("ICRS", "Equatorial coordinates in the ICRS frame."),
