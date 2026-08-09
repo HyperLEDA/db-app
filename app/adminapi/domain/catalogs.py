@@ -13,6 +13,14 @@ _CATALOG_DISPLAY: dict[model.RawCatalog, tuple[str, str]] = {
     model.RawCatalog.PHOTOMETRY__TOTAL: ("Photometry (total)", "Total magnitudes per band and method."),
     model.RawCatalog.PHOTOMETRY__ISOPHOTAL: ("Photometry (isophotal)", "Isophotal magnitudes per band and level."),
     model.RawCatalog.GEOMETRY: ("Geometry", "Isophotal ellipse geometry."),
+    model.RawCatalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY: (
+        "Spectroscopy (integrated flux density)",
+        "Integrated spectral line flux densities.",
+    ),
+    model.RawCatalog.SPECTROSCOPY__ENERGY_FLUX: (
+        "Spectroscopy (energy flux)",
+        "Spectral line energy fluxes.",
+    ),
     model.RawCatalog.NOTE: ("Note", "Free-text notes attached to records."),
 }
 

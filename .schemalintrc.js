@@ -22,6 +22,7 @@ module.exports = {
     { name: "private" },
     { name: "public" },
     { name: "rawdata" },
+    { name: "spectroscopy" },
   ],
   rules: {
     "name-casing": ["error", "snake"],

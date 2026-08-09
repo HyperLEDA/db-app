@@ -27,6 +27,8 @@ TABLE2_DEC_CENTER = random.uniform(-90 + TABLE2_RADIUS, 90 - TABLE2_RADIUS)
 
 PHOTOMETRY_BANDS = ["V", "B", "R"]
 PHOTOMETRY_METHOD = "psf"
+SPECTROSCOPY_LINES = ["HI", "Halpha"]
+SPECTROSCOPY_FLUX_METHOD = "sum"
 
 SIMPLE_FILTER_QUERY_CATALOGS = ["designation", "icrs", "redshift", "nature"]
 
@@ -135,6 +137,8 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_photometry_catalog(session, ids=ids)
     upload_photometry_isophotal_catalog(session, ids=ids)
     upload_geometry_catalog(session, ids=ids)
+    upload_spectroscopy_integrated_flux_density_catalog(session, ids=ids)
+    upload_spectroscopy_energy_flux_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -238,6 +242,50 @@ def upload_geometry_catalog(session: requests.Session, ids: list[str]) -> None:
         data=geom_data,
     )
     response = session.post("/v1/data/structured", json=geometry_request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_spectroscopy_integrated_flux_density_catalog(session: requests.Session, ids: list[str]) -> None:
+    flux_ids: list[str] = []
+    flux_data: list[list[object]] = []
+    for rid in ids:
+        for line_id in SPECTROSCOPY_LINES:
+            flux_ids.append(rid)
+            flux = random.uniform(0.1, 50.0)
+            e_flux = random.uniform(0.01, 0.5)
+            flux_data.append([line_id, flux, e_flux, SPECTROSCOPY_FLUX_METHOD, "regular"])
+
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="spectroscopy_integrated_flux_density",
+        columns=["line_id", "flux", "e_flux", "method", "quality"],
+        units={"flux": "Jy.km/s", "e_flux": "Jy.km/s"},
+        ids=flux_ids,
+        data=flux_data,
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_spectroscopy_energy_flux_catalog(session: requests.Session, ids: list[str]) -> None:
+    flux_ids: list[str] = []
+    flux_data: list[list[object]] = []
+    for rid in ids:
+        for line_id in SPECTROSCOPY_LINES:
+            flux_ids.append(rid)
+            flux = random.uniform(1e-17, 1e-14)
+            e_flux = random.uniform(1e-19, 1e-16)
+            flux_data.append([line_id, flux, e_flux, "regular"])
+
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="spectroscopy_energy_flux",
+        columns=["line_id", "flux", "e_flux", "quality"],
+        units={"flux": "erg/cm2/s", "e_flux": "erg/cm2/s"},
+        ids=flux_ids,
+        data=flux_data,
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
     response.raise_for_status()
 
 
