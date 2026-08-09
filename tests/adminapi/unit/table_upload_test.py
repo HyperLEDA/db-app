@@ -372,7 +372,7 @@ class GetRecordsTest(unittest.TestCase):
         self.assertEqual(call_kw["row_offset"], 20)
         self.assertEqual(call_kw["limit"], 10)
 
-    def test_get_records_pgc_none_when_missing_or_nan(self) -> None:
+    def test_get_records_pgc_none_when_missing(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = [
             model.TableRecord(
                 id="rec1",
