@@ -1,6 +1,5 @@
 from typing import Any
 
-from astropy import coordinates as coords
 from astropy import units as u
 
 from app.data import model
@@ -64,48 +63,57 @@ class StructuredResponder(interface.ObjectResponder):
     def __init__(self, cfg: CatalogConfig) -> None:
         self.config = cfg
 
-    def _heliocentric_to_redshift(self, cz: float) -> float:
-        return astronomy.to((cz * u.Unit("km/s")) / astronomy.const("c"))
+    def _coordinates_from_icrs(self, ra: float, dec: float, e_ra: float, e_dec: float) -> dataapi.Coordinates:
+        eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
+        eq_e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
+        lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
+        sg_lon, sg_lat, sg_e_lon, sg_e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
+        return dataapi.Coordinates(
+            equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=eq_e_ra, e_dec=eq_e_dec),
+            galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
+            supergalactic=dataapi.SupergalacticCoordinates(lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat),
+        )
 
-    def _equatorial(
+    def _redshift_from_cz(self, cz: float, e_cz: float) -> dataapi.Redshift:
+        return dataapi.Redshift(
+            z=astronomy.heliocentric_cz_to_z(cz * u.Unit("km/s")),
+            e_z=astronomy.heliocentric_cz_to_z(e_cz * u.Unit("km/s")),
+        )
+
+    def _velocities_from_apexes(
         self,
-        ra: float,
-        dec: float,
-        e_ra: float,
-        e_dec: float,
-    ) -> tuple[float, float, float, float]:
-        e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
-        e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
+        lon: float,
+        lat: float,
+        e_lon: float,
+        e_lat: float,
+        cz: float,
+        e_cz: float,
+        catalog_schema: dataapi.Schema,
+    ) -> dict[str, dataapi.AbsoluteVelocity]:
+        velocities: dict[str, dataapi.AbsoluteVelocity] = {}
+        for key, apex in self.config.velocity.apexes.items():
+            vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
+                vel=cz * u.Unit("km/s"),
+                lon=lon * u.Unit("deg"),
+                lat=lat * u.Unit("deg"),
+                vel_apex=apex.vel.value * u.Unit("km/s"),
+                lon_apex=apex.lon.value * u.Unit("deg"),
+                lat_apex=apex.lat.value * u.Unit("deg"),
+                vel_err=e_cz * u.Unit("km/s"),
+                lon_err=e_lon * u.Unit("arcsec"),
+                lat_err=e_lat * u.Unit("arcsec"),
+                vel_apex_err=apex.vel.error * u.Unit("km/s"),
+                lon_apex_err=apex.lon.error * u.Unit("deg"),
+                lat_apex_err=apex.lat.error * u.Unit("deg"),
+            )
 
-        return ra, dec, e_ra, e_dec
-
-    def _equatorial_to_galactic(
-        self, ra: float, dec: float, e_ra: float, e_dec: float
-    ) -> tuple[float, float, float, float]:
-        coord = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg"))
-        gal = coord.galactic
-
-        # TODO: for simplicity this approach assumes errors in galactic coordinates to be the
-        # same, which might not necessarily be true for larger errors.
-        lon = astronomy.to(gal.l, "deg")
-        lat = astronomy.to(gal.b, "deg")
-        e_lon = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
-        e_lat = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
-
-        return lon, lat, e_lon, e_lat
-
-    def _equatorial_to_supergalactic(
-        self, ra: float, dec: float, e_ra: float, e_dec: float
-    ) -> tuple[float, float, float, float]:
-        coord = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg"))
-        sg = coord.supergalactic
-
-        lon = astronomy.to(sg.sgl, "deg")
-        lat = astronomy.to(sg.sgb, "deg")
-        e_lon = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
-        e_lat = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
-
-        return lon, lat, e_lon, e_lat
+            schema = VELOCITY_SCHEMA
+            catalog_schema.units.velocity[key] = schema
+            velocities[key] = dataapi.AbsoluteVelocity(
+                v=vel_wr_apex.to(u.Unit(schema.v)).value,
+                e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
+            )
+        return velocities
 
     def build_response_from_catalog(self, objects: list[layer2.Layer2CatalogObject]) -> Any:
         catalog_schema = DATA_SCHEMA
@@ -119,59 +127,28 @@ class StructuredResponder(interface.ObjectResponder):
 
             icrs = obj.get(model.ICRSCatalogObject)
             if icrs is not None:
-                ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
-                lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
-                sg_lon, sg_lat, sg_e_lon, sg_e_lat = self._equatorial_to_supergalactic(
-                    icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec
-                )
-
-                catalogs.coordinates = dataapi.Coordinates(
-                    equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
-                    galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
-                    supergalactic=dataapi.SupergalacticCoordinates(
-                        lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat
-                    ),
-                )
+                catalogs.coordinates = self._coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
             redshift = obj.get(model.RedshiftCatalogObject)
             if redshift is not None:
-                catalogs.redshift = dataapi.Redshift(
-                    z=self._heliocentric_to_redshift(redshift.cz),
-                    e_z=self._heliocentric_to_redshift(redshift.e_cz),
-                )
+                catalogs.redshift = self._redshift_from_cz(redshift.cz, redshift.e_cz)
 
             if (nature := obj.get(model.NatureCatalogObject)) is not None:
                 catalogs.nature = dataapi.Nature(type_name=nature.type_name)
 
-            if icrs is not None and redshift is not None:
-                catalogs.velocity = {}
+            if icrs is not None and redshift is not None and catalogs.coordinates is not None:
+                gal = catalogs.coordinates.galactic
+                catalogs.velocity = self._velocities_from_apexes(
+                    gal.lon,
+                    gal.lat,
+                    gal.e_lon,
+                    gal.e_lat,
+                    redshift.cz,
+                    redshift.e_cz,
+                    catalog_schema,
+                )
 
-                for key, apex in self.config.velocity.apexes.items():
-                    vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                        vel=redshift.cz * u.Unit("km/s"),
-                        lon=lon * u.Unit("deg"),
-                        lat=lat * u.Unit("deg"),
-                        vel_apex=apex.vel.value * u.Unit("km/s"),
-                        lon_apex=apex.lon.value * u.Unit("deg"),
-                        lat_apex=apex.lat.value * u.Unit("deg"),
-                        vel_err=redshift.e_cz * u.Unit("km/s"),
-                        lon_err=e_lon * u.Unit("arcsec"),
-                        lat_err=e_lat * u.Unit("arcsec"),
-                        vel_apex_err=apex.vel.error * u.Unit("km/s"),
-                        lon_apex_err=apex.lon.error * u.Unit("arcsec"),
-                        lat_apex_err=apex.lat.error * u.Unit("arcsec"),
-                    )
-
-                    schema = VELOCITY_SCHEMA
-
-                    catalog_schema.units.velocity[key] = schema
-                    catalogs.velocity[key] = dataapi.AbsoluteVelocity(
-                        v=vel_wr_apex.to(u.Unit(schema.v)).value,
-                        e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
-                    )
-
-            pgc_object = dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs)
-            pgc_objects.append(pgc_object)
+            pgc_objects.append(dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs))
 
         return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)
 
@@ -201,26 +178,11 @@ class StructuredResponder(interface.ObjectResponder):
 
             icrs = obj.catalogs.icrs
             if icrs is not None:
-                ra, dec, e_ra, e_dec = self._equatorial(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
-                lon, lat, e_lon, e_lat = self._equatorial_to_galactic(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
-                sg_lon, sg_lat, sg_e_lon, sg_e_lat = self._equatorial_to_supergalactic(
-                    icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec
-                )
-
-                catalogs.coordinates = dataapi.Coordinates(
-                    equatorial=dataapi.EquatorialCoordinates(ra=ra, dec=dec, e_ra=e_ra, e_dec=e_dec),
-                    galactic=dataapi.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
-                    supergalactic=dataapi.SupergalacticCoordinates(
-                        lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat
-                    ),
-                )
+                catalogs.coordinates = self._coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
             if obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift
-                catalogs.redshift = dataapi.Redshift(
-                    z=self._heliocentric_to_redshift(redshift.cz),
-                    e_z=self._heliocentric_to_redshift(redshift.e_cz),
-                )
+                catalogs.redshift = self._redshift_from_cz(redshift.cz, redshift.e_cz)
 
             if obj.catalogs.nature is not None:
                 catalogs.nature = dataapi.Nature(type_name=obj.catalogs.nature.type_name)
@@ -252,35 +214,19 @@ class StructuredResponder(interface.ObjectResponder):
                     for measurement in obj.catalogs.photometry_total.measurements
                 ]
 
-            if icrs is not None and obj.catalogs.redshift is not None:
+            if icrs is not None and obj.catalogs.redshift is not None and catalogs.coordinates is not None:
                 redshift = obj.catalogs.redshift
-                catalogs.velocity = {}
+                gal = catalogs.coordinates.galactic
+                catalogs.velocity = self._velocities_from_apexes(
+                    gal.lon,
+                    gal.lat,
+                    gal.e_lon,
+                    gal.e_lat,
+                    redshift.cz,
+                    redshift.e_cz,
+                    catalog_schema,
+                )
 
-                for key, apex in self.config.velocity.apexes.items():
-                    vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                        vel=redshift.cz * u.Unit("km/s"),
-                        lon=lon * u.Unit("deg"),
-                        lat=lat * u.Unit("deg"),
-                        vel_apex=apex.vel.value * u.Unit("km/s"),
-                        lon_apex=apex.lon.value * u.Unit("deg"),
-                        lat_apex=apex.lat.value * u.Unit("deg"),
-                        vel_err=redshift.e_cz * u.Unit("km/s"),
-                        lon_err=e_lon * u.Unit("arcsec"),
-                        lat_err=e_lat * u.Unit("arcsec"),
-                        vel_apex_err=apex.vel.error * u.Unit("km/s"),
-                        lon_apex_err=apex.lon.error * u.Unit("arcsec"),
-                        lat_apex_err=apex.lat.error * u.Unit("arcsec"),
-                    )
-
-                    schema = VELOCITY_SCHEMA
-
-                    catalog_schema.units.velocity[key] = schema
-                    catalogs.velocity[key] = dataapi.AbsoluteVelocity(
-                        v=vel_wr_apex.to(u.Unit(schema.v)).value,
-                        e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
-                    )
-
-            pgc_object = dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs)
-            pgc_objects.append(pgc_object)
+            pgc_objects.append(dataapi.PGCObject(pgc=obj.pgc, catalogs=catalogs))
 
         return dataapi.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)

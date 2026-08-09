@@ -5,6 +5,7 @@ from app.data.repositories import layer2
 from app.dataapi import presentation as dataapi
 from app.dataapi import responders
 from app.lib import astronomy
+from app.lib.web.errors import RuleValidationError
 
 CATALOGS_FOR_PGC_QUERY = [
     model.RawCatalog.DESIGNATION,
@@ -24,7 +25,7 @@ def resolve_query_catalogs(
     if catalog_names is None:
         return default_catalogs
     if not catalog_names:
-        raise ValueError("catalogs must not be empty")
+        raise RuleValidationError("catalogs must not be empty")
 
     allowed = set(default_catalogs)
     result: list[model.RawCatalog] = []
@@ -34,10 +35,10 @@ def resolve_query_catalogs(
             catalog = model.RawCatalog(name)
         except ValueError as exc:
             valid = ", ".join(c.value for c in model.RawCatalog)
-            raise ValueError(f"Unknown catalog {name!r}; valid values are: {valid}") from exc
+            raise RuleValidationError(f"Unknown catalog {name!r}; valid values are: {valid}") from exc
         if catalog not in allowed:
             allowed_names = ", ".join(c.value for c in default_catalogs)
-            raise ValueError(f"Catalog {name!r} is not available for this query; available: {allowed_names}")
+            raise RuleValidationError(f"Catalog {name!r} is not available for this query; available: {allowed_names}")
         if catalog not in seen:
             seen.add(catalog)
             result.append(catalog)

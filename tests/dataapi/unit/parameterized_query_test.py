@@ -9,6 +9,7 @@ from app.data import model
 from app.data.repositories import layer2
 from app.dataapi.domain import parameterized_query
 from app.dataapi.presentation import interface
+from app.lib.web import errors
 
 DEFAULT = [
     model.RawCatalog.DESIGNATION,
@@ -43,15 +44,15 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
         )
 
     def test_empty_list_raises(self):
-        with self.assertRaisesRegex(ValueError, "must not be empty"):
+        with self.assertRaisesRegex(errors.RuleValidationError, "must not be empty"):
             parameterized_query.resolve_query_catalogs([], DEFAULT)
 
     def test_unknown_catalog_raises(self):
-        with self.assertRaisesRegex(ValueError, "Unknown catalog"):
+        with self.assertRaisesRegex(errors.RuleValidationError, "Unknown catalog"):
             parameterized_query.resolve_query_catalogs(["not_a_catalog"], DEFAULT)
 
     def test_unavailable_catalog_raises(self):
-        with self.assertRaisesRegex(ValueError, "not available"):
+        with self.assertRaisesRegex(errors.RuleValidationError, "not available"):
             parameterized_query.resolve_query_catalogs(
                 ["note"],
                 DEFAULT,

@@ -2,7 +2,6 @@ from collections.abc import Callable
 from typing import Any, Protocol, final
 
 import structlog
-from astropy import coordinates
 from astropy import units as u
 
 from app.adminapi import presentation as adminapi
@@ -31,13 +30,7 @@ class _CatalogBearing(Protocol):
 
 
 def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
-    icrs_coords = coordinates.ICRS(ra=obj.ra * u.Unit("deg"), dec=obj.dec * u.Unit("deg"))
-    galactic_coords = icrs_coords.transform_to(coordinates.Galactic())
-
-    # for simplicity this approach assumes errors in galactic coordinates to be the
-    # same, which might not necessarily be true for larger errors.
-    e_lon = astronomy.to(obj.e_ra * u.Unit("deg"), "arcsec")
-    e_lat = astronomy.to(obj.e_dec * u.Unit("deg"), "arcsec")
+    lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(obj.ra, obj.dec, obj.e_ra, obj.e_dec, "galactic")
 
     return adminapi.Coordinates(
         equatorial=adminapi.EquatorialCoordinates(
@@ -47,8 +40,8 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
             e_dec=obj.e_dec,
         ),
         galactic=adminapi.GalacticCoordinates(
-            lon=galactic_coords.l.deg,
-            lat=galactic_coords.b.deg,
+            lon=lon,
+            lat=lat,
             e_lon=e_lon,
             e_lat=e_lat,
         ),
@@ -56,16 +49,13 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
 
 
 def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[adminapi.Redshift, adminapi.Velocity]:
-    cz = obj.cz * u.Unit("km/s")
-    e_cz = obj.e_cz * u.Unit("km/s")
-
-    z = astronomy.to(cz / astronomy.const("c"))
-    e_z = astronomy.to(e_cz / astronomy.const("c"))
+    z = astronomy.heliocentric_cz_to_z(obj.cz * u.Unit("km/s"))
+    e_z = astronomy.heliocentric_cz_to_z(obj.e_cz * u.Unit("km/s"))
 
     return adminapi.Redshift(z=z, e_z=e_z), adminapi.Velocity(
         heliocentric=adminapi.HeliocentricVelocity(
-            v=astronomy.to(cz, "km/s"),
-            e_v=astronomy.to(e_cz, "km/s"),
+            v=obj.cz,
+            e_v=obj.e_cz,
         )
     )
 

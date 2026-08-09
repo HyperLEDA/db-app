@@ -1,12 +1,16 @@
 import warnings
+from typing import Literal
 
 from astropy import constants
+from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
 from uncertainties import ufloat
 from uncertainties.umath import cos, sin
 
 warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
+
+CoordinateFrame = Literal["galactic", "supergalactic"]
 
 
 def const(const_name: str) -> u.Quantity:
@@ -27,6 +31,28 @@ def to(value: u.Quantity, unit: str | None = None) -> float:
         return value.value
 
     return float(value.to(u.Unit(unit)).value)
+
+
+def heliocentric_cz_to_z(cz: u.Quantity[u.Unit("km/s")]) -> float:
+    return to(cz / const("c"))
+
+
+def equatorial_to_lonlat(
+    ra: float,
+    dec: float,
+    e_ra: float,
+    e_dec: float,
+    frame: CoordinateFrame,
+) -> tuple[float, float, float, float]:
+    coord = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg"))
+    transformed = coord.transform_to(frame)
+    lon = to(transformed.spherical.lon, "deg")
+    lat = to(transformed.spherical.lat, "deg")
+    # for simplicity this approach assumes errors in the transformed coordinates to be the
+    # same, which might not necessarily be true for larger errors.
+    e_lon = to(e_ra * u.Unit("deg"), "arcsec")
+    e_lat = to(e_dec * u.Unit("deg"), "arcsec")
+    return lon, lat, e_lon, e_lat
 
 
 def velocity_wr_apex(
