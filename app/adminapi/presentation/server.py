@@ -269,6 +269,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 "Login",
                 "Authenticates user and returns token",
                 rate_limit="10/minute",
+                log_request_body=False,
             ),
             server.Route(
                 "/v1/logout",

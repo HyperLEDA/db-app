@@ -17,8 +17,7 @@ class Authenticator(abc.ABC):
     @abc.abstractmethod
     def authenticate(self, token: str) -> tuple[user.User, bool]:
         """
-        Given a token, returns the boolean indicating if the user is authenticated and if they are,
-        instance of the user.
+        Given a token, returns the user and a boolean indicating if the user is authenticated.
         """
 
     @abc.abstractmethod

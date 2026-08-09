@@ -34,6 +34,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     allowed_roles: list[auth.Role] | None = None
     rate_limit: str | None = None
     audit_action: bool = False
+    log_request_body: bool = True
 
 
 async def validation_exception_handler(_request, exc):
@@ -43,8 +44,8 @@ async def validation_exception_handler(_request, exc):
 
 
 async def rate_limit_exception_handler(_request, exc: RateLimitExceeded):
-    err = errors.RuleValidationError(str(exc))
-    return responses.JSONResponse(err.dict(), status_code=429)
+    err = errors.RateLimitError(str(exc))
+    return responses.JSONResponse(err.dict(), status_code=err.status())
 
 
 def _secured_roles_map(
@@ -67,6 +68,15 @@ def _audit_actions_map(
         for route in routes
         if route.audit_action
     }
+
+
+def _log_body_routes(
+    routes: list[Route[Any, Any]],
+    path_prefix: str,
+) -> frozenset[tuple[str, str]]:
+    return frozenset(
+        (f"{path_prefix}{route.path}", route.method.value.lower()) for route in routes if route.log_request_body
+    )
 
 
 def _make_openapi(app: fastapi.FastAPI, secured: frozenset[tuple[str, str]]) -> Callable[[], dict[str, Any]]:
@@ -124,10 +134,15 @@ class WebServer:
 
         secured_roles = _secured_roles_map(routes, cfg.path_prefix) if auth_enabled else {}
         audit_actions = _audit_actions_map(routes, cfg.path_prefix)
+        log_bodies = _log_body_routes(routes, cfg.path_prefix)
 
         app.add_middleware(middlewares.ExceptionMiddleware, logger=logger)
         app.add_middleware(middlewares.TracingMiddleware)
-        app.add_middleware(middlewares.LoggingMiddleware, logger=logger)
+        app.add_middleware(
+            middlewares.LoggingMiddleware,
+            logger=logger,
+            log_bodies=log_bodies,
+        )
         if audit_actions and action_recorder is not None:
             app.add_middleware(
                 middlewares.ActionMiddleware,
