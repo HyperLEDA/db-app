@@ -1,4 +1,15 @@
-from app.data.model import designation, geometry, icrs, interface, nature, note, photometry, redshift, spectroscopy
+from app.data.model import (
+    designation,
+    geometry,
+    icrs,
+    interface,
+    kinematics,
+    nature,
+    note,
+    photometry,
+    redshift,
+    spectroscopy,
+)
 
 _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]] = {
     interface.RawCatalog.DESIGNATION: designation.DesignationCatalogObject,
@@ -12,6 +23,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]]
         spectroscopy.SpectroscopyIntegratedFluxDensityCatalogObject
     ),
     interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX: spectroscopy.SpectroscopyEnergyFluxCatalogObject,
+    interface.RawCatalog.KINEMATICS__LINE_WIDTH: kinematics.KinematicsLineWidthCatalogObject,
     interface.RawCatalog.NOTE: note.NoteCatalogObject,
 }
 

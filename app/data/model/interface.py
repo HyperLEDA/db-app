@@ -20,6 +20,7 @@ class RawCatalog(enum.Enum):
     GEOMETRY = "geometry"
     SPECTROSCOPY__INTEGRATED_FLUX_DENSITY = "spectroscopy_integrated_flux_density"
     SPECTROSCOPY__ENERGY_FLUX = "spectroscopy_energy_flux"
+    KINEMATICS__LINE_WIDTH = "kinematics_line_width"
     NOTE = "note"
 
 

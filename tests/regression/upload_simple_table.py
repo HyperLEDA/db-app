@@ -29,6 +29,8 @@ PHOTOMETRY_BANDS = ["V", "B", "R"]
 PHOTOMETRY_METHOD = "psf"
 SPECTROSCOPY_LINES = ["HI", "Halpha"]
 SPECTROSCOPY_FLUX_METHOD = "sum"
+KINEMATICS_WIDTH_METHOD = "peak"
+KINEMATICS_LEVEL = 50
 
 SIMPLE_FILTER_QUERY_CATALOGS = ["designation", "icrs", "redshift", "nature"]
 
@@ -139,6 +141,7 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_geometry_catalog(session, ids=ids)
     upload_spectroscopy_integrated_flux_density_catalog(session, ids=ids)
     upload_spectroscopy_energy_flux_catalog(session, ids=ids)
+    upload_kinematics_line_width_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -284,6 +287,31 @@ def upload_spectroscopy_energy_flux_catalog(session: requests.Session, ids: list
         units={"flux": "erg/cm2/s", "e_flux": "erg/cm2/s"},
         ids=flux_ids,
         data=flux_data,
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_kinematics_line_width_catalog(session: requests.Session, ids: list[str]) -> None:
+    width_ids: list[str] = []
+    width_data: list[list[object]] = []
+    for rid in ids:
+        for line_id in SPECTROSCOPY_LINES:
+            width_ids.append(rid)
+            width = random.uniform(50.0, 400.0)
+            e_width = random.uniform(1.0, 20.0)
+            resolution = random.uniform(5.0, 30.0)
+            width_data.append(
+                [line_id, width, e_width, KINEMATICS_WIDTH_METHOD, KINEMATICS_LEVEL, resolution, "regular"]
+            )
+
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="kinematics_line_width",
+        columns=["line_id", "width", "e_width", "method", "level", "resolution", "quality"],
+        units={"width": "km/s", "e_width": "km/s", "resolution": "km/s"},
+        ids=width_ids,
+        data=width_data,
     )
     response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
     response.raise_for_status()

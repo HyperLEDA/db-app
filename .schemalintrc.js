@@ -13,6 +13,7 @@ module.exports = {
     { name: "dataviews" },
     { name: "designation" },
     { name: "icrs" },
+    { name: "kinematics" },
     { name: "layer0" },
     { name: "layer2" },
     { name: "meta" },
