@@ -9,6 +9,7 @@ from app.data.model.interface import (
     RawCatalog,
     get_object,
 )
+from app.data.model.kinematics import KinematicsLineWidthCatalogObject
 from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
 from app.data.model.nature import NatureCatalogObject
 from app.data.model.note import NoteCatalogObject
@@ -67,6 +68,7 @@ __all__ = [
     "GeometryCatalogObject",
     "SpectroscopyIntegratedFluxDensityCatalogObject",
     "SpectroscopyEnergyFluxCatalogObject",
+    "KinematicsLineWidthCatalogObject",
     "NoteCatalogObject",
     "get_catalog_object_type",
     "Bibliography",

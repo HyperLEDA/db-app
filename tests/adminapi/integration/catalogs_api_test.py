@@ -105,6 +105,26 @@ class CatalogsAPITest(unittest.TestCase):
         self.assertEqual(fields["flux"]["unit"], "erg/cm2/s")
         self.assertEqual(fields["e_flux"]["unit"], "erg/cm2/s")
 
+    def test_get_catalogs_kinematics_line_width(self) -> None:
+        catalogs = self._catalogs_by_name()
+        catalog = catalogs["kinematics_line_width"]
+        fields = {f["name"]: f for f in catalog["fields"]}
+        self.assertEqual(
+            set(fields),
+            {"line_id", "width", "e_width", "method", "level", "resolution", "quality"},
+        )
+        self.assertTrue(fields["line_id"]["required"])
+        self.assertTrue(fields["width"]["required"])
+        self.assertFalse(fields["e_width"]["required"])
+        self.assertTrue(fields["method"]["required"])
+        self.assertTrue(fields["level"]["required"])
+        self.assertTrue(fields["resolution"]["required"])
+        self.assertTrue(fields["quality"]["required"])
+        self.assertEqual(fields["width"]["unit"], "km/s")
+        self.assertEqual(fields["e_width"]["unit"], "km/s")
+        self.assertEqual(fields["resolution"]["unit"], "km/s")
+        self.assertEqual(fields["method"]["data_type"], "str")
+
     def test_runtime_catalogs_excluded(self) -> None:
         catalogs = self._catalogs_by_name()
         self.assertNotIn("additional_designations", catalogs)

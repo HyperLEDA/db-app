@@ -21,6 +21,10 @@ _CATALOG_DISPLAY: dict[model.RawCatalog, tuple[str, str]] = {
         "Spectroscopy (energy flux)",
         "Spectral line energy fluxes.",
     ),
+    model.RawCatalog.KINEMATICS__LINE_WIDTH: (
+        "Kinematics (line width)",
+        "Spectral line width measurements.",
+    ),
     model.RawCatalog.NOTE: ("Note", "Free-text notes attached to records."),
 }
 
