@@ -79,9 +79,10 @@ class AdminAPIAuthTest(unittest.TestCase):
     def base(self) -> str:
         return f"http://127.0.0.1:{self.server_port}/admin/api"
 
-    def test_get_public(self):
+    def test_get_without_auth(self):
         r = requests.get(f"{self.base}/v1/tables", timeout=5)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "No authorization header")
 
     def test_post_without_auth(self):
         r = requests.post(
