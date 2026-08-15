@@ -33,7 +33,8 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
         self.assertNotIn("FULL JOIN", query)
         self.assertIn(
-            "CROSS JOIN layer2.designation LEFT JOIN layer2.icrs USING (pgc) LEFT JOIN layer2.cz USING (pgc)",
+            "CROSS JOIN layer2.designations LEFT JOIN layer2.designation USING (pgc) "
+            "LEFT JOIN layer2.icrs USING (pgc) LEFT JOIN layer2.cz USING (pgc)",
             query,
         )
 
@@ -100,5 +101,5 @@ class QueryCatalogsJoinTest(unittest.TestCase):
             layer2.CombinedSearchParams([layer2.DesignationSearchParams("IC 1440")]),
         )
 
-        self.assertIn("CROSS JOIN layer2.designation LEFT JOIN layer2.cz USING (pgc)", query)
+        self.assertIn("CROSS JOIN layer2.designations LEFT JOIN layer2.cz USING (pgc)", query)
         self.assertNotIn('"designation|design"', query)
