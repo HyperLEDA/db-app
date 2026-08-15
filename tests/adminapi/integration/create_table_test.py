@@ -99,3 +99,27 @@ class CreateTableTest(unittest.TestCase):
         meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
         self.assertEqual(meta.description, "updated table description")
         self.assertEqual(meta.meta["datatype"], enums.DataType.PRELIMINARY)
+        self.assertEqual(meta.meta["status"], enums.TableStatus.INITIATED)
+
+        self.upload_manager.patch_table(
+            presentation.PatchTableRequest(
+                table_name=table_name,
+                status=enums.TableStatus.ARCHIVED,
+            ),
+        )
+
+        meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
+        self.assertEqual(meta.meta["status"], enums.TableStatus.ARCHIVED)
+
+        default_list = self.upload_manager.get_table_list(presentation.GetTableListRequest(query=table_name))
+        self.assertEqual(default_list.tables, [])
+
+        archived_list = self.upload_manager.get_table_list(
+            presentation.GetTableListRequest(
+                query=table_name,
+                statuses=[enums.TableStatus.ARCHIVED],
+            )
+        )
+        self.assertEqual(len(archived_list.tables), 1)
+        self.assertEqual(archived_list.tables[0].name, table_name)
+        self.assertEqual(archived_list.tables[0].status, enums.TableStatus.ARCHIVED)

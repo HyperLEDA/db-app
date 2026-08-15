@@ -8,6 +8,7 @@ from parameterized import param, parameterized
 from psycopg import sql
 
 from app.data.repositories import Layer0Repository
+from app.lib.storage import enums
 from tests import lib
 
 
@@ -66,6 +67,7 @@ class Layer0RepositoryTest(unittest.TestCase):
         self.storage_mock.query.return_value = [
             {
                 "table_name": "my_table",
+                "status": enums.TableStatus.INITIATED,
                 "description": "A test table",
                 "num_fields": 6,
                 "modification_dt": datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
@@ -73,7 +75,12 @@ class Layer0RepositoryTest(unittest.TestCase):
             }
         ]
 
-        result = self.repo.search_tables("my_table", page_size=25, page=1)
+        result = self.repo.search_tables(
+            "my_table",
+            page_size=25,
+            page=1,
+            statuses=[enums.TableStatus.INITIATED],
+        )
 
         self.storage_mock.query.assert_called_once()
         query = self.storage_mock.query.call_args[0][0]
@@ -82,11 +89,14 @@ class Layer0RepositoryTest(unittest.TestCase):
         self.assertIn("layer0.tables", query)
         self.assertIn("meta.table_info", query)
         self.assertIn("ILIKE", query)
+        self.assertIn("t.status = ANY", query)
         self.assertIn("LIMIT", query)
         self.assertIn("OFFSET", query)
+        self.assertEqual(params[-3], [enums.TableStatus.INITIATED])
         self.assertEqual(params[-2], 25)
         self.assertEqual(params[-1], 25)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].table_name, "my_table")
         self.assertEqual(result[0].description, "A test table")
         self.assertEqual(result[0].num_fields, 6)
+        self.assertEqual(result[0].status, enums.TableStatus.INITIATED)

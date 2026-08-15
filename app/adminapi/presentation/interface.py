@@ -51,6 +51,9 @@ class GetTableListRequest(pydantic.BaseModel):
     query: str = ""
     page_size: int = 25
     page: int = 0
+    statuses: list[enums.TableStatus] = pydantic.Field(
+        default_factory=lambda: [enums.TableStatus.INITIATED],
+    )
 
 
 class CatalogProgress(pydantic.BaseModel):
@@ -75,6 +78,7 @@ class TableListItem(pydantic.BaseModel):
     num_fields: int
     modification_dt: datetime.datetime
     bibcode: str
+    status: enums.TableStatus
     progress: TableProgress
 
 
@@ -170,6 +174,10 @@ class PatchTableRequest(WriteRequest):
     datatype: enums.DataType | None = pydantic.Field(
         default=None,
         description="When set, replaces the table datatype.",
+    )
+    status: enums.TableStatus | None = pydantic.Field(
+        default=None,
+        description="When set, replaces the table status.",
     )
     columns: dict[str, PatchColumnSpec] = {}
 

@@ -100,3 +100,7 @@ u.Unit("km/s")
 u.kpc
 u.km / u.s
 ```
+
+### File changes
+
+When moving files as part of a refactor of any kind prefer using `git mv` whenver possible instead of removing + adding.

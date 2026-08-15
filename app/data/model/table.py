@@ -39,6 +39,7 @@ class Layer0TableMeta:
     column_descriptions: list[ColumnDescription]
     bibliography_id: int
     datatype: enums.DataType = enums.DataType.REGULAR
+    status: enums.TableStatus = enums.TableStatus.INITIATED
     modification_dt: datetime.datetime | None = None
     description: str | None = None
     table_id: int | None = None
@@ -51,6 +52,7 @@ class Layer0TableListItem:
     num_fields: int
     modification_dt: datetime.datetime
     bibcode: str
+    status: enums.TableStatus
 
 
 @dataclass

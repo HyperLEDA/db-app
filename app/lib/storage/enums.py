@@ -18,3 +18,8 @@ class RecordCrossmatchStatus(enum.StrEnum):
 class RecordTriageStatus(enum.StrEnum):
     PENDING = "pending"
     RESOLVED = "resolved"
+
+
+class TableStatus(enum.StrEnum):
+    INITIATED = "initiated"
+    ARCHIVED = "archived"
