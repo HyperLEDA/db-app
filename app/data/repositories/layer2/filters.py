@@ -145,13 +145,13 @@ class DesignationLikeFilter(Filter):
         return "designation_like"
 
     def get_query(self):
-        return "designation.design ILIKE CONCAT('%%', sp.params->>'design', '%%')"
+        return "layer2.designations.design ILIKE CONCAT('%%', sp.params->>'design', '%%')"
 
     def get_params(self):
         return []
 
     def driving_table(self) -> str | None:
-        return "layer2.designation"
+        return "layer2.designations"
 
 
 @final
