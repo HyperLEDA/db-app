@@ -444,6 +444,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             descriptions,
             registry_item["bib"],
             registry_item["datatype"],
+            registry_item["status"],
             modification_dt,
             table_metadata["param"].get("description"),
             table_id=registry_item["id"],
@@ -487,6 +488,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             params=[datatype, table_id],
         )
 
+    def update_table_status(self, table_name: str, status: enums.TableStatus) -> None:
+        table_id, _ = self._get_table_id(table_name)
+        self._storage.exec(
+            "UPDATE layer0.tables SET status = %s, modification_dt = now() WHERE id = %s",
+            params=[status, table_id],
+        )
+
     def is_raw_table_name_taken(self, table_name: str) -> bool:
         return self._get_table_id(table_name)[1]
 
@@ -511,6 +519,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         query: str,
         page_size: int,
         page: int,
+        statuses: list[enums.TableStatus],
     ) -> list[model.Layer0TableListItem]:
         pattern = f"%{query}%" if query else "%"
         offset = page * page_size
@@ -518,6 +527,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         sql_query = """
         SELECT
             t.table_name,
+            t.status,
             t.modification_dt,
             COALESCE(ti.param->>'description', '') AS description,
             b.code AS bibcode,
@@ -532,7 +542,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         JOIN common.bib b ON b.id = t.bib
         LEFT JOIN meta.table_info ti
             ON ti.schema_name = %s AND ti.table_name = t.table_name
-        WHERE t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s
+        WHERE (t.table_name ILIKE %s OR COALESCE(ti.param->>'description', '') ILIKE %s)
+          AND t.status = ANY(%s)
         ORDER BY t.modification_dt DESC
         LIMIT %s OFFSET %s
         """
@@ -542,6 +553,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             RAWDATA_SCHEMA,
             pattern,
             pattern,
+            statuses,
             page_size,
             offset,
         ]
@@ -553,6 +565,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 num_fields=int(row["num_fields"]),
                 modification_dt=row["modification_dt"],
                 bibcode=row["bibcode"],
+                status=row["status"],
             )
             for row in rows
         ]

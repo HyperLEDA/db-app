@@ -80,8 +80,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
         query: str,
         page_size: int,
         page: int,
+        statuses: list[enums.TableStatus],
     ) -> list[model.Layer0TableListItem]:
-        return self.table_repo.search_tables(query, page_size, page)
+        return self.table_repo.search_tables(query, page_size, page, statuses)
 
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         return self.table_repo.update_column_metadata(table_name, column_description)
@@ -91,6 +92,9 @@ class Layer0Repository(postgres.TransactionalPGRepository):
 
     def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
         return self.table_repo.update_table_datatype(table_name, datatype)
+
+    def update_table_status(self, table_name: str, status: enums.TableStatus) -> None:
+        return self.table_repo.update_table_status(table_name, status)
 
     def is_raw_table_name_taken(self, table_name: str) -> bool:
         return self.table_repo.is_raw_table_name_taken(table_name)

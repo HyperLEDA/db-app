@@ -129,6 +129,8 @@ class TableUploadManager:
                 self.layer0_repo.update_table_metadata(r.table_name, r.description)
             if r.datatype is not None:
                 self.layer0_repo.update_table_datatype(r.table_name, r.datatype)
+            if r.status is not None:
+                self.layer0_repo.update_table_status(r.table_name, r.status)
 
             for column_name, spec in r.columns.items():
                 if column_name not in columns_by_name:
@@ -174,7 +176,7 @@ class TableUploadManager:
         return adminapi.AddDataResponse()
 
     def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
-        items = self.layer0_repo.search_tables(r.query, r.page_size, r.page)
+        items = self.layer0_repo.search_tables(r.query, r.page_size, r.page, r.statuses)
         cached_tables = self.table_stats_cache.get().tables
         empty_progress = adminapi.TableProgress(
             total_records=0,
@@ -195,6 +197,7 @@ class TableUploadManager:
                     num_fields=item.num_fields,
                     modification_dt=item.modification_dt,
                     bibcode=item.bibcode,
+                    status=item.status,
                     progress=progress,
                 )
             )
@@ -208,7 +211,11 @@ class TableUploadManager:
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
 
-        metadata = {"datatype": meta.datatype, "modification_dt": meta.modification_dt}
+        metadata = {
+            "datatype": meta.datatype,
+            "status": meta.status,
+            "modification_dt": meta.modification_dt,
+        }
 
         progress = self.table_stats_cache.get().tables.get(r.table_name)
         if progress is None:
