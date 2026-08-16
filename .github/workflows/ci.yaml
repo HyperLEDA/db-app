@@ -138,25 +138,27 @@ jobs:
         with:
           app-id: ${{ secrets.DEPLOYMENT_APP_ID }}
           private-key: ${{ secrets.DEPLOYMENT_APP_PRIVATE_KEY }}
+          owner: HyperLEDA
+          repositories: deployment
 
       - name: Dispatch adminapi release event
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ steps.generate-token.outputs.token }}
-          repository: hyperleda/deployment
+          repository: HyperLEDA/deployment
           event-type: adminapi-release
 
       - name: Dispatch dataapi release event
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ steps.generate-token.outputs.token }}
-          repository: hyperleda/deployment
+          repository: HyperLEDA/deployment
           event-type: dataapi-release
 
       - name: Dispatch tasks release event
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ steps.generate-token.outputs.token }}
-          repository: hyperleda/deployment
+          repository: HyperLEDA/deployment
           event-type: tasks-release
 
