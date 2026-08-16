@@ -72,6 +72,9 @@ def catalogs_from_object(obj: _CatalogBearing) -> adminapi.Catalogs:
     if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
         catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
+    if (nature := obj.get(model.NatureCatalogObject)) is not None:
+        catalogs.nature = adminapi.Nature(type_name=nature.type_name)
+
     return catalogs
 
 
@@ -159,7 +162,12 @@ class CrossmatchManager:
     def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[adminapi.RecordCrossmatch]:
         record_ids = [row.record_id for row in rows]
         layer1_data = self.layer1_repo.query_records(
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
+            [
+                model.RawCatalog.ICRS,
+                model.RawCatalog.DESIGNATION,
+                model.RawCatalog.REDSHIFT,
+                model.RawCatalog.NATURE,
+            ],
             record_ids=record_ids,
         )
         layer1_data_map = {rec.id: rec for rec in layer1_data}
@@ -230,7 +238,12 @@ class CrossmatchManager:
             return response
 
         layer2_objects = self.layer2_repo.query_catalogs_pgc(
-            catalogs=[model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION, model.RawCatalog.REDSHIFT],
+            catalogs=[
+                model.RawCatalog.ICRS,
+                model.RawCatalog.DESIGNATION,
+                model.RawCatalog.REDSHIFT,
+                model.RawCatalog.NATURE,
+            ],
             pgc_numbers=list(candidate_pgcs),
             limit=len(candidate_pgcs),
             offset=0,
