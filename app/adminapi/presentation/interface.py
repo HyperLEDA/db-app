@@ -257,11 +257,16 @@ class Velocity(pydantic.BaseModel):
     heliocentric: HeliocentricVelocity
 
 
+class Nature(pydantic.BaseModel):
+    type_name: str
+
+
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
     coordinates: Coordinates | None = None
     redshift: Redshift | None = None
     velocity: Velocity | None = None
+    nature: Nature | None = None
 
 
 class RecordCrossmatch(pydantic.BaseModel):

@@ -12,6 +12,14 @@ class NatureCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.NATURE
 
     @classmethod
+    def layer1_keys(cls) -> list[str]:
+        return ["type_name"]
+
+    @classmethod
+    def from_layer1(cls, data: dict[str, Any]) -> Self:
+        return cls(type_name=data["type_name"])
+
+    @classmethod
     def layer2_table(cls) -> str:
         return "layer2.nature"
 
