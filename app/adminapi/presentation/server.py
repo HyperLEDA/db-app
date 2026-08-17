@@ -192,7 +192,6 @@ bibcode may still be created or updated.""",
                 api.get_catalogs,
                 "List layer 1 catalog structures",
                 "Returns the writable column structure of every layer 1 catalog.",
-                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/records",
