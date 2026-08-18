@@ -117,7 +117,7 @@ class AdminTapSyncTest(unittest.TestCase):
                 "maxrec": 501,
             },
         )
-        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.status_code, 400)
 
     def test_tap_sync_rejects_insert(self) -> None:
         response = self.client.get(
