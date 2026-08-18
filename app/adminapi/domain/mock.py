@@ -22,6 +22,7 @@ def get_mock_actions():
         layer0_repo=mock.MagicMock(),
         layer1_repo=mock.MagicMock(),
         layer2_repo=mock.MagicMock(),
+        metadata_repo=mock.MagicMock(),
         authenticator=auth.NoopAuthenticator(),
         clients=clients.get_mock_clients(),
         table_stats_cache=get_mock_table_stats_cache(),

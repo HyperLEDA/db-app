@@ -4,7 +4,7 @@ from typing import Annotated
 import fastapi
 import structlog
 
-from app.adminapi.presentation import interface
+from app.adminapi.presentation import interface, tap
 from app.lib import audit, auth
 from app.lib.web import server
 from app.lib.web.middlewares import identity_from_request
@@ -121,6 +121,15 @@ class API:
         request: interface.MergePgcsRequest,
     ) -> server.APIOkResponse[interface.MergePgcsResponse]:
         response = self.actions.merge_pgcs(request)
+        return server.APIOkResponse(data=response)
+
+    def tap_sync(
+        self,
+        request: fastapi.Request,
+        tap_request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[tap.TAPSyncResponse]:
+        _ = request
+        response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)
 
 
@@ -381,6 +390,15 @@ For every column that has unit metadata in the database, the request must includ
 """,
                 allowed_roles=admin_only,
                 audit_action=True,
+            ),
+            server.Route(
+                "/v1/tap/sync",
+                http.HTTPMethod.GET,
+                api.tap_sync,
+                "Execute an arbitrary SQL query (TAP /sync).",
+                "Runs a read-only SQL query and returns a VOTable-like JSON payload.",
+                allowed_roles=admin_only,
+                rate_limit="60/minute",
             ),
         ]
 

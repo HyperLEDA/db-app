@@ -26,6 +26,7 @@ class CatalogsAPITest(unittest.TestCase):
             layer0_repo=layer0_repo,
             layer1_repo=repositories.Layer1Repository(pg, log),
             layer2_repo=repositories.Layer2Repository(pg, log),
+            metadata_repo=repositories.MetadataRepository(pg),
             authenticator=auth.NoopAuthenticator(),
             clients=clients.Clients(ads_token="test"),
             table_stats_cache=get_mock_table_stats_cache(),
