@@ -5,6 +5,7 @@ from typing import Annotated, Any
 
 import pydantic
 
+from app.adminapi.presentation import tap
 from app.adminapi.presentation.records import GetRecordsRequest, GetRecordsResponse
 from app.lib.storage import enums, mapping
 
@@ -507,4 +508,8 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def merge_pgcs(self, r: MergePgcsRequest) -> MergePgcsResponse:
+        pass
+
+    @abc.abstractmethod
+    def tap_sync(self, request: tap.TAPSyncRequest) -> tap.TAPSyncResponse:
         pass

@@ -3,7 +3,8 @@ from typing import final
 from app.data import model, repositories
 from app.dataapi import presentation as dataapi
 from app.dataapi import responders
-from app.dataapi.domain import parameterized_query, tap_types
+from app.dataapi.domain import parameterized_query
+from app.lib.tap import types as tap_types
 
 ENABLED_CATALOGS = [
     model.RawCatalog.DESIGNATION,

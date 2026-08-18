@@ -145,6 +145,7 @@ class PgStorage:
         *,
         params: list[Any] | None = None,
         timeout_seconds: float | None = None,
+        read_only: bool = False,
     ) -> list[rows.DictRow]:
         log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params or [])
 
@@ -157,17 +158,25 @@ class PgStorage:
                 cursor.execute(query, execute_params)
                 return cursor.fetchall()
 
-            if timeout_seconds is None:
+            if timeout_seconds is None and not read_only:
                 with conn.cursor() as cursor:
                     result = _execute(cursor)
             else:
-                timeout_ms = int(timeout_seconds * 1000)
-                with conn.transaction():
-                    with conn.cursor() as cursor:
-                        cursor.execute(
-                            sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(f"{timeout_ms}ms"))
-                        )
-                        result = _execute(cursor)
+                previous_read_only = conn.read_only
+                if read_only:
+                    conn.read_only = True
+                try:
+                    with conn.transaction():
+                        with conn.cursor() as cursor:
+                            if timeout_seconds is not None:
+                                timeout_ms = int(timeout_seconds * 1000)
+                                cursor.execute(
+                                    sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(f"{timeout_ms}ms"))
+                                )
+                            result = _execute(cursor)
+                finally:
+                    if read_only:
+                        conn.read_only = previous_read_only
 
             elapsed = time.monotonic() - start
             log.debug("SQL result", num_rows=len(result), elapsed_seconds=round(elapsed, 4))

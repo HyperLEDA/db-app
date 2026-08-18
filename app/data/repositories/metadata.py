@@ -74,12 +74,19 @@ class MetadataRepository(pg_storage.TransactionalPGRepository):
     def __init__(self, storage: pg_storage.PgStorage) -> None:
         super().__init__(storage)
 
-    def query_with_metadata(self, query: str, max_rows: int) -> QueryWithMetadataResult:
+    def query_with_metadata(
+        self,
+        query: str,
+        max_rows: int,
+        *,
+        timeout_seconds: float = _TAP_SYNC_QUERY_TIMEOUT_SECONDS,
+    ) -> QueryWithMetadataResult:
         stripped = query.strip().rstrip(";")
         wrapped = f"SELECT * FROM ({stripped}\n) AS _tap_sync\nLIMIT {max_rows}"
         dict_rows: list[dict[str, Any]] = self._storage.query(
             wrapped,
-            timeout_seconds=_TAP_SYNC_QUERY_TIMEOUT_SECONDS,
+            timeout_seconds=timeout_seconds,
+            read_only=True,
         )
         if not dict_rows:
             return QueryWithMetadataResult(columns=[], rows=[])
