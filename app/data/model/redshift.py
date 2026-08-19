@@ -25,6 +25,10 @@ class RedshiftCatalogObject(interface.CatalogObject):
         return ["cz", "e_cz"]
 
     @classmethod
+    def layer1_primary_keys(cls) -> list[str]:
+        return ["record_id", "method"]
+
+    @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
         return cls(cz=data["cz"], e_cz=data["e_cz"])
 

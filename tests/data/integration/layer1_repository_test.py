@@ -178,6 +178,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             model.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
             [[1000.0, 10.0], [2000.0, None]],
+            conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
         )
 
         result = self.layer1_repo.get_new_redshift_records(
@@ -199,6 +200,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             model.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
             [[1000.0, 10.0], [2000.0, None]],
+            conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
         )
 
         result = self.layer1_repo.get_redshift_records(["r1", "r2", "missing"])
