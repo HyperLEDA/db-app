@@ -2,9 +2,11 @@ from typing import final
 
 from app.adminapi import cache, clients
 from app.adminapi import presentation as adminapi
-from app.adminapi.domain import catalogs, crossmatch, layer1_write, login, pgc, sources, table_upload
+from app.adminapi.domain import auth as admin_auth
+from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, sources, table_upload
 from app.data import repositories
 from app.lib import auth
+from app.lib.storage import postgres
 from app.lib.tap import types as tap_types
 
 _ADMIN_TAP_SYNC_QUERY_TIMEOUT_SECONDS = 60
@@ -26,12 +28,13 @@ class Actions(adminapi.Actions):
         layer2_repo: repositories.Layer2Repository,
         metadata_repo: repositories.MetadataRepository,
         authenticator: auth.Authenticator,
+        storage: postgres.PgStorage,
         clients: clients.Clients,
         table_stats_cache: cache.BackgroundCache[adminapi.TableStatsSnapshot],
     ):
         self.metadata_repo = metadata_repo
         self.source_manager = sources.SourceManager(common_repo)
-        self.login_manager = login.LoginManager(authenticator)
+        self.auth_manager = admin_auth.AuthManager(authenticator, storage)
         self.table_upload_manager = table_upload.TableUploadManager(
             common_repo,
             layer0_repo,
@@ -48,10 +51,13 @@ class Actions(adminapi.Actions):
         return self.source_manager.create_source(r)
 
     def login(self, r: adminapi.LoginRequest) -> adminapi.LoginResponse:
-        return self.login_manager.login(r)
+        return self.auth_manager.login(r)
 
     def logout(self, token: str) -> adminapi.LogoutResponse:
-        return self.login_manager.logout(token)
+        return self.auth_manager.logout(token)
+
+    def register(self, r: adminapi.RegisterRequest) -> adminapi.RegisterResponse:
+        return self.auth_manager.register(r)
 
     def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
         return self.table_upload_manager.add_data(r)

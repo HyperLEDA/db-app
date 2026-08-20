@@ -66,6 +66,7 @@ class AdminAPICommand(commands.Command):
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
             metadata_repo=repositories.MetadataRepository(self.pg_storage),
             authenticator=authenticator,
+            storage=self.pg_storage,
             clients=clients.Clients(cfg.clients.ads_token),
             table_stats_cache=self.table_stats_cache,
         )

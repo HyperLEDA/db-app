@@ -89,6 +89,15 @@ class API:
     ) -> server.APIOkResponse[interface.LogoutResponse]:
         return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
 
+    def register(
+        self,
+        request: fastapi.Request,
+        body: interface.RegisterRequest,
+    ) -> server.APIOkResponse[interface.RegisterResponse]:
+        _ = request
+        response = self.actions.register(body)
+        return server.APIOkResponse(data=response)
+
     def get_record_crossmatch(
         self, request: Annotated[interface.GetRecordCrossmatchRequest, fastapi.Query()]
     ) -> server.APIOkResponse[interface.GetRecordCrossmatchResponse]:
@@ -291,6 +300,17 @@ Only provided fields will be updated; omitted fields will remain unchanged.
                 "Revokes the bearer token used for this request.",
                 allowed_roles=admin_only,
                 rate_limit="10/minute",
+            ),
+            server.Route(
+                "/v1/register",
+                http.HTTPMethod.POST,
+                api.register,
+                "Register user",
+                "Creates a backend user and a database reader role.",
+                allowed_roles=admin_only,
+                rate_limit="10/minute",
+                log_request_body=False,
+                audit_action=True,
             ),
             server.Route(
                 "/v1/records/crossmatch",
