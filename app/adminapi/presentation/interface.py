@@ -216,6 +216,16 @@ class LogoutResponse(pydantic.BaseModel):
     pass
 
 
+class RegisterRequest(pydantic.BaseModel):
+    username: str
+    email: str
+    password: str
+
+
+class RegisterResponse(pydantic.BaseModel):
+    pass
+
+
 class RecordCrossmatchMetadata(pydantic.BaseModel):
     possible_matches: list[int] | None = None
     pgc: int | None = None
@@ -484,6 +494,10 @@ class Actions(abc.ABC):
 
     @abc.abstractmethod
     def logout(self, token: str) -> LogoutResponse:
+        pass
+
+    @abc.abstractmethod
+    def register(self, r: RegisterRequest) -> RegisterResponse:
         pass
 
     @abc.abstractmethod

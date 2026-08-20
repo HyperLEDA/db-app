@@ -1,11 +1,16 @@
+import hashlib
 import os
+import secrets
 import subprocess
 import time
 import unittest
 from concurrent import futures
+from datetime import UTC, datetime, timedelta
 
+import bcrypt
 import requests
 import structlog
+from psycopg import sql
 
 from app.lib import audit
 from tests import lib
@@ -117,6 +122,23 @@ class AdminAPIAuthTest(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
         return r.json()["data"]["token"]
+
+    def _seed_bearer_token(self, login: str) -> str:
+        storage = self.pg_storage.get_storage()
+        user = storage.query_one(
+            "SELECT id FROM private.users WHERE login = %s",
+            params=[login],
+        )
+        token = secrets.token_hex(16)
+        storage.exec(
+            "INSERT INTO private.tokens (token_hash, user_id, expiry_time) VALUES (%s, %s, %s)",
+            params=[
+                hashlib.sha256(token.encode()).digest(),
+                user["id"],
+                datetime.now(UTC) + timedelta(days=14),
+            ],
+        )
+        return token
 
     def _assert_token_works(self, token: str) -> None:
         r = requests.post(
@@ -273,3 +295,99 @@ class AdminAPIAuthTest(unittest.TestCase):
         self.assertEqual(r_out.status_code, 200)
 
         self._assert_token_rejected(token)
+
+    _registered_login = "integration_registered_user"
+    _registered_email = "integration_registered_user@example.com"
+    _registered_password = "registered-user-secret"
+
+    def _cleanup_registered_user(self) -> None:
+        storage = self.pg_storage.get_storage()
+        storage.exec(
+            "DELETE FROM private.tokens WHERE user_id IN (SELECT id FROM private.users WHERE login = %s)",
+            params=[self._registered_login],
+        )
+        storage.exec("DELETE FROM private.users WHERE login = %s", params=[self._registered_login])
+        if storage.query("SELECT 1 FROM pg_roles WHERE rolname = %s", params=[self._registered_login]):
+            storage.exec(sql.SQL("DROP ROLE {}").format(sql.Identifier(self._registered_login)))
+
+    def test_register(self) -> None:
+        r = requests.post(
+            f"{self.base}/v1/register",
+            json={
+                "username": self._registered_login,
+                "email": self._registered_email,
+                "password": self._registered_password,
+            },
+            timeout=5,
+        )
+        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.json()["message"], "No authorization header")
+
+        self._cleanup_registered_user()
+        try:
+            admin_token = self._seed_bearer_token(self._login)
+            body = {
+                "username": self._registered_login,
+                "email": self._registered_email,
+                "password": self._registered_password,
+            }
+
+            created = requests.post(
+                f"{self.base}/v1/register",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json=body,
+                timeout=5,
+            )
+            self.assertEqual(created.status_code, 200)
+            self.assertEqual(created.json()["data"], {})
+
+            storage = self.pg_storage.get_storage()
+            user = storage.query_one(
+                "SELECT login, email, password_hash FROM private.users WHERE login = %s",
+                params=[self._registered_login],
+            )
+            self.assertEqual(user["login"], self._registered_login)
+            self.assertEqual(user["email"], self._registered_email)
+            self.assertTrue(bcrypt.checkpw(self._registered_password.encode(), user["password_hash"]))
+
+            role = storage.query_one(
+                """
+                SELECT r.rolname
+                FROM pg_roles AS r
+                JOIN pg_auth_members AS am ON r.oid = am.member
+                JOIN pg_roles AS m ON am.roleid = m.oid
+                WHERE r.rolname = %s AND m.rolname = 'db_reader'
+                """,
+                params=[self._registered_login],
+            )
+            self.assertEqual(role["rolname"], self._registered_login)
+
+            tokens_before = storage.query(
+                "SELECT token_hash FROM private.tokens WHERE user_id = (SELECT id FROM private.users WHERE login = %s)",
+                params=[self._registered_login],
+            )
+            self.assertEqual(tokens_before, [])
+
+            duplicate_username = requests.post(
+                f"{self.base}/v1/register",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json=body,
+                timeout=5,
+            )
+            self.assertEqual(duplicate_username.status_code, 409)
+            self.assertIn("already exists", duplicate_username.json()["message"])
+
+            duplicate_email = requests.post(
+                f"{self.base}/v1/register",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json={
+                    "username": "another_registered_user",
+                    "email": self._registered_email,
+                    "password": self._registered_password,
+                },
+                timeout=5,
+            )
+            self.assertEqual(duplicate_email.status_code, 409)
+            self.assertIn("already exists", duplicate_email.json()["message"])
+        finally:
+            self._cleanup_registered_user()
