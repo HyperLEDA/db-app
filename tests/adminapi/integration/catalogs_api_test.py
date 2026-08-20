@@ -70,7 +70,7 @@ class CatalogsAPITest(unittest.TestCase):
         fields = {f["name"]: f for f in geometry["fields"]}
         self.assertEqual(
             set(fields),
-            {"band", "method", "level", "a", "e_a", "b", "e_b", "pa", "e_pa", "isophote", "e_isophote"},
+            {"band", "method", "level", "a", "e_a", "b", "e_b", "pa", "e_pa", "isophote", "e_isophote", "quality"},
         )
         self.assertTrue(fields["band"]["required"])
         self.assertTrue(fields["method"]["required"])
