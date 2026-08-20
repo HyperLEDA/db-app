@@ -7,7 +7,7 @@ from app.lib.storage import postgres
 from app.lib.web.errors import ConflictError, UnauthorizedError
 
 
-class LoginManager(postgres.TransactionalPGRepository):
+class AuthManager(postgres.TransactionalPGRepository):
     def __init__(self, authenticator: auth.Authenticator, storage: postgres.PgStorage) -> None:
         super().__init__(storage)
         self.authenticator = authenticator

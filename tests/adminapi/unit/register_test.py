@@ -6,15 +6,15 @@ import bcrypt
 from psycopg import sql
 
 from app.adminapi import presentation as adminapi
-from app.adminapi.domain.login import LoginManager
+from app.adminapi.domain.auth import AuthManager
 from app.lib import auth
 from app.lib.web.errors import ConflictError
 
 
-class LoginManagerRegisterTest(unittest.TestCase):
+class AuthManagerRegisterTest(unittest.TestCase):
     def setUp(self) -> None:
         self.storage = mock.MagicMock()
-        self.manager = LoginManager(auth.NoopAuthenticator(), self.storage)
+        self.manager = AuthManager(auth.NoopAuthenticator(), self.storage)
         self.manager.with_tx = mock.MagicMock(return_value=_null_context())
 
     def test_register_conflict_on_existing_login(self) -> None:
