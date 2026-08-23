@@ -291,7 +291,6 @@ INSERT INTO morphology.attributes VALUES
   "1": "strong X-structure"
 }
 }'::JSON )
-
 ;
 
 
@@ -373,7 +372,7 @@ SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'winding' , '{
   "-1": "definitely counter-clockwise"
   },
 "ucd": "stat.value;meta.main"
-}' ;
+}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'em_winding' , '{"description": "Lower uncertainty of the winding direction", "ucd": "stat.error"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'ep_winding' , '{"description": "Upper uncertainty of the winding direction", "ucd": "stat.error"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'method' , '{"description": "Method used to determine the spiral winding direction", "ucd": "meta.code.class"}'::json ) ;
