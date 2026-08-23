@@ -68,7 +68,7 @@ CREATE TABLE distance.data (
 , modulus	Real	NOT NULL
 , em_modulus	Real	CHECK (em_modulus>0)
 , ep_modulus	Real	CHECK (ep_modulus>0)
-, quality	common.QualityType	NOT NULL	DEFAULT 'regular'
+, quality	common.quality_type	NOT NULL	DEFAULT 'regular'
 , calib_id	Text	NOT NULL	REFERENCES distance.calibrations(id) ON UPDATE cascade ON DELETE restrict
 , PRIMARY KEY (record_id, calib_id)
 , CHECK ( (em_modulus IS NULL and ep_modulus IS NULL) or (em_modulus IS NOT NULL and ep_modulus IS NOT NULL) )
