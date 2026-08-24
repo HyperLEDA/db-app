@@ -21,6 +21,14 @@ class ICRSCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.ICRS
 
     @classmethod
+    def title(cls) -> str:
+        return "ICRS"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Equatorial coordinates in the ICRS frame."
+
+    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["ra", "e_ra", "dec", "e_dec"]
 

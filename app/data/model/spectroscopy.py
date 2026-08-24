@@ -24,6 +24,14 @@ class SpectroscopyIntegratedFluxDensityCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY
 
     @classmethod
+    def title(cls) -> str:
+        return "Spectroscopy (integrated flux density)"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Integrated spectral line flux densities."
+
+    @classmethod
     def layer1_table(cls) -> str:
         return "spectroscopy.integrated_flux_density"
 
@@ -49,6 +57,14 @@ class SpectroscopyEnergyFluxCatalogObject(interface.CatalogObject):
 
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX
+
+    @classmethod
+    def title(cls) -> str:
+        return "Spectroscopy (energy flux)"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Spectral line energy fluxes."
 
     @classmethod
     def layer1_table(cls) -> str:
