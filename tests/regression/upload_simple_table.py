@@ -142,6 +142,7 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_spectroscopy_integrated_flux_density_catalog(session, ids=ids)
     upload_spectroscopy_energy_flux_catalog(session, ids=ids)
     upload_kinematics_line_width_catalog(session, ids=ids)
+    upload_distance_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -312,6 +313,28 @@ def upload_kinematics_line_width_catalog(session: requests.Session, ids: list[st
         units={"width": "km/s", "e_width": "km/s", "resolution": "km/s"},
         ids=width_ids,
         data=width_data,
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_distance_catalog(session: requests.Session, ids: list[str]) -> None:
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="distance",
+        columns=["modulus", "em_modulus", "ep_modulus", "quality", "calib_id"],
+        units={"modulus": "mag", "em_modulus": "mag", "ep_modulus": "mag"},
+        ids=ids,
+        data=[
+            [
+                random.uniform(20.0, 35.0),
+                random.uniform(0.05, 0.3),
+                random.uniform(0.05, 0.3),
+                "regular",
+                "TRGB",
+            ]
+            for _ in ids
+        ],
     )
     response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
     response.raise_for_status()

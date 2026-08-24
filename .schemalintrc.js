@@ -12,6 +12,7 @@ module.exports = {
     { name: "cz" },
     { name: "dataviews" },
     { name: "designation" },
+    { name: "distance" },
     { name: "icrs" },
     { name: "kinematics" },
     { name: "layer0" },

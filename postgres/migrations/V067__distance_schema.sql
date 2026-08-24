@@ -92,4 +92,16 @@ SELECT meta.setparams( 'distance', 'data', 'calib_id',
 SELECT meta.setparams( 'distance', 'data', 'quality',
   '{"description": "Quality flag of the measurement", "ucd": "meta.code.qual"}'::json ) ;
 
+GRANT USAGE ON SCHEMA distance TO db_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA distance TO db_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA distance GRANT SELECT ON TABLES TO db_reader;
+
+GRANT USAGE ON SCHEMA distance TO db_writer;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA distance TO db_writer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA distance GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO db_writer;
+
+GRANT USAGE ON SCHEMA distance TO db_private_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA distance TO db_private_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA distance GRANT SELECT ON TABLES TO db_private_reader;
+
 COMMIT ;
