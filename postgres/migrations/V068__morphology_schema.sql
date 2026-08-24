@@ -304,6 +304,8 @@ CREATE TABLE IF NOT EXISTS morphology.t (
 , CHECK ( (em_value IS NULL and ep_value IS NULL) or (em_value IS NOT NULL and ep_value IS NOT NULL) )
 , PRIMARY KEY (record_id, method)
 ) ;
+CREATE INDEX ON morphology.t (value) ;
+CREATE INDEX ON morphology.t (method) ;
 
 SELECT meta.setparams( 'morphology' , 't' , '{"description": "Catalog of de Vaucouleurs numeric types", "ucd": "meta.table"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 't' , 'record_id' , '{"description": "Record ID", "ucd": "meta.id"}'::json ) ;
@@ -326,6 +328,8 @@ CREATE TABLE IF NOT EXISTS morphology.features (
 , CHECK ( (em_value IS NULL and ep_value IS NULL) or (em_value IS NOT NULL and ep_value IS NOT NULL) )
 , PRIMARY KEY (record_id, attribute_id, method)
 ) ;
+CREATE INDEX ON morphology.features (attribute_id, method) ;
+CREATE INDEX ON morphology.features (method) ;
 
 SELECT meta.setparams( 'morphology' , 'features' , '{"description": "Catalog of morphological features", "ucd": "meta.table"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'features' , 'record_id' , '{"description": "Record ID", "ucd": "meta.id"}'::json ) ;
@@ -342,6 +346,7 @@ CREATE TABLE IF NOT EXISTS morphology.extra (
 , type	morphology.extra_type	NOT NULL
 , PRIMARY KEY (record_id, type)
 ) ;
+CREATE INDEX ON morphology.extra (type) ;
 
 SELECT meta.setparams( 'morphology' , 'extra' , '{"description": "Catalog of additional morphological and phenomenological types and classes", "ucd": "meta.table"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'extra' , 'record_id' , '{"description": "Record ID", "ucd": "meta.id"}'::json ) ;
