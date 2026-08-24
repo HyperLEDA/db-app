@@ -36,6 +36,14 @@ class GeometryCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.GEOMETRY
 
     @classmethod
+    def title(cls) -> str:
+        return "Geometry"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Isophotal ellipse geometry."
+
+    @classmethod
     def layer1_table(cls) -> str:
         return "photometry.ellipse"
 

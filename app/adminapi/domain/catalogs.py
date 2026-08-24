@@ -5,29 +5,6 @@ from app.data import model, repositories
 
 _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
 
-_CATALOG_DISPLAY: dict[model.RawCatalog, tuple[str, str]] = {
-    model.RawCatalog.ICRS: ("ICRS", "Equatorial coordinates in the ICRS frame."),
-    model.RawCatalog.DESIGNATION: ("Designations", "Object designations."),
-    model.RawCatalog.REDSHIFT: ("Redshift", "Heliocentric velocity (cz)."),
-    model.RawCatalog.NATURE: ("Nature", "Object type classification."),
-    model.RawCatalog.PHOTOMETRY__TOTAL: ("Photometry (total)", "Total magnitudes per band and method."),
-    model.RawCatalog.PHOTOMETRY__ISOPHOTAL: ("Photometry (isophotal)", "Isophotal magnitudes per band and level."),
-    model.RawCatalog.GEOMETRY: ("Geometry", "Isophotal ellipse geometry."),
-    model.RawCatalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY: (
-        "Spectroscopy (integrated flux density)",
-        "Integrated spectral line flux densities.",
-    ),
-    model.RawCatalog.SPECTROSCOPY__ENERGY_FLUX: (
-        "Spectroscopy (energy flux)",
-        "Spectral line energy fluxes.",
-    ),
-    model.RawCatalog.KINEMATICS__LINE_WIDTH: (
-        "Kinematics (line width)",
-        "Spectral line width measurements.",
-    ),
-    model.RawCatalog.NOTE: ("Note", "Free-text notes attached to records."),
-}
-
 
 def _field_from_row(row: dict[str, Any]) -> adminapi.CatalogField:
     param = row.get("param") or {}
@@ -59,12 +36,11 @@ class CatalogManager:
             schema, table = layer1_table.split(".", maxsplit=1)
             rows = self._layer1_repo.get_catalog_columns(schema, table)
             fields = [_field_from_row(row) for row in rows if row["column_name"] not in _INTERNAL_COLUMNS]
-            title, description = _CATALOG_DISPLAY.get(catalog, (catalog.value, ""))
             catalogs.append(
                 adminapi.CatalogSchema(
                     catalog=catalog.value,
-                    title=title,
-                    description=description,
+                    title=object_cls.title(),
+                    description=object_cls.description(),
                     fields=fields,
                 )
             )

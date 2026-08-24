@@ -41,6 +41,16 @@ class CatalogObject(abc.ABC):
         """Return the catalog identifier. Required for every catalog."""
 
     @classmethod
+    @abc.abstractmethod
+    def title(cls) -> str:
+        """Return the human-readable catalog title."""
+
+    @classmethod
+    @abc.abstractmethod
+    def description(cls) -> str:
+        """Return the catalog description."""
+
+    @classmethod
     def layer1_table(cls) -> str:
         """Return the layer 1 table name.
 

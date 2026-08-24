@@ -12,6 +12,14 @@ class NatureCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.NATURE
 
     @classmethod
+    def title(cls) -> str:
+        return "Nature"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Object type classification."
+
+    @classmethod
     def layer1_keys(cls) -> list[str]:
         return ["type_name"]
 

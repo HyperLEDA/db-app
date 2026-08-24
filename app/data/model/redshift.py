@@ -17,6 +17,14 @@ class RedshiftCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.REDSHIFT
 
     @classmethod
+    def title(cls) -> str:
+        return "Redshift"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Heliocentric velocity (cz)."
+
+    @classmethod
     def layer1_table(cls) -> str:
         return "cz.data"
 
