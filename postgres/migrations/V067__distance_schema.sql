@@ -29,6 +29,7 @@ CREATE TABLE distance.methods (
 , title	Text	NOT NULL
 , description	Text
 ) ;
+
 SELECT meta.setparams( 'distance', 'methods', '{"description": "Distance determination methods", "ucd": "meta.table"}'::json ) ;
 SELECT meta.setparams( 'distance', 'methods', 'id', '{"description": "Method ID", "ucd": "meta.id;meta.main"}'::json ) ;
 SELECT meta.setparams( 'distance', 'methods', 'indicator', '{"description": "Distance indicator type (direct, standard ruler, standard candle, etc.)", "ucd": "meta.code.class"}'::json ) ;
@@ -47,6 +48,8 @@ CREATE TABLE distance.calibrations (
 , description	json
 , UNIQUE NULLS NOT DISTINCT (bib, method_id, specification)
 );
+CREATE INDEX ON distance.calibrations (method_id) ;
+
 SELECT meta.setparams( 'distance', 'calibrations', '{"description": "Calibrations of the distance method", "ucd": "meta.table"}'::json ) ;
 SELECT meta.setparams( 'distance', 'calibrations', 'id',
   '{"description": "Calibration ID", "ucd": "meta.id;meta.main"}'::json ) ;
