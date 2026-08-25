@@ -92,3 +92,48 @@ jobs:
 
       - name: Run regression tests
         run: make test-regression
+
+  release-adminapi:
+    needs: [tests, build, regression]
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    uses: ./.github/workflows/release-service.yaml
+    with:
+      service: adminapi
+      deployment_event: adminapi-release
+      workflow_run_id: ${{ github.run_id }}
+      head_sha: ${{ github.sha }}
+    secrets: inherit
+
+  release-dataapi:
+    needs: [tests, build, regression]
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    uses: ./.github/workflows/release-service.yaml
+    with:
+      service: dataapi
+      deployment_event: dataapi-release
+      workflow_run_id: ${{ github.run_id }}
+      head_sha: ${{ github.sha }}
+    secrets: inherit
+
+  release-tasks:
+    needs: [tests, build, regression]
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    uses: ./.github/workflows/release-service.yaml
+    with:
+      service: tasks
+      deployment_event: tasks-release
+      workflow_run_id: ${{ github.run_id }}
+      head_sha: ${{ github.sha }}
+    secrets: inherit

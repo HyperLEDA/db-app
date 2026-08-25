@@ -15,6 +15,11 @@ on:
       head_sha:
         required: true
         type: string
+    secrets:
+      DEPLOYMENT_APP_ID:
+        required: true
+      DEPLOYMENT_APP_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: read
