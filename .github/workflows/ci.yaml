@@ -96,6 +96,10 @@ jobs:
   release-adminapi:
     needs: [tests, build, regression]
     if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
     uses: ./.github/workflows/release-service.yaml
     with:
       service: adminapi
@@ -107,6 +111,10 @@ jobs:
   release-dataapi:
     needs: [tests, build, regression]
     if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
     uses: ./.github/workflows/release-service.yaml
     with:
       service: dataapi
@@ -118,6 +126,10 @@ jobs:
   release-tasks:
     needs: [tests, build, regression]
     if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
     uses: ./.github/workflows/release-service.yaml
     with:
       service: tasks
