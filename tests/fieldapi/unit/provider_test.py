@@ -59,16 +59,11 @@ class SFDProviderTest(unittest.TestCase):
             sfd_query.assert_called_once_with(map_dir=str(map_dir))
 
     def test_sample_returns_values_in_order(self) -> None:
-        query = mock.Mock(
-            side_effect=[
-                np.array([0.03], dtype=np.float64),
-                np.array([0.12], dtype=np.float64),
-            ]
-        )
+        query = mock.Mock(return_value=np.array([0.03, 0.12], dtype=np.float64))
         provider = sfd.SFDProvider(query=query)
         coordinates = [
-            interface.SkyCoordinate(frame=interface.CoordinateFrame.ICRS, longitude_deg=187.6, latitude_deg=15.26),
-            interface.SkyCoordinate(frame=interface.CoordinateFrame.GALACTIC, longitude_deg=90.0, latitude_deg=10.0),
+            interface.SkyCoordinate(ra_deg=187.6, dec_deg=15.26),
+            interface.SkyCoordinate(ra_deg=210.25, dec_deg=-3.10),
         ]
         self.assertEqual(provider.sample(coordinates), [0.03, 0.12])
 
@@ -95,9 +90,8 @@ class DatasetRegistryTest(unittest.TestCase):
                     "missing",
                     [
                         interface.SkyCoordinate(
-                            frame=interface.CoordinateFrame.ICRS,
-                            longitude_deg=187.6,
-                            latitude_deg=15.26,
+                            ra_deg=187.6,
+                            dec_deg=15.26,
                         )
                     ],
                 )

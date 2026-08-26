@@ -1,19 +1,12 @@
 import abc
-import enum
 from typing import Literal
 
 import pydantic
 
 
-class CoordinateFrame(enum.StrEnum):
-    ICRS = "icrs"
-    GALACTIC = "galactic"
-
-
 class SkyCoordinate(pydantic.BaseModel):
-    frame: CoordinateFrame
-    longitude_deg: float = pydantic.Field(ge=0, lt=360)
-    latitude_deg: float = pydantic.Field(ge=-90, le=90)
+    ra_deg: float = pydantic.Field(ge=0, lt=360)
+    dec_deg: float = pydantic.Field(ge=-90, le=90)
 
 
 class DatasetInfo(pydantic.BaseModel):

@@ -52,8 +52,8 @@ class FieldAPIIntegrationTest(unittest.TestCase):
             json={
                 "dataset": "sfd",
                 "coordinates": [
-                    {"frame": "icrs", "longitude_deg": 187.6, "latitude_deg": 15.26},
-                    {"frame": "galactic", "longitude_deg": 90.0, "latitude_deg": 10.0},
+                    {"ra_deg": 187.6, "dec_deg": 15.26},
+                    {"ra_deg": 210.25, "dec_deg": -3.10},
                 ],
             },
         )
@@ -65,7 +65,7 @@ class FieldAPIIntegrationTest(unittest.TestCase):
             "/api/v1/sample",
             json={
                 "dataset": "missing",
-                "coordinates": [{"frame": "icrs", "longitude_deg": 187.6, "latitude_deg": 15.26}],
+                "coordinates": [{"ra_deg": 187.6, "dec_deg": 15.26}],
             },
         )
         self.assertEqual(response.status_code, 404)

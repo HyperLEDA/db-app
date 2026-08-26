@@ -48,6 +48,7 @@ fieldapi = [
     "starlette~=1.6.0",
     "uvicorn~=0.52.2",
     "slowapi~=0.1.9",
+    "bcrypt~=5.0.0",
     "pyyaml~=6.0.2",
     "opentelemetry-api~=1.44.0",
     "opentelemetry-sdk~=1.44.0",

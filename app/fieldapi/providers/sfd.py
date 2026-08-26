@@ -49,25 +49,10 @@ class SFDProvider(provider_interface.DatasetProvider):
         if self._query is None:
             raise RuntimeError("SFD provider is not prepared")
 
-        values: list[float | None] = [None] * len(coordinates)
-        by_frame: dict[interface.CoordinateFrame, list[tuple[int, interface.SkyCoordinate]]] = {}
-        for index, coordinate in enumerate(coordinates):
-            by_frame.setdefault(coordinate.frame, []).append((index, coordinate))
-
-        query = self._query
-        for frame, indexed_coordinates in by_frame.items():
-            skycoords = astro_coords.SkyCoord(
-                [coordinate.longitude_deg for _, coordinate in indexed_coordinates] * u.Unit("deg"),
-                [coordinate.latitude_deg for _, coordinate in indexed_coordinates] * u.Unit("deg"),
-                frame=frame.value,
-            )
-            frame_values = np.atleast_1d(query(skycoords))
-            for (index, _), value in zip(indexed_coordinates, frame_values, strict=True):
-                values[index] = float(value)
-
-        result: list[float] = []
-        for value in values:
-            if value is None:
-                raise RuntimeError("missing sampled value")
-            result.append(value)
-        return result
+        skycoords = astro_coords.SkyCoord(
+            [coordinate.ra_deg for coordinate in coordinates] * u.Unit("deg"),
+            [coordinate.dec_deg for coordinate in coordinates] * u.Unit("deg"),
+            frame="icrs",
+        )
+        values = np.atleast_1d(self._query(skycoords))
+        return [float(value) for value in values]
