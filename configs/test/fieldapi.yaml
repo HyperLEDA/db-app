@@ -1,0 +1,17 @@
+server:
+  host: 0.0.0.0
+  port: 8082
+  allowed_origins:
+    - https://leda.kraysent.dev
+
+tracing:
+  endpoint: tracing-collector:4317
+  enabled: true
+
+datasets:
+  data_dir: /data/fieldapi
+  enabled:
+    - id: sfd
+      provider: sfd
+      name: SFD
+      version: "1998"

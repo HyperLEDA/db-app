@@ -4,6 +4,7 @@ from parameterized import parameterized
 
 import app.adminapi.command as adminapi
 import app.dataapi.command as dataapi
+import app.fieldapi.command as fieldapi
 
 
 class TestEnvironment(unittest.TestCase):
@@ -26,3 +27,13 @@ class TestEnvironment(unittest.TestCase):
     )
     def test_parse_dataapi_config(self, path):
         _ = dataapi.parse_config(path)
+
+    @parameterized.expand(
+        [
+            ("configs/dev/fieldapi.yaml"),
+            ("configs/test/fieldapi.yaml"),
+            ("configs/prod/fieldapi.yaml"),
+        ]
+    )
+    def test_parse_fieldapi_config(self, path):
+        _ = fieldapi.parse_config(path)

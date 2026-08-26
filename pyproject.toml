@@ -43,6 +43,18 @@ dataapi = [
     "opentelemetry-instrumentation-psycopg~=0.65b0",
     "opentelemetry-exporter-otlp~=1.44.0",
 ]
+fieldapi = [
+    "fastapi~=0.141.0",
+    "starlette~=1.6.0",
+    "uvicorn~=0.52.2",
+    "slowapi~=0.1.9",
+    "pyyaml~=6.0.2",
+    "opentelemetry-api~=1.44.0",
+    "opentelemetry-sdk~=1.44.0",
+    "opentelemetry-instrumentation-fastapi~=0.65b0",
+    "opentelemetry-exporter-otlp~=1.44.0",
+    "dustmaps~=1.0.14",
+]
 tasks = [
     "prefect~=3.8.2",
 ]
@@ -51,6 +63,7 @@ tasks = [
 app = "app.cli:cli"
 adminapi = "app.adminapi.cli:main"
 dataapi = "app.dataapi.cli:main"
+fieldapi = "app.fieldapi.cli:main"
 tasks = "app.tasks.cli:main"
 
 [build-system]
@@ -212,6 +225,7 @@ type = "independence"
 modules = [
     "app.adminapi",
     "app.dataapi",
+    "app.fieldapi",
     "app.tasks",
 ]
 
@@ -220,7 +234,7 @@ id = "layers"
 name = "Layered architecture"
 type = "layers"
 layers = [
-    "app.adminapi | app.dataapi | app.tasks",
+    "app.adminapi | app.dataapi | app.fieldapi | app.tasks",
     "app.data",
     "app.lib",
 ]

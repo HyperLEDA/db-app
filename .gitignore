@@ -140,3 +140,4 @@ cython_debug/
 # Other
 uml
 .vizier_cache/
+downloads/
