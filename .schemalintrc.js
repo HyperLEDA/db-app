@@ -18,6 +18,7 @@ module.exports = {
     { name: "layer0" },
     { name: "layer2" },
     { name: "meta" },
+    { name: "morphology" },
     { name: "nature" },
     { name: "note" },
     { name: "photometry" },

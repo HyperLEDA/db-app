@@ -5,6 +5,7 @@ from app.data.model import (
     icrs,
     interface,
     kinematics,
+    morphology,
     nature,
     note,
     photometry,
@@ -26,6 +27,10 @@ _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]]
     interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX: spectroscopy.SpectroscopyEnergyFluxCatalogObject,
     interface.RawCatalog.KINEMATICS__LINE_WIDTH: kinematics.KinematicsLineWidthCatalogObject,
     interface.RawCatalog.DISTANCE: distance.DistanceCatalogObject,
+    interface.RawCatalog.MORPHOLOGY__T: morphology.MorphologyTCatalogObject,
+    interface.RawCatalog.MORPHOLOGY__FEATURES: morphology.MorphologyFeaturesCatalogObject,
+    interface.RawCatalog.MORPHOLOGY__EXTRA: morphology.MorphologyExtraCatalogObject,
+    interface.RawCatalog.MORPHOLOGY__SPIRAL_WINDING: morphology.MorphologySpiralWindingCatalogObject,
     interface.RawCatalog.NOTE: note.NoteCatalogObject,
 }
 
