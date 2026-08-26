@@ -1,0 +1,87 @@
+name: Release service image
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      deployment_event:
+        required: true
+        type: string
+      workflow_run_id:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+    secrets:
+      DEPLOYMENT_APP_ID:
+        required: true
+      DEPLOYMENT_APP_PRIVATE_KEY:
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ inputs.service }}
+      cancel-in-progress: false
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.workflow_run_id }}
+          name: docker-image-${{ inputs.service }}
+          path: .
+
+      - name: Set up Docker runtime
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load and push image
+        env:
+          SERVICE: ${{ inputs.service }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          docker load -i image.tar
+          short_sha="${HEAD_SHA:0:7}"
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}-${SERVICE}"
+          docker tag "local/${SERVICE}:latest" "${image_name}:${short_sha}"
+          docker tag "local/${SERVICE}:latest" "${image_name}:latest"
+          docker push "${image_name}:${short_sha}"
+          docker push "${image_name}:latest"
+          echo "IMAGE_NAME=${image_name}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${short_sha}" >> "$GITHUB_ENV"
+
+      - name: Generate Token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.DEPLOYMENT_APP_ID }}
+          private-key: ${{ secrets.DEPLOYMENT_APP_PRIVATE_KEY }}
+          owner: HyperLEDA
+          repositories: deployment
+
+      - name: Dispatch release event
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          repository: HyperLEDA/deployment
+          event-type: ${{ inputs.deployment_event }}
+          client_payload: >-
+            {"sha":"${{ inputs.head_sha }}",
+             "short_sha":"${{ env.SHORT_SHA }}",
+             "image":"${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}"}

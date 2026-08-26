@@ -28,6 +28,14 @@ class KinematicsLineWidthCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.KINEMATICS__LINE_WIDTH
 
     @classmethod
+    def title(cls) -> str:
+        return "Kinematics (line width)"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Spectral line width measurements."
+
+    @classmethod
     def layer1_table(cls) -> str:
         return "kinematics.line_width"
 

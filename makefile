@@ -98,11 +98,6 @@ check-deadcode:
 wheel:
 	uv build --wheel
 
-# only for mac as this is faster
-build:
-	docker build . \
-		--platform linux/arm64
-
 new-branch:
 	@read -p "Branch name: " branch_name && \
 	branch_name=$${branch_name// /-} && \
@@ -172,15 +167,3 @@ test-regression:
 coverage:
 	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
 	uvx coverage html
-
-## Release
-
-GIT_VERSION = `git rev-parse --short master`
-
-image-build:
-	docker build . -t ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
-	docker tag ghcr.io/hyperleda/hyperleda:$(GIT_VERSION) ghcr.io/hyperleda/hyperleda:latest
-
-image-push:
-	docker push ghcr.io/hyperleda/hyperleda:$(GIT_VERSION)
-	docker push ghcr.io/hyperleda/hyperleda:latest

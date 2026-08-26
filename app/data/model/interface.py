@@ -21,6 +21,7 @@ class RawCatalog(enum.Enum):
     SPECTROSCOPY__INTEGRATED_FLUX_DENSITY = "spectroscopy_integrated_flux_density"
     SPECTROSCOPY__ENERGY_FLUX = "spectroscopy_energy_flux"
     KINEMATICS__LINE_WIDTH = "kinematics_line_width"
+    DISTANCE = "distance"
     NOTE = "note"
 
 
@@ -39,6 +40,16 @@ class CatalogObject(abc.ABC):
     @abc.abstractmethod
     def catalog(self) -> RawCatalog:
         """Return the catalog identifier. Required for every catalog."""
+
+    @classmethod
+    @abc.abstractmethod
+    def title(cls) -> str:
+        """Return the human-readable catalog title."""
+
+    @classmethod
+    @abc.abstractmethod
+    def description(cls) -> str:
+        """Return the catalog description."""
 
     @classmethod
     def layer1_table(cls) -> str:

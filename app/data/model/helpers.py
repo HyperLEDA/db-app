@@ -1,5 +1,6 @@
 from app.data.model import (
     designation,
+    distance,
     geometry,
     icrs,
     interface,
@@ -24,6 +25,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.RawCatalog, type[interface.CatalogObject]]
     ),
     interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX: spectroscopy.SpectroscopyEnergyFluxCatalogObject,
     interface.RawCatalog.KINEMATICS__LINE_WIDTH: kinematics.KinematicsLineWidthCatalogObject,
+    interface.RawCatalog.DISTANCE: distance.DistanceCatalogObject,
     interface.RawCatalog.NOTE: note.NoteCatalogObject,
 }
 

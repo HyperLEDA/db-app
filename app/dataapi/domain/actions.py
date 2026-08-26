@@ -25,6 +25,7 @@ METADATA_ALLOWED_SCHEMAS = frozenset(
         "nature",
         "note",
         "photometry",
+        "distance",
     },
 )
 

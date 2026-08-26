@@ -22,6 +22,14 @@ class PhotometryTotalCatalogObject(interface.CatalogObject):
         return interface.RawCatalog.PHOTOMETRY__TOTAL
 
     @classmethod
+    def title(cls) -> str:
+        return "Photometry (total)"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Total magnitudes per band and method."
+
+    @classmethod
     def layer1_table(cls) -> str:
         return "photometry.total"
 
@@ -47,6 +55,14 @@ class PhotometryIsophotalCatalogObject(interface.CatalogObject):
 
     def catalog(self) -> interface.RawCatalog:
         return interface.RawCatalog.PHOTOMETRY__ISOPHOTAL
+
+    @classmethod
+    def title(cls) -> str:
+        return "Photometry (isophotal)"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Isophotal magnitudes per band and level."
 
     @classmethod
     def layer1_table(cls) -> str:
