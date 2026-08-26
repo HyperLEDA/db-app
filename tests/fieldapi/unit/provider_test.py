@@ -56,12 +56,10 @@ class SFDProviderTest(unittest.TestCase):
             self.assertTrue(sfd.map_files_present(map_dir, dataset.storage.files))
 
     @mock.patch("dustmaps.sfd.SFDQuery")
-    @mock.patch("dustmaps.sfd.fetch")
-    @mock.patch("dustmaps.config.config", new_callable=dict)
+    @mock.patch("app.fieldapi.providers.sfd.download_sfd_files")
     def test_prepare_downloads_when_missing(
         self,
-        dustmaps_config: dict[str, str],
-        fetch: mock.Mock,
+        download_sfd_files: mock.Mock,
         sfd_query: mock.Mock,
     ) -> None:
         dataset = sfd_dataset_config()
@@ -69,29 +67,49 @@ class SFDProviderTest(unittest.TestCase):
             data_dir = pathlib.Path(tmpdir)
             map_dir = data_dir / dataset.storage.dir
 
-            def create_files() -> None:
-                map_dir.mkdir(parents=True, exist_ok=True)
-                for name in dataset.storage.files:
-                    (map_dir / name).write_bytes(b"x")
+            def create_files(map_dir_arg: pathlib.Path, files: list[str]) -> None:
+                map_dir_arg.mkdir(parents=True, exist_ok=True)
+                for name in files:
+                    (map_dir_arg / name).write_bytes(b"x")
 
-            fetch.side_effect = create_files
+            download_sfd_files.side_effect = create_files
 
             provider = sfd.SFDProvider(dataset)
             provider.prepare(data_dir)
-            fetch.assert_called_once()
-            self.assertEqual(dustmaps_config["data_dir"], str(data_dir))
+            download_sfd_files.assert_called_once_with(map_dir, dataset.storage.files)
             sfd_query.assert_called_once_with(map_dir=str(map_dir))
 
     @mock.patch("dustmaps.sfd.SFDQuery")
-    @mock.patch("dustmaps.sfd.fetch")
-    @mock.patch("dustmaps.config.config", new_callable=dict)
-    def test_prepare_raises_when_files_missing_after_fetch(
+    @mock.patch("app.fieldapi.providers.sfd.download_sfd_files")
+    def test_prepare_redownloads_on_load_failure(
         self,
-        dustmaps_config: dict[str, str],
-        fetch: mock.Mock,
+        download_sfd_files: mock.Mock,
         sfd_query: mock.Mock,
     ) -> None:
-        _ = dustmaps_config
+        dataset = sfd_dataset_config()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = pathlib.Path(tmpdir)
+            map_dir = data_dir / dataset.storage.dir
+            map_dir.mkdir(parents=True)
+            for name in dataset.storage.files:
+                (map_dir / name).write_bytes(b"truncated")
+
+            sfd_query.side_effect = [TypeError("buffer is too small"), mock.Mock()]
+
+            provider = sfd.SFDProvider(dataset)
+            provider.prepare(data_dir)
+
+            download_sfd_files.assert_called_once_with(map_dir, dataset.storage.files)
+            self.assertEqual(sfd_query.call_count, 2)
+
+    @mock.patch("dustmaps.sfd.SFDQuery")
+    @mock.patch("app.fieldapi.providers.sfd.download_sfd_files")
+    def test_prepare_raises_when_files_missing_after_fetch(
+        self,
+        download_sfd_files: mock.Mock,
+        sfd_query: mock.Mock,
+    ) -> None:
+        _ = download_sfd_files
         _ = sfd_query
         dataset = fieldapi_config.DatasetConfig(
             id="sfd",
@@ -112,15 +130,13 @@ class SFDProviderTest(unittest.TestCase):
             provider = sfd.SFDProvider(dataset)
             with self.assertRaises(FileNotFoundError):
                 provider.prepare(pathlib.Path(tmpdir))
-            fetch.assert_called_once()
+            download_sfd_files.assert_called_once()
 
     @mock.patch("dustmaps.sfd.SFDQuery")
-    @mock.patch("dustmaps.sfd.fetch")
-    @mock.patch("dustmaps.config.config", new_callable=dict)
+    @mock.patch("app.fieldapi.providers.sfd.download_sfd_files")
     def test_prepare_skips_download_when_present(
         self,
-        dustmaps_config: dict[str, str],
-        fetch: mock.Mock,
+        download_sfd_files: mock.Mock,
         sfd_query: mock.Mock,
     ) -> None:
         dataset = sfd_dataset_config()
@@ -133,7 +149,7 @@ class SFDProviderTest(unittest.TestCase):
 
             provider = sfd.SFDProvider(dataset)
             provider.prepare(data_dir)
-            fetch.assert_not_called()
+            download_sfd_files.assert_not_called()
             sfd_query.assert_called_once_with(map_dir=str(map_dir))
 
     def test_sample_returns_values_in_order(self) -> None:
