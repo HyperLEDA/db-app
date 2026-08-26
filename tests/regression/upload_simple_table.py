@@ -142,6 +142,10 @@ def upload_structured_data(session: requests.Session, records: list[dict]) -> No
     upload_spectroscopy_integrated_flux_density_catalog(session, ids=ids)
     upload_spectroscopy_energy_flux_catalog(session, ids=ids)
     upload_kinematics_line_width_catalog(session, ids=ids)
+    upload_morphology_t_catalog(session, ids=ids)
+    upload_morphology_features_catalog(session, ids=ids)
+    upload_morphology_extra_catalog(session, ids=ids)
+    upload_morphology_spiral_winding_catalog(session, ids=ids)
 
 
 @lib.test_logging_decorator
@@ -312,6 +316,58 @@ def upload_kinematics_line_width_catalog(session: requests.Session, ids: list[st
         units={"width": "km/s", "e_width": "km/s", "resolution": "km/s"},
         ids=width_ids,
         data=width_data,
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_morphology_t_catalog(session: requests.Session, ids: list[str]) -> None:
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="morphology_t",
+        columns=["value", "em_value", "ep_value", "method"],
+        units={},
+        ids=ids,
+        data=[[random.randint(-5, 9), 0.5, 0.5, "expert"] for _ in ids],
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_morphology_features_catalog(session: requests.Session, ids: list[str]) -> None:
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="morphology_features",
+        columns=["attribute_id", "value", "em_value", "ep_value", "method"],
+        units={},
+        ids=ids,
+        data=[["bar", random.choice([0.0, 0.25, 0.5, 0.75, 1.0]), 0.25, 0.25, "expert"] for _ in ids],
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_morphology_extra_catalog(session: requests.Session, ids: list[str]) -> None:
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="morphology_extra",
+        columns=["type"],
+        units={},
+        ids=ids,
+        data=[["dE"] for _ in ids],
+    )
+    response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
+    response.raise_for_status()
+
+
+@lib.test_logging_decorator
+def upload_morphology_spiral_winding_catalog(session: requests.Session, ids: list[str]) -> None:
+    request = adminapi.SaveStructuredDataRequest(
+        catalog="morphology_spiral_winding",
+        columns=["winding", "em_winding", "ep_winding", "method"],
+        units={},
+        ids=ids,
+        data=[[random.choice([-1.0, -0.5, 0.0, 0.5, 1.0]), 0.5, 0.5, "expert"] for _ in ids],
     )
     response = session.post("/v1/data/structured", json=request.model_dump(mode="json"))
     response.raise_for_status()

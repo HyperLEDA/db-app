@@ -22,6 +22,10 @@ class RawCatalog(enum.Enum):
     SPECTROSCOPY__ENERGY_FLUX = "spectroscopy_energy_flux"
     KINEMATICS__LINE_WIDTH = "kinematics_line_width"
     DISTANCE = "distance"
+    MORPHOLOGY__T = "morphology_t"
+    MORPHOLOGY__FEATURES = "morphology_features"
+    MORPHOLOGY__EXTRA = "morphology_extra"
+    MORPHOLOGY__SPIRAL_WINDING = "morphology_spiral_winding"
     NOTE = "note"
 
 

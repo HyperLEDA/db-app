@@ -382,5 +382,16 @@ SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'em_winding' , '{"descr
 SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'ep_winding' , '{"description": "Upper uncertainty of the winding direction", "ucd": "stat.error"}'::json ) ;
 SELECT meta.setparams( 'morphology' , 'spiral_winding' , 'method' , '{"description": "Method used to determine the spiral winding direction", "ucd": "meta.code.class"}'::json ) ;
 
+GRANT USAGE ON SCHEMA morphology TO db_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA morphology TO db_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA morphology GRANT SELECT ON TABLES TO db_reader;
+
+GRANT USAGE ON SCHEMA morphology TO db_writer;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA morphology TO db_writer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA morphology GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO db_writer;
+
+GRANT USAGE ON SCHEMA morphology TO db_private_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA morphology TO db_private_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA morphology GRANT SELECT ON TABLES TO db_private_reader;
 
 COMMIT ;
