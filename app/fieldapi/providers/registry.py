@@ -7,7 +7,7 @@ from app.fieldapi.providers import interface as provider_interface
 from app.fieldapi.providers import sfd as sfd_provider
 from app.lib.web import errors
 
-ProviderFactory = Callable[[], provider_interface.DatasetProvider]
+ProviderFactory = Callable[[fieldapi_config.DatasetConfig], provider_interface.DatasetProvider]
 
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "sfd": sfd_provider.SFDProvider,
@@ -37,10 +37,10 @@ class DatasetRegistry:
             if factory is None:
                 raise ValueError(f"Unknown provider: {dataset.provider}")
 
-            provider = factory()
+            provider = factory(dataset)
             provider.prepare(data_dir)
             providers[dataset.id] = provider
-            metadata[dataset.id] = provider.metadata(dataset.id, dataset.name, dataset.version)
+            metadata[dataset.id] = dataset.to_dataset_info()
 
         return cls(providers=providers, metadata=metadata)
 

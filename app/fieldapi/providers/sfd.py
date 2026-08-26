@@ -7,41 +7,37 @@ import numpy as np
 from astropy import coordinates as astro_coords
 from astropy import units as u
 
+from app.fieldapi import config as fieldapi_config
 from app.fieldapi.presentation import interface
 from app.fieldapi.providers import interface as provider_interface
 
 SFDQueryFn = Callable[[astro_coords.SkyCoord], np.ndarray]
 
-SFD_MAP_DIR = "sfd"
-SFD_FILES = ("SFD_dust_4096_ngp.fits", "SFD_dust_4096_sgp.fits")
+
+def map_files_present(map_dir: pathlib.Path, files: list[str]) -> bool:
+    return all((map_dir / name).is_file() for name in files)
 
 
-def sfd_files_present(map_dir: pathlib.Path) -> bool:
-    return all((map_dir / name).is_file() for name in SFD_FILES)
+def missing_files(map_dir: pathlib.Path, files: list[str]) -> list[str]:
+    return [name for name in files if not (map_dir / name).is_file()]
 
 
 class SFDProvider(provider_interface.DatasetProvider):
-    def __init__(self, query: SFDQueryFn | None = None) -> None:
+    def __init__(self, dataset: fieldapi_config.DatasetConfig, query: SFDQueryFn | None = None) -> None:
+        self.dataset = dataset
         self._query: SFDQueryFn | None = query
-
-    def metadata(self, dataset_id: str, name: str, version: str) -> interface.DatasetInfo:
-        return interface.DatasetInfo(
-            id=dataset_id,
-            name=name,
-            version=version,
-            dimensions=2,
-            quantity="ebv",
-            unit="mag",
-            description="Galactic dust reddening map",
-            citation="Schlegel, Finkbeiner & Davis 1998",
-        )
 
     def prepare(self, data_dir: pathlib.Path) -> None:
         data_dir.mkdir(parents=True, exist_ok=True)
         dustmaps.config.config["data_dir"] = str(data_dir)
-        map_dir = data_dir / SFD_MAP_DIR
-        if not sfd_files_present(map_dir):
+        map_dir = data_dir / self.dataset.storage.dir
+        if not map_files_present(map_dir, self.dataset.storage.files):
             dustmaps_sfd.fetch()
+        missing = missing_files(map_dir, self.dataset.storage.files)
+        if missing:
+            raise FileNotFoundError(
+                f"Missing dataset files for {self.dataset.id} in {map_dir}: {', '.join(missing)}"
+            )
         if self._query is None:
             self._query = dustmaps_sfd.SFDQuery(map_dir=str(map_dir))
 

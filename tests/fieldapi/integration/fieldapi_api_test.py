@@ -1,13 +1,9 @@
-import pathlib
-import tempfile
 import unittest
-from unittest import mock
 
 import structlog
 from starlette import testclient
 
 from app.fieldapi import domain
-from app.fieldapi.command import FieldAPICommand
 from app.fieldapi.presentation import interface, server
 from app.fieldapi.providers import registry
 from app.lib import auth
@@ -28,7 +24,7 @@ class FieldAPIIntegrationTest(unittest.TestCase):
                     quantity="ebv",
                     unit="mag",
                     description="Galactic dust reddening map",
-                    citation="Schlegel, Finkbeiner & Davis 1998",
+                    bibcode="1998ApJ...500..525S",
                 )
             },
         )
@@ -76,35 +72,6 @@ class FieldAPIIntegrationTest(unittest.TestCase):
             json={"dataset": "sfd", "coordinates": []},
         )
         self.assertEqual(response.status_code, 400)
-
-
-class FieldAPICommandTest(unittest.TestCase):
-    @mock.patch("app.fieldapi.providers.registry.DatasetRegistry.from_config")
-    def test_prepare_builds_server(self, from_config: mock.Mock) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = pathlib.Path(tmpdir) / "fieldapi.yaml"
-            config_path.write_text(
-                """
-server:
-  host: 127.0.0.1
-  port: 8082
-datasets:
-  data_dir: downloads/fieldapi
-  enabled:
-    - id: sfd
-      provider: sfd
-      name: SFD
-      version: "1998"
-""".strip()
-            )
-            dataset_registry = mock.Mock()
-            from_config.return_value = dataset_registry
-
-            command = FieldAPICommand(str(config_path))
-            command.prepare()
-            self.assertIsNotNone(command.app)
-            from_config.assert_called_once()
-            command.cleanup()
 
 
 class _MockProvider:

@@ -17,7 +17,7 @@ class DatasetInfo(pydantic.BaseModel):
     quantity: str
     unit: str
     description: str
-    citation: str
+    bibcode: str
 
 
 class ListDatasetsResponse(pydantic.BaseModel):

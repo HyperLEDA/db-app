@@ -6,10 +6,6 @@ from app.fieldapi.presentation import interface
 
 class DatasetProvider(abc.ABC):
     @abc.abstractmethod
-    def metadata(self, dataset_id: str, name: str, version: str) -> interface.DatasetInfo:
-        pass
-
-    @abc.abstractmethod
     def prepare(self, data_dir: pathlib.Path) -> None:
         pass
 

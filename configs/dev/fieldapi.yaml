@@ -15,3 +15,13 @@ datasets:
       provider: sfd
       name: SFD
       version: "1998"
+      dimensions: 2
+      quantity: ebv
+      unit: mag
+      description: Galactic dust reddening map
+      bibcode: "1998ApJ...500..525S"
+      storage:
+        dir: sfd
+        files:
+          - SFD_dust_4096_ngp.fits
+          - SFD_dust_4096_sgp.fits
