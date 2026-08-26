@@ -124,13 +124,13 @@ SELECT meta.setparams( 'morphology' , 'attributes' , 'description' , '{"descript
 INSERT INTO morphology.attributes VALUES
   ( 'inclination/elongation' , 'appearance',
 '{
-"description": "Dimensionless inclination parameter, f=1−cosθ, for disk galaxies and apparent elongation, f=1−b/a, for galaxies with no evident disk (elliptical, irregular and spheroidal galaxies)",
+"description": "Dimensionless inclination parameter, f=1-cos(incl), for disk galaxies and apparent elongation, f=1-b/a, for galaxies with no evident disk (elliptical, irregular and spheroidal galaxies)",
 "values": {
-  "0": "0°–35° disk inclination angle (face-on) or very low elongation 0 ≤ f < 0.2",
-  "0.25": "35°–50° disk inclination angle or low elongation 0.2 ≤ f < 0.4",
-  "0.5": "50°–70° disk inclination angle or moderate elongation 0.4 ≤ f < 0.7",
-  "0.75": "70°–80° disk inclination angle or strong elongation 0.7 ≤ f < 0.8",
-  "1": "80°–90° disk inclination angle (edge-on) or very strong elongation 0.8 ≤ f ≤ 1"
+  "0": "0-35 deg inclination angle (face-on) or very low elongation 0 <= f < 0.2",
+  "0.25": "35-50 deg disk inclination angle or low elongation 0.2 <= f < 0.4",
+  "0.5": "50-70 deg disk inclination angle or moderate elongation 0.4 <= f < 0.7",
+  "0.75": "70-80 deg disk inclination angle or strong elongation 0.7 <= f < 0.8",
+  "1": "80-90 deg disk inclination angle (edge-on) or very strong elongation 0.8 <= f <= 1"
   }
 }'::JSON )
 
@@ -173,11 +173,11 @@ INSERT INTO morphology.attributes VALUES
 '{
 "description": "Intrinsic curvature of the spiral arms as if seen face-on",
 "values": {
-  "0": "wide open spiral arms, with pitch angles of 40° or more",
-  "0.25": "open spiral arms: 30° ≤ pitch angle < 40°",
-  "0.5": "moderately open spiral arms: 20° ≤ pitch angle < 30°",
-  "0.75": "closed-in spiral arms: 10° ≤ pitch angle < 20°",
-  "1": "tightly wound spiral arms, with pitch angles of 10° or less"
+  "0": "wide open spiral arms, with pitch angles of 40 deg or more",
+  "0.25": "open spiral arms: 30 deg <= pitch angle < 40 deg",
+  "0.5": "moderately open spiral arms: 20 deg <= pitch angle < 30 deg",
+  "0.75": "closed-in spiral arms: 10 deg <= pitch angle < 20 deg",
+  "1": "tightly wound spiral arms, with pitch angles of 10 deg or less"
   }
 }'::JSON )
 
@@ -189,7 +189,7 @@ INSERT INTO morphology.attributes VALUES
   "0.25": "indications of dust, but dust cannot be located",
   "0.5": "low to moderate amounts of dust, can be located",
   "0.75": "significant amounts of dust covering <50% of the surface of the galaxy",
-  "1": "high amounts of dust covering ≥50% of the surface of the galaxy"
+  "1": "high amounts of dust covering >=50% of the surface of the galaxy"
 }
 }'::JSON )
 , ( 'dust patchiness' , 'texture',
@@ -260,7 +260,7 @@ INSERT INTO morphology.attributes VALUES
 }'::JSON )
 , ( 'pseudo-ring' , 'dynamics',
 '{
-"description": "Presence and relative prominence of an outer pseudo-ring (Buta & Combes, 1996): R1 pseudo-ring having a dimpled eight shape due to a 180◦ winding of the spiral arms relative to the bar; R2 pseudo-ring with a winding of 270◦; and an intermediate R1-R2 pattern",
+"description": "Presence and relative prominence of an outer pseudo-ring (Buta & Combes, 1996): R1 pseudo-ring having a dimpled eight shape due to a 180 deg winding of the spiral arms relative to the bar; R2 pseudo-ring with a winding of 270 deg; and an intermediate R1-R2 pattern",
 "values": {
   "0": "no visible pseudo-ring feature",
   "0.25": "R2 and R1-R2 pseudo-rings containing a low fraction of the galaxy flux",
