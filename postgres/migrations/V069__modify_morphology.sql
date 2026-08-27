@@ -1,10 +1,9 @@
 /* pgmigrate-encoding: utf-8 */
 BEGIN;
 
-ALTER TYPE morphology.measurement_type
-  ADD VALUE IF NOT EXISTS 'average'
-, ADD VALUE IF NOT EXISTS 'unknown'
-;
+ALTER TYPE morphology.measurement_type	ADD VALUE IF NOT EXISTS 'average' ;
+ALTER TYPE morphology.measurement_type	ADD VALUE IF NOT EXISTS 'unknown' ;
+
 COMMENT ON TYPE morphology.measurement_type IS '{
 "description": "Type of the morphology classification",
 "values": {
@@ -15,7 +14,7 @@ COMMENT ON TYPE morphology.measurement_type IS '{
   "nonparametric": "Nonparametric indices based on image statistics (Gini, M20, CAS, etc.)",
   "kinematic": "Classification based on galaxy kinematics (fast/slow rotators, dispersion-dominated systems, etc.)",
   "simplified": "Simple/coarse classification (early/late, disk/elliptical, etc.)",
-  "average": "Average of the several measurements",
+  "average": "Average of several measurements",
   "unknown": "Unspecified measurement"
   }
 }';
