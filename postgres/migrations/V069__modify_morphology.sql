@@ -19,9 +19,12 @@ COMMENT ON TYPE morphology.measurement_type IS '{
   }
 }';
 
+-- Remove the foreign key to the integer Hubble sequence.
+ALTER TABLE morphology.t	DROP CONSTRAINT t_value_fkey ;
 
-ALTER TABLE morphology.t
-  ALTER COLUMN value TYPE Real 
-;
+-- Change T-type from integer to real-valued.
+ALTER TABLE morphology.t	ALTER COLUMN value TYPE Real ;
+
+ALTER TABLE morphology.t	ADD CHECK (value>-6.5 and value<11.5) ;
 
 COMMIT;
