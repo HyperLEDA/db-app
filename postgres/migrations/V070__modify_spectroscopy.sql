@@ -15,4 +15,6 @@ COMMENT ON TYPE spectroscopy.flux_method_type IS '{
   }
 }';
 
+ALTER TYPE spectroscopy.flux_method_type RENAME TO flux_measurement_type ;
+
 COMMIT ;
