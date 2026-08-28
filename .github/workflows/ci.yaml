@@ -93,9 +93,40 @@ jobs:
       - name: Run regression tests
         run: make test-regression
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      adminapi: ${{ steps.filter.outputs.adminapi }}
+      dataapi: ${{ steps.filter.outputs.dataapi }}
+      fieldapi: ${{ steps.filter.outputs.fieldapi }}
+      tasks: ${{ steps.filter.outputs.tasks }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - '*'
+              - '!(app)/**'
+              - 'app/lib/**'
+              - 'app/data/**'
+            adminapi:
+              - *shared
+              - 'app/adminapi/**'
+            dataapi:
+              - *shared
+              - 'app/dataapi/**'
+            fieldapi:
+              - *shared
+              - 'app/fieldapi/**'
+            tasks:
+              - *shared
+              - 'app/tasks/**'
+
   release-adminapi:
-    needs: [tests, build, regression]
-    if: github.ref_name == github.event.repository.default_branch
+    needs: [tests, build, regression, changes]
+    if: github.ref_name == github.event.repository.default_branch && needs.changes.outputs.adminapi == 'true'
     permissions:
       contents: read
       packages: write
@@ -109,8 +140,8 @@ jobs:
     secrets: inherit
 
   release-dataapi:
-    needs: [tests, build, regression]
-    if: github.ref_name == github.event.repository.default_branch
+    needs: [tests, build, regression, changes]
+    if: github.ref_name == github.event.repository.default_branch && needs.changes.outputs.dataapi == 'true'
     permissions:
       contents: read
       packages: write
@@ -124,8 +155,8 @@ jobs:
     secrets: inherit
 
   release-fieldapi:
-    needs: [tests, build, regression]
-    if: github.ref_name == github.event.repository.default_branch
+    needs: [tests, build, regression, changes]
+    if: github.ref_name == github.event.repository.default_branch && needs.changes.outputs.fieldapi == 'true'
     permissions:
       contents: read
       packages: write
@@ -139,8 +170,8 @@ jobs:
     secrets: inherit
 
   release-tasks:
-    needs: [tests, build, regression]
-    if: github.ref_name == github.event.repository.default_branch
+    needs: [tests, build, regression, changes]
+    if: github.ref_name == github.event.repository.default_branch && needs.changes.outputs.tasks == 'true'
     permissions:
       contents: read
       packages: write
