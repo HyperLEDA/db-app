@@ -53,6 +53,7 @@ fieldapi = [
     "opentelemetry-api~=1.44.0",
     "opentelemetry-sdk~=1.44.0",
     "opentelemetry-instrumentation-fastapi~=0.65b0",
+    "opentelemetry-instrumentation-psycopg~=0.65b0",
     "opentelemetry-exporter-otlp~=1.44.0",
     "dustmaps~=1.0.14",
 ]
