@@ -132,18 +132,18 @@ class TableUploadManager:
             if r.status is not None:
                 self.layer0_repo.update_table_status(r.table_name, r.status)
 
-            for column_name, spec in r.columns.items():
+            for column_name, column_spec in r.columns.items():
                 if column_name not in columns_by_name:
                     raise NotFoundError("column", column_name)
 
                 column_metadata = columns_by_name[column_name]
-                if spec.ucd is not None:
-                    column_metadata.ucd = spec.ucd
-                if spec.unit is not None:
-                    column_metadata.unit = units.Unit(spec.unit)
-                if spec.description is not None:
-                    column_metadata.description = spec.description
-                if spec.ucd is not None or spec.unit is not None or spec.description is not None:
+                if column_spec.ucd is not None:
+                    column_metadata.ucd = column_spec.ucd
+                if column_spec.unit is not None:
+                    column_metadata.unit = units.Unit(column_spec.unit)
+                if column_spec.description is not None:
+                    column_metadata.description = column_spec.description
+                if column_spec.ucd is not None or column_spec.unit is not None or column_spec.description is not None:
                     self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
 
             if r.new_table_name is not None and r.new_table_name != r.table_name:
