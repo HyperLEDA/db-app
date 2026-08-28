@@ -10,7 +10,6 @@ from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import clients, domain
 from app.dataapi.presentation.server import Server
-from app.lib import auth
 from app.lib.storage import postgres
 from app.specs import fieldapi as fieldapi_spec
 from tests import lib
@@ -51,9 +50,7 @@ class ReddeningAPITest(unittest.TestCase):
             references_repo=repositories.ReferencesRepository(self.reader_storage),
             fieldapi_client=_MockFieldAPIClient(),
         )
-        self.client = testclient.TestClient(
-            Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
-        )
+        self.client = testclient.TestClient(Server(self.actions, self.cfg.server, self.log).app)
 
     def tearDown(self) -> None:
         self.pg_storage.clear()

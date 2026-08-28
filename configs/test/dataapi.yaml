@@ -8,18 +8,11 @@ fieldapi:
   base_url: http://fieldapi:8082
 
 storage:
-  auth:
-    endpoint: hyperledadb
-    port: 5432
-    dbname: hyperleda
-    user: hyperleda
-    password: fake
-  main:
-    endpoint: hyperledadb
-    port: 5432
-    dbname: hyperleda
-    user: hyperleda_reader
-    password: password
+  endpoint: hyperledadb
+  port: 5432
+  dbname: hyperleda
+  user: hyperleda_reader
+  password: password
 
 tracing:
   endpoint: tracing-collector:4317
