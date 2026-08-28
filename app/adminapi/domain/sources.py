@@ -1,5 +1,5 @@
-from app.adminapi import presentation as adminapi
 from app.data import repositories
+from app.specs import adminapi
 
 ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 

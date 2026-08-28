@@ -1,7 +1,7 @@
 from typing import Any, final
 
-from app.adminapi import presentation as adminapi
 from app.data import model, repositories
+from app.specs import adminapi
 
 _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
 

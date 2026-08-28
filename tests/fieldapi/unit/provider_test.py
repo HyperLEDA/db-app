@@ -7,8 +7,8 @@ import numpy as np
 import pydantic
 
 from app.fieldapi import config as fieldapi_config
-from app.fieldapi.presentation import interface
 from app.fieldapi.providers import registry, sfd
+from app.specs import fieldapi
 
 
 def sfd_dataset_config(dataset_id: str = "sfd") -> fieldapi_config.DatasetConfig:
@@ -156,8 +156,8 @@ class SFDProviderTest(unittest.TestCase):
         query = mock.Mock(return_value=np.array([0.03, 0.12], dtype=np.float64))
         provider = sfd.SFDProvider(sfd_dataset_config(), query=query)
         coordinates = [
-            interface.SkyCoordinate(ra_deg=187.6, dec_deg=15.26),
-            interface.SkyCoordinate(ra_deg=210.25, dec_deg=-3.10),
+            fieldapi.SkyCoordinate(ra_deg=187.6, dec_deg=15.26),
+            fieldapi.SkyCoordinate(ra_deg=210.25, dec_deg=-3.10),
         ]
         self.assertEqual(provider.sample(coordinates), [0.03, 0.12])
 
@@ -170,7 +170,7 @@ class _MockProvider(sfd.SFDProvider):
     def prepare(self, data_dir: pathlib.Path) -> None:
         _ = data_dir
 
-    def sample(self, coordinates: list[interface.SkyCoordinate]) -> list[float]:
+    def sample(self, coordinates: list[fieldapi.SkyCoordinate]) -> list[float]:
         _ = coordinates
         return [0.5]
 
@@ -199,7 +199,7 @@ class DatasetRegistryTest(unittest.TestCase):
                 dataset_registry.sample(
                     "missing",
                     [
-                        interface.SkyCoordinate(
+                        fieldapi.SkyCoordinate(
                             ra_deg=187.6,
                             dec_deg=15.26,
                         )

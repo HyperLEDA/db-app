@@ -8,8 +8,8 @@ from astropy import coordinates as astro_coords
 from astropy import units as u
 
 from app.fieldapi import config as fieldapi_config
-from app.fieldapi.presentation import interface
 from app.fieldapi.providers import interface as provider_interface
+from app.specs import fieldapi
 
 SFDQueryFn = Callable[[astro_coords.SkyCoord], np.ndarray]
 SFD_BASE_URL = "https://portal.nersc.gov/project/cosmo/data/dust/v0_0/maps"
@@ -62,7 +62,7 @@ class SFDProvider(provider_interface.DatasetProvider):
                 download_sfd_files(map_dir, files)
                 self._query = dustmaps_sfd.SFDQuery(map_dir=str(map_dir))
 
-    def sample(self, coordinates: list[interface.SkyCoordinate]) -> list[float]:
+    def sample(self, coordinates: list[fieldapi.SkyCoordinate]) -> list[float]:
         if self._query is None:
             raise RuntimeError("SFD provider is not prepared")
 

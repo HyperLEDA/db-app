@@ -1,8 +1,8 @@
 import datetime
 from collections.abc import Callable
 
-from app.adminapi import presentation as adminapi
 from app.data import model, repositories
+from app.specs import adminapi
 
 
 def table_progress_to_presentation(progress: model.TableProgress) -> adminapi.TableProgress:

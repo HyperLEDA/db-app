@@ -1,13 +1,14 @@
 from typing import final
 
 from app.adminapi import cache, clients
-from app.adminapi import presentation as adminapi
 from app.adminapi.domain import auth as admin_auth
 from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, sources, table_upload
+from app.adminapi.presentation import interface
 from app.data import repositories
 from app.lib import auth
 from app.lib.storage import postgres
 from app.lib.tap import types as tap_types
+from app.specs import adminapi
 
 _ADMIN_TAP_SYNC_QUERY_TIMEOUT_SECONDS = 60
 
@@ -19,7 +20,7 @@ def _json_cell(value: object) -> object:
 
 
 @final
-class Actions(adminapi.Actions):
+class Actions(interface.Actions):
     def __init__(
         self,
         common_repo: repositories.CommonRepository,

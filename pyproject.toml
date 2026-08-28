@@ -232,11 +232,21 @@ modules = [
 ]
 
 [[tool.importlinter.contracts]]
+id = "specs-independent"
+name = "Specs packages must not import each other"
+type = "independence"
+modules = [
+    "app.specs.adminapi",
+    "app.specs.dataapi",
+    "app.specs.fieldapi",
+]
+
+[[tool.importlinter.contracts]]
 id = "layers"
 name = "Layered architecture"
 type = "layers"
 layers = [
     "app.adminapi | app.dataapi | app.fieldapi | app.tasks",
-    "app.data",
+    "app.data | app.specs.adminapi | app.specs.dataapi | app.specs.fieldapi",
     "app.lib",
 ]

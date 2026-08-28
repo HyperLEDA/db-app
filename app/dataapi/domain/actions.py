@@ -1,10 +1,11 @@
 from typing import final
 
 from app.data import model, repositories
-from app.dataapi import presentation as dataapi
 from app.dataapi import responders
 from app.dataapi.domain import parameterized_query
+from app.dataapi.presentation import interface
 from app.lib.tap import types as tap_types
+from app.specs import dataapi
 
 ENABLED_CATALOGS = [
     model.RawCatalog.DESIGNATION,
@@ -38,7 +39,7 @@ def _json_cell(value: object) -> object:
 
 
 @final
-class Actions(dataapi.Actions):
+class Actions(interface.Actions):
     def __init__(
         self,
         layer2_repo: repositories.Layer2Repository,

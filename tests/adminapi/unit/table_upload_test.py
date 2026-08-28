@@ -5,12 +5,13 @@ from unittest import mock
 from astropy import units
 from parameterized import param, parameterized
 
-from app.adminapi import clients, domain, presentation
+from app.adminapi import clients, domain
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
 from app.data import model, repositories
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
+from app.specs import adminapi
 from tests import lib
 
 
@@ -25,7 +26,7 @@ class TableUploadManagerTest(unittest.TestCase):
         )
 
     def test_add_data(self):
-        request = presentation.AddDataRequest(
+        request = adminapi.AddDataRequest(
             table_name="test_table",
             data=[
                 {
@@ -51,7 +52,7 @@ class TableUploadManagerTest(unittest.TestCase):
         )
 
     def test_add_data_identical_rows(self):
-        request = presentation.AddDataRequest(
+        request = adminapi.AddDataRequest(
             table_name="test_table",
             data=[
                 {
@@ -76,17 +77,17 @@ class TableUploadManagerTest(unittest.TestCase):
         [
             param(
                 "create new table",
-                presentation.CreateTableRequest(
+                adminapi.CreateTableRequest(
                     table_name="test",
                     columns=[
-                        presentation.ColumnDescription(
-                            name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                        adminapi.ColumnDescription(
+                            name="objname", data_type=adminapi.DatatypeEnum["str"], ucd="meta.id"
                         ),
-                        presentation.ColumnDescription(
-                            name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                        adminapi.ColumnDescription(
+                            name="ra", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
                         ),
-                        presentation.ColumnDescription(
-                            name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                        adminapi.ColumnDescription(
+                            name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
                         ),
                     ],
                     bibcode="totally real bibcode",
@@ -96,17 +97,17 @@ class TableUploadManagerTest(unittest.TestCase):
             ),
             param(
                 "create already existing table",
-                presentation.CreateTableRequest(
+                adminapi.CreateTableRequest(
                     table_name="test",
                     columns=[
-                        presentation.ColumnDescription(
-                            name="objname", data_type=presentation.DatatypeEnum["str"], ucd="meta.id"
+                        adminapi.ColumnDescription(
+                            name="objname", data_type=adminapi.DatatypeEnum["str"], ucd="meta.id"
                         ),
-                        presentation.ColumnDescription(
-                            name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
+                        adminapi.ColumnDescription(
+                            name="ra", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.ra", unit="h"
                         ),
-                        presentation.ColumnDescription(
-                            name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
+                        adminapi.ColumnDescription(
+                            name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
                         ),
                     ],
                     bibcode="totally real bibcode",
@@ -121,7 +122,7 @@ class TableUploadManagerTest(unittest.TestCase):
     def test_create_table(
         self,
         _: str,
-        request: presentation.CreateTableRequest,
+        request: adminapi.CreateTableRequest,
         table_already_existed: bool = False,
         expected_created: bool = True,
         err_substr: str | None = None,
@@ -197,7 +198,7 @@ class MappingTest(unittest.TestCase):
     @dataclass
     class TestData:
         name: str
-        input_columns: list[presentation.ColumnDescription]
+        input_columns: list[adminapi.ColumnDescription]
         expected: list[model.ColumnDescription] | None = None
         err_substr: str | None = None
 
@@ -212,9 +213,9 @@ class MappingTest(unittest.TestCase):
             param(
                 "simple column",
                 [
-                    presentation.ColumnDescription(
+                    adminapi.ColumnDescription(
                         name="name",
-                        data_type=presentation.DatatypeEnum["str"],
+                        data_type=adminapi.DatatypeEnum["str"],
                         ucd="phys.veloc.orbital",
                         unit="m / s",
                         description="description",
@@ -229,14 +230,14 @@ class MappingTest(unittest.TestCase):
             ),
             param(
                 "unit is None",
-                [presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["str"])],
+                [adminapi.ColumnDescription(name="name", data_type=adminapi.DatatypeEnum["str"])],
                 [internal_id_column, model.ColumnDescription("name", "text")],
             ),
             param(
                 "unit has extra spaces",
                 [
-                    presentation.ColumnDescription(
-                        name="name", data_type=presentation.DatatypeEnum["str"], unit="m     /       s"
+                    adminapi.ColumnDescription(
+                        name="name", data_type=adminapi.DatatypeEnum["str"], unit="m     /       s"
                     )
                 ],
                 [internal_id_column, model.ColumnDescription("name", "text", unit=units.Unit("m / s"))],
@@ -244,9 +245,9 @@ class MappingTest(unittest.TestCase):
             param(
                 "invalid unit is ignored and appended to description",
                 [
-                    presentation.ColumnDescription(
+                    adminapi.ColumnDescription(
                         name="name",
-                        data_type=presentation.DatatypeEnum["str"],
+                        data_type=adminapi.DatatypeEnum["str"],
                         unit="not_a_unit",
                         description="some description",
                     )
@@ -261,9 +262,9 @@ class MappingTest(unittest.TestCase):
             param(
                 "invalid unit with no description",
                 [
-                    presentation.ColumnDescription(
+                    adminapi.ColumnDescription(
                         name="name",
-                        data_type=presentation.DatatypeEnum["str"],
+                        data_type=adminapi.DatatypeEnum["str"],
                         unit="not_a_unit",
                     )
                 ],
@@ -277,7 +278,7 @@ class MappingTest(unittest.TestCase):
     def test_mapping(
         self,
         _: str,
-        input_columns: list[presentation.ColumnDescription],
+        input_columns: list[adminapi.ColumnDescription],
         expected: list[model.ColumnDescription] | None = None,
         err_substr: str | None = None,
     ):
@@ -319,47 +320,47 @@ class GetRecordsTest(unittest.TestCase):
             ),
         ]
 
-        request = presentation.GetRecordsRequest(table_name="t", page=0, page_size=25)
+        request = adminapi.GetRecordsRequest(table_name="t", page=0, page_size=25)
         response = self.manager.get_records(request)
 
         self.assertEqual(len(response.records), 2)
         self.assertEqual(response.records[0].id, "rec1")
         self.assertEqual(response.records[0].original_data, {"name": "A"})
         self.assertEqual(response.records[0].pgc, 1001)
-        self.assertEqual(response.records[0].crossmatch.triage_status, presentation.CrossmatchTriageStatus.RESOLVED)
+        self.assertEqual(response.records[0].crossmatch.triage_status, adminapi.CrossmatchTriageStatus.RESOLVED)
         self.assertEqual(
             response.records[0].crossmatch.candidates,
-            [presentation.RecordCrossmatchCandidate(pgc=1001)],
+            [adminapi.RecordCrossmatchCandidate(pgc=1001)],
         )
         self.assertEqual(response.records[1].id, "rec2")
         self.assertEqual(response.records[1].original_data, {"name": "B"})
         self.assertEqual(response.records[1].pgc, 1002)
-        self.assertEqual(response.records[1].crossmatch.triage_status, presentation.CrossmatchTriageStatus.PENDING)
+        self.assertEqual(response.records[1].crossmatch.triage_status, adminapi.CrossmatchTriageStatus.PENDING)
         self.assertEqual(response.records[1].crossmatch.candidates, [])
 
     def test_get_records_passes_filters_to_fetch_records(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = []
 
         self.manager.get_records(
-            presentation.GetRecordsRequest(table_name="t", upload_status=presentation.UploadStatus.UPLOADED)
+            adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.UPLOADED)
         )
         call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], True)
         self.assertIsNone(call_kw["pgc_value"])
 
         self.manager.get_records(
-            presentation.GetRecordsRequest(table_name="t", upload_status=presentation.UploadStatus.PENDING)
+            adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.PENDING)
         )
         call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], False)
 
-        self.manager.get_records(presentation.GetRecordsRequest(table_name="t", pgc=42))
+        self.manager.get_records(adminapi.GetRecordsRequest(table_name="t", pgc=42))
         call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertIsNone(call_kw["has_pgc"])
         self.assertEqual(call_kw["pgc_value"], 42)
 
         self.manager.get_records(
-            presentation.GetRecordsRequest(table_name="t", triage_status=presentation.CrossmatchTriageStatus.PENDING)
+            adminapi.GetRecordsRequest(table_name="t", triage_status=adminapi.CrossmatchTriageStatus.PENDING)
         )
         call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertEqual(call_kw["triage_status"], "pending")
@@ -367,7 +368,7 @@ class GetRecordsTest(unittest.TestCase):
     def test_get_records_pagination(self) -> None:
         self.manager.layer0_repo.fetch_records.return_value = []
 
-        self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=2, page_size=10))
+        self.manager.get_records(adminapi.GetRecordsRequest(table_name="t", page=2, page_size=10))
         call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
         self.assertEqual(call_kw["row_offset"], 20)
         self.assertEqual(call_kw["limit"], 10)
@@ -390,7 +391,7 @@ class GetRecordsTest(unittest.TestCase):
             ),
         ]
 
-        response = self.manager.get_records(presentation.GetRecordsRequest(table_name="t", page=0, page_size=25))
+        response = self.manager.get_records(adminapi.GetRecordsRequest(table_name="t", page=0, page_size=25))
 
         self.assertEqual(response.records[0].pgc, 1001)
         self.assertIsNone(response.records[1].pgc)

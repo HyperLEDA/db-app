@@ -1,8 +1,8 @@
 from typing import final
 
-from app.adminapi import presentation as adminapi
 from app.data import repositories
 from app.lib.web.errors import NotFoundError
+from app.specs import adminapi
 
 
 @final

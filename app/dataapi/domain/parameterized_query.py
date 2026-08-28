@@ -2,10 +2,10 @@ from astropy import coordinates as coords
 
 from app.data import model, repositories
 from app.data.repositories import layer2
-from app.dataapi import presentation as dataapi
 from app.dataapi import responders
 from app.lib import astronomy
 from app.lib.web.errors import RuleValidationError
+from app.specs import dataapi
 
 CATALOGS_FOR_PGC_QUERY = [
     model.RawCatalog.DESIGNATION,

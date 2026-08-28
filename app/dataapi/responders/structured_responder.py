@@ -4,9 +4,9 @@ from astropy import units as u
 
 from app.data import model
 from app.data.model import layer2
-from app.dataapi import presentation as dataapi
 from app.dataapi.responders import interface
 from app.lib import astronomy, config
+from app.specs import dataapi
 
 DATA_SCHEMA = dataapi.Schema(
     units=dataapi.Units(

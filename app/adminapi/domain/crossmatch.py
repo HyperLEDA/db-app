@@ -4,13 +4,13 @@ from typing import Any, Protocol, final
 import structlog
 from astropy import units as u
 
-from app.adminapi import presentation as adminapi
 from app.data import model
 from app.data.repositories import layer0, layer1, layer2
 from app.data.repositories.layer0.records import AssignRecordPgcsPreconditionError
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
+from app.specs import adminapi
 
 logger = structlog.stdlib.get_logger()
 

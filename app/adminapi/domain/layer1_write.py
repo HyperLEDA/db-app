@@ -1,10 +1,10 @@
 import psycopg
 from astropy import units as u
 
-from app.adminapi import presentation as adminapi
 from app.data import model
 from app.data.repositories import layer1
 from app.lib.web.errors import RuleValidationError
+from app.specs import adminapi
 
 
 class Layer1Writer:
