@@ -4,14 +4,14 @@ from astropy import units as u
 from app.data import model
 from app.data.repositories import layer1
 from app.lib.web.errors import RuleValidationError
-from app.specs import adminapi
+from app.specs import adminapi as spec
 
 
 class Layer1Writer:
     def __init__(self, layer1_repo: layer1.Layer1Repository) -> None:
         self._layer1_repo = layer1_repo
 
-    def save_data(self, request: adminapi.SaveStructuredDataRequest) -> adminapi.SaveStructuredDataResponse:
+    def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         catalog = model.RawCatalog(request.catalog)
         object_cls = model.get_catalog_object_type(catalog)
         table = object_cls.layer1_table()
@@ -54,4 +54,4 @@ class Layer1Writer:
                 msg += f" ({detail})"
             raise RuleValidationError(msg) from e
 
-        return adminapi.SaveStructuredDataResponse()
+        return spec.SaveStructuredDataResponse()

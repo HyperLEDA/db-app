@@ -8,7 +8,7 @@ from app.adminapi.presentation import interface
 from app.lib import audit, auth
 from app.lib.web import server
 from app.lib.web.middlewares import identity_from_request
-from app.specs import adminapi
+from app.specs import adminapi as spec
 
 
 def _logout_token(request: fastapi.Request) -> str:
@@ -28,57 +28,55 @@ class API:
 
     def add_data(
         self,
-        request: adminapi.AddDataRequest,
-    ) -> server.APIOkResponse[adminapi.AddDataResponse]:
+        request: spec.AddDataRequest,
+    ) -> server.APIOkResponse[spec.AddDataResponse]:
         response = self.actions.add_data(request)
         return server.APIOkResponse(data=response)
 
     def create_source(
         self,
-        request: adminapi.CreateSourceRequest,
-    ) -> server.APIOkResponse[adminapi.CreateSourceResponse]:
+        request: spec.CreateSourceRequest,
+    ) -> server.APIOkResponse[spec.CreateSourceResponse]:
         response = self.actions.create_source(request)
         return server.APIOkResponse(data=response)
 
     def create_table(
         self,
-        request: adminapi.CreateTableRequest,
-    ) -> server.APIOkResponse[adminapi.CreateTableResponse]:
+        request: spec.CreateTableRequest,
+    ) -> server.APIOkResponse[spec.CreateTableResponse]:
         response, _ = self.actions.create_table(request)
         return server.APIOkResponse(data=response)
 
     def get_table(
-        self, request: Annotated[adminapi.GetTableRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[adminapi.GetTableResponse]:
+        self, request: Annotated[spec.GetTableRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[spec.GetTableResponse]:
         response = self.actions.get_table(request)
         return server.APIOkResponse(data=response)
 
     def get_table_list(
-        self, request: Annotated[adminapi.GetTableListRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[adminapi.GetTableListResponse]:
+        self, request: Annotated[spec.GetTableListRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[spec.GetTableListResponse]:
         response = self.actions.get_table_list(request)
         return server.APIOkResponse(data=response)
 
-    def get_catalogs(self) -> server.APIOkResponse[adminapi.GetCatalogsResponse]:
+    def get_catalogs(self) -> server.APIOkResponse[spec.GetCatalogsResponse]:
         response = self.actions.get_catalogs()
         return server.APIOkResponse(data=response)
 
     def get_records(
-        self, request: Annotated[adminapi.GetRecordsRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[adminapi.GetRecordsResponse]:
+        self, request: Annotated[spec.GetRecordsRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[spec.GetRecordsResponse]:
         response = self.actions.get_records(request)
         return server.APIOkResponse(data=response)
 
     def patch_table(
         self,
-        request: adminapi.PatchTableRequest,
-    ) -> server.APIOkResponse[adminapi.PatchTableResponse]:
+        request: spec.PatchTableRequest,
+    ) -> server.APIOkResponse[spec.PatchTableResponse]:
         response = self.actions.patch_table(request)
         return server.APIOkResponse(data=response)
 
-    def login(
-        self, request: fastapi.Request, body: adminapi.LoginRequest
-    ) -> server.APIOkResponse[adminapi.LoginResponse]:
+    def login(self, request: fastapi.Request, body: spec.LoginRequest) -> server.APIOkResponse[spec.LoginResponse]:
         _ = request
         response = self.actions.login(body)
         return server.APIOkResponse(data=response)
@@ -86,58 +84,58 @@ class API:
     def logout(
         self,
         request: fastapi.Request,
-        _body: adminapi.LogoutRequest,
-    ) -> server.APIOkResponse[adminapi.LogoutResponse]:
+        _body: spec.LogoutRequest,
+    ) -> server.APIOkResponse[spec.LogoutResponse]:
         return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
 
     def register(
         self,
         request: fastapi.Request,
-        body: adminapi.RegisterRequest,
-    ) -> server.APIOkResponse[adminapi.RegisterResponse]:
+        body: spec.RegisterRequest,
+    ) -> server.APIOkResponse[spec.RegisterResponse]:
         _ = request
         response = self.actions.register(body)
         return server.APIOkResponse(data=response)
 
     def get_record_crossmatch(
-        self, request: Annotated[adminapi.GetRecordCrossmatchRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[adminapi.GetRecordCrossmatchResponse]:
+        self, request: Annotated[spec.GetRecordCrossmatchRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[spec.GetRecordCrossmatchResponse]:
         response = self.actions.get_record_crossmatch(request)
         return server.APIOkResponse(data=response)
 
     def save_structured_data(
         self,
-        request: adminapi.SaveStructuredDataRequest,
-    ) -> server.APIOkResponse[adminapi.SaveStructuredDataResponse]:
+        request: spec.SaveStructuredDataRequest,
+    ) -> server.APIOkResponse[spec.SaveStructuredDataResponse]:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
 
     def set_crossmatch_results(
         self,
-        request: adminapi.SetCrossmatchResultsRequest,
-    ) -> server.APIOkResponse[adminapi.SetCrossmatchResultsResponse]:
+        request: spec.SetCrossmatchResultsRequest,
+    ) -> server.APIOkResponse[spec.SetCrossmatchResultsResponse]:
         response = self.actions.set_crossmatch_results(request)
         return server.APIOkResponse(data=response)
 
     def assign_record_pgcs(
         self,
-        request: adminapi.AssignRecordPgcsRequest,
-    ) -> server.APIOkResponse[adminapi.AssignRecordPgcsResponse]:
+        request: spec.AssignRecordPgcsRequest,
+    ) -> server.APIOkResponse[spec.AssignRecordPgcsResponse]:
         response = self.actions.assign_record_pgcs(request)
         return server.APIOkResponse(data=response)
 
     def merge_pgcs(
         self,
-        request: adminapi.MergePgcsRequest,
-    ) -> server.APIOkResponse[adminapi.MergePgcsResponse]:
+        request: spec.MergePgcsRequest,
+    ) -> server.APIOkResponse[spec.MergePgcsResponse]:
         response = self.actions.merge_pgcs(request)
         return server.APIOkResponse(data=response)
 
     def tap_sync(
         self,
         request: fastapi.Request,
-        tap_request: Annotated[adminapi.TAPSyncRequest, fastapi.Query()],
-    ) -> server.APIOkResponse[adminapi.TAPSyncResponse]:
+        tap_request: Annotated[spec.TAPSyncRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[spec.TAPSyncResponse]:
         _ = request
         response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)

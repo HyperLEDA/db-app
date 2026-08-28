@@ -5,7 +5,7 @@ import structlog
 from app.fieldapi.presentation import interface
 from app.lib import auth
 from app.lib.web import server
-from app.specs import fieldapi
+from app.specs import fieldapi as spec
 
 logger = structlog.stdlib.get_logger()
 
@@ -14,10 +14,10 @@ class API:
     def __init__(self, actions: interface.Actions) -> None:
         self.actions = actions
 
-    def list_datasets(self) -> server.APIOkResponse[fieldapi.ListDatasetsResponse]:
+    def list_datasets(self) -> server.APIOkResponse[spec.ListDatasetsResponse]:
         return server.APIOkResponse(data=self.actions.list_datasets())
 
-    def sample(self, request: fieldapi.SampleRequest) -> server.APIOkResponse[fieldapi.SampleResponse]:
+    def sample(self, request: spec.SampleRequest) -> server.APIOkResponse[spec.SampleResponse]:
         return server.APIOkResponse(data=self.actions.sample(request))
 
 

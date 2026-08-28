@@ -1,7 +1,7 @@
 import abc
 import pathlib
 
-from app.specs import fieldapi
+from app.specs import fieldapi as spec
 
 
 class DatasetProvider(abc.ABC):
@@ -10,5 +10,5 @@ class DatasetProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def sample(self, coordinates: list[fieldapi.SkyCoordinate]) -> list[float]:
+    def sample(self, coordinates: list[spec.SkyCoordinate]) -> list[float]:
         pass

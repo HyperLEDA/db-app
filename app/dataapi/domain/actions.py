@@ -5,7 +5,7 @@ from app.dataapi import responders
 from app.dataapi.domain import parameterized_query
 from app.dataapi.presentation import interface
 from app.lib.tap import types as tap_types
-from app.specs import dataapi
+from app.specs import dataapi as spec
 
 ENABLED_CATALOGS = [
     model.RawCatalog.DESIGNATION,
@@ -53,21 +53,21 @@ class Actions(interface.Actions):
             layer2_repo, ENABLED_CATALOGS, catalog_cfg
         )
 
-    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+    def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
         return self.parameterized_query_manager.query_simple(query)
 
-    def tap_tables(self, request: dataapi.ListTAPTablesRequest) -> dataapi.ListTAPTablesResponse:
-        include_columns = request.detail == dataapi.Detail.MAX
+    def tap_tables(self, request: spec.ListTAPTablesRequest) -> spec.ListTAPTablesResponse:
+        include_columns = request.detail == spec.Detail.MAX
         tables = self.metadata_repo.list_tables_with_columns(
             sorted(METADATA_ALLOWED_SCHEMAS),
             include_columns=include_columns,
         )
-        schemas: dict[str, list[dataapi.TAPTableInfo]] = {}
+        schemas: dict[str, list[spec.TAPTableInfo]] = {}
         for table in tables:
-            columns: list[dataapi.TAPColumnInfo] | None = None
+            columns: list[spec.TAPColumnInfo] | None = None
             if include_columns:
                 columns = [
-                    dataapi.TAPColumnInfo(
+                    spec.TAPColumnInfo(
                         name=c.column_name,
                         datatype=tap_types.pg_to_tap_datatype(c.data_type),
                         unit=c.unit,
@@ -77,35 +77,35 @@ class Actions(interface.Actions):
                     for c in table.columns
                 ]
             schemas.setdefault(table.schema_name, []).append(
-                dataapi.TAPTableInfo(
+                spec.TAPTableInfo(
                     name=f'{table.schema_name}."{table.table_name}"',
                     type="table",
                     description=table.description,
                     columns=columns,
                 )
             )
-        return dataapi.ListTAPTablesResponse(
+        return spec.ListTAPTablesResponse(
             schemas=[
-                dataapi.TAPSchemaEntry(schema_name=schema_name, tables=schema_tables)
+                spec.TAPSchemaEntry(schema_name=schema_name, tables=schema_tables)
                 for schema_name, schema_tables in sorted(schemas.items())
             ]
         )
 
-    def tap_sync(self, request: dataapi.TAPSyncRequest) -> dataapi.TAPSyncResponse:
+    def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         result = self.metadata_repo.query_with_metadata(request.query, request.maxrec)
-        columns: list[dataapi.TAPVOTableColumn] = []
+        columns: list[spec.TAPVOTableColumn] = []
         for col in result.columns:
             datatype = tap_types.python_to_tap_datatype(col.sample_value)
             columns.append(
-                dataapi.TAPVOTableColumn(
+                spec.TAPVOTableColumn(
                     name=col.column_name,
                     datatype=datatype,
                     arraysize="*" if datatype == "char" else None,
                 )
             )
         data = [[_json_cell(cell) for cell in row] for row in result.rows]
-        return dataapi.TAPSyncResponse(
-            resource=dataapi.TAPVOTableResource(
-                table=dataapi.TAPVOTableTable(columns=columns, data=data),
+        return spec.TAPSyncResponse(
+            resource=spec.TAPVOTableResource(
+                table=spec.TAPVOTableTable(columns=columns, data=data),
             )
         )

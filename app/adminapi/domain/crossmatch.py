@@ -10,12 +10,12 @@ from app.data.repositories.layer0.records import AssignRecordPgcsPreconditionErr
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
-from app.specs import adminapi
+from app.specs import adminapi as spec
 
 logger = structlog.stdlib.get_logger()
 
-DATA_SCHEMA = adminapi.Schema(
-    units=adminapi.UnitsSchema(
+DATA_SCHEMA = spec.Schema(
+    units=spec.UnitsSchema(
         coordinates={
             "equatorial": {"ra": "deg", "dec": "deg", "e_ra": "deg", "e_dec": "deg"},
             "galactic": {"lon": "deg", "lat": "deg", "e_lon": "arcsec", "e_lat": "arcsec"},
@@ -29,17 +29,17 @@ class _CatalogBearing(Protocol):
     def get[T](self, t: type[T]) -> T | None: ...
 
 
-def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
+def icrs_to_response(obj: model.ICRSCatalogObject) -> spec.Coordinates:
     lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(obj.ra, obj.dec, obj.e_ra, obj.e_dec, "galactic")
 
-    return adminapi.Coordinates(
-        equatorial=adminapi.EquatorialCoordinates(
+    return spec.Coordinates(
+        equatorial=spec.EquatorialCoordinates(
             ra=obj.ra,
             dec=obj.dec,
             e_ra=obj.e_ra,
             e_dec=obj.e_dec,
         ),
-        galactic=adminapi.GalacticCoordinates(
+        galactic=spec.GalacticCoordinates(
             lon=lon,
             lat=lat,
             e_lon=e_lon,
@@ -48,32 +48,32 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> adminapi.Coordinates:
     )
 
 
-def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[adminapi.Redshift, adminapi.Velocity]:
+def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[spec.Redshift, spec.Velocity]:
     z = astronomy.heliocentric_cz_to_z(obj.cz * u.Unit("km/s"))
     e_z = astronomy.heliocentric_cz_to_z(obj.e_cz * u.Unit("km/s"))
 
-    return adminapi.Redshift(z=z, e_z=e_z), adminapi.Velocity(
-        heliocentric=adminapi.HeliocentricVelocity(
+    return spec.Redshift(z=z, e_z=e_z), spec.Velocity(
+        heliocentric=spec.HeliocentricVelocity(
             v=obj.cz,
             e_v=obj.e_cz,
         )
     )
 
 
-def catalogs_from_object(obj: _CatalogBearing) -> adminapi.Catalogs:
-    catalogs = adminapi.Catalogs()
+def catalogs_from_object(obj: _CatalogBearing) -> spec.Catalogs:
+    catalogs = spec.Catalogs()
 
     if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
         catalogs.coordinates = icrs_to_response(icrs)
 
     if (designation := obj.get(model.DesignationCatalogObject)) is not None:
-        catalogs.designation = adminapi.Designation(name=designation.designation)
+        catalogs.designation = spec.Designation(name=designation.designation)
 
     if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
         catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
 
     if (nature := obj.get(model.NatureCatalogObject)) is not None:
-        catalogs.nature = adminapi.Nature(type_name=nature.type_name)
+        catalogs.nature = spec.Nature(type_name=nature.type_name)
 
     return catalogs
 
@@ -103,7 +103,7 @@ class CrossmatchManager:
         self.layer1_repo = layer1_repo
         self.layer2_repo = layer2_repo
 
-    def set_crossmatch_results(self, r: adminapi.SetCrossmatchResultsRequest) -> adminapi.SetCrossmatchResultsResponse:
+    def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []
         payload = r.statuses
 
@@ -138,9 +138,9 @@ class CrossmatchManager:
 
         if rows:
             self.layer0_repo.set_crossmatch_results(rows)
-        return adminapi.SetCrossmatchResultsResponse()
+        return spec.SetCrossmatchResultsResponse()
 
-    def assign_record_pgcs(self, request: adminapi.AssignRecordPgcsRequest) -> adminapi.AssignRecordPgcsResponse:
+    def assign_record_pgcs(self, request: spec.AssignRecordPgcsRequest) -> spec.AssignRecordPgcsResponse:
         unique_ids = list(dict.fromkeys(request.record_ids))
         try:
             self.layer0_repo.assign_record_pgcs(unique_ids)
@@ -150,7 +150,7 @@ class CrossmatchManager:
                 sample_record_ids=e.sample,
                 count=e.count,
             ) from e
-        return adminapi.AssignRecordPgcsResponse()
+        return spec.AssignRecordPgcsResponse()
 
     def _candidates_to_status(self, candidates: list[int]) -> enums.RecordCrossmatchStatus:
         if len(candidates) == 0:
@@ -159,7 +159,7 @@ class CrossmatchManager:
             return enums.RecordCrossmatchStatus.EXISTING
         return enums.RecordCrossmatchStatus.COLLIDED
 
-    def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[adminapi.RecordCrossmatch]:
+    def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[spec.RecordCrossmatch]:
         record_ids = [row.record_id for row in rows]
         layer1_data = self.layer1_repo.query_records(
             [
@@ -174,7 +174,7 @@ class CrossmatchManager:
 
         result = []
         for row in rows:
-            metadata = adminapi.RecordCrossmatchMetadata()
+            metadata = spec.RecordCrossmatchMetadata()
             if len(row.candidates) == 1:
                 metadata.pgc = row.candidates[0]
             elif len(row.candidates) > 1:
@@ -187,7 +187,7 @@ class CrossmatchManager:
             status = self._candidates_to_status(row.candidates)
 
             result.append(
-                adminapi.RecordCrossmatch(
+                spec.RecordCrossmatch(
                     record_id=row.record_id,
                     status=status,
                     triage_status=row.triage_status,
@@ -198,7 +198,7 @@ class CrossmatchManager:
 
         return result
 
-    def get_record_crossmatch(self, r: adminapi.GetRecordCrossmatchRequest) -> adminapi.GetRecordCrossmatchResponse:
+    def get_record_crossmatch(self, r: spec.GetRecordCrossmatchRequest) -> spec.GetRecordCrossmatchResponse:
         processed_rows = self.layer0_repo.get_processed_records(
             limit=1,
             record_id=r.record_id,
@@ -226,7 +226,7 @@ class CrossmatchManager:
 
         candidate_pgcs = list(row.candidates)
 
-        response = adminapi.GetRecordCrossmatchResponse(
+        response = spec.GetRecordCrossmatchResponse(
             table_name=table_name,
             crossmatch=crossmatch_records[0],
             candidates=[],
@@ -251,7 +251,7 @@ class CrossmatchManager:
 
         for layer2_obj in layer2_objects:
             response.candidates.append(
-                adminapi.PGCCandidate(
+                spec.PGCCandidate(
                     pgc=layer2_obj.pgc,
                     catalogs=catalogs_from_object(layer2_obj),
                 )

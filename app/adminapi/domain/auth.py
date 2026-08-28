@@ -4,7 +4,7 @@ from psycopg import sql
 from app.lib import auth
 from app.lib.storage import postgres
 from app.lib.web.errors import ConflictError, UnauthorizedError
-from app.specs import adminapi
+from app.specs import adminapi as spec
 
 
 class AuthManager(postgres.TransactionalPGRepository):
@@ -12,19 +12,19 @@ class AuthManager(postgres.TransactionalPGRepository):
         super().__init__(storage)
         self.authenticator = authenticator
 
-    def login(self, r: adminapi.LoginRequest) -> adminapi.LoginResponse:
+    def login(self, r: spec.LoginRequest) -> spec.LoginResponse:
         token, is_authenticated = self.authenticator.login(r.username, r.password)
 
         if not is_authenticated:
             raise UnauthorizedError("invalid username or password")
 
-        return adminapi.LoginResponse(token=token)
+        return spec.LoginResponse(token=token)
 
-    def logout(self, token: str) -> adminapi.LogoutResponse:
+    def logout(self, token: str) -> spec.LogoutResponse:
         self.authenticator.revoke(token)
-        return adminapi.LogoutResponse()
+        return spec.LogoutResponse()
 
-    def register(self, r: adminapi.RegisterRequest) -> adminapi.RegisterResponse:
+    def register(self, r: spec.RegisterRequest) -> spec.RegisterResponse:
         self._ensure_available(r.username, r.email)
 
         password_hash = bcrypt.hashpw(r.password.encode(), bcrypt.gensalt())
@@ -42,7 +42,7 @@ class AuthManager(postgres.TransactionalPGRepository):
             )
             self._storage.exec(sql.SQL("GRANT db_reader TO {}").format(sql.Identifier(r.username)))
 
-        return adminapi.RegisterResponse()
+        return spec.RegisterResponse()
 
     def _ensure_available(self, username: str, email: str) -> None:
         existing = self._storage.query(

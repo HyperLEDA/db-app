@@ -19,7 +19,7 @@ from app.data.repositories.layer0.common import RAWDATA_SCHEMA
 from app.lib import astronomy, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
-from app.specs import adminapi
+from app.specs import adminapi as spec
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 
@@ -40,39 +40,39 @@ def _build_catalog_schema(
     icrs_schema: TableSchemaInfo,
     nature_schema: TableSchemaInfo,
     nature_object_types: dict[str, str],
-) -> adminapi.RecordCatalogSchema:
+) -> spec.RecordCatalogSchema:
     design_desc, _ = _column_meta(designation_schema.columns, "design")
     ra_desc, ra_unit = _column_meta(icrs_schema.columns, "ra")
     e_ra_desc, e_ra_unit = _column_meta(icrs_schema.columns, "e_ra")
     dec_desc, dec_unit = _column_meta(icrs_schema.columns, "dec")
     e_dec_desc, e_dec_unit = _column_meta(icrs_schema.columns, "e_dec")
     type_name_desc, _ = _column_meta(nature_schema.columns, "type_name")
-    return adminapi.RecordCatalogSchema(
-        designation=adminapi.RecordDesignationCatalogSchema(
-            description=adminapi.RecordDesignationCatalogDescriptionSchema(name=design_desc),
+    return spec.RecordCatalogSchema(
+        designation=spec.RecordDesignationCatalogSchema(
+            description=spec.RecordDesignationCatalogDescriptionSchema(name=design_desc),
         ),
-        icrs=adminapi.RecordICRSCatalogSchema(
-            unit=adminapi.RecordICRSCatalogUnitSchema(
+        icrs=spec.RecordICRSCatalogSchema(
+            unit=spec.RecordICRSCatalogUnitSchema(
                 ra=ra_unit,
                 ra_error=e_ra_unit,
                 dec=dec_unit,
                 dec_error=e_dec_unit,
             ),
-            description=adminapi.RecordICRSCatalogDescriptionSchema(
+            description=spec.RecordICRSCatalogDescriptionSchema(
                 ra=ra_desc,
                 ra_error=e_ra_desc,
                 dec=dec_desc,
                 dec_error=e_dec_desc,
             ),
         ),
-        redshift=adminapi.RecordRedshiftCatalogSchema(
-            description=adminapi.RecordRedshiftCatalogDescriptionSchema(
+        redshift=spec.RecordRedshiftCatalogSchema(
+            description=spec.RecordRedshiftCatalogDescriptionSchema(
                 z="Heliocentric redshift",
                 z_error="Heliocentric redshift error",
             ),
         ),
-        nature=adminapi.RecordNatureCatalogSchema(
-            description=adminapi.RecordNatureCatalogDescriptionSchema(
+        nature=spec.RecordNatureCatalogSchema(
+            description=spec.RecordNatureCatalogDescriptionSchema(
                 type_name=type_name_desc,
                 types=nature_object_types,
             ),
@@ -87,7 +87,7 @@ class TableUploadManager:
         layer0_repo: repositories.Layer0Repository,
         layer1_repo: repositories.Layer1Repository,
         clients: clients.Clients,
-        table_stats_cache: cache.BackgroundCache[adminapi.TableStatsSnapshot],
+        table_stats_cache: cache.BackgroundCache[spec.TableStatsSnapshot],
     ) -> None:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
@@ -95,7 +95,7 @@ class TableUploadManager:
         self.clients = clients
         self.table_stats_cache = table_stats_cache
 
-    def create_table(self, r: adminapi.CreateTableRequest) -> tuple[adminapi.CreateTableResponse, bool]:
+    def create_table(self, r: spec.CreateTableRequest) -> tuple[spec.CreateTableResponse, bool]:
         source_id = ensure_source_id(self.common_repo, self.clients.ads, r.bibcode)
 
         for col in r.columns:
@@ -114,9 +114,9 @@ class TableUploadManager:
             ),
         )
 
-        return adminapi.CreateTableResponse(id=table_resp.table_id), table_resp.created
+        return spec.CreateTableResponse(id=table_resp.table_id), table_resp.created
 
-    def patch_table(self, r: adminapi.PatchTableRequest) -> adminapi.PatchTableResponse:
+    def patch_table(self, r: spec.PatchTableRequest) -> spec.PatchTableResponse:
         table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
         columns_by_name = {col.name: col for col in table_metadata.column_descriptions}
 
@@ -149,9 +149,9 @@ class TableUploadManager:
             if r.new_table_name is not None and r.new_table_name != r.table_name:
                 self.layer0_repo.rename_raw_table(r.table_name, r.new_table_name)
 
-        return adminapi.PatchTableResponse()
+        return spec.PatchTableResponse()
 
-    def add_data(self, r: adminapi.AddDataRequest) -> adminapi.AddDataResponse:
+    def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
         data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
         data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
@@ -173,12 +173,12 @@ class TableUploadManager:
 
             errgr.wait()
 
-        return adminapi.AddDataResponse()
+        return spec.AddDataResponse()
 
-    def get_table_list(self, r: adminapi.GetTableListRequest) -> adminapi.GetTableListResponse:
+    def get_table_list(self, r: spec.GetTableListRequest) -> spec.GetTableListResponse:
         items = self.layer0_repo.search_tables(r.query, r.page_size, r.page, r.statuses)
         cached_tables = self.table_stats_cache.get().tables
-        empty_progress = adminapi.TableProgress(
+        empty_progress = spec.TableProgress(
             total_records=0,
             unprocessed=0,
             pending_triage=0,
@@ -186,11 +186,11 @@ class TableUploadManager:
             submitted=0,
             catalogs={},
         )
-        tables: list[adminapi.TableListItem] = []
+        tables: list[spec.TableListItem] = []
         for item in items:
             progress = cached_tables.get(item.table_name) or empty_progress
             tables.append(
-                adminapi.TableListItem(
+                spec.TableListItem(
                     name=item.table_name,
                     description=item.description,
                     num_entries=progress.total_records,
@@ -201,9 +201,9 @@ class TableUploadManager:
                     progress=progress,
                 )
             )
-        return adminapi.GetTableListResponse(tables=tables)
+        return spec.GetTableListResponse(tables=tables)
 
-    def get_table(self, r: adminapi.GetTableRequest) -> adminapi.GetTableResponse:
+    def get_table(self, r: spec.GetTableRequest) -> spec.GetTableResponse:
         meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
 
         bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
@@ -232,7 +232,7 @@ class TableUploadManager:
                 )
             progress = table_stats.table_progress_to_presentation(table_progress)
 
-        return adminapi.GetTableResponse(
+        return spec.GetTableResponse(
             id=meta.table_id,
             description=meta.description or "",
             column_info=_column_description_to_presentation(meta.column_descriptions),
@@ -241,11 +241,11 @@ class TableUploadManager:
             progress=progress,
         )
 
-    def get_records(self, r: adminapi.GetRecordsRequest) -> adminapi.GetRecordsResponse:
+    def get_records(self, r: spec.GetRecordsRequest) -> spec.GetRecordsResponse:
         has_pgc = None
-        if r.upload_status == adminapi.UploadStatus.UPLOADED:
+        if r.upload_status == spec.UploadStatus.UPLOADED:
             has_pgc = True
-        elif r.upload_status == adminapi.UploadStatus.PENDING:
+        elif r.upload_status == spec.UploadStatus.PENDING:
             has_pgc = False
 
         triage_filter = r.triage_status.value if r.triage_status is not None else None
@@ -319,17 +319,17 @@ class TableUploadManager:
         nature_records = nature_task.result()
 
         records_list = [
-            adminapi.Record(
+            spec.Record(
                 id=rec.id,
                 original_data=rec.original_data,
                 pgc=rec.pgc,
-                crossmatch=adminapi.RecordCrossmatchInfo(
-                    triage_status=adminapi.CrossmatchTriageStatus(rec.triage_status),
-                    candidates=[adminapi.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
+                crossmatch=spec.RecordCrossmatchInfo(
+                    triage_status=spec.CrossmatchTriageStatus(rec.triage_status),
+                    candidates=[spec.RecordCrossmatchCandidate(pgc=p) for p in rec.crossmatch_candidates],
                 ),
-                catalogs=adminapi.RecordCatalogValues(
-                    designation=adminapi.RecordDesignationCatalog(name=dr.design) if dr else None,
-                    icrs=adminapi.RecordICRSCatalog(
+                catalogs=spec.RecordCatalogValues(
+                    designation=spec.RecordDesignationCatalog(name=dr.design) if dr else None,
+                    icrs=spec.RecordICRSCatalog(
                         ra=ir.ra,
                         ra_error=ir.e_ra,
                         dec=ir.dec,
@@ -337,13 +337,13 @@ class TableUploadManager:
                     )
                     if ir
                     else None,
-                    redshift=adminapi.RecordRedshiftCatalog(
+                    redshift=spec.RecordRedshiftCatalog(
                         z=astronomy.heliocentric_cz_to_z(rr.cz * u.Unit("km/s")),
                         z_error=astronomy.heliocentric_cz_to_z(rr.e_cz * u.Unit("km/s")),
                     )
                     if rr
                     else None,
-                    nature=adminapi.RecordNatureCatalog(type_name=nr.type_name) if nr else None,
+                    nature=spec.RecordNatureCatalog(type_name=nr.type_name) if nr else None,
                 ),
             )
             for rec, dr, ir, rr, nr in zip(
@@ -375,22 +375,22 @@ class TableUploadManager:
             nature_schema,
             nature_object_types,
         )
-        record_schema = adminapi.RecordSchema(
-            original_data=adminapi.RecordOriginalDataSchema(
+        record_schema = spec.RecordSchema(
+            original_data=spec.RecordOriginalDataSchema(
                 description=description_data,
                 ucd=ucd_data,
                 unit=unit_data,
             ),
             catalogs=catalog_schema,
         )
-        return adminapi.GetRecordsResponse(records=records_list, schema=record_schema)
+        return spec.GetRecordsResponse(records=records_list, schema=record_schema)
 
 
-def _bibliography_to_presentation(bib: model.Bibliography) -> adminapi.Bibliography:
-    return adminapi.Bibliography(title=bib.title, authors=bib.author, year=bib.year, bibcode=bib.code)
+def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:
+    return spec.Bibliography(title=bib.title, authors=bib.author, year=bib.year, bibcode=bib.code)
 
 
-def _column_description_to_presentation(columns: list[model.ColumnDescription]) -> list[adminapi.ColumnDescription]:
+def _column_description_to_presentation(columns: list[model.ColumnDescription]) -> list[spec.ColumnDescription]:
     res = []
 
     for col in columns:
@@ -398,9 +398,9 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
             continue
 
         res.append(
-            adminapi.ColumnDescription(
+            spec.ColumnDescription(
                 name=col.name,
-                data_type=adminapi.DatatypeEnum[col.data_type],
+                data_type=spec.DatatypeEnum[col.data_type],
                 ucd=col.ucd,
                 unit=col.unit.to_string() if col.unit is not None else None,
                 description=col.description,
@@ -465,7 +465,7 @@ def get_unit(u: str) -> units.Unit:
         raise RuleValidationError(f"unknown unit: '{u}'") from None
 
 
-def domain_descriptions_to_data(columns: list[adminapi.ColumnDescription]) -> list[model.ColumnDescription]:
+def domain_descriptions_to_data(columns: list[spec.ColumnDescription]) -> list[model.ColumnDescription]:
     result = [
         model.ColumnDescription(
             name=repositories.INTERNAL_ID_COLUMN_NAME,
