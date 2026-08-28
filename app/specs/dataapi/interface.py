@@ -11,6 +11,8 @@ __all__ = [
     "AbsoluteVelocity",
     "AbsoluteVelocityUnits",
     "AdditionalDesignation",
+    "CalculateReddeningRequest",
+    "CalculateReddeningResponse",
     "Catalogs",
     "CoordinateUnits",
     "Coordinates",
@@ -19,12 +21,15 @@ __all__ = [
     "EquatorialCoordinatesUnits",
     "GalacticCoordinates",
     "GalacticCoordinatesUnits",
+    "J2000Coordinate",
     "Nature",
     "NoteEntry",
     "PGCObject",
     "PhotometryTotalMeasurement",
     "QuerySimpleRequest",
     "QuerySimpleResponse",
+    "ReddeningAtPosition",
+    "ReddeningFilterValue",
     "Redshift",
     "Schema",
     "Source",
@@ -353,3 +358,29 @@ class QuerySimpleRequest(pydantic.BaseModel):
 class QuerySimpleResponse(pydantic.BaseModel):
     objects: list[PGCObject]
     schema_: Schema = pydantic.Field(alias="schema")
+
+
+class J2000Coordinate(pydantic.BaseModel):
+    ra: float = pydantic.Field(ge=0, lt=360)
+    dec: float = pydantic.Field(ge=-90, le=90)
+
+
+class ReddeningFilterValue(pydantic.BaseModel):
+    filter: str
+    wavelength: float
+    a: float
+
+
+class ReddeningAtPosition(pydantic.BaseModel):
+    ebv: float
+    filters: list[ReddeningFilterValue]
+
+
+class CalculateReddeningRequest(pydantic.BaseModel):
+    photsys: str
+    coordinates: list[J2000Coordinate] = pydantic.Field(min_length=1, max_length=10_000)
+
+
+class CalculateReddeningResponse(pydantic.BaseModel):
+    photsys: str
+    results: list[ReddeningAtPosition]

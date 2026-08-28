@@ -4,6 +4,9 @@ server:
   allowed_origins:
     - https://leda.kraysent.dev
 
+fieldapi:
+  base_url: http://fieldapi:8082
+
 storage:
   auth:
     endpoint: hyperledadb

@@ -3,12 +3,13 @@ import os
 import statistics
 import time
 from collections.abc import Callable
+from unittest import mock
 
 import structlog
 from fastapi import testclient
 
 from app.data import repositories
-from app.dataapi import command, domain, presentation
+from app.dataapi import clients, command, domain, presentation
 from app.lib import auth
 from app.lib.storage import postgres
 from tests import lib
@@ -113,6 +114,8 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
         layer2_repo=repositories.Layer2Repository(storage, logger),
         catalog_cfg=config.catalogs,
         metadata_repo=repositories.MetadataRepository(storage),
+        references_repo=repositories.ReferencesRepository(storage),
+        fieldapi_client=mock.create_autospec(clients.FieldAPIClient),
     )
     server = presentation.Server(
         actions,

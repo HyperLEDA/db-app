@@ -39,6 +39,12 @@ class API:
         response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)
 
+    def calculate_reddening(
+        self, request: spec.CalculateReddeningRequest
+    ) -> server.APIOkResponse[spec.CalculateReddeningResponse]:
+        response = self.actions.calculate_reddening(request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -85,6 +91,13 @@ When coordinates are specified, results are sorted by increasing distance to the
                 "Execute an arbitrary SQL query (TAP /sync).",
                 "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
                 rate_limit="60/minute",
+            ),
+            server.Route(
+                "/v1/calculate/reddening",
+                http.HTTPMethod.POST,
+                api.calculate_reddening,
+                "Calculate reddening for a batch of sky positions.",
+                "Returns SFD E(B-V) and F99 extinction in each filter of the requested photometric system.",
             ),
         ]
 
