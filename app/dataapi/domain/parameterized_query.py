@@ -2,10 +2,10 @@ from astropy import coordinates as coords
 
 from app.data import model, repositories
 from app.data.repositories import layer2
-from app.dataapi import presentation as dataapi
 from app.dataapi import responders
 from app.lib import astronomy
 from app.lib.web.errors import RuleValidationError
+from app.specs import dataapi as spec
 
 CATALOGS_FOR_PGC_QUERY = [
     model.RawCatalog.DESIGNATION,
@@ -57,7 +57,7 @@ class ParameterizedQueryManager:
         self.catalog_config = catalog_cfg
 
     def _build_filters_and_params(
-        self, query: dataapi.QuerySimpleRequest
+        self, query: spec.QuerySimpleRequest
     ) -> tuple[layer2.Filter, layer2.SearchParams, layer2.Ordering | None]:
         filters = []
         search_params = []
@@ -88,7 +88,7 @@ class ParameterizedQueryManager:
 
         return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
 
-    def query_simple(self, query: dataapi.QuerySimpleRequest) -> dataapi.QuerySimpleResponse:
+    def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config)
         offset = query.page * query.page_size
         if query.pgcs:

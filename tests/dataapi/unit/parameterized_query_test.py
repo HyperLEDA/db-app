@@ -8,8 +8,8 @@ from astropy.time import Time
 from app.data import model
 from app.data.repositories import layer2
 from app.dataapi.domain import parameterized_query
-from app.dataapi.presentation import interface
 from app.lib.web import errors
+from app.specs import dataapi
 
 DEFAULT = [
     model.RawCatalog.DESIGNATION,
@@ -83,7 +83,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             frame=coords.FK5(equinox=Time("J2000")),
         ).transform_to("icrs")
 
-        query = interface.QuerySimpleRequest(ra=ra_fk5, dec=dec_fk5, radius=0.1)
+        query = dataapi.QuerySimpleRequest(ra=ra_fk5, dec=dec_fk5, radius=0.1)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
             self.manager.query_simple(query)
@@ -97,7 +97,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         self.assertEqual(ordering.get_params(), [expected.ra.deg, expected.dec.deg])
 
     def test_name_search_has_no_distance_ordering(self):
-        query = interface.QuerySimpleRequest(name="NGC")
+        query = dataapi.QuerySimpleRequest(name="NGC")
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
             self.manager.query_simple(query)
@@ -105,7 +105,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         self.assertIsNone(self._ordering())
 
     def test_page_is_converted_to_offset(self):
-        query = interface.QuerySimpleRequest(name="NGC", page=2, page_size=25)
+        query = dataapi.QuerySimpleRequest(name="NGC", page=2, page_size=25)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
             self.manager.query_simple(query)
@@ -114,7 +114,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         self.assertEqual(self.layer2_repo.query_catalogs.call_args.args[4], 50)
 
     def test_pgc_page_is_converted_to_offset(self):
-        query = interface.QuerySimpleRequest(pgcs=[1, 2, 3], page=1, page_size=10)
+        query = dataapi.QuerySimpleRequest(pgcs=[1, 2, 3], page=1, page_size=10)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
@@ -130,7 +130,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             frame="icrs",
         ).transform_to(coords.FK5(equinox=Time("B1950")))
 
-        query = interface.QuerySimpleRequest(
+        query = dataapi.QuerySimpleRequest(
             ra=float(b1950.ra.deg),
             dec=float(b1950.dec.deg),
             radius=0.1,
@@ -152,7 +152,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             frame="icrs",
         ).galactic
 
-        query = interface.QuerySimpleRequest(
+        query = dataapi.QuerySimpleRequest(
             glon=float(galactic.l.deg),
             glat=float(galactic.b.deg),
             radius=0.1,
@@ -173,7 +173,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             frame="icrs",
         ).supergalactic
 
-        query = interface.QuerySimpleRequest(
+        query = dataapi.QuerySimpleRequest(
             sgl=float(sg.sgl.deg),
             sgb=float(sg.sgb.deg),
             radius=0.1,

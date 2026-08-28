@@ -5,10 +5,10 @@ from unittest import mock
 import bcrypt
 from psycopg import sql
 
-from app.adminapi import presentation as adminapi
 from app.adminapi.domain.auth import AuthManager
 from app.lib import auth
 from app.lib.web.errors import ConflictError
+from app.specs import adminapi
 
 
 class AuthManagerRegisterTest(unittest.TestCase):

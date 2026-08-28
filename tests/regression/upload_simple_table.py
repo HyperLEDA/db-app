@@ -9,8 +9,8 @@ import requests
 import structlog
 
 from app import tasks
-from app.adminapi import presentation as adminapi
 from app.lib.storage import enums
+from app.specs import adminapi
 from tests import lib
 
 random.seed(time.time())

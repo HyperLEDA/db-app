@@ -4,9 +4,10 @@ from typing import Annotated
 import fastapi
 import structlog
 
-from app.dataapi.presentation import interface, tap
+from app.dataapi.presentation import interface
 from app.lib import auth
 from app.lib.web import server
+from app.specs import dataapi as spec
 
 logger = structlog.stdlib.get_logger()
 
@@ -16,24 +17,24 @@ class API:
         self.actions = actions
 
     def query_simple(
-        self, request: Annotated[interface.QuerySimpleRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[interface.QuerySimpleResponse]:
+        self, request: Annotated[spec.QuerySimpleRequest, fastapi.Query()]
+    ) -> server.APIOkResponse[spec.QuerySimpleResponse]:
         response = self.actions.query_simple(request)
 
         return server.APIOkResponse(data=response)
 
     def tap_tables(
         self,
-        request: Annotated[tap.ListTAPTablesRequest, fastapi.Query()],
-    ) -> server.APIOkResponse[tap.ListTAPTablesResponse]:
+        request: Annotated[spec.ListTAPTablesRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[spec.ListTAPTablesResponse]:
         response = self.actions.tap_tables(request)
         return server.APIOkResponse(data=response)
 
     def tap_sync(
         self,
         request: fastapi.Request,
-        tap_request: Annotated[tap.TAPSyncRequest, fastapi.Query()],
-    ) -> server.APIOkResponse[tap.TAPSyncResponse]:
+        tap_request: Annotated[spec.TAPSyncRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[spec.TAPSyncResponse]:
         _ = request
         response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)

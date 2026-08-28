@@ -2,10 +2,11 @@ import unittest
 
 import structlog
 
-from app.adminapi import clients, domain, presentation
+from app.adminapi import clients, domain
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.data import repositories
 from app.lib.storage import enums
+from app.specs import adminapi
 from tests import lib
 
 
@@ -32,24 +33,22 @@ class CreateTableTest(unittest.TestCase):
 
     def test_create_table(self):
         source_code = self.source_manager.create_source(
-            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
+            adminapi.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
 
         self.upload_manager.create_table(
-            presentation.CreateTableRequest(
+            adminapi.CreateTableRequest(
                 table_name="table_name",
                 columns=[
-                    presentation.ColumnDescription(
-                        name="name", data_type=presentation.DatatypeEnum["text"], ucd="meta.id"
+                    adminapi.ColumnDescription(name="name", data_type=adminapi.DatatypeEnum["text"], ucd="meta.id"),
+                    adminapi.ColumnDescription(
+                        name="ra", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.ra", unit="rad"
                     ),
-                    presentation.ColumnDescription(
-                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra", unit="rad"
+                    adminapi.ColumnDescription(
+                        name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
                     ),
-                    presentation.ColumnDescription(
-                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
-                    ),
-                    presentation.ColumnDescription(
-                        name="redshift", data_type=presentation.DatatypeEnum["float"], ucd="src.redshift"
+                    adminapi.ColumnDescription(
+                        name="redshift", data_type=adminapi.DatatypeEnum["float"], ucd="src.redshift"
                     ),
                 ],
                 bibcode=source_code,
@@ -60,20 +59,18 @@ class CreateTableTest(unittest.TestCase):
 
     def test_create_table_with_patch(self):
         source_code = self.source_manager.create_source(
-            presentation.CreateSourceRequest(title="title", authors=["author"], year=2022)
+            adminapi.CreateSourceRequest(title="title", authors=["author"], year=2022)
         ).code
         table_name = "table_name"
 
         _, created = self.upload_manager.create_table(
-            presentation.CreateTableRequest(
+            adminapi.CreateTableRequest(
                 table_name=table_name,
                 columns=[
-                    presentation.ColumnDescription(name="name", data_type=presentation.DatatypeEnum["text"]),
-                    presentation.ColumnDescription(
-                        name="ra", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.ra"
-                    ),
-                    presentation.ColumnDescription(
-                        name="dec", data_type=presentation.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
+                    adminapi.ColumnDescription(name="name", data_type=adminapi.DatatypeEnum["text"]),
+                    adminapi.ColumnDescription(name="ra", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.ra"),
+                    adminapi.ColumnDescription(
+                        name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="rad"
                     ),
                 ],
                 bibcode=source_code,
@@ -85,37 +82,37 @@ class CreateTableTest(unittest.TestCase):
         self.assertTrue(created)
 
         self.upload_manager.patch_table(
-            presentation.PatchTableRequest(
+            adminapi.PatchTableRequest(
                 table_name=table_name,
                 description="updated table description",
                 datatype=enums.DataType.PRELIMINARY,
                 columns={
-                    "name": presentation.PatchColumnSpec(ucd="meta.id"),
-                    "ra": presentation.PatchColumnSpec(unit="hourangle"),
+                    "name": adminapi.PatchColumnSpec(ucd="meta.id"),
+                    "ra": adminapi.PatchColumnSpec(unit="hourangle"),
                 },
             ),
         )
 
-        meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
+        meta = self.upload_manager.get_table(adminapi.GetTableRequest(table_name=table_name))
         self.assertEqual(meta.description, "updated table description")
         self.assertEqual(meta.meta["datatype"], enums.DataType.PRELIMINARY)
         self.assertEqual(meta.meta["status"], enums.TableStatus.INITIATED)
 
         self.upload_manager.patch_table(
-            presentation.PatchTableRequest(
+            adminapi.PatchTableRequest(
                 table_name=table_name,
                 status=enums.TableStatus.ARCHIVED,
             ),
         )
 
-        meta = self.upload_manager.get_table(presentation.GetTableRequest(table_name=table_name))
+        meta = self.upload_manager.get_table(adminapi.GetTableRequest(table_name=table_name))
         self.assertEqual(meta.meta["status"], enums.TableStatus.ARCHIVED)
 
-        default_list = self.upload_manager.get_table_list(presentation.GetTableListRequest(query=table_name))
+        default_list = self.upload_manager.get_table_list(adminapi.GetTableListRequest(query=table_name))
         self.assertEqual(default_list.tables, [])
 
         archived_list = self.upload_manager.get_table_list(
-            presentation.GetTableListRequest(
+            adminapi.GetTableListRequest(
                 query=table_name,
                 statuses=[enums.TableStatus.ARCHIVED],
             )

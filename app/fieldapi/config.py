@@ -3,7 +3,7 @@ from typing import Literal
 
 import pydantic
 
-from app.fieldapi.presentation import interface
+from app.specs import fieldapi as spec
 
 
 class DatasetStorageConfig(pydantic.BaseModel):
@@ -23,8 +23,8 @@ class DatasetConfig(pydantic.BaseModel):
     bibcode: str
     storage: DatasetStorageConfig
 
-    def to_dataset_info(self) -> interface.DatasetInfo:
-        return interface.DatasetInfo(
+    def to_dataset_info(self) -> spec.DatasetInfo:
+        return spec.DatasetInfo(
             id=self.id,
             name=self.name,
             version=self.version,

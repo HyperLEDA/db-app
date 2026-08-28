@@ -111,6 +111,7 @@ jobs:
               - '!(app)/**'
               - 'app/lib/**'
               - 'app/data/**'
+              - 'app/specs/**'
             adminapi:
               - *shared
               - 'app/adminapi/**'

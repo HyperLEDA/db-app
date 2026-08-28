@@ -1,5 +1,5 @@
-from app.adminapi import presentation as adminapi
 from app.data import repositories
+from app.specs import adminapi as spec
 
 ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
@@ -18,8 +18,8 @@ class SourceManager:
     def __init__(self, common_repo: repositories.CommonRepository):
         self.common_repo = common_repo
 
-    def create_source(self, r: adminapi.CreateSourceRequest) -> adminapi.CreateSourceResponse:
+    def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
         code = construct_code(r.authors, r.year, r.title)
         _ = self.common_repo.create_bibliography(code, r.year, r.authors, r.title)
 
-        return adminapi.CreateSourceResponse(code=code)
+        return spec.CreateSourceResponse(code=code)

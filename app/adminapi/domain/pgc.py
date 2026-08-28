@@ -1,8 +1,8 @@
 from typing import final
 
-from app.adminapi import presentation as adminapi
 from app.data import repositories
 from app.lib.web.errors import NotFoundError
+from app.specs import adminapi as spec
 
 
 @final
@@ -15,7 +15,7 @@ class PgcManager:
         self.common_repo = common_repo
         self.layer0_repo = layer0_repo
 
-    def merge_pgcs(self, r: adminapi.MergePgcsRequest) -> adminapi.MergePgcsResponse:
+    def merge_pgcs(self, r: spec.MergePgcsRequest) -> spec.MergePgcsResponse:
         all_pgcs = [r.target_pgc, *r.source_pgcs]
         existing = self.common_repo.get_existing_pgcs(all_pgcs)
         if r.target_pgc not in existing:
@@ -27,7 +27,7 @@ class PgcManager:
         with self.layer0_repo.with_tx():
             reassigned_records = self.layer0_repo.merge_pgcs(r.target_pgc, r.source_pgcs)
 
-        return adminapi.MergePgcsResponse(
+        return spec.MergePgcsResponse(
             target_pgc=r.target_pgc,
             merged_pgcs=list(r.source_pgcs),
             reassigned_records=reassigned_records,

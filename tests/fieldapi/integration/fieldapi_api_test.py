@@ -4,10 +4,11 @@ import structlog
 from starlette import testclient
 
 from app.fieldapi import domain
-from app.fieldapi.presentation import interface, server
+from app.fieldapi.presentation import server
 from app.fieldapi.providers import registry
 from app.lib import auth
 from app.lib.web import server as web_server
+from app.specs import fieldapi
 
 
 class FieldAPIIntegrationTest(unittest.TestCase):
@@ -16,7 +17,7 @@ class FieldAPIIntegrationTest(unittest.TestCase):
         self.dataset_registry = registry.DatasetRegistry(
             providers={"sfd": _MockProvider()},
             metadata={
-                "sfd": interface.DatasetInfo(
+                "sfd": fieldapi.DatasetInfo(
                     id="sfd",
                     name="SFD",
                     version="1998",
@@ -75,6 +76,6 @@ class FieldAPIIntegrationTest(unittest.TestCase):
 
 
 class _MockProvider:
-    def sample(self, coordinates: list[interface.SkyCoordinate]) -> list[float]:
+    def sample(self, coordinates: list[fieldapi.SkyCoordinate]) -> list[float]:
         _ = coordinates
         return [0.03, 0.12]
