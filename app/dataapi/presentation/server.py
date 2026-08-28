@@ -52,8 +52,6 @@ class Server(server.WebServer):
         actions: interface.Actions,
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
-        authenticator: auth.Authenticator,
-        auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
 
@@ -101,4 +99,4 @@ When coordinates are specified, results are sorted by increasing distance to the
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, auth_enabled=auth_enabled)
+        super().__init__(routes, config, logger, auth.NoopAuthenticator(), auth_enabled=False)

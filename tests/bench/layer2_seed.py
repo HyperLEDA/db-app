@@ -10,7 +10,6 @@ from fastapi import testclient
 
 from app.data import repositories
 from app.dataapi import clients, command, domain, presentation
-from app.lib import auth
 from app.lib.storage import postgres
 from tests import lib
 
@@ -121,8 +120,6 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
         actions,
         config.server,
         logger,
-        auth.NoopAuthenticator(),
-        auth_enabled=False,
     )
 
     return testclient.TestClient(server.app), f"{config.server.path_prefix}/v1/query/simple"

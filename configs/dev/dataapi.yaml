@@ -4,24 +4,15 @@ server:
   allowed_origins:
     - "*"
 
-auth_enabled: false
-
 fieldapi:
   base_url: http://127.0.0.1:8082
 
 storage:
-  auth:
-    endpoint: localhost
-    port: 6432
-    dbname: hyperleda
-    user: hyperleda
-    password: password
-  main:
-    endpoint: localhost
-    port: 6432
-    dbname: hyperleda
-    user: hyperleda_reader
-    password: password
+  endpoint: localhost
+  port: 6432
+  dbname: hyperleda
+  user: hyperleda_reader
+  password: password
 
 tracing:
   endpoint: localhost:4317

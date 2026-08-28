@@ -12,7 +12,6 @@ from app.data import repositories
 from app.dataapi import clients, domain
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
-from app.lib import auth
 from app.lib.storage import postgres
 from tests import lib
 
@@ -48,9 +47,7 @@ class MetadataAPITest(unittest.TestCase):
             references_repo=repositories.ReferencesRepository(self.reader_storage),
             fieldapi_client=mock.create_autospec(clients.FieldAPIClient),
         )
-        self.client = testclient.TestClient(
-            Server(self.actions, self.cfg.server, self.log, auth.NoopAuthenticator()).app
-        )
+        self.client = testclient.TestClient(Server(self.actions, self.cfg.server, self.log).app)
 
     def tearDown(self) -> None:
         self.pg_storage.clear()
