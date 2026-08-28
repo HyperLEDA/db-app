@@ -124,6 +124,9 @@ adminapi-dev:
 dataapi:
 	uv run dataapi -c configs/dev/dataapi.yaml
 
+fieldapi:
+	uv run fieldapi -c configs/dev/fieldapi.yaml
+
 start-db:
 	docker-compose up -d
 

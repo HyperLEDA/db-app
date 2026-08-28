@@ -1,0 +1,27 @@
+server:
+  host: 0.0.0.0
+  port: 8082
+  allowed_origins:
+    - "*"
+
+tracing:
+  endpoint: localhost:4317
+  enabled: true
+
+datasets:
+  data_dir: downloads/fieldapi
+  enabled:
+    - id: sfd
+      provider: sfd
+      name: SFD
+      version: "1998"
+      dimensions: 2
+      quantity: ebv
+      unit: mag
+      description: Galactic dust reddening map
+      bibcode: "1998ApJ...500..525S"
+      storage:
+        dir: sfd
+        files:
+          - SFD_dust_4096_ngp.fits
+          - SFD_dust_4096_sgp.fits

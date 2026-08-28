@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [adminapi, dataapi, tasks]
+        service: [adminapi, dataapi, fieldapi, tasks]
     steps:
       - uses: actions/checkout@v7
 
@@ -119,6 +119,21 @@ jobs:
     with:
       service: dataapi
       deployment_event: dataapi-release
+      workflow_run_id: ${{ github.run_id }}
+      head_sha: ${{ github.sha }}
+    secrets: inherit
+
+  release-fieldapi:
+    needs: [tests, build, regression]
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    uses: ./.github/workflows/release-service.yaml
+    with:
+      service: fieldapi
+      deployment_event: fieldapi-release
       workflow_run_id: ${{ github.run_id }}
       head_sha: ${{ github.sha }}
     secrets: inherit
