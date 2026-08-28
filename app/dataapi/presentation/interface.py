@@ -15,3 +15,7 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         pass
+
+    @abc.abstractmethod
+    def calculate_reddening(self, request: spec.CalculateReddeningRequest) -> spec.CalculateReddeningResponse:
+        pass

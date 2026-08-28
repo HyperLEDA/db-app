@@ -6,6 +6,9 @@ server:
 
 auth_enabled: false
 
+fieldapi:
+  base_url: http://127.0.0.1:8082
+
 storage:
   auth:
     endpoint: localhost

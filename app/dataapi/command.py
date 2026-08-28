@@ -8,7 +8,7 @@ import yaml
 
 from app.data import enums as data_enums
 from app.data import repositories
-from app.dataapi import domain, presentation, responders
+from app.dataapi import clients, domain, presentation, responders
 from app.lib import auth, commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
@@ -46,6 +46,11 @@ class DataAPICommand(commands.Command):
             layer2_repo=repositories.Layer2Repository(self.pg_main, log),
             catalog_cfg=self.config.catalogs,
             metadata_repo=repositories.MetadataRepository(self.pg_main),
+            references_repo=repositories.ReferencesRepository(self.pg_main),
+            fieldapi_client=clients.RequestsFieldAPIClient(
+                self.config.fieldapi.base_url,
+                timeout_seconds=self.config.fieldapi.timeout_seconds,
+            ),
         )
 
         self.app = presentation.Server(
@@ -71,10 +76,16 @@ class StorageConfig(pydantic.BaseModel):
     main: postgres.PgStorageConfig
 
 
+class FieldAPIConfig(pydantic.BaseModel):
+    base_url: str
+    timeout_seconds: float = 10.0
+
+
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: StorageConfig
     catalogs: responders.CatalogConfig
+    fieldapi: FieldAPIConfig
     auth_enabled: bool = True
     tracing: TracingConfig = pydantic.Field(
         default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
