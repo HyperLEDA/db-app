@@ -13,6 +13,71 @@ INSERT INTO photometry.systems (id, description, bibcode, svo_id) VALUES
 , ( 'LSST', 'Legacy Survey of Space and Time (LSST) photometric system', NULL, 'gname=LSST' )
 ;
 
+ALTER TABLE photometry.bands ALTER COLUMN fwhm DROP NOT NULL ;
+ALTER TABLE photometry.bands ADD UNIQUE (photsys, name) ;
+
+INSERT INTO photometry.bands (id, name, photsys, waveref, fwhm, extinction, svo_id) VALUES
+  ( 'U_Landolt', 'U', 'Landolt', 3508.2, NULL, NULL, 'Generic/Landolt.U' )
+, ( 'B_Landolt', 'B', 'Landolt', 4329.0, NULL, NULL, 'Generic/Landolt.B' )
+, ( 'V_Landolt', 'V', 'Landolt', 5421.7, NULL, NULL, 'Generic/Landolt.V' )
+, ( 'R_Landolt', 'R', 'Landolt', 6427.8, NULL, NULL, 'Generic/Landolt.R' )
+, ( 'I_Landolt', 'I', 'Landolt', 8048.4, NULL, NULL, 'Generic/Landolt.I' )
+, ( 'U_CTIO', 'U', 'CTIO', 3733.9, NULL, NULL, 'Generic/CTIO.U' )
+, ( 'B_CTIO', 'B', 'CTIO', 4308.9, NULL, NULL, 'Generic/CTIO.B' )
+, ( 'F105W_WFC3', 'F105W', 'WFPC3_IR', 10438.9, NULL, NULL, 'HST/WFC3_IR.F105W' )
+, ( 'V_CTIO', 'V', 'CTIO', 5516.6, NULL, NULL, 'Generic/CTIO.V' )
+, ( 'F110W_WFC3', 'F110W', 'WFPC3_IR', 11169.7, NULL, NULL, 'HST/WFC3_IR.F110W' )
+, ( 'R_CTIO', 'R', 'CTIO', 6520.2, NULL, NULL, 'Generic/CTIO.R' )
+, ( 'F125W_WFC3', 'F125W', 'WFPC3_IR', 12335.5, NULL, NULL, 'HST/WFC3_IR.F125W' )
+, ( 'I_CTIO', 'I', 'CTIO', 8006.9, NULL, NULL, 'Generic/CTIO.I' )
+, ( 'F140W_WFC3', 'F140W', 'WFPC3_IR', 13692.3, NULL, NULL, 'HST/WFC3_IR.F140W' )
+, ( 'J_UKIRT', 'J', 'UKIRT', 12482.9, NULL, NULL, 'UKIRT/UKIRT.J' )
+, ( 'F160W_WFC3', 'F160W', 'WFPC3_IR', 15258.3, NULL, NULL, 'HST/WFC3_IR.F160W' )
+, ( 'H_UKIRT', 'H', 'UKIRT', 16588.4, NULL, NULL, 'UKIRT/UKIRT.H' )
+, ( 'F200LP_WFC3', 'F200LP', 'WFC3_UVIS', 5515.2, NULL, NULL, 'HST/WFC3_UVIS.F200LP' )
+, ( 'K_UKIRT', 'K', 'UKIRT', 21897.7, NULL, NULL, 'UKIRT/UKIRT.K' )
+, ( 'F218W_WFC3', 'F218W', 'WFC3_UVIS', 2248.3, NULL, NULL, 'HST/WFC3_UVIS.F218W' )
+, ( 'Lp_UKIRT', 'L''', 'UKIRT', 37772.5, NULL, NULL, NULL )
+, ( 'F225W_WFC3', 'F225W', 'WFC3_UVIS', 2394.0, NULL, NULL, 'HST/WFC3_UVIS.F225W' )
+, ( 'g_Gunn', 'g', 'Gunn', 5200.0, NULL, NULL, 'Generic/Gunn.g' )
+, ( 'F275W_WFC3', 'F275W', 'WFC3_UVIS', 2742.5, NULL, NULL, 'HST/WFC3_UVIS.F275W' )
+, ( 'r_Gunn', 'r', 'Gunn', 6628.5, NULL, NULL, 'Generic/Gunn.r' )
+, ( 'F300X_WFC3', 'F300X', 'WFC3_UVIS', 2934.5, NULL, NULL, 'HST/WFC3_UVIS.F300X' )
+, ( 'i_Gunn', 'i', 'Gunn', 7898.6, NULL, NULL, 'Generic/Gunn.i' )
+, ( 'F336W_WFC3', 'F336W', 'WFC3_UVIS', 3366.4, NULL, NULL, 'HST/WFC3_UVIS.F336W' )
+, ( 'z_Gunn', 'z', 'Gunn', 9050.1, NULL, NULL, 'Generic/Gunn.z' )
+, ( 'F350LP_WFC3', 'F350LP', 'WFC3_UVIS', 5877.1, NULL, NULL, 'HST/WFC3_UVIS.F350LP' )
+, ( 'Rs_Spinrad', 'R_S', 'Spinrad', 6927.3, NULL, NULL, NULL )
+, ( 'F390W_WFC3', 'F390W', 'WFC3_UVIS', 3994.8, NULL, NULL, 'HST/WFC3_UVIS.F390W' )
+, ( 'u_Stromgren', 'u', 'Stromgren', 3510.0, NULL, NULL, 'Generic/Stromgren.u' )
+, ( 'F438W_WFC3', 'F438W', 'WFC3_UVIS', 4335.3, NULL, NULL, 'HST/WFC3_UVIS.F438W' )
+, ( 'b_Stromgren', 'b', 'Stromgren', 4670.5, NULL, NULL, 'Generic/Stromgren.b' )
+, ( 'F475W_WFC3', 'F475W', 'WFC3_UVIS', 4785.0, NULL, NULL, 'HST/WFC3_UVIS.F475W' )
+, ( 'v_Stromgren', 'v', 'Stromgren', 4119.2, NULL, NULL, 'Generic/Stromgren.v' )
+, ( 'F475X_WFC3', 'F475X', 'WFC3_UVIS', 4969.7, NULL, NULL, 'HST/WFC3_UVIS.F475X' )
+, ( 'beta_Stromgren', 'beta', 'Stromgren', 4861.3, NULL, NULL, 'Generic/Stromgren.beta' )
+, ( 'F555W_WFC3', 'F555W', 'WFC3_UVIS', 5302.8, NULL, NULL, 'HST/WFC3_UVIS.F555W' )
+, ( 'y_Stromgren', 'y', 'Stromgren', 5478.9, NULL, NULL, 'Generic/Stromgren.y' )
+, ( 'F600LP_WFC3', 'F600LP', 'WFC3_UVIS', 7362.3, NULL, NULL, 'HST/WFC3_UVIS.F600LP' )
+, ( 'F606W_WFC3', 'F606W', 'WFC3_UVIS', 5868.5, NULL, NULL, 'HST/WFC3_UVIS.F606W' )
+, ( 'F625W_WFC3', 'F625W', 'WFC3_UVIS', 6225.8, NULL, NULL, 'HST/WFC3_UVIS.F625W' )
+, ( 'F775W_WFC3', 'F775W', 'WFC3_UVIS', 7630.9, NULL, NULL, 'HST/WFC3_UVIS.F775W' )
+, ( 'F814W_WFC3', 'F814W', 'WFC3_UVIS', 7983.1, NULL, NULL, 'HST/WFC3_UVIS.F814W' )
+, ( 'F850LP_WFC3', 'F850LP', 'WFC3_UVIS', 9149.7, NULL, NULL, 'HST/WFC3_UVIS.F850LP' )
+, ( 'g_DSS-II', 'g', 'DSS-II', 4620.6, NULL, NULL, NULL )
+, ( 'clear_ACS', 'clear', 'ACS_WFC', 6211.1, NULL, NULL, NULL )
+, ( 'r_DSS-II', 'r', 'DSS-II', 6545.5, NULL, NULL, NULL )
+, ( 'i_DSS-II', 'i', 'DSS-II', 8111.0, NULL, NULL, NULL )
+, ( 'F550M_ACS', 'F550M', 'ACS_WFC', 5581.0, NULL, NULL, 'HST/ACS_WFC.F550M' )
+, ( 'w_PS1', 'w', 'PS1', 6240.8, NULL, NULL, 'PAN-STARRS/PS1.w' )
+, ( 'u_LSST', 'u', 'LSST', 3693.2, NULL, NULL, 'LSST/LSST.u' )
+, ( 'g_LSST', 'g', 'LSST', 4797.3, NULL, NULL, 'LSST/LSST.g' )
+, ( 'r_LSST', 'r', 'LSST', 6195.8, NULL, NULL, 'LSST/LSST.r' )
+, ( 'i_LSST', 'i', 'LSST', 7515.3, NULL, NULL, 'LSST/LSST.i' )
+, ( 'z_LSST', 'z', 'LSST', 8664.4, NULL, NULL, 'LSST/LSST.z' )
+, ( 'y_LSST', 'y', 'LSST', 9710.3, NULL, NULL, 'LSST/LSST.y' )
+;
+
 CREATE TYPE photometry.r_v_type AS ENUM ( '2.1', '3.1', '4.1', '5.1' ) ;
 COMMENT ON TYPE photometry.r_v_type IS '{
   "description": "Total-to-selective extinction ratio R_V = A_V/E(B-V)",
@@ -31,6 +96,7 @@ CREATE TABLE photometry.reddening (
 , r_v	photometry.r_v_type	NOT NULL
 , a_ebv	real	NOT NULL
 , PRIMARY KEY (photsys, filter, r_v)
+, FOREIGN KEY (photsys, filter) REFERENCES photometry.bands (photsys, name) ON DELETE restrict ON UPDATE cascade
 ) ;
 CREATE INDEX ON photometry.reddening (filter) ;
 
