@@ -57,7 +57,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
-            layer2.DesignationEqualsFilter("test"),
+            layer2.PGCOneOfFilter([1]),
             layer2.CombinedSearchParams([]),
             10,
             0,
@@ -107,7 +107,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            layer2.DesignationEqualsFilter("test2"),
+            layer2.PGCOneOfFilter([2]),
             layer2.CombinedSearchParams([]),
             10,
             0,
@@ -149,7 +149,7 @@ class Layer2RepositoryTest(unittest.TestCase):
             [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
             layer2.AndFilter(
                 [
-                    layer2.DesignationEqualsFilter("test2"),
+                    layer2.PGCOneOfFilter([2]),
                     layer2.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
                 ]
             ),
@@ -331,7 +331,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.REDSHIFT],
-            layer2.DesignationEqualsFilter("test"),
+            layer2.PGCOneOfFilter([1]),
             layer2.CombinedSearchParams([]),
             10,
             0,
@@ -435,7 +435,7 @@ class Layer2RepositoryTest(unittest.TestCase):
 
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
-            layer2.DesignationEqualsFilter("d1"),
+            layer2.PGCOneOfFilter([1]),
             layer2.CombinedSearchParams([]),
             10,
             0,
@@ -443,7 +443,7 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.assertEqual(actual, [])
         actual = self.layer2_repo.query_catalogs(
             [model.RawCatalog.DESIGNATION],
-            layer2.DesignationEqualsFilter("d2"),
+            layer2.PGCOneOfFilter([2]),
             layer2.CombinedSearchParams([]),
             10,
             0,

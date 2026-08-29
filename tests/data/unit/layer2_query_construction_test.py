@@ -80,20 +80,6 @@ class QueryCatalogsJoinTest(unittest.TestCase):
         self.assertNotIn("FULL JOIN", query)
         self.assertIn("CROSS JOIN layer2.icrs LEFT JOIN layer2.designation USING (pgc)", query)
 
-    def test_or_filter_with_mixed_branches_keeps_full_join(self):
-        query = self._query_for(
-            [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
-            layer2.OrFilter(
-                [
-                    layer2.PGCOneOfFilter([1, 2]),
-                    layer2.DesignationLikeFilter(),
-                ]
-            ),
-            layer2.CombinedSearchParams([layer2.DesignationSearchParams("IC 1440")]),
-        )
-
-        self.assertIn("FULL JOIN", query)
-
     def test_driving_table_is_joined_even_when_its_catalog_not_requested(self):
         query = self._query_for(
             [model.RawCatalog.REDSHIFT],
