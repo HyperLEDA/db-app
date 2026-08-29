@@ -1,10 +1,10 @@
 import unittest
 from unittest import mock
 
-from app.data.model import layer2
 from app.data.repositories.references import ReddeningCoefficient, ReddeningPhotometricSystem
 from app.dataapi import clients, domain, responders
 from app.dataapi.domain import reddening
+from app.dataapi.repository import model as repo_model
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
 from app.specs import dataapi as spec
@@ -95,6 +95,7 @@ class CalculateReddeningTest(unittest.TestCase):
     def setUp(self) -> None:
         self.actions = domain.Actions(
             layer2_repo=mock.Mock(),
+            repo=mock.Mock(),
             catalog_cfg=_catalog_config(),
             metadata_repo=mock.Mock(),
             references_repo=_FakeReferencesRepository(),
@@ -145,15 +146,15 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
         self.responder = StructuredResponder(_catalog_config(), self.reddening_service)
 
     def test_build_response_returns_observed_and_corrected_photometry(self) -> None:
-        icrs = layer2.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
+        icrs = repo_model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
         objects = [
-            layer2.Layer2Object(
+            repo_model.Layer2Object(
                 pgc=5001,
-                catalogs=layer2.Catalogs(
+                catalogs=repo_model.Catalogs(
                     icrs=icrs,
-                    photometry_total=layer2.PhotometryTotalCatalog(
+                    photometry_total=repo_model.PhotometryTotalCatalog(
                         measurements=[
-                            layer2.PhotometryTotalMeasurement(
+                            repo_model.PhotometryTotalMeasurement(
                                 band="V",
                                 magsys="Vega",
                                 method="psf",
@@ -163,7 +164,7 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
                                 photsys="UBVRIJHKL",
                                 filter="V",
                             ),
-                            layer2.PhotometryTotalMeasurement(
+                            repo_model.PhotometryTotalMeasurement(
                                 band="g",
                                 magsys="AB",
                                 method="psf",
@@ -197,12 +198,12 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
 
     def test_build_response_without_icrs_has_no_corrected_photometry(self) -> None:
         objects = [
-            layer2.Layer2Object(
+            repo_model.Layer2Object(
                 pgc=5001,
-                catalogs=layer2.Catalogs(
-                    photometry_total=layer2.PhotometryTotalCatalog(
+                catalogs=repo_model.Catalogs(
+                    photometry_total=repo_model.PhotometryTotalCatalog(
                         measurements=[
-                            layer2.PhotometryTotalMeasurement(
+                            repo_model.PhotometryTotalMeasurement(
                                 band="g",
                                 magsys="AB",
                                 method="psf",

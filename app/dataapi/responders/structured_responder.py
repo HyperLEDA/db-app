@@ -5,6 +5,7 @@ from astropy import units as u
 from app.data import model
 from app.data.model import layer2
 from app.dataapi.domain import reddening
+from app.dataapi.repository import model as repo_model
 from app.dataapi.responders import interface
 from app.lib import astronomy, config
 from app.specs import dataapi as spec
@@ -118,7 +119,7 @@ class StructuredResponder(interface.ObjectResponder):
         return velocities
 
     def _photometry_total_measurement(
-        self, measurement: layer2.PhotometryTotalMeasurement
+        self, measurement: repo_model.PhotometryTotalMeasurement
     ) -> spec.PhotometryTotalMeasurement:
         return spec.PhotometryTotalMeasurement(
             band=measurement.band,
@@ -131,9 +132,9 @@ class StructuredResponder(interface.ObjectResponder):
 
     def _fetch_corrected_photometry(
         self,
-        objects: list[layer2.Layer2Object],
+        objects: list[repo_model.Layer2Object],
     ) -> dict[int, list[spec.PhotometryTotalMeasurement]]:
-        correction_work: list[tuple[int, layer2.ICRSCatalog, list[layer2.PhotometryTotalMeasurement]]] = []
+        correction_work: list[tuple[int, repo_model.ICRSCatalog, list[repo_model.PhotometryTotalMeasurement]]] = []
         for obj in objects:
             if obj.catalogs.photometry_total is None or obj.catalogs.icrs is None:
                 continue
@@ -218,7 +219,7 @@ class StructuredResponder(interface.ObjectResponder):
 
         return spec.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)
 
-    def build_response(self, objects: list[layer2.Layer2Object]) -> Any:
+    def build_response(self, objects: list[repo_model.Layer2Object]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects: list[spec.PGCObject] = []
         corrected_photometry_by_pgc = self._fetch_corrected_photometry(objects)

@@ -10,6 +10,7 @@ from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import clients, domain
 from app.dataapi.presentation.server import Server
+from app.dataapi.repository import Repository
 from app.lib.storage import postgres
 from app.specs import fieldapi as fieldapi_spec
 from tests import lib
@@ -45,6 +46,7 @@ class ReddeningAPITest(unittest.TestCase):
     def setUp(self) -> None:
         self.actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.reader_storage, self.log),
+            repo=Repository(self.reader_storage),
             catalog_cfg=self.cfg.catalogs,
             metadata_repo=repositories.MetadataRepository(self.reader_storage),
             references_repo=repositories.ReferencesRepository(self.reader_storage),

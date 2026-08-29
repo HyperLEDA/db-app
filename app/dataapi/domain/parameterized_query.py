@@ -4,6 +4,7 @@ from app.data import model, repositories
 from app.data.repositories import layer2
 from app.dataapi import responders
 from app.dataapi.domain import reddening
+from app.dataapi.repository import Repository
 from app.lib import astronomy
 from app.lib.web.errors import RuleValidationError
 from app.specs import dataapi as spec
@@ -50,11 +51,13 @@ class ParameterizedQueryManager:
     def __init__(
         self,
         layer2_repo: repositories.Layer2Repository,
+        repo: Repository,
         enabled_catalogs: list[model.RawCatalog],
         catalog_cfg: responders.CatalogConfig,
         reddening_service: reddening.Reddening,
     ) -> None:
         self.layer2_repo = layer2_repo
+        self.repo = repo
         self.enabled_catalogs = enabled_catalogs
         self.catalog_config = catalog_cfg
         self.reddening_service = reddening_service
@@ -96,7 +99,7 @@ class ParameterizedQueryManager:
         offset = query.page * query.page_size
         if query.pgcs:
             catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
-            objects = self.layer2_repo.query_pgc(
+            objects = self.repo.query_pgc(
                 catalogs,
                 query.pgcs,
                 query.page_size,

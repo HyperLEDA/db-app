@@ -8,6 +8,7 @@ import yaml
 from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import clients, domain, presentation, responders
+from app.dataapi.repository import Repository
 from app.lib import commands, config, tracing
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
@@ -38,6 +39,7 @@ class DataAPICommand(commands.Command):
 
         actions = domain.Actions(
             layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
+            repo=Repository(self.pg_storage),
             catalog_cfg=self.config.catalogs,
             metadata_repo=repositories.MetadataRepository(self.pg_storage),
             references_repo=repositories.ReferencesRepository(self.pg_storage),
