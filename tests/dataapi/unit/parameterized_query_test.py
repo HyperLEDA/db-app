@@ -6,7 +6,7 @@ from astropy import units as u
 from astropy.time import Time
 
 from app.data import model
-from app.data.repositories import layer2
+from app.dataapi import repository
 from app.dataapi.domain import parameterized_query
 from app.lib.web import errors
 from app.specs import dataapi
@@ -61,20 +61,20 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
 
 class QuerySimpleCoordinateConversionTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.layer2_repo = mock.Mock()
-        self.layer2_repo.query_catalogs.return_value = []
+        self.repo = mock.Mock()
+        self.repo.query_catalogs.return_value = []
         self.manager = parameterized_query.ParameterizedQueryManager(
-            layer2_repo=self.layer2_repo,
+            repo=self.repo,
             enabled_catalogs=DEFAULT,
             catalog_cfg=mock.Mock(),
             reddening_service=mock.Mock(),
         )
 
-    def _search_params(self) -> layer2.SearchParams:
-        return self.layer2_repo.query_catalogs.call_args.args[2]
+    def _search_params(self) -> repository.SearchParams:
+        return self.repo.query_catalogs.call_args.args[2]
 
-    def _ordering(self) -> layer2.Ordering | None:
-        return self.layer2_repo.query_catalogs.call_args.kwargs.get("ordering")
+    def _ordering(self) -> repository.Ordering | None:
+        return self.repo.query_catalogs.call_args.kwargs.get("ordering")
 
     def test_coordinate_search_defaults_to_j2000(self):
         ra_fk5, dec_fk5 = 10.0, 20.0
@@ -93,7 +93,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
         self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
         self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
         ordering = self._ordering()
-        self.assertIsInstance(ordering, layer2.ICRSDistanceOrdering)
+        self.assertIsInstance(ordering, repository.ICRSDistanceOrdering)
         assert ordering is not None
         self.assertEqual(ordering.get_params(), [expected.ra.deg, expected.dec.deg])
 
@@ -111,8 +111,8 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        self.assertEqual(self.layer2_repo.query_catalogs.call_args.args[3], 25)
-        self.assertEqual(self.layer2_repo.query_catalogs.call_args.args[4], 50)
+        self.assertEqual(self.repo.query_catalogs.call_args.args[3], 25)
+        self.assertEqual(self.repo.query_catalogs.call_args.args[4], 50)
 
     def test_pgc_page_is_converted_to_offset(self):
         query = dataapi.QuerySimpleRequest(pgcs=[1, 2, 3], page=1, page_size=10)
@@ -120,8 +120,8 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[2], 10)
-        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[3], 10)
+        self.assertEqual(self.repo.query_pgc.call_args.args[2], 10)
+        self.assertEqual(self.repo.query_pgc.call_args.args[3], 10)
 
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112

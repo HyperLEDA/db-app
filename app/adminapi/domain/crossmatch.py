@@ -4,9 +4,8 @@ from typing import Any, Protocol, final
 import structlog
 from astropy import units as u
 
+from app.adminapi import repository
 from app.data import model
-from app.data.repositories import layer0, layer1, layer2
-from app.data.repositories.layer0.records import AssignRecordPgcsPreconditionError
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
@@ -102,15 +101,8 @@ def _append_crossmatch_rows(
 
 @final
 class CrossmatchManager:
-    def __init__(
-        self,
-        layer0_repo: layer0.Layer0Repository,
-        layer1_repo: layer1.Layer1Repository,
-        layer2_repo: layer2.Layer2Repository,
-    ) -> None:
-        self.layer0_repo = layer0_repo
-        self.layer1_repo = layer1_repo
-        self.layer2_repo = layer2_repo
+    def __init__(self, repo: repository.Repository) -> None:
+        self._repo = repo
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []
@@ -146,14 +138,14 @@ class CrossmatchManager:
             )
 
         if rows:
-            self.layer0_repo.set_crossmatch_results(rows)
+            self._repo.set_crossmatch_results(rows)
         return spec.SetCrossmatchResultsResponse()
 
     def assign_record_pgcs(self, request: spec.AssignRecordPgcsRequest) -> spec.AssignRecordPgcsResponse:
         unique_ids = list(dict.fromkeys(request.record_ids))
         try:
-            self.layer0_repo.assign_record_pgcs(unique_ids)
-        except AssignRecordPgcsPreconditionError as e:
+            self._repo.assign_record_pgcs(unique_ids)
+        except repository.AssignRecordPgcsPreconditionError as e:
             raise ConflictError(
                 f"{e.count} records cannot be assigned a PGC (missing crossmatch, not resolved, or collided)",
                 sample_record_ids=e.sample,
@@ -163,7 +155,7 @@ class CrossmatchManager:
 
     def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[spec.RecordCrossmatch]:
         record_ids = [row.record_id for row in rows]
-        layer1_data = self.layer1_repo.query_records(
+        layer1_data = self._repo.query_records(
             [
                 model.RawCatalog.ICRS,
                 model.RawCatalog.DESIGNATION,
@@ -201,7 +193,7 @@ class CrossmatchManager:
         return result
 
     def get_record_crossmatch(self, r: spec.GetRecordCrossmatchRequest) -> spec.GetRecordCrossmatchResponse:
-        processed_rows = self.layer0_repo.get_processed_records(
+        processed_rows = self._repo.get_processed_records(
             limit=1,
             record_id=r.record_id,
         )
@@ -215,7 +207,7 @@ class CrossmatchManager:
         original_data: dict[str, Any] | None = None
         table_name = ""
         try:
-            raw_data = self.layer0_repo.fetch_raw_data(record_id=row.record_id)
+            raw_data = self._repo.fetch_raw_data(record_id=row.record_id)
             table_name = raw_data.table_name
             if not raw_data.data.empty:
                 original_data = raw_data.data.iloc[0].to_dict()
@@ -239,7 +231,7 @@ class CrossmatchManager:
         if len(candidate_pgcs) == 0:
             return response
 
-        layer2_objects = self.layer2_repo.query_catalogs_pgc(
+        layer2_objects = self._repo.query_catalogs_pgc(
             catalogs=[
                 model.RawCatalog.ICRS,
                 model.RawCatalog.DESIGNATION,

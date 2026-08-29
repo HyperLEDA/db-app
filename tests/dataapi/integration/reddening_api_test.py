@@ -6,8 +6,7 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
-from app.data import repositories
-from app.dataapi import clients, domain
+from app.dataapi import clients, domain, repository
 from app.dataapi.presentation.server import Server
 from app.lib.storage import enums, postgres
 from app.specs import fieldapi as fieldapi_spec
@@ -43,10 +42,8 @@ class ReddeningAPITest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.actions = domain.Actions(
-            layer2_repo=repositories.Layer2Repository(self.reader_storage, self.log),
+            repo=repository.Repository(self.reader_storage, self.log),
             catalog_cfg=self.cfg.catalogs,
-            metadata_repo=repositories.MetadataRepository(self.reader_storage),
-            references_repo=repositories.ReferencesRepository(self.reader_storage),
             fieldapi_client=_MockFieldAPIClient(),
         )
         self.client = testclient.TestClient(Server(self.actions, self.cfg.server, self.log).app)

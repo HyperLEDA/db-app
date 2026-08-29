@@ -3,23 +3,19 @@ import unittest
 import structlog
 
 from app import tasks
-from app.data import model, repositories
-from app.data.repositories import layer2
+from app.data import model
 from app.lib.storage import enums
-from app.tasks import layer2_import
+from app.tasks import layer2_import, repository
 from tests import lib
+from tests.lib import layer_seed
 
 
 class Layer2ImportTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
-
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-
+        cls.storage = cls.pg_storage.get_storage()
+        cls.repo = repository.Repository(cls.storage, structlog.get_logger())
         cls.task = layer2_import.Layer2ImportTask(structlog.get_logger())
         cls.task.prepare(tasks.Config(storage=cls.pg_storage.config))
 
@@ -31,24 +27,46 @@ class Layer2ImportTest(unittest.TestCase):
         cls.task.cleanup()
 
     def _get_table(self, table_name: str) -> int:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        bib_id = layer_seed.create_bibliography(self.storage, "123456", 2000, ["test"], "test")
+        return layer_seed.create_table(self.storage, table_name, bib_id)
 
-        return table_resp.table_id
+    def _designation(self, pgc: int) -> model.DesignationCatalogObject | None:
+        rows = self.storage.query(
+            "SELECT design FROM layer2.designation WHERE pgc = %s",
+            params=[pgc],
+        )
+        if not rows:
+            return None
+        return model.DesignationCatalogObject(design=rows[0]["design"])
+
+    def _icrs(self, pgc: int) -> model.ICRSCatalogObject | None:
+        rows = self.storage.query(
+            "SELECT ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = %s",
+            params=[pgc],
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        return model.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
 
     def test_import_two_catalogs(self):
         _ = self._get_table("test_import_two_catalogs")
-        self.layer0_repo.register_records(
+        layer_seed.register_records(
+            self.storage,
             "test_import_two_catalogs",
             ["123", "124"],
         )
-
-        self.common_repo.register_pgcs([1234, 1245])
-        self.layer0_repo.upsert_pgc({"123": 1234, "124": 1245})
-        self.layer1_repo.save_structured_data(
-            "icrs.data", ["ra", "e_ra", "dec", "e_dec"], ["123", "124"], [[12, 0.2, 13, 0.2], [14, 0.2, 15, 0.2]]
+        layer_seed.register_pgcs(self.storage, [1234, 1245])
+        layer_seed.upsert_pgc(self.storage, {"123": 1234, "124": 1245})
+        layer_seed.save_structured_data(
+            self.storage,
+            "icrs.data",
+            ["ra", "e_ra", "dec", "e_dec"],
+            ["123", "124"],
+            [[12, 0.2, 13, 0.2], [14, 0.2, 15, 0.2]],
         )
-        self.layer1_repo.save_structured_data(
+        layer_seed.save_structured_data(
+            self.storage,
             "designation.data",
             ["design"],
             ["123", "124"],
@@ -58,32 +76,29 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.Layer2CatalogObject(
-            1234, [model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2), model.DesignationCatalogObject("test1")]
-        )
-
-        self.assertEqual(len(actual), 1)
-        lib.assert_layer2_catalog_objects_equal(self, actual, [expected])
+        icrs = self._icrs(1234)
+        designation = self._designation(1234)
+        self.assertIsNotNone(icrs)
+        self.assertIsNotNone(designation)
+        assert icrs is not None
+        assert designation is not None
+        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
+        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test1"))
 
     def test_updated_objects(self):
         self.test_import_two_catalogs()
         _ = self._get_table("test_updated_objects")
-        self.layer0_repo.register_records(
+        layer_seed.register_records(
+            self.storage,
             "test_updated_objects",
             ["125", "126"],
         )
-        self.layer0_repo.upsert_pgc({"125": 1234, "126": 1234})
+        layer_seed.upsert_pgc(self.storage, {"125": 1234, "126": 1234})
 
-        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
 
-        self.layer1_repo.save_structured_data(
+        layer_seed.save_structured_data(
+            self.storage,
             "designation.data",
             ["design"],
             ["125", "126"],
@@ -93,27 +108,21 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.DESIGNATION],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.DesignationCatalogObject("test3")
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(len(actual[0].data), 1)
-        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
+        designation = self._designation(1234)
+        self.assertIsNotNone(designation)
+        assert designation is not None
+        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test3"))
 
     def test_layer1_only_update_recalculates_layer2(self) -> None:
         self.test_import_two_catalogs()
 
-        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
 
-        self.layer1_repo.save_structured_data(
+        layer_seed.save_structured_data(
+            self.storage,
             "icrs.data",
             ["ra", "e_ra", "dec", "e_dec"],
             ["123"],
@@ -122,17 +131,10 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.ICRS],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2)
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(len(actual[0].data), 1)
-        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
+        icrs = self._icrs(1234)
+        self.assertIsNotNone(icrs)
+        assert icrs is not None
+        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))

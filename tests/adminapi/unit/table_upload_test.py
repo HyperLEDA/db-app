@@ -5,10 +5,10 @@ from unittest import mock
 from astropy import units
 from parameterized import param, parameterized
 
-from app.adminapi import clients, domain
+from app.adminapi import clients, domain, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
 from app.specs import adminapi
@@ -17,10 +17,9 @@ from tests import lib
 
 class TableUploadManagerTest(unittest.TestCase):
     def setUp(self):
+        self.repo = mock.MagicMock()
         self.manager = domain.TableUploadManager(
-            common_repo=mock.MagicMock(),
-            layer0_repo=mock.MagicMock(),
-            layer1_repo=mock.MagicMock(),
+            self.repo,
             clients=clients.get_mock_clients(),
             table_stats_cache=get_mock_table_stats_cache(),
         )
@@ -42,7 +41,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
         _ = self.manager.add_data(request)
 
-        request = self.manager.layer0_repo.insert_raw_data.call_args
+        request = self.repo.insert_raw_data.call_args
 
         self.assertListEqual(list(request.args[0].data["test"]), ["row", "row2"])
         self.assertListEqual(list(request.args[0].data["number"]), [41, 43])
@@ -68,7 +67,7 @@ class TableUploadManagerTest(unittest.TestCase):
 
         _ = self.manager.add_data(request)
 
-        request = self.manager.layer0_repo.insert_raw_data.call_args
+        request = self.repo.insert_raw_data.call_args
 
         self.assertListEqual(list(request.args[0].data["test"]), ["row"])
         self.assertListEqual(list(request.args[0].data["number"]), [41])
@@ -127,8 +126,8 @@ class TableUploadManagerTest(unittest.TestCase):
         expected_created: bool = True,
         err_substr: str | None = None,
     ):
-        lib.returns(self.manager.common_repo.create_bibliography, 41)
-        lib.returns(self.manager.layer0_repo.create_table, model.Layer0CreationResponse(51, not table_already_existed))
+        lib.returns(self.repo.create_bibliography, 41)
+        lib.returns(self.repo.create_table, model.Layer0CreationResponse(51, not table_already_existed))
 
         if err_substr is not None:
             with self.assertRaises(errors.RuleValidationError) as err:
@@ -143,10 +142,9 @@ class TableUploadManagerTest(unittest.TestCase):
 
 class GetSourceIDTest(unittest.TestCase):
     def setUp(self):
+        self.repo = mock.MagicMock()
         self.manager = domain.TableUploadManager(
-            common_repo=mock.MagicMock(),
-            layer0_repo=mock.MagicMock(),
-            layer1_repo=mock.MagicMock(),
+            self.repo,
             clients=clients.get_mock_clients(),
             table_stats_cache=get_mock_table_stats_cache(),
         )
@@ -161,8 +159,8 @@ class GetSourceIDTest(unittest.TestCase):
         ]
     )
     def test_ensure_source_id(self, code: str, ads_query_needed: bool):
-        lib.returns(self.manager.common_repo.create_bibliography, 41)
-        lib.returns(self.manager.common_repo.get_source_entry, mock.MagicMock(id=42))
+        lib.returns(self.repo.create_bibliography, 41)
+        lib.returns(self.repo.get_source_entry, mock.MagicMock(id=42))
         lib.returns(
             self.manager.clients.ads.query_simple,
             [
@@ -174,7 +172,7 @@ class GetSourceIDTest(unittest.TestCase):
             ],
         )
 
-        result = ensure_source_id(self.manager.common_repo, self.manager.clients.ads, code)
+        result = ensure_source_id(self.repo, self.manager.clients.ads, code)
         if ads_query_needed:
             self.assertEqual(result, 41)
         else:
@@ -184,14 +182,14 @@ class GetSourceIDTest(unittest.TestCase):
         lib.raises(self.manager.clients.ads.query_simple, RuntimeError("Not found"))
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = ensure_source_id(self.manager.common_repo, self.manager.clients.ads, "2000A&A...534A..31G")
+            _ = ensure_source_id(self.repo, self.manager.clients.ads, "2000A&A...534A..31G")
 
     def test_internal_comms_not_found(self):
-        lib.raises(self.manager.common_repo.get_source_entry, RuntimeError("Not found"))
+        lib.raises(self.repo.get_source_entry, RuntimeError("Not found"))
         ads_client = mock.MagicMock()
 
         with self.assertRaises(errors.RuleValidationError):
-            _ = ensure_source_id(self.manager.common_repo, ads_client, "some_internal_code")
+            _ = ensure_source_id(self.repo, ads_client, "some_internal_code")
 
 
 class MappingTest(unittest.TestCase):
@@ -203,7 +201,7 @@ class MappingTest(unittest.TestCase):
         err_substr: str | None = None
 
     internal_id_column = model.ColumnDescription(
-        name=repositories.INTERNAL_ID_COLUMN_NAME,
+        name=repository.INTERNAL_ID_COLUMN_NAME,
         data_type=mapping.TYPE_TEXT,
         is_primary_key=True,
     )
@@ -293,21 +291,19 @@ class MappingTest(unittest.TestCase):
 
 class GetRecordsTest(unittest.TestCase):
     def setUp(self) -> None:
-        layer1_repo = mock.MagicMock()
-        layer1_repo.get_designation_records.side_effect = lambda record_ids: [None] * len(record_ids)
-        layer1_repo.get_icrs_records.side_effect = lambda record_ids: [None] * len(record_ids)
-        layer1_repo.get_redshift_records.side_effect = lambda record_ids: [None] * len(record_ids)
-        layer1_repo.get_nature_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        self.repo = mock.MagicMock()
+        self.repo.get_designation_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        self.repo.get_icrs_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        self.repo.get_redshift_records.side_effect = lambda record_ids: [None] * len(record_ids)
+        self.repo.get_nature_records.side_effect = lambda record_ids: [None] * len(record_ids)
         self.manager = domain.TableUploadManager(
-            common_repo=mock.MagicMock(),
-            layer0_repo=mock.MagicMock(),
-            layer1_repo=layer1_repo,
+            self.repo,
             clients=clients.get_mock_clients(),
             table_stats_cache=get_mock_table_stats_cache(),
         )
 
     def test_get_records_returns_records_with_pgc(self) -> None:
-        self.manager.layer0_repo.fetch_records.return_value = [
+        self.repo.fetch_records.return_value = [
             model.TableRecord(
                 id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved", crossmatch_candidates=[1001]
             ),
@@ -339,42 +335,42 @@ class GetRecordsTest(unittest.TestCase):
         self.assertEqual(response.records[1].crossmatch.candidates, [])
 
     def test_get_records_passes_filters_to_fetch_records(self) -> None:
-        self.manager.layer0_repo.fetch_records.return_value = []
+        self.repo.fetch_records.return_value = []
 
         self.manager.get_records(
             adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.UPLOADED)
         )
-        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        call_kw = self.repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], True)
         self.assertIsNone(call_kw["pgc_value"])
 
         self.manager.get_records(
             adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.PENDING)
         )
-        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        call_kw = self.repo.fetch_records.call_args[1]
         self.assertIs(call_kw["has_pgc"], False)
 
         self.manager.get_records(adminapi.GetRecordsRequest(table_name="t", pgc=42))
-        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        call_kw = self.repo.fetch_records.call_args[1]
         self.assertIsNone(call_kw["has_pgc"])
         self.assertEqual(call_kw["pgc_value"], 42)
 
         self.manager.get_records(
             adminapi.GetRecordsRequest(table_name="t", triage_status=adminapi.CrossmatchTriageStatus.PENDING)
         )
-        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        call_kw = self.repo.fetch_records.call_args[1]
         self.assertEqual(call_kw["triage_status"], "pending")
 
     def test_get_records_pagination(self) -> None:
-        self.manager.layer0_repo.fetch_records.return_value = []
+        self.repo.fetch_records.return_value = []
 
         self.manager.get_records(adminapi.GetRecordsRequest(table_name="t", page=2, page_size=10))
-        call_kw = self.manager.layer0_repo.fetch_records.call_args[1]
+        call_kw = self.repo.fetch_records.call_args[1]
         self.assertEqual(call_kw["row_offset"], 20)
         self.assertEqual(call_kw["limit"], 10)
 
     def test_get_records_pgc_none_when_missing(self) -> None:
-        self.manager.layer0_repo.fetch_records.return_value = [
+        self.repo.fetch_records.return_value = [
             model.TableRecord(
                 id="rec1",
                 original_data={"name": "A"},

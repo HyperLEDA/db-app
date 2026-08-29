@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from typing import final
 
-from app.data import repositories
-from app.data.repositories.references import ReddeningCoefficient
-from app.dataapi import clients
+from app.dataapi import clients, repository
 from app.specs import dataapi as spec
 from app.specs import fieldapi as fieldapi_spec
 
@@ -18,11 +16,11 @@ class ReddeningQuery:
 class Reddening:
     def __init__(
         self,
-        references_repo: repositories.ReferencesRepository,
+        repo: repository.Repository,
         fieldapi_client: clients.FieldAPIClient,
         r_v: str = "3.1",
     ) -> None:
-        self._references_repo = references_repo
+        self._repo = repo
         self._fieldapi_client = fieldapi_client
         self._r_v = r_v
 
@@ -44,10 +42,10 @@ class Reddening:
 
         ebv_values = self._fieldapi_client.sample_sfd_ebv(unique_coords)
 
-        photsys_coefficients: dict[str, list[ReddeningCoefficient]] = {}
+        photsys_coefficients: dict[str, list[repository.ReddeningCoefficient]] = {}
         for query in queries:
             if query.photsys not in photsys_coefficients:
-                photsys_coefficients[query.photsys] = self._references_repo.list_reddening(query.photsys, self._r_v)
+                photsys_coefficients[query.photsys] = self._repo.list_reddening(query.photsys, self._r_v)
 
         results: list[spec.ReddeningAtPosition] = []
         for query, coord_index in zip(queries, query_coord_indices, strict=True):
@@ -69,7 +67,7 @@ class Reddening:
         return results
 
     def list_references(self) -> spec.ListReddeningReferencesResponse:
-        systems = self._references_repo.list_reddening_systems(self._r_v)
+        systems = self._repo.list_reddening_systems(self._r_v)
         return spec.ListReddeningReferencesResponse(
             systems=[
                 spec.ReddeningPhotometricSystem(id=system.id, description=system.description) for system in systems

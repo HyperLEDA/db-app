@@ -1,9 +1,7 @@
 import unittest
-from unittest import mock
 
 from app.data.model import layer2
-from app.data.repositories.references import ReddeningCoefficient, ReddeningPhotometricSystem
-from app.dataapi import clients, domain, responders
+from app.dataapi import clients, domain, repository, responders
 from app.dataapi.domain import reddening
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
@@ -20,23 +18,23 @@ class _FakeFieldAPIClient(clients.FieldAPIClient):
         return [0.03 + index * 0.01 for index in range(len(coordinates))]
 
 
-class _FakeReferencesRepository:
-    def list_reddening(self, photsys: str, r_v: str = "3.1") -> list[ReddeningCoefficient]:
+class _FakeRepository:
+    def list_reddening(self, photsys: str, r_v: str = "3.1") -> list[repository.ReddeningCoefficient]:
         if photsys == "Landolt":
             return [
-                ReddeningCoefficient(filter="U", lambda_eff=3508.2, a_ebv=4.334),
-                ReddeningCoefficient(filter="V", lambda_eff=5421.7, a_ebv=2.742),
+                repository.ReddeningCoefficient(filter="U", lambda_eff=3508.2, a_ebv=4.334),
+                repository.ReddeningCoefficient(filter="V", lambda_eff=5421.7, a_ebv=2.742),
             ]
         if photsys == "SDSS":
             return [
-                ReddeningCoefficient(filter="g", lambda_eff=4702.5, a_ebv=3.237),
+                repository.ReddeningCoefficient(filter="g", lambda_eff=4702.5, a_ebv=3.237),
             ]
         return []
 
-    def list_reddening_systems(self, r_v: str = "3.1") -> list[ReddeningPhotometricSystem]:
+    def list_reddening_systems(self, r_v: str = "3.1") -> list[repository.ReddeningPhotometricSystem]:
         return [
-            ReddeningPhotometricSystem(id="Landolt", description="Landolt photometric system"),
-            ReddeningPhotometricSystem(id="SDSS", description="Sloan Digital Sky Survey"),
+            repository.ReddeningPhotometricSystem(id="Landolt", description="Landolt photometric system"),
+            repository.ReddeningPhotometricSystem(id="SDSS", description="Sloan Digital Sky Survey"),
         ]
 
 
@@ -59,8 +57,8 @@ def _catalog_config() -> responders.CatalogConfig:
 class ReddeningDomainTest(unittest.TestCase):
     def setUp(self) -> None:
         self.fieldapi_client = _FakeFieldAPIClient()
-        self.references_repo = _FakeReferencesRepository()
-        self.reddening = reddening.Reddening(self.references_repo, self.fieldapi_client)
+        self.repo = _FakeRepository()
+        self.reddening = reddening.Reddening(self.repo, self.fieldapi_client)
 
     def test_calculate_batches_unique_coordinates(self) -> None:
         coord_a = spec.J2000Coordinate(ra=187.6, dec=15.26)
@@ -94,10 +92,8 @@ class ReddeningDomainTest(unittest.TestCase):
 class CalculateReddeningTest(unittest.TestCase):
     def setUp(self) -> None:
         self.actions = domain.Actions(
-            layer2_repo=mock.Mock(),
+            repo=_FakeRepository(),
             catalog_cfg=_catalog_config(),
-            metadata_repo=mock.Mock(),
-            references_repo=_FakeReferencesRepository(),
             fieldapi_client=_FakeFieldAPIClient(),
         )
 
@@ -141,7 +137,7 @@ class CalculateReddeningTest(unittest.TestCase):
 class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
     def setUp(self) -> None:
         self.fieldapi_client = _FakeFieldAPIClient()
-        self.reddening_service = reddening.Reddening(_FakeReferencesRepository(), self.fieldapi_client)
+        self.reddening_service = reddening.Reddening(_FakeRepository(), self.fieldapi_client)
         self.responder = StructuredResponder(_catalog_config(), self.reddening_service)
 
     def test_build_response_returns_observed_and_corrected_photometry(self) -> None:

@@ -1,14 +1,12 @@
-import datetime
 from typing import Any
 
 import structlog
-from astropy import table
 from astropy import units as u
 from psycopg import sql
 
+from app.adminapi.repository.common import get_column_units as query_column_units
+from app.adminapi.repository.common import touch_pgcs
 from app.data import model
-from app.data.repositories.common import get_column_units as query_column_units
-from app.data.repositories.common import touch_pgcs
 from app.lib.storage import postgres
 
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -78,94 +76,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
                 params=[ids],
             )
             touch_pgcs(self._storage, [int(row["pgc"]) for row in pgc_rows])
-
-    def _query_new_pgc_records(
-        self,
-        layer1_table: str,
-        select_columns: str,
-        dt: datetime.datetime,
-        limit: int,
-        offset: int,
-        extra_joins: str = "",
-    ) -> list[dict[str, Any]]:
-        query = f"""SELECT o.pgc, {select_columns}
-        FROM {layer1_table} AS l1
-        JOIN layer0.records AS o ON l1.record_id = o.id
-        {extra_joins}
-        WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM {layer1_table} AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            JOIN common.pgc AS p ON p.id = o.pgc
-            WHERE p.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
-            LIMIT %s
-        )
-        ORDER BY o.pgc ASC"""
-        return self._storage.query(query, params=[dt, offset, limit])
-
-    def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        rows = self._query_new_pgc_records("nature.data", "l1.type_name", dt, limit, offset)
-        return table.QTable(
-            {
-                "pgc": [int(r["pgc"]) for r in rows],
-                "type_name": [r["type_name"] for r in rows],
-            }
-        )
-
-    def get_new_icrs_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        rows = self._query_new_pgc_records(
-            "icrs.data",
-            "l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype",
-            dt,
-            limit,
-            offset,
-            extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
-        )
-        units = self.get_column_units(model.RawCatalog.ICRS)
-        return table.QTable(
-            {
-                "pgc": [int(r["pgc"]) for r in rows],
-                "ra": u.Quantity([float(r["ra"]) for r in rows], u.Unit(units["ra"])),
-                "e_ra": u.Quantity([float(r["e_ra"]) for r in rows], u.Unit(units["e_ra"])),
-                "dec": u.Quantity([float(r["dec"]) for r in rows], u.Unit(units["dec"])),
-                "e_dec": u.Quantity([float(r["e_dec"]) for r in rows], u.Unit(units["e_dec"])),
-                "datatype": [r["datatype"].value for r in rows],
-            }
-        )
-
-    def get_new_redshift_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        rows = self._query_new_pgc_records(
-            "cz.data",
-            "l1.cz, l1.e_cz, t.datatype",
-            dt,
-            limit,
-            offset,
-            extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
-        )
-        units = self.get_column_units(model.RawCatalog.REDSHIFT)
-        e_cz_unit = u.Unit(units["e_cz"])
-        default_e_cz = float(DEFAULT_E_CZ.to_value(e_cz_unit))
-        return table.QTable(
-            {
-                "pgc": [int(r["pgc"]) for r in rows],
-                "cz": u.Quantity([float(r["cz"]) for r in rows], u.Unit(units["cz"])),
-                "e_cz": u.Quantity(
-                    [float(r["e_cz"]) if r["e_cz"] is not None else default_e_cz for r in rows],
-                    e_cz_unit,
-                ),
-                "datatype": [r["datatype"].value for r in rows],
-            }
-        )
-
-    def get_new_designation_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
-        rows = self._query_new_pgc_records("designation.data", "l1.design", dt, limit, offset)
-        return table.QTable(
-            {
-                "pgc": [int(r["pgc"]) for r in rows],
-                "design": [r["design"] for r in rows],
-            }
-        )
 
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         if not record_ids:

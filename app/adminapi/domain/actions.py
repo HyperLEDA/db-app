@@ -1,10 +1,9 @@
 from typing import final
 
-from app.adminapi import cache, clients
+from app.adminapi import cache, clients, repository
 from app.adminapi.domain import auth as admin_auth
 from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, sources, table_upload
 from app.adminapi.presentation import interface
-from app.data import repositories
 from app.lib import auth
 from app.lib.storage import postgres
 from app.lib.tap import types as tap_types
@@ -23,30 +22,24 @@ def _json_cell(value: object) -> object:
 class Actions(interface.Actions):
     def __init__(
         self,
-        common_repo: repositories.CommonRepository,
-        layer0_repo: repositories.Layer0Repository,
-        layer1_repo: repositories.Layer1Repository,
-        layer2_repo: repositories.Layer2Repository,
-        metadata_repo: repositories.MetadataRepository,
+        repo: repository.Repository,
         authenticator: auth.Authenticator,
         storage: postgres.PgStorage,
         clients: clients.Clients,
         table_stats_cache: cache.BackgroundCache[spec.TableStatsSnapshot],
     ):
-        self.metadata_repo = metadata_repo
-        self.source_manager = sources.SourceManager(common_repo)
+        self._repo = repo
+        self.source_manager = sources.SourceManager(repo)
         self.auth_manager = admin_auth.AuthManager(authenticator, storage)
         self.table_upload_manager = table_upload.TableUploadManager(
-            common_repo,
-            layer0_repo,
-            layer1_repo,
+            repo,
             clients,
             table_stats_cache,
         )
-        self.crossmatch_manager = crossmatch.CrossmatchManager(layer0_repo, layer1_repo, layer2_repo)
-        self.pgc_manager = pgc.PgcManager(common_repo, layer0_repo)
-        self.layer1_writer = layer1_write.Layer1Writer(layer1_repo)
-        self.catalog_manager = catalogs.CatalogManager(layer1_repo)
+        self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
+        self.pgc_manager = pgc.PgcManager(repo)
+        self.layer1_writer = layer1_write.Layer1Writer(repo)
+        self.catalog_manager = catalogs.CatalogManager(repo)
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -97,7 +90,7 @@ class Actions(interface.Actions):
         return self.pgc_manager.merge_pgcs(r)
 
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
-        result = self.metadata_repo.query_with_metadata(
+        result = self._repo.query_with_metadata(
             request.query,
             request.maxrec,
             timeout_seconds=_ADMIN_TAP_SYNC_QUERY_TIMEOUT_SECONDS,

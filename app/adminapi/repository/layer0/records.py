@@ -2,9 +2,10 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from app.data import model, template
-from app.data.repositories.common import touch_pgcs
-from app.data.repositories.layer0.common import metadata_to_candidates
+from app.adminapi.repository import sql as repo_sql
+from app.adminapi.repository.common import touch_pgcs
+from app.adminapi.repository.layer0.common import metadata_to_candidates
+from app.data import model
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
 
@@ -47,7 +48,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
 
-        table_id_row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        table_id_row = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         table_id = table_id_row["id"]
 

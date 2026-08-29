@@ -57,7 +57,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.REDSHIFT)
+            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.REDSHIFT)
 
         self.log.info(
             "Starting Layer 2 redshift import",
@@ -68,7 +68,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
 
         objects_to_save = 0
         for offset, tbl in containers.read_batches(
-            self.layer1_repository.get_new_redshift_records,
+            self.repository.get_new_redshift_records,
             lambda data: len(data) == 0,
             0,
             lambda d, _: int(d["pgc"][-1]),
@@ -80,7 +80,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
             if len(agg) > 0:
                 objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.cz", agg)
+                    self.repository.save("layer2.cz", agg)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,

@@ -5,9 +5,9 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums, postgres
-from app.tasks import interface
+from app.tasks import interface, repository
 
 
 def majority_vote_by_pgc(tbl: table.QTable, value_column: str) -> tuple[list[int], list[str]]:
@@ -53,7 +53,7 @@ class Layer2StorageTask(interface.Task, abc.ABC):
     def prepare(self, config: interface.Config) -> None:
         self.pg_storage = postgres.PgStorage(config.storage, self.log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
-        self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
+        self.repository = repository.Repository(self.pg_storage, self.log)
 
     def cleanup(self) -> None:
         self.pg_storage.disconnect()
@@ -76,19 +76,15 @@ class Layer2CatalogImportTask(Layer2StorageTask, abc.ABC):
         self.since = interface.parse_since(since)
         self.cleanup_orphans = cleanup_orphans
 
-    def prepare(self, config: interface.Config) -> None:
-        super().prepare(config)
-        self.layer1_repository = repositories.Layer1Repository(self.pg_storage, self.log)
-
     def finalize_catalog(self, catalog: model.RawCatalog) -> int:
         orphans_to_delete = 0
         if self.cleanup_orphans:
-            orphaned = self.layer2_repository.get_orphaned_pgcs([catalog])
+            orphaned = self.repository.get_orphaned_pgcs([catalog])
             pgcs_to_remove = [pgc for pgcs in orphaned.values() for pgc in pgcs]
             orphans_to_delete = len(pgcs_to_remove)
             if pgcs_to_remove and not self.dry_run:
-                self.layer2_repository.remove_pgcs([catalog], pgcs_to_remove)
+                self.repository.remove_pgcs([catalog], pgcs_to_remove)
 
         if not self.dry_run:
-            self.layer2_repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC), catalog)
+            self.repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC), catalog)
         return orphans_to_delete

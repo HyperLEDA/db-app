@@ -7,8 +7,7 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
-from app.data import repositories
-from app.dataapi import clients, domain
+from app.dataapi import clients, domain, repository
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
 from app.lib.storage import enums, postgres
@@ -40,10 +39,8 @@ class MetadataAPITest(unittest.TestCase):
     def setUp(self) -> None:
         self.pg = self.pg_storage.get_storage()
         self.actions = domain.Actions(
-            layer2_repo=repositories.Layer2Repository(self.reader_storage, self.log),
+            repo=repository.Repository(self.reader_storage, self.log),
             catalog_cfg=self.cfg.catalogs,
-            metadata_repo=repositories.MetadataRepository(self.reader_storage),
-            references_repo=repositories.ReferencesRepository(self.reader_storage),
             fieldapi_client=mock.create_autospec(clients.FieldAPIClient),
         )
         self.client = testclient.TestClient(Server(self.actions, self.cfg.server, self.log).app)

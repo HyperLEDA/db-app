@@ -8,8 +8,7 @@ from unittest import mock
 import structlog
 from fastapi import testclient
 
-from app.data import repositories
-from app.dataapi import clients, command, domain, presentation
+from app.dataapi import clients, command, domain, presentation, repository
 from app.lib.storage import enums, postgres
 from tests import lib
 
@@ -110,10 +109,8 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
     # Only the catalogs block is taken from the dev config; storage comes from the test container.
     config = command.parse_config("configs/dev/dataapi.yaml")
     actions = domain.Actions(
-        layer2_repo=repositories.Layer2Repository(storage, logger),
+        repo=repository.Repository(storage, logger),
         catalog_cfg=config.catalogs,
-        metadata_repo=repositories.MetadataRepository(storage),
-        references_repo=repositories.ReferencesRepository(storage),
         fieldapi_client=mock.create_autospec(clients.FieldAPIClient),
     )
     server = presentation.Server(

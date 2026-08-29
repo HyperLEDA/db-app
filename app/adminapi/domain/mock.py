@@ -18,11 +18,7 @@ def get_mock_table_stats_cache() -> mock.MagicMock:
 
 def get_mock_actions():
     return actions.Actions(
-        common_repo=mock.MagicMock(),
-        layer0_repo=mock.MagicMock(),
-        layer1_repo=mock.MagicMock(),
-        layer2_repo=mock.MagicMock(),
-        metadata_repo=mock.MagicMock(),
+        repo=mock.MagicMock(),
         authenticator=auth.NoopAuthenticator(),
         storage=mock.MagicMock(),
         clients=clients.get_mock_clients(),

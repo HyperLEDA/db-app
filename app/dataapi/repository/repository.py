@@ -1,116 +1,173 @@
-import datetime
 import json
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, final
 
 import structlog
-from astropy import table
-from astropy import units as u
-from psycopg import rows, sql
+from psycopg import rows
 
 from app.data import model
-from app.data.model import Layer2CatalogObject, Layer2Object
+from app.data.model import Layer2Object
 from app.data.model import layer2 as layer2_model
-from app.data.repositories.common import get_column_units as query_column_units
-from app.data.repositories.layer2 import filters as repofilters
-from app.data.repositories.layer2 import params
+from app.dataapi.repository import filters as repofilters
+from app.dataapi.repository import model as repo_model
+from app.dataapi.repository import params
 from app.lib import concurrency, containers
 from app.lib.storage import postgres
 
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-]
+
+def _description_from_param(param: Any) -> str | None:
+    if param is None:
+        return None
+    if not isinstance(param, dict):
+        return None
+    d = param.get("description")
+    if d is None:
+        return None
+    return str(d) if d != "" else None
 
 
-class Layer2Repository(postgres.TransactionalPGRepository):
+def _column_detail_from_row(row: dict[str, Any]) -> repo_model.MetadataColumnDetail:
+    param = row.get("param") or {}
+    if not isinstance(param, dict):
+        param = {}
+    return repo_model.MetadataColumnDetail(
+        column_name=row["column_name"],
+        data_type=row.get("data_type"),
+        description=param.get("description"),
+        unit=param.get("unit"),
+        ucd=param.get("ucd"),
+    )
+
+
+def _infer_column_sample(column: str, rows: list[dict[str, Any]]) -> object | None:
+    for row in rows:
+        value = row[column]
+        if value is not None:
+            return value
+    return None
+
+
+_TAP_SYNC_QUERY_TIMEOUT_SECONDS = 20
+
+
+@final
+class Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
         self._logger = logger
-        self._storage = storage
+        super().__init__(storage)
 
-    def get_last_update_time(self, catalog: model.RawCatalog) -> datetime.datetime:
-        return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=[catalog.value])[
-            "dt"
+    def list_reddening_systems(self, r_v: str = "3.1") -> list[repo_model.ReddeningPhotometricSystem]:
+        rows = self._storage.query(
+            """
+            SELECT DISTINCT s.id, s.description
+            FROM photometry.reddening r
+            JOIN photometry.systems s ON s.id = r.photsys
+            WHERE r.r_v = %s::photometry.r_v_type
+            ORDER BY s.id
+            """,
+            params=[r_v],
+        )
+        return [
+            repo_model.ReddeningPhotometricSystem(
+                id=row["id"],
+                description=row["description"],
+            )
+            for row in rows
         ]
 
-    def update_last_update_time(self, dt: datetime.datetime, catalog: model.RawCatalog) -> None:
-        self._storage.exec(
-            "UPDATE layer2.last_update SET dt = %s WHERE catalog = %s",
-            params=[dt, catalog.value],
-        )
-
-    def get_column_units(self, schema: str, table: str) -> dict[str, str]:
-        return query_column_units(self._storage, schema, table)
-
-    def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
-        result: dict[str, list[int]] = {}
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
-            layer2_table = object_cls.layer2_table()
-            layer1_table = object_cls.layer1_table()
-            query = f"""
-                SELECT l2.pgc FROM {layer2_table} l2
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM layer0.records r
-                    INNER JOIN {layer1_table} l1 ON l1.record_id = r.id
-                    WHERE r.pgc = l2.pgc
-                )
+    def list_reddening(self, photsys: str, r_v: str = "3.1") -> list[repo_model.ReddeningCoefficient]:
+        rows = self._storage.query(
             """
-            rows = self._storage.query(query)
-            result[layer2_table] = [int(row["pgc"]) for row in rows]
-        return result
-
-    def remove_pgcs(self, catalogs: list[model.RawCatalog], pgcs: list[int]) -> None:
-        if not pgcs:
-            return
-
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
-            layer2_table = object_cls.layer2_table()
-            query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
-            self._storage.exec(query, params=[pgcs])
-
-    def save(self, table_name: str, data: table.QTable) -> None:
-        if len(data) == 0:
-            return
-
-        schema, relation = table_name.split(".", maxsplit=1)
-        column_units = self.get_column_units(schema, relation)
-
-        work = table.QTable(data, copy=True)
-        columns = [name for name in work.colnames if name != "pgc"]
-        for col in columns:
-            target_unit = column_units.get(col)
-            if target_unit is not None and work[col].unit is not None:
-                work[col] = work[col].to(u.Unit(target_unit))
-
-        all_columns = ["pgc", *columns]
-        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
-        table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
-        on_conflict = sql.SQL(", ").join(
-            sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in all_columns
+            SELECT filter, lambda_eff, a_ebv
+            FROM photometry.reddening
+            WHERE photsys = %s AND r_v = %s::photometry.r_v_type
+            ORDER BY lambda_eff
+            """,
+            params=[photsys, r_v],
         )
+        return [
+            repo_model.ReddeningCoefficient(
+                filter=row["filter"],
+                lambda_eff=float(row["lambda_eff"]),
+                a_ebv=float(row["a_ebv"]),
+            )
+            for row in rows
+        ]
 
-        pgcs = [int(pgc) for pgc in work["pgc"]]
-        col_values = [_column_as_list(work[col]) for col in columns]
+    def query_with_metadata(
+        self,
+        query: str,
+        max_rows: int,
+        *,
+        timeout_seconds: float = _TAP_SYNC_QUERY_TIMEOUT_SECONDS,
+    ) -> repo_model.QueryWithMetadataResult:
+        stripped = query.strip().rstrip(";")
+        wrapped = f"SELECT * FROM ({stripped}\n) AS _tap_sync\nLIMIT {max_rows}"
+        dict_rows: list[dict[str, Any]] = self._storage.query(
+            wrapped,
+            timeout_seconds=timeout_seconds,
+            read_only=True,
+        )
+        if not dict_rows:
+            return repo_model.QueryWithMetadataResult(columns=[], rows=[])
+        col_names = list(dict_rows[0].keys())
+        columns = [
+            repo_model.QueryColumnMetadata(column_name=name, sample_value=_infer_column_sample(name, dict_rows))
+            for name in col_names
+        ]
+        result_rows = [[row[name] for name in col_names] for row in dict_rows]
+        return repo_model.QueryWithMetadataResult(columns=columns, rows=result_rows)
 
-        with self.with_tx():
-            with self._storage.get_connection().cursor() as cur:
-                cur.execute(
-                    sql.SQL("CREATE TEMP TABLE save_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
-                        table_ident
-                    )
-                )
-                with cur.copy(sql.SQL("COPY save_staging ({}) FROM STDIN").format(column_idents)) as copy:
-                    for i, pgc in enumerate(pgcs):
-                        copy.write_row((pgc, *[vals[i] for vals in col_values]))
-                cur.execute(
-                    sql.SQL(
-                        "INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}"
-                    ).format(table_ident, column_idents, column_idents, on_conflict)
-                )
+    def list_tables_with_columns(
+        self,
+        schemas: Sequence[str],
+        *,
+        include_columns: bool,
+    ) -> list[repo_model.MetadataTableDetail]:
+        if not schemas:
+            return []
+
+        table_rows = self._storage.query(
+            """
+            SELECT schema_name, table_name, param
+            FROM meta.table_info
+            WHERE schema_name = ANY(%s)
+            ORDER BY schema_name, table_name
+            """,
+            params=[list(schemas)],
+        )
+        columns_by_table: dict[tuple[str, str], list[repo_model.MetadataColumnDetail]] = {}
+        if include_columns:
+            column_rows = self._storage.query(
+                """
+                SELECT c.table_schema AS schema_name,
+                       c.table_name,
+                       c.column_name,
+                       c.data_type::text AS data_type,
+                       ci.param
+                FROM information_schema.columns c
+                INNER JOIN meta.column_info ci
+                  ON ci.schema_name = c.table_schema
+                 AND ci.table_name = c.table_name
+                 AND ci.column_name = c.column_name
+                WHERE c.table_schema = ANY(%s)
+                ORDER BY c.table_schema, c.table_name, c.ordinal_position
+                """,
+                params=[list(schemas)],
+            )
+            for row in column_rows:
+                key = (row["schema_name"], row["table_name"])
+                columns_by_table.setdefault(key, []).append(_column_detail_from_row(row))
+
+        return [
+            repo_model.MetadataTableDetail(
+                schema_name=row["schema_name"],
+                table_name=row["table_name"],
+                description=_description_from_param(row.get("param")),
+                columns=columns_by_table.get((row["schema_name"], row["table_name"]), []),
+            )
+            for row in table_rows
+        ]
 
     def query_catalogs_batch(
         self,
@@ -121,21 +178,113 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         offset: int,
         ordering: repofilters.Ordering | None = None,
     ) -> dict[str, list[model.Layer2CatalogObject]]:
-        query, params = _construct_batch_query(catalogs, search_types, search_params, limit, offset, ordering=ordering)
+        query, query_params = _construct_batch_query(
+            catalogs, search_types, search_params, limit, offset, ordering=ordering
+        )
 
-        records = self._storage.query(query, params=params)
+        records = self._storage.query(query, params=query_params)
 
         records_by_id = containers.group_by(records, key_func=lambda obj: str(obj["record_id"]))
 
         result: dict[str, list[model.Layer2CatalogObject]] = {}
 
-        for record_id, records in records_by_id.items():
+        for record_id, record_rows in records_by_id.items():
             if record_id not in result:
                 result[record_id] = []
 
-            result[record_id].extend(_group_by_pgc(records))
+            result[record_id].extend(_group_by_pgc(record_rows))
 
         return result
+
+    def query_pgc(
+        self,
+        catalogs: list[model.RawCatalog],
+        pgc_numbers: list[int],
+        limit: int,
+        offset: int = 0,
+    ) -> list[Layer2Object]:
+        if not catalogs or not pgc_numbers:
+            return []
+
+        pgcs_page = sorted(pgc_numbers)[offset : offset + limit]
+        if not pgcs_page:
+            return []
+
+        errgr = concurrency.ErrorGroup()
+        designation_task: concurrency.TaskResult[dict[int, layer2_model.DesignationCatalog]] | None = None
+        additional_designations_task: (
+            concurrency.TaskResult[dict[int, layer2_model.AdditionalDesignationsCatalog]] | None
+        ) = None
+        icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
+        redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
+        nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
+        notes_task: concurrency.TaskResult[dict[int, layer2_model.NotesCatalog]] | None = None
+        photometry_total_task: concurrency.TaskResult[dict[int, layer2_model.PhotometryTotalCatalog]] | None = None
+
+        if model.RawCatalog.DESIGNATION in catalogs:
+            designation_task = errgr.run(self._query_designations, pgcs_page)
+        if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs:
+            additional_designations_task = errgr.run(self._query_additional_designations, pgcs_page)
+        if model.RawCatalog.ICRS in catalogs:
+            icrs_task = errgr.run(self._query_icrs, pgcs_page)
+        if model.RawCatalog.REDSHIFT in catalogs:
+            redshift_task = errgr.run(self._query_redshift, pgcs_page)
+        if model.RawCatalog.NATURE in catalogs:
+            nature_task = errgr.run(self._query_nature, pgcs_page)
+        if model.RawCatalog.NOTE in catalogs:
+            notes_task = errgr.run(self._query_notes, pgcs_page)
+        if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs:
+            photometry_total_task = errgr.run(self._query_photometry_total, pgcs_page)
+
+        errgr.wait()
+
+        designation_map = designation_task.result() if designation_task is not None else {}
+        additional_designations_map = (
+            additional_designations_task.result() if additional_designations_task is not None else {}
+        )
+        icrs_map = icrs_task.result() if icrs_task is not None else {}
+        redshift_map = redshift_task.result() if redshift_task is not None else {}
+        nature_map = nature_task.result() if nature_task is not None else {}
+        notes_map = notes_task.result() if notes_task is not None else {}
+        photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
+
+        return [
+            _layer2_object_from_maps(
+                pgc,
+                catalogs,
+                designation_map,
+                additional_designations_map,
+                icrs_map,
+                redshift_map,
+                nature_map,
+                notes_map,
+                photometry_total_map,
+            )
+            for pgc in pgcs_page
+        ]
+
+    def query_catalogs(
+        self,
+        catalogs: list[model.RawCatalog],
+        filters: repofilters.Filter,
+        search_params: params.SearchParams,
+        limit: int,
+        offset: int,
+        ordering: repofilters.Ordering | None = None,
+    ) -> list[model.Layer2CatalogObject]:
+        res = self.query_catalogs_batch(
+            catalogs,
+            {search_params.name(): filters},
+            {"obj": search_params},
+            limit,
+            offset,
+            ordering=ordering,
+        )
+
+        if "obj" not in res:
+            return []
+
+        return res["obj"]
 
     def _query_designations(self, pgcs: list[int]) -> dict[int, layer2_model.DesignationCatalog]:
         if not pgcs:
@@ -258,151 +407,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             pgc: layer2_model.PhotometryTotalCatalog(measurements=measurements) for pgc, measurements in result.items()
         }
 
-    def query_pgc(
-        self,
-        catalogs: list[model.RawCatalog],
-        pgc_numbers: list[int],
-        limit: int,
-        offset: int = 0,
-    ) -> list[Layer2Object]:
-        if not catalogs or not pgc_numbers:
-            return []
-
-        pgcs_page = sorted(pgc_numbers)[offset : offset + limit]
-        if not pgcs_page:
-            return []
-
-        errgr = concurrency.ErrorGroup()
-        designation_task: concurrency.TaskResult[dict[int, layer2_model.DesignationCatalog]] | None = None
-        additional_designations_task: (
-            concurrency.TaskResult[dict[int, layer2_model.AdditionalDesignationsCatalog]] | None
-        ) = None
-        icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
-        redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
-        nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
-        notes_task: concurrency.TaskResult[dict[int, layer2_model.NotesCatalog]] | None = None
-        photometry_total_task: concurrency.TaskResult[dict[int, layer2_model.PhotometryTotalCatalog]] | None = None
-
-        if model.RawCatalog.DESIGNATION in catalogs:
-            designation_task = errgr.run(self._query_designations, pgcs_page)
-        if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs:
-            additional_designations_task = errgr.run(self._query_additional_designations, pgcs_page)
-        if model.RawCatalog.ICRS in catalogs:
-            icrs_task = errgr.run(self._query_icrs, pgcs_page)
-        if model.RawCatalog.REDSHIFT in catalogs:
-            redshift_task = errgr.run(self._query_redshift, pgcs_page)
-        if model.RawCatalog.NATURE in catalogs:
-            nature_task = errgr.run(self._query_nature, pgcs_page)
-        if model.RawCatalog.NOTE in catalogs:
-            notes_task = errgr.run(self._query_notes, pgcs_page)
-        if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs:
-            photometry_total_task = errgr.run(self._query_photometry_total, pgcs_page)
-
-        errgr.wait()
-
-        designation_map = designation_task.result() if designation_task is not None else {}
-        additional_designations_map = (
-            additional_designations_task.result() if additional_designations_task is not None else {}
-        )
-        icrs_map = icrs_task.result() if icrs_task is not None else {}
-        redshift_map = redshift_task.result() if redshift_task is not None else {}
-        nature_map = nature_task.result() if nature_task is not None else {}
-        notes_map = notes_task.result() if notes_task is not None else {}
-        photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
-
-        return [
-            _layer2_object_from_maps(
-                pgc,
-                catalogs,
-                designation_map,
-                additional_designations_map,
-                icrs_map,
-                redshift_map,
-                nature_map,
-                notes_map,
-                photometry_total_map,
-            )
-            for pgc in pgcs_page
-        ]
-
-    def query_catalogs_pgc(
-        self,
-        catalogs: list[model.RawCatalog],
-        pgc_numbers: list[int],
-        limit: int,
-        offset: int = 0,
-    ) -> list[Layer2CatalogObject]:
-        if not catalogs:
-            return []
-
-        cte_parts = []
-        select_parts = []
-        join_parts = []
-
-        for i, catalog in enumerate(catalogs):
-            object_cls = model.get_catalog_object_type(catalog)
-            table_name = object_cls.layer2_table()
-            alias = f"t{i}"
-
-            catalog_columns = []
-            for column in object_cls.layer2_keys():
-                catalog_columns.append(f'{column} AS "{catalog.value}|{column}"')
-
-            cte_parts.append(f"""
-            {alias} AS (
-                SELECT pgc, {", ".join(catalog_columns)}
-                FROM {table_name}
-                WHERE pgc = ANY(%s)
-            )""")
-
-            select_parts.extend([f'{alias}."{catalog.value}|{column}"' for column in object_cls.layer2_keys()])
-            select_parts.append(
-                f'CASE WHEN {alias}.pgc IS NOT NULL THEN true ELSE false END AS "{catalog.value}|_present"'
-            )
-
-            if i == 0:
-                join_parts.append(f"FROM {alias}")
-            else:
-                join_parts.append(f"FULL OUTER JOIN {alias} USING (pgc)")
-
-        query = f"""
-            WITH {", ".join(cte_parts)}
-            SELECT COALESCE({", ".join([f"t{i}.pgc" for i in range(len(catalogs))])}) AS pgc,
-                   {", ".join(select_parts)}
-            {" ".join(join_parts)}
-            ORDER BY pgc
-            LIMIT %s OFFSET %s
-        """
-
-        params = [pgc_numbers] * len(catalogs) + [limit, offset]
-
-        objects = self._storage.query(query, params=params)
-
-        return _group_by_pgc(objects)
-
-    def query_catalogs(
-        self,
-        catalogs: list[model.RawCatalog],
-        filters: repofilters.Filter,
-        search_params: params.SearchParams,
-        limit: int,
-        offset: int,
-        ordering: repofilters.Ordering | None = None,
-    ) -> list[model.Layer2CatalogObject]:
-        res = self.query_catalogs_batch(
-            catalogs,
-            {search_params.name(): filters},
-            {"obj": search_params},
-            limit,
-            offset,
-            ordering=ordering,
-        )
-
-        if "obj" not in res:
-            return []
-
-        return res["obj"]
-
 
 def _driving_table(search_types: Mapping[str, repofilters.Filter]) -> str | None:
     tables: set[str] = set()
@@ -467,8 +471,6 @@ def _construct_batch_query(
             f'THEN true ELSE false END AS "{catalog.value}|_present"'
         )
 
-    # This is to avoid using FULL JOINs as this is very slow for cases
-    # where we only want to select from one table, e.g. only coordinate cone search
     driving_table = _driving_table(search_types)
 
     if driving_table is not None:
@@ -508,8 +510,6 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
     for pgc, pgc_objects in objects_by_pgc.items():
         layer2_obj = model.Layer2CatalogObject(pgc, [])
 
-        # TODO: what if for each pgc there are multiple rows? For example, if
-        # the catalog does not have a UNIQUE constraint on pgc.
         obj = pgc_objects[0]
         if "record_id" in obj:
             obj.pop("record_id")
@@ -585,9 +585,3 @@ def _source_from_row(row: Mapping[str, Any]) -> layer2_model.Source:
         authors=authors,
         year=int(row["year"]) if row.get("year") is not None else 0,
     )
-
-
-def _column_as_list(col: Any) -> list[Any]:
-    if getattr(col, "unit", None) is not None:
-        return col.value.tolist()
-    return [v.item() if hasattr(v, "item") else v for v in col]

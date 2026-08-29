@@ -43,7 +43,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.layer2_repository.get_last_update_time(model.RawCatalog.NATURE)
+            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.NATURE)
         self.log.info(
             "Starting Layer 2 nature import",
             last_update=last_update_dt.ctime(),
@@ -54,7 +54,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         objects_to_save = 0
         type_distribution: dict[str, int] = {}
         for offset, tbl in containers.read_batches(
-            self.layer1_repository.get_new_nature_records,
+            self.repository.get_new_nature_records,
             lambda data: len(data) == 0,
             0,
             lambda d, _: int(d["pgc"][-1]),
@@ -70,7 +70,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
             if len(agg) > 0:
                 objects_to_save += len(agg)
                 if not self.dry_run:
-                    self.layer2_repository.save("layer2.nature", agg)
+                    self.repository.save("layer2.nature", agg)
 
             self.log.info(
                 "Processed batch",

@@ -11,8 +11,9 @@ from astropy import table
 from astropy import units as u
 from psycopg import sql
 
-from app.data import model, repositories, template
-from app.data.repositories.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
+from app.adminapi.repository import sql as repo_sql
+from app.adminapi.repository.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
+from app.data import model
 from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -53,7 +54,7 @@ def _build_raw_table_select(
     if offset is not None:
         where_parts.append(
             sql.SQL("{} > %s").format(
-                sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
             )
         )
         params.append(offset)
@@ -86,7 +87,7 @@ def _build_raw_table_select(
     elif row_offset is not None:
         parts.append(
             sql.SQL(" ORDER BY {} ").format(
-                sql.Identifier(repositories.INTERNAL_ID_COLUMN_NAME),
+                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
             )
         )
 
@@ -134,13 +135,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         with self.with_tx():
             row = self._storage.query_one(
-                template.INSERT_TABLE_REGISTRY_ITEM,
+                repo_sql.INSERT_TABLE_REGISTRY_ITEM,
                 params=[data.bibliography_id, data.table_name, data.datatype],
             )
             table_id = int(row.get("id"))
 
             self._storage.exec(
-                template.build_create_table_query(
+                repo_sql.build_create_table_query(
                     schema=RAWDATA_SCHEMA,
                     name=data.table_name,
                     fields=fields,
@@ -404,7 +405,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         return self.fetch_metadata_by_name(table_name)
 
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
-        row = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        row = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         modification_dt: datetime.datetime | None = row.get("modification_dt")
         return self._fetch_metadata_by_name(table_name, modification_dt)
@@ -436,8 +437,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 )
             )
 
-        table_metadata = self._storage.query_one(template.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
-        registry_item = self._storage.query_one(template.FETCH_RAWDATA_REGISTRY, params=[table_name])
+        table_metadata = self._storage.query_one(repo_sql.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
+        registry_item = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         return model.Layer0TableMeta(
             table_name,
