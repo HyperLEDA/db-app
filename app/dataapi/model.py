@@ -73,6 +73,28 @@ class PhotometryTotalCatalog:
 
 
 @dataclass
+class GeometryMeasurement:
+    band: str
+    method: str
+    level: float | None
+    a: float | None
+    e_a: float | None
+    b: float | None
+    e_b: float | None
+    pa: float | None
+    e_pa: float | None
+    isophote: float | None
+    e_isophote: float | None
+    quality: str
+    source: Source
+
+
+@dataclass
+class GeometryCatalog:
+    measurements: list[GeometryMeasurement]
+
+
+@dataclass
 class Catalogs:
     designation: DesignationCatalog | None = None
     additional_designations: AdditionalDesignationsCatalog | None = None
@@ -81,6 +103,7 @@ class Catalogs:
     nature: NatureCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
+    geometry: GeometryCatalog | None = None
 
 
 @dataclass
@@ -94,6 +117,8 @@ __all__ = [
     "AdditionalDesignationsCatalog",
     "Catalogs",
     "DesignationCatalog",
+    "GeometryCatalog",
+    "GeometryMeasurement",
     "ICRSCatalog",
     "Layer2Object",
     "NatureCatalog",

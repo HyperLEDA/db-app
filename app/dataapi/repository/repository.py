@@ -219,6 +219,7 @@ class Repository(postgres.TransactionalPGRepository):
         nature_task: concurrency.TaskResult[dict[int, model.NatureCatalog]] | None = None
         notes_task: concurrency.TaskResult[dict[int, model.NotesCatalog]] | None = None
         photometry_total_task: concurrency.TaskResult[dict[int, model.PhotometryTotalCatalog]] | None = None
+        geometry_task: concurrency.TaskResult[dict[int, model.GeometryCatalog]] | None = None
 
         if catalogs.RawCatalog.DESIGNATION in raw_catalogs:
             designation_task = errgr.run(self._query_designations, pgcs_page)
@@ -234,6 +235,8 @@ class Repository(postgres.TransactionalPGRepository):
             notes_task = errgr.run(self._query_notes, pgcs_page)
         if catalogs.RawCatalog.PHOTOMETRY__TOTAL in raw_catalogs:
             photometry_total_task = errgr.run(self._query_photometry_total, pgcs_page)
+        if catalogs.RawCatalog.GEOMETRY in raw_catalogs:
+            geometry_task = errgr.run(self._query_geometry, pgcs_page)
 
         errgr.wait()
 
@@ -246,6 +249,7 @@ class Repository(postgres.TransactionalPGRepository):
         nature_map = nature_task.result() if nature_task is not None else {}
         notes_map = notes_task.result() if notes_task is not None else {}
         photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
+        geometry_map = geometry_task.result() if geometry_task is not None else {}
 
         return [
             _layer2_object_from_maps(
@@ -258,6 +262,7 @@ class Repository(postgres.TransactionalPGRepository):
                 nature_map,
                 notes_map,
                 photometry_total_map,
+                geometry_map,
             )
             for pgc in pgcs_page
         ]
@@ -404,6 +409,40 @@ class Repository(postgres.TransactionalPGRepository):
             result.setdefault(pgc, []).append(measurement)
         return {pgc: model.PhotometryTotalCatalog(measurements=measurements) for pgc, measurements in result.items()}
 
+    def _query_geometry(self, pgcs: list[int]) -> dict[int, model.GeometryCatalog]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            """
+            SELECT pgc, band, method, level, a, e_a, b, e_b, pa, e_pa, isophote, e_isophote, quality,
+                   code, year, author, title
+            FROM layer2.photometry_ellipse
+            WHERE pgc = ANY(%s)
+            ORDER BY pgc, band, method
+            """,
+            params=[pgcs],
+        )
+        result: dict[int, list[model.GeometryMeasurement]] = {}
+        for row in rows:
+            pgc = int(row["pgc"])
+            measurement = model.GeometryMeasurement(
+                band=str(row["band"]),
+                method=str(row["method"]),
+                level=float(row["level"]) if row.get("level") is not None else None,
+                a=float(row["a"]) if row.get("a") is not None else None,
+                e_a=float(row["e_a"]) if row.get("e_a") is not None else None,
+                b=float(row["b"]) if row.get("b") is not None else None,
+                e_b=float(row["e_b"]) if row.get("e_b") is not None else None,
+                pa=float(row["pa"]) if row.get("pa") is not None else None,
+                e_pa=float(row["e_pa"]) if row.get("e_pa") is not None else None,
+                isophote=float(row["isophote"]) if row.get("isophote") is not None else None,
+                e_isophote=float(row["e_isophote"]) if row.get("e_isophote") is not None else None,
+                quality=str(row["quality"]),
+                source=_source_from_row(row),
+            )
+            result.setdefault(pgc, []).append(measurement)
+        return {pgc: model.GeometryCatalog(measurements=measurements) for pgc, measurements in result.items()}
+
 
 def _driving_table(search_types: Mapping[str, repofilters.Filter]) -> str | None:
     tables: set[str] = set()
@@ -548,6 +587,7 @@ def _layer2_object_from_maps(
     nature_map: dict[int, model.NatureCatalog],
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
+    geometry_map: dict[int, model.GeometryCatalog],
 ) -> model.Layer2Object:
     designation = designation_map.get(pgc) if catalogs.RawCatalog.DESIGNATION in raw_catalogs else None
     additional_designations = (
@@ -558,6 +598,7 @@ def _layer2_object_from_maps(
     nature = nature_map.get(pgc) if catalogs.RawCatalog.NATURE in raw_catalogs else None
     notes = notes_map.get(pgc) if catalogs.RawCatalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if catalogs.RawCatalog.PHOTOMETRY__TOTAL in raw_catalogs else None
+    geometry = geometry_map.get(pgc) if catalogs.RawCatalog.GEOMETRY in raw_catalogs else None
 
     return model.Layer2Object(
         pgc=pgc,
@@ -569,6 +610,7 @@ def _layer2_object_from_maps(
             nature=nature,
             notes=notes,
             photometry_total=photometry_total,
+            geometry=geometry,
         ),
     )
 
