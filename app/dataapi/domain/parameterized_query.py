@@ -15,6 +15,7 @@ CATALOGS_FOR_PGC_QUERY = [
     catalogs.RawCatalog.NATURE,
     catalogs.RawCatalog.NOTE,
     catalogs.RawCatalog.PHOTOMETRY__TOTAL,
+    catalogs.RawCatalog.GEOMETRY,
 ]
 
 

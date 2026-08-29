@@ -21,6 +21,7 @@ __all__ = [
     "EquatorialCoordinatesUnits",
     "GalacticCoordinates",
     "GalacticCoordinatesUnits",
+    "GeometryMeasurement",
     "J2000Coordinate",
     "ListReddeningReferencesResponse",
     "Nature",
@@ -131,6 +132,21 @@ class PhotometryTotalMeasurement(pydantic.BaseModel):
     e_mag: float | None
 
 
+class GeometryMeasurement(pydantic.BaseModel):
+    band: str
+    method: str
+    level: float | None
+    a: float | None
+    e_a: float | None
+    b: float | None
+    e_b: float | None
+    pa: float | None
+    e_pa: float | None
+    isophote: float | None
+    e_isophote: float | None
+    source: Source
+
+
 class Nature(pydantic.BaseModel):
     type_name: str
 
@@ -145,6 +161,7 @@ class Catalogs(pydantic.BaseModel):
     notes: list[NoteEntry] | None = None
     photometry_total: list[PhotometryTotalMeasurement] | None = None
     photometry_total_corrected: list[PhotometryTotalMeasurement] | None = None
+    geometry: list[GeometryMeasurement] | None = None
 
 
 class PGCObject(pydantic.BaseModel):

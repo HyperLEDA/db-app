@@ -90,6 +90,28 @@ def _photometry_total_measurement(measurement: model.PhotometryTotalMeasurement)
     )
 
 
+def _geometry_measurement(measurement: model.GeometryMeasurement) -> spec.GeometryMeasurement:
+    return spec.GeometryMeasurement(
+        band=measurement.band,
+        method=measurement.method,
+        level=measurement.level,
+        a=measurement.a,
+        e_a=measurement.e_a,
+        b=measurement.b,
+        e_b=measurement.e_b,
+        pa=measurement.pa,
+        e_pa=measurement.e_pa,
+        isophote=measurement.isophote,
+        e_isophote=measurement.e_isophote,
+        source=spec.Source(
+            bibcode=measurement.source.bibcode,
+            title=measurement.source.title,
+            authors=measurement.source.authors,
+            year=measurement.source.year,
+        ),
+    )
+
+
 class StructuredResponder(interface.ObjectResponder):
     def __init__(self, cfg: CatalogConfig, reddening_service: reddening.Reddening) -> None:
         self.config = cfg
@@ -273,6 +295,11 @@ class StructuredResponder(interface.ObjectResponder):
                 catalogs.photometry_total = [
                     _photometry_total_measurement(measurement)
                     for measurement in obj.catalogs.photometry_total.measurements
+                ]
+
+            if obj.catalogs.geometry is not None:
+                catalogs.geometry = [
+                    _geometry_measurement(measurement) for measurement in obj.catalogs.geometry.measurements
                 ]
 
             if corrected_photometry := corrected_photometry_by_pgc.get(obj.pgc):
