@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from app.data.repositories.references import ReddeningCoefficient
+from app.data.repositories.references import ReddeningCoefficient, ReddeningPhotometricSystem
 from app.dataapi import clients, domain, responders
 from app.lib.web import errors
 from app.specs import dataapi as spec
@@ -20,6 +20,12 @@ class _FakeReferencesRepository:
         return [
             ReddeningCoefficient(filter="U", lambda_eff=3508.2, a_ebv=4.334),
             ReddeningCoefficient(filter="V", lambda_eff=5421.7, a_ebv=2.742),
+        ]
+
+    def list_reddening_systems(self, r_v: str = "3.1") -> list[ReddeningPhotometricSystem]:
+        return [
+            ReddeningPhotometricSystem(id="Landolt", description="Landolt photometric system"),
+            ReddeningPhotometricSystem(id="SDSS", description="Sloan Digital Sky Survey"),
         ]
 
 
@@ -72,3 +78,11 @@ class CalculateReddeningTest(unittest.TestCase):
                     coordinates=[spec.J2000Coordinate(ra=187.6, dec=15.26)],
                 )
             )
+
+    def test_list_reddening_references_returns_systems(self) -> None:
+        response = self.actions.list_reddening_references()
+
+        self.assertEqual(len(response.systems), 2)
+        self.assertEqual(response.systems[0].id, "Landolt")
+        self.assertEqual(response.systems[0].description, "Landolt photometric system")
+        self.assertEqual(response.systems[1].id, "SDSS")

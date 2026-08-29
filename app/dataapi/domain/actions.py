@@ -142,3 +142,11 @@ class Actions(interface.Actions):
             for ebv in ebv_values
         ]
         return spec.CalculateReddeningResponse(photsys=request.photsys, results=results)
+
+    def list_reddening_references(self) -> spec.ListReddeningReferencesResponse:
+        systems = self.references_repo.list_reddening_systems()
+        return spec.ListReddeningReferencesResponse(
+            systems=[
+                spec.ReddeningPhotometricSystem(id=system.id, description=system.description) for system in systems
+            ]
+        )

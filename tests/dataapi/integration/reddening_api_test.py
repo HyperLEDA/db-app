@@ -57,7 +57,7 @@ class ReddeningAPITest(unittest.TestCase):
 
     def test_calculate_reddening_landolt_batch(self) -> None:
         response = self.client.post(
-            "/api/v1/calculate/reddening",
+            "/api/v1/calculator/reddening",
             json={
                 "photsys": "Landolt",
                 "coordinates": [
@@ -79,7 +79,7 @@ class ReddeningAPITest(unittest.TestCase):
 
     def test_calculate_reddening_unknown_photys(self) -> None:
         response = self.client.post(
-            "/api/v1/calculate/reddening",
+            "/api/v1/calculator/reddening",
             json={
                 "photsys": "UnknownSystem",
                 "coordinates": [{"ra": 187.6, "dec": 15.26}],
@@ -89,13 +89,35 @@ class ReddeningAPITest(unittest.TestCase):
 
     def test_calculate_reddening_empty_coordinates(self) -> None:
         response = self.client.post(
-            "/api/v1/calculate/reddening",
+            "/api/v1/calculator/reddening",
             json={
                 "photsys": "Landolt",
                 "coordinates": [],
             },
         )
         self.assertEqual(response.status_code, 400)
+
+    def test_list_reddening_references(self) -> None:
+        response = self.client.get("/api/v1/references/reddening")
+        self.assertEqual(response.status_code, 200)
+        systems = response.json()["data"]["systems"]
+        self.assertGreater(len(systems), 0)
+        system_ids = {system["id"] for system in systems}
+        self.assertIn("Landolt", system_ids)
+        self.assertIn("SDSS", system_ids)
+        for system in systems:
+            self.assertIn("id", system)
+            self.assertIn("description", system)
+            self.assertTrue(system["description"])
+
+        reddening_response = self.client.post(
+            "/api/v1/calculator/reddening",
+            json={
+                "photsys": systems[0]["id"],
+                "coordinates": [{"ra": 187.6, "dec": 15.26}],
+            },
+        )
+        self.assertEqual(reddening_response.status_code, 200)
 
     def test_fieldapi_client_uses_fieldapi_specs(self) -> None:
         with mock.patch("app.dataapi.clients.fieldapi.requests.post") as post:
