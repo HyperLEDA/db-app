@@ -14,6 +14,15 @@ from app.specs import adminapi as spec
 
 logger = structlog.stdlib.get_logger()
 
+
+def _candidates_to_status(candidates: list[int]) -> enums.RecordCrossmatchStatus:
+    if len(candidates) == 0:
+        return enums.RecordCrossmatchStatus.NEW
+    if len(candidates) == 1:
+        return enums.RecordCrossmatchStatus.EXISTING
+    return enums.RecordCrossmatchStatus.COLLIDED
+
+
 DATA_SCHEMA = spec.Schema(
     units=spec.UnitsSchema(
         coordinates={
@@ -152,13 +161,6 @@ class CrossmatchManager:
             ) from e
         return spec.AssignRecordPgcsResponse()
 
-    def _candidates_to_status(self, candidates: list[int]) -> enums.RecordCrossmatchStatus:
-        if len(candidates) == 0:
-            return enums.RecordCrossmatchStatus.NEW
-        if len(candidates) == 1:
-            return enums.RecordCrossmatchStatus.EXISTING
-        return enums.RecordCrossmatchStatus.COLLIDED
-
     def _convert_to_record_crossmatch(self, rows: list[model.CrossmatchRecordRow]) -> list[spec.RecordCrossmatch]:
         record_ids = [row.record_id for row in rows]
         layer1_data = self.layer1_repo.query_records(
@@ -184,7 +186,7 @@ class CrossmatchManager:
             if record is None:
                 raise RuntimeError(f"expected 1 record for id {row.record_id}, got none")
 
-            status = self._candidates_to_status(row.candidates)
+            status = _candidates_to_status(row.candidates)
 
             result.append(
                 spec.RecordCrossmatch(

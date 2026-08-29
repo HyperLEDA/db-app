@@ -46,6 +46,39 @@ def resolve_query_catalogs(
     return result
 
 
+def _build_filters_and_params(
+    query: spec.QuerySimpleRequest,
+) -> tuple[layer2.Filter, layer2.SearchParams, layer2.Ordering | None]:
+    filters = []
+    search_params = []
+    ordering: layer2.Ordering | None = None
+
+    if query.pgcs is not None:
+        filters.append(layer2.PGCOneOfFilter(query.pgcs))
+
+    if query.radius is not None:
+        icrs: coords.SkyCoord | None = None
+        if query.ra is not None and query.dec is not None:
+            equinox = astronomy.parse_coordinate_epoch(query.eq_epoch)
+            coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
+            icrs = coord.transform_to("icrs")
+        elif query.glon is not None and query.glat is not None:
+            icrs = coords.SkyCoord(l=query.glon, b=query.glat, frame="galactic").transform_to("icrs")
+        elif query.sgl is not None and query.sgb is not None:
+            icrs = coords.SkyCoord(sgl=query.sgl, sgb=query.sgb, frame="supergalactic").transform_to("icrs")
+
+        if icrs is not None:
+            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
+            search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
+            ordering = layer2.ICRSDistanceOrdering(icrs.ra, icrs.dec)
+
+    if query.name is not None:
+        filters.append(layer2.DesignationLikeFilter())
+        search_params.append(layer2.DesignationSearchParams(query.name))
+
+    return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
+
+
 class ParameterizedQueryManager:
     def __init__(
         self,
@@ -58,38 +91,6 @@ class ParameterizedQueryManager:
         self.enabled_catalogs = enabled_catalogs
         self.catalog_config = catalog_cfg
         self.reddening_service = reddening_service
-
-    def _build_filters_and_params(
-        self, query: spec.QuerySimpleRequest
-    ) -> tuple[layer2.Filter, layer2.SearchParams, layer2.Ordering | None]:
-        filters = []
-        search_params = []
-        ordering: layer2.Ordering | None = None
-
-        if query.pgcs is not None:
-            filters.append(layer2.PGCOneOfFilter(query.pgcs))
-
-        if query.radius is not None:
-            icrs: coords.SkyCoord | None = None
-            if query.ra is not None and query.dec is not None:
-                equinox = astronomy.parse_coordinate_epoch(query.eq_epoch)
-                coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
-                icrs = coord.transform_to("icrs")
-            elif query.glon is not None and query.glat is not None:
-                icrs = coords.SkyCoord(l=query.glon, b=query.glat, frame="galactic").transform_to("icrs")
-            elif query.sgl is not None and query.sgb is not None:
-                icrs = coords.SkyCoord(sgl=query.sgl, sgb=query.sgb, frame="supergalactic").transform_to("icrs")
-
-            if icrs is not None:
-                filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-                search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
-                ordering = layer2.ICRSDistanceOrdering(icrs.ra, icrs.dec)
-
-        if query.name is not None:
-            filters.append(layer2.DesignationLikeFilter())
-            search_params.append(layer2.DesignationSearchParams(query.name))
-
-        return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
 
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config, self.reddening_service)
@@ -105,7 +106,7 @@ class ParameterizedQueryManager:
             return responder.build_response(objects)
 
         catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
-        filters, search_params, ordering = self._build_filters_and_params(query)
+        filters, search_params, ordering = _build_filters_and_params(query)
 
         objects = self.layer2_repo.query_catalogs(
             catalogs,

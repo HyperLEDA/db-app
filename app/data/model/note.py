@@ -1,11 +1,13 @@
-from typing import final
+from typing import final, override
 
 from app.data.model import interface
 
 
 @final
 class NoteCatalogObject(interface.CatalogObject):
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.NOTE
 
     @classmethod

@@ -1,13 +1,13 @@
 import abc
 import math
-from typing import Any, final
+from typing import Any, final, override
 
 from astropy import units as u
 
 from app.lib import astronomy
 
 # Because postgis is a geography extension we have to do some trickery to convert degrees on the celestial sphere
-# efficiently to Earth's coordinates. This is just an Earth's radius.
+# efficiently to Earth's coordinates. This is just Earth's radius.
 _SPHERE_RADIUS_M = 6371008.7714
 
 
@@ -20,11 +20,8 @@ class Filter(abc.ABC):
     def get_params(self) -> list[Any]:
         pass
 
-    # Table this filter is strict on: an object missing from it can never match. Such a table can
-    # drive the join, letting the rest be LEFT JOINed onto it instead of combined with FULL JOIN.
-    # None means the filter can match objects missing from any single table, so FULL JOIN must stay.
-    def driving_table(self) -> str | None:
-        return None
+    def driving_table(self) -> str:
+        raise NotImplementedError(type(self).__name__)
 
 
 @final
@@ -64,13 +61,14 @@ class AndFilter(Filter):
         return params
 
     # Every conjunct must hold, so any strict child can drive the join.
-    def driving_table(self) -> str | None:
+    def driving_table(self) -> str:
         for f in self._filters:
-            table = f.driving_table()
-            if table is not None:
-                return table
+            try:
+                return f.driving_table()
+            except NotImplementedError:
+                continue
 
-        return None
+        raise NotImplementedError(type(self).__name__)
 
 
 @final
@@ -92,12 +90,14 @@ class OrFilter(Filter):
         return params
 
     # Only one branch has to hold, so a table may drive the join only if every branch requires it.
-    def driving_table(self) -> str | None:
-        tables = {f.driving_table() for f in self._filters}
+    def driving_table(self) -> str:
+        tables: set[str] = set()
+        for f in self._filters:
+            tables.add(f.driving_table())
         if len(tables) == 1:
             return tables.pop()
 
-        return None
+        raise NotImplementedError(type(self).__name__)
 
 
 @final
@@ -109,13 +109,15 @@ class DesignationEqualsFilter(Filter):
     def __init__(self, designation: str):
         self._designation = designation
 
+    @override
     def get_query(self):
         return "designation.design = %s"
 
     def get_params(self):
         return [self._designation]
 
-    def driving_table(self) -> str | None:
+    @override
+    def driving_table(self) -> str:
         return "layer2.designation"
 
 
@@ -128,13 +130,15 @@ class DesignationCloseFilter(Filter):
     def __init__(self, distance: int):
         self._distance = distance
 
+    @override
     def get_query(self):
         return "levenshtein_less_equal(layer2.designation.design, sp.params->>'design', %s) < %s"
 
     def get_params(self):
         return [self._distance, self._distance]
 
-    def driving_table(self) -> str | None:
+    @override
+    def driving_table(self) -> str:
         return "layer2.designation"
 
 
@@ -144,13 +148,16 @@ class DesignationLikeFilter(Filter):
     def name(cls) -> str:
         return "designation_like"
 
+    @override
     def get_query(self):
         return "layer2.designations.design ILIKE CONCAT('%%', sp.params->>'design', '%%')"
 
+    @override
     def get_params(self):
         return []
 
-    def driving_table(self) -> str | None:
+    @override
+    def driving_table(self) -> str:
         return "layer2.designations"
 
 
@@ -163,6 +170,7 @@ class ICRSCoordinatesInRadiusFilter(Filter):
     def __init__(self, radius: u.Quantity):
         self._radius_m = math.radians(astronomy.to(radius, "deg")) * _SPHERE_RADIUS_M
 
+    @override
     def get_query(self):
         return """
         ST_DWithin(
@@ -176,7 +184,8 @@ class ICRSCoordinatesInRadiusFilter(Filter):
     def get_params(self):
         return [self._radius_m]
 
-    def driving_table(self) -> str | None:
+    @override
+    def driving_table(self) -> str:
         return "layer2.icrs"
 
 
@@ -196,6 +205,7 @@ class ICRSDistanceOrdering(Ordering):
         self._ra = astronomy.to(ra, "deg")
         self._dec = astronomy.to(dec, "deg")
 
+    @override
     def get_query(self) -> str:
         return """ST_Distance(
             ST_MakePoint(%s, %s)::geography,

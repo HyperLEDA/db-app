@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -18,7 +18,9 @@ class PhotometryTotalCatalogObject(interface.CatalogObject):
         self.e_mag = e_mag
         self.method = method
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.PHOTOMETRY__TOTAL
 
     @classmethod
@@ -53,7 +55,9 @@ class PhotometryIsophotalCatalogObject(interface.CatalogObject):
         self.mag = mag
         self.e_mag = e_mag
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.PHOTOMETRY__ISOPHOTAL
 
     @classmethod

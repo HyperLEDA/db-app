@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -20,7 +20,9 @@ class DistanceCatalogObject(interface.CatalogObject):
         self.quality = quality
         self.calib_id = calib_id
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.DISTANCE
 
     @classmethod

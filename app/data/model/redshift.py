@@ -1,4 +1,4 @@
-from typing import Any, Self, final
+from typing import Any, Self, final, override
 
 from app.data.model import interface
 
@@ -13,7 +13,9 @@ class RedshiftCatalogObject(interface.CatalogObject):
         self.cz = cz
         self.e_cz = e_cz
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.REDSHIFT
 
     @classmethod

@@ -60,27 +60,40 @@ class CatalogConfig(config.BaseConfigSettings):
     velocity: VelocityCatalogConfig
 
 
+def _coordinates_from_icrs(ra: float, dec: float, e_ra: float, e_dec: float) -> spec.Coordinates:
+    eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
+    eq_e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
+    lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
+    sg_lon, sg_lat, sg_e_lon, sg_e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
+    return spec.Coordinates(
+        equatorial=spec.EquatorialCoordinates(ra=ra, dec=dec, e_ra=eq_e_ra, e_dec=eq_e_dec),
+        galactic=spec.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
+        supergalactic=spec.SupergalacticCoordinates(lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat),
+    )
+
+
+def _redshift_from_cz(cz: float, e_cz: float) -> spec.Redshift:
+    return spec.Redshift(
+        z=astronomy.heliocentric_cz_to_z(cz * u.Unit("km/s")),
+        e_z=astronomy.heliocentric_cz_to_z(e_cz * u.Unit("km/s")),
+    )
+
+
+def _photometry_total_measurement(measurement: layer2.PhotometryTotalMeasurement) -> spec.PhotometryTotalMeasurement:
+    return spec.PhotometryTotalMeasurement(
+        band=measurement.band,
+        magsys=measurement.magsys,
+        method=measurement.method,
+        wavelength=measurement.wavelength,
+        mag=measurement.mag,
+        e_mag=measurement.e_mag,
+    )
+
+
 class StructuredResponder(interface.ObjectResponder):
     def __init__(self, cfg: CatalogConfig, reddening_service: reddening.Reddening) -> None:
         self.config = cfg
         self.reddening_service = reddening_service
-
-    def _coordinates_from_icrs(self, ra: float, dec: float, e_ra: float, e_dec: float) -> spec.Coordinates:
-        eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
-        eq_e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
-        lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
-        sg_lon, sg_lat, sg_e_lon, sg_e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
-        return spec.Coordinates(
-            equatorial=spec.EquatorialCoordinates(ra=ra, dec=dec, e_ra=eq_e_ra, e_dec=eq_e_dec),
-            galactic=spec.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
-            supergalactic=spec.SupergalacticCoordinates(lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat),
-        )
-
-    def _redshift_from_cz(self, cz: float, e_cz: float) -> spec.Redshift:
-        return spec.Redshift(
-            z=astronomy.heliocentric_cz_to_z(cz * u.Unit("km/s")),
-            e_z=astronomy.heliocentric_cz_to_z(e_cz * u.Unit("km/s")),
-        )
 
     def _velocities_from_apexes(
         self,
@@ -116,18 +129,6 @@ class StructuredResponder(interface.ObjectResponder):
                 e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
             )
         return velocities
-
-    def _photometry_total_measurement(
-        self, measurement: layer2.PhotometryTotalMeasurement
-    ) -> spec.PhotometryTotalMeasurement:
-        return spec.PhotometryTotalMeasurement(
-            band=measurement.band,
-            magsys=measurement.magsys,
-            method=measurement.method,
-            wavelength=measurement.wavelength,
-            mag=measurement.mag,
-            e_mag=measurement.e_mag,
-        )
 
     def _fetch_corrected_photometry(
         self,
@@ -193,11 +194,11 @@ class StructuredResponder(interface.ObjectResponder):
 
             icrs = obj.get(model.ICRSCatalogObject)
             if icrs is not None:
-                catalogs.coordinates = self._coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+                catalogs.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
             redshift = obj.get(model.RedshiftCatalogObject)
             if redshift is not None:
-                catalogs.redshift = self._redshift_from_cz(redshift.cz, redshift.e_cz)
+                catalogs.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
 
             if (nature := obj.get(model.NatureCatalogObject)) is not None:
                 catalogs.nature = spec.Nature(type_name=nature.type_name)
@@ -245,11 +246,11 @@ class StructuredResponder(interface.ObjectResponder):
 
             icrs = obj.catalogs.icrs
             if icrs is not None:
-                catalogs.coordinates = self._coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+                catalogs.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
             if obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift
-                catalogs.redshift = self._redshift_from_cz(redshift.cz, redshift.e_cz)
+                catalogs.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
 
             if obj.catalogs.nature is not None:
                 catalogs.nature = spec.Nature(type_name=obj.catalogs.nature.type_name)
@@ -270,7 +271,7 @@ class StructuredResponder(interface.ObjectResponder):
 
             if obj.catalogs.photometry_total is not None:
                 catalogs.photometry_total = [
-                    self._photometry_total_measurement(measurement)
+                    _photometry_total_measurement(measurement)
                     for measurement in obj.catalogs.photometry_total.measurements
                 ]
 

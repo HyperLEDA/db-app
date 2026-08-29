@@ -322,31 +322,31 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
         records = self._storage.query(query, params=params)
 
-        return self._group_by_record_id(records, readable)
+        return _group_by_record_id(records, readable)
 
-    def _group_by_record_id(
-        self,
-        records: list[dict],
-        readable: list[tuple[model.RawCatalog, type[model.CatalogObject], list[str]]],
-    ) -> list[model.Record]:
-        record_data: dict[str, list[model.CatalogObject]] = {}
 
-        for row in records:
-            record_id = row["record_id"]
-            if record_id not in record_data:
-                record_data[record_id] = []
+def _group_by_record_id(
+    records: list[dict],
+    readable: list[tuple[model.RawCatalog, type[model.CatalogObject], list[str]]],
+) -> list[model.Record]:
+    record_data: dict[str, list[model.CatalogObject]] = {}
 
-            for catalog, object_cls, layer1_keys in readable:
-                present_key = f"{catalog.value}|_present"
-                if row.get(present_key, False):
-                    catalog_data = {column: row.get(f"{catalog.value}|{column}") for column in layer1_keys}
+    for row in records:
+        record_id = row["record_id"]
+        if record_id not in record_data:
+            record_data[record_id] = []
 
-                    if catalog_data:
-                        catalog_object = object_cls.from_layer1(catalog_data)
-                        record_data[record_id].append(catalog_object)
+        for catalog, object_cls, layer1_keys in readable:
+            present_key = f"{catalog.value}|_present"
+            if row.get(present_key, False):
+                catalog_data = {column: row.get(f"{catalog.value}|{column}") for column in layer1_keys}
 
-        result = []
-        for record_id in sorted(record_data.keys()):
-            result.append(model.Record(id=record_id, data=record_data[record_id]))
+                if catalog_data:
+                    catalog_object = object_cls.from_layer1(catalog_data)
+                    record_data[record_id].append(catalog_object)
 
-        return result
+    result = []
+    for record_id in sorted(record_data.keys()):
+        result.append(model.Record(id=record_id, data=record_data[record_id]))
+
+    return result

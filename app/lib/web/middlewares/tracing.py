@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Awaitable, Callable
 
 import fastapi
@@ -14,6 +15,7 @@ class TracingMiddleware(middlewares.BaseHTTPMiddleware):
     def __init__(self, app: types.ASGIApp) -> None:
         super().__init__(app)
 
+    @typing.override
     async def dispatch(
         self,
         request: fastapi.Request,

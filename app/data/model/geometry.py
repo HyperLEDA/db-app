@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -32,7 +32,9 @@ class GeometryCatalogObject(interface.CatalogObject):
         self.isophote = isophote
         self.e_isophote = e_isophote
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.GEOMETRY
 
     @classmethod

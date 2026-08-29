@@ -1,5 +1,5 @@
 import abc
-from typing import Any, final
+from typing import Any, final, override
 
 from astropy import coordinates as coords
 from astropy import units as u
@@ -19,6 +19,7 @@ class SearchParams(abc.ABC):
 
 @final
 class ICRSSearchParams(SearchParams):
+    @override
     def name(self) -> str:
         return "icrs"
 
@@ -46,6 +47,7 @@ class DesignationSearchParams(SearchParams):
     def __init__(self, designation: str):
         self._designation = designation
 
+    @override
     def name(self) -> str:
         return "designation"
 

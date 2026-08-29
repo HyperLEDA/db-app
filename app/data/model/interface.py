@@ -41,8 +41,9 @@ class CatalogObject(abc.ABC):
     Represents an object stored in a particular catalog.
     """
 
+    @classmethod
     @abc.abstractmethod
-    def catalog(self) -> RawCatalog:
+    def catalog(cls) -> RawCatalog:
         """Return the catalog identifier. Required for every catalog."""
 
     @classmethod
@@ -62,7 +63,7 @@ class CatalogObject(abc.ABC):
         Override when the table is not named ``{catalog.value}.data``, for example
         ``cz.data`` for redshift or ``photometry.ellipse`` for geometry.
         """
-        catalog = object.__new__(cls).catalog()
+        catalog = cls.catalog()
         return f"{catalog.value}.data"
 
     @classmethod

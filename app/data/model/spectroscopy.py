@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -20,7 +20,9 @@ class SpectroscopyIntegratedFluxDensityCatalogObject(interface.CatalogObject):
         self.method = method
         self.quality = quality
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY
 
     @classmethod
@@ -55,7 +57,9 @@ class SpectroscopyEnergyFluxCatalogObject(interface.CatalogObject):
         self.e_flux = e_flux
         self.quality = quality
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX
 
     @classmethod

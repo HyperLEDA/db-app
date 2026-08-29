@@ -1,4 +1,4 @@
-from typing import Any, Self, final
+from typing import Any, Self, final, override
 
 from app.data.model import interface
 
@@ -8,7 +8,9 @@ class DesignationCatalogObject(interface.CatalogObject):
     def __init__(self, design: str, **kwargs) -> None:
         self.designation = design
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.DESIGNATION
 
     @classmethod

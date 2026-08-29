@@ -1,4 +1,4 @@
-from typing import Any, Self, final
+from typing import Any, Self, final, override
 
 from app.data.model import interface
 
@@ -8,7 +8,9 @@ class NatureCatalogObject(interface.CatalogObject):
     def __init__(self, type_name: str, **kwargs: Any) -> None:
         self.type_name = type_name
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.NATURE
 
     @classmethod
