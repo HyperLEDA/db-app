@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -24,7 +24,9 @@ class KinematicsLineWidthCatalogObject(interface.CatalogObject):
         self.resolution = resolution
         self.quality = quality
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.KINEMATICS__LINE_WIDTH
 
     @classmethod

@@ -1,12 +1,13 @@
 import atexit
 import pathlib
 import sys
+from collections.abc import Sequence
 
 import psycopg
 import structlog
+from psycopg.types import enum
 from testcontainers import postgres as pgcontainer
 
-from app.data import enums as data_enums
 from app.lib.storage import postgres
 from tests.lib import web
 
@@ -39,7 +40,11 @@ def debug_enabled() -> bool:
 
 
 class TestPostgresStorage:
-    def __init__(self, migrations_dir: str) -> None:
+    def __init__(
+        self,
+        migrations_dir: str,
+        enum_registry: Sequence[tuple[type[enum.Enum], str]] = (),
+    ) -> None:
         self.need_new_container = not debug_enabled()
 
         if self.need_new_container:
@@ -53,7 +58,7 @@ class TestPostgresStorage:
                 dbname="hyperleda",
             )
 
-        self.storage = postgres.PgStorage(self.config, logger, data_enums.PG_ENUM_REGISTRY)
+        self.storage = postgres.PgStorage(self.config, logger, enum_registry)
 
         self.migrations_dir = migrations_dir
 
@@ -80,7 +85,7 @@ class TestPostgresStorage:
         )
 
     @staticmethod
-    def get() -> "TestPostgresStorage":
+    def get(enum_registry: Sequence[tuple[type[enum.Enum], str]] = ()) -> "TestPostgresStorage":
         """
         Obtains Postgres storage object that may be used for testing.
 
@@ -94,7 +99,7 @@ class TestPostgresStorage:
         """
         global _test_storage
         if _test_storage is None:
-            _test_storage = TestPostgresStorage("postgres/migrations")
+            _test_storage = TestPostgresStorage("postgres/migrations", enum_registry)
             logger.info("Starting postgres container")
             _test_storage.start()
 

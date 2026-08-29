@@ -1,4 +1,4 @@
-from typing import Any, final
+from typing import Any, final, override
 
 from app.data.model import interface
 
@@ -18,7 +18,9 @@ class MorphologyTCatalogObject(interface.CatalogObject):
         self.ep_value = ep_value
         self.method = method
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.MORPHOLOGY__T
 
     @classmethod
@@ -55,7 +57,9 @@ class MorphologyFeaturesCatalogObject(interface.CatalogObject):
         self.ep_value = ep_value
         self.method = method
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.MORPHOLOGY__FEATURES
 
     @classmethod
@@ -80,7 +84,9 @@ class MorphologyExtraCatalogObject(interface.CatalogObject):
     def __init__(self, extra_type: str, **kwargs: Any) -> None:
         self.extra_type = extra_type
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.MORPHOLOGY__EXTRA
 
     @classmethod
@@ -115,7 +121,9 @@ class MorphologySpiralWindingCatalogObject(interface.CatalogObject):
         self.ep_winding = ep_winding
         self.method = method
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.MORPHOLOGY__SPIRAL_WINDING
 
     @classmethod

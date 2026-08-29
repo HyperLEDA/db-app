@@ -7,6 +7,7 @@ import structlog
 
 from app.adminapi.domain import pgc
 from app.data import model, repositories
+from app.lib.storage import enums
 from app.lib.web import errors
 from app.specs import adminapi
 from tests import lib
@@ -15,7 +16,7 @@ from tests import lib
 class MergePgcsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.manager = pgc.PgcManager(cls.common_repo, cls.layer0_repo)

@@ -5,7 +5,7 @@ from unittest import mock
 import bcrypt
 
 from app.lib import auth
-from tests import lib
+from tests.lib import mocks
 
 
 class PostgresAuthenticatorTest(unittest.TestCase):
@@ -15,7 +15,7 @@ class PostgresAuthenticatorTest(unittest.TestCase):
 
     @mock.patch("secrets.token_hex", return_value="123456789")
     def test_login_correct_password(self, _):
-        lib.returns(
+        mocks.returns(
             self.mock_storage.query_one,
             {
                 "password_hash": bcrypt.hashpw(b"password", bcrypt.gensalt()),
@@ -29,25 +29,25 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         self.assertEqual(inserted_hash, hashlib.sha256(b"123456789").digest())
 
     def test_login_user_does_not_exist(self):
-        lib.raises(self.mock_storage.query_one, RuntimeError)
+        mocks.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual(("", False), self.authenticator.login("username", "password"))
 
     @mock.patch("bcrypt.checkpw", return_value=False)
     def test_login_user_does_not_exist_still_checks_password_hash(self, checkpw_mock):
-        lib.raises(self.mock_storage.query_one, RuntimeError)
+        mocks.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual(("", False), self.authenticator.login("username", "password"))
         checkpw_mock.assert_called_once()
 
     def test_login_wrong_password(self):
-        lib.returns(self.mock_storage.query_one, {"password_hash": bcrypt.hashpw(b"password", bcrypt.gensalt())})
+        mocks.returns(self.mock_storage.query_one, {"password_hash": bcrypt.hashpw(b"password", bcrypt.gensalt())})
         self.assertEqual(("", False), self.authenticator.login("username", "wrong_password"))
 
     def test_authenticate_invalid_token(self):
-        lib.raises(self.mock_storage.query_one, RuntimeError)
+        mocks.raises(self.mock_storage.query_one, RuntimeError)
         self.assertEqual((None, False), self.authenticator.authenticate("non_existent_token"))
 
     def test_authenticate_correct_token(self):
-        lib.returns(
+        mocks.returns(
             self.mock_storage.query_one,
             {
                 "user_id": 1,
@@ -61,7 +61,7 @@ class PostgresAuthenticatorTest(unittest.TestCase):
         self.assertEqual(user, auth.User(1, auth.Role.ADMIN, "admin"))
 
     def test_authenticate_hashes_incoming_token(self):
-        lib.returns(
+        mocks.returns(
             self.mock_storage.query_one,
             {"user_id": 1, "role": auth.Role.ADMIN, "login": "admin"},
         )

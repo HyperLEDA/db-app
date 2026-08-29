@@ -9,6 +9,7 @@ from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.presentation.server import Server
 from app.data import repositories
 from app.lib import audit, auth
+from app.lib.storage import enums
 from app.lib.web import server
 from tests import lib
 
@@ -16,7 +17,7 @@ from tests import lib
 class AdminTapSyncTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
     def setUp(self) -> None:
         pg = self.pg_storage.get_storage()

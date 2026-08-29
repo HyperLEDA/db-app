@@ -1,4 +1,4 @@
-from typing import Any, Self, final
+from typing import Any, Self, final, override
 
 from app.data.model import interface
 
@@ -17,7 +17,9 @@ class ICRSCatalogObject(interface.CatalogObject):
         self.e_ra = e_ra
         self.e_dec = e_dec
 
-    def catalog(self) -> interface.RawCatalog:
+    @classmethod
+    @override
+    def catalog(cls) -> interface.RawCatalog:
         return interface.RawCatalog.ICRS
 
     @classmethod

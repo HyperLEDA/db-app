@@ -35,6 +35,20 @@ def _client_ip(request: fastapi.Request) -> str | None:
     return request.client.host
 
 
+def _log_response(r: fastapi.Response) -> dict[str, Any]:
+    data = {}
+
+    data["headers"] = dict(r.headers)
+    data["status_code"] = r.status_code
+
+    return data
+
+
+def _username(request: fastapi.Request) -> str | None:
+    auth_ctx = identity_from_request(request)
+    return auth_ctx.user.login if auth_ctx is not None else None
+
+
 class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     def __init__(
         self,
@@ -63,18 +77,6 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
 
         return data
 
-    def _log_response(self, r: fastapi.Response) -> dict[str, Any]:
-        data = {}
-
-        data["headers"] = dict(r.headers)
-        data["status_code"] = r.status_code
-
-        return data
-
-    def _username(self, request: fastapi.Request) -> str | None:
-        auth_ctx = identity_from_request(request)
-        return auth_ctx.user.login if auth_ctx is not None else None
-
     async def dispatch(
         self, request: fastapi.Request, call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]]
     ) -> fastapi.Response:
@@ -85,7 +87,7 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
             context["client_ip"] = client_ip
         structlog.contextvars.bind_contextvars(**context)
         try:
-            username = self._username(request)
+            username = _username(request)
             request_log = await self._log_request(request)
             if username is not None:
                 request_log["username"] = username
@@ -99,7 +101,7 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
 
             elapsed_ms = (end - start) * 1000
 
-            response_log = self._log_response(response)
+            response_log = _log_response(response)
             if username is not None:
                 response_log["username"] = username
             if client_ip is not None:

@@ -6,11 +6,10 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
-from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import clients, domain
 from app.dataapi.presentation.server import Server
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.specs import fieldapi as fieldapi_spec
 from tests import lib
 
@@ -23,7 +22,7 @@ class _MockFieldAPIClient(clients.FieldAPIClient):
 class ReddeningAPITest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
         cfg_path = pathlib.Path(__file__).resolve().parents[3] / "configs" / "dev" / "dataapi.yaml"
         cls.cfg = dataapi_command.parse_config(str(cfg_path))
         cls.log = structlog.get_logger()
@@ -35,7 +34,7 @@ class ReddeningAPITest(unittest.TestCase):
             password="password",
             dbname=cls.pg_storage.config.dbname,
         )
-        cls.reader_storage = postgres.PgStorage(reader_config, cls.log, data_enums.PG_ENUM_REGISTRY)
+        cls.reader_storage = postgres.PgStorage(reader_config, cls.log, enums.PG_ENUM_REGISTRY)
         cls.reader_storage.connect()
 
     @classmethod

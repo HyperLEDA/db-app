@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import cast, override
 
 import bcrypt
 
@@ -20,9 +20,11 @@ class NoopAuthenticator(interface.Authenticator):
     This is a testing authenticator that successfully authenticates all users as admins.
     """
 
+    @override
     def login(self, username: str, password: str) -> tuple[str, bool]:
         return "noop_token", True
 
+    @override
     def authenticate(self, token: str) -> tuple[user.User, bool]:
         return user.User(1, user.Role.ADMIN, "noop"), True
 

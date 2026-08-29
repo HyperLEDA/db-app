@@ -5,7 +5,6 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import enums as data_enums
 from app.data import model, repositories
 from app.lib.storage import enums, postgres
 from app.tasks import interface
@@ -16,12 +15,9 @@ def majority_vote_by_pgc(tbl: table.QTable, value_column: str) -> tuple[list[int
     pgcs: list[int] = []
     values: list[str] = []
     for group in grouped.groups:
-        counts: dict[str, int] = {}
-        for value in group[value_column]:
-            key = str(value)
-            counts[key] = counts.get(key, 0) + 1
+        uniq, counts = np.unique(np.asarray(group[value_column], dtype=str), return_counts=True)
         pgcs.append(int(group["pgc"][0]))
-        values.append(max(counts, key=lambda k: counts[k]))
+        values.append(str(uniq[int(np.argmax(counts))]))
     return pgcs, values
 
 
@@ -55,7 +51,7 @@ class Layer2StorageTask(interface.Task, abc.ABC):
         self.log = logger
 
     def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
+        self.pg_storage = postgres.PgStorage(config.storage, self.log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 

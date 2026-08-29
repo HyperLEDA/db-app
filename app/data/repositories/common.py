@@ -70,10 +70,10 @@ class CommonRepository(postgres.TransactionalPGRepository):
 
         return model.Bibliography(**row)
 
-    def register_pgcs(self, pgcs: list[int]):
-        self._storage.exec(
-            f"INSERT INTO common.pgc (id) VALUES {','.join(['(%s)'] * len(pgcs))} ON CONFLICT (id) DO NOTHING",
-            params=pgcs,
+    def register_pgcs(self, pgcs: list[int]) -> None:
+        self._storage.execute_batch(
+            "INSERT INTO common.pgc (id) VALUES (%s) ON CONFLICT (id) DO NOTHING",
+            [[pgc] for pgc in pgcs],
         )
 
     def get_existing_pgcs(self, pgcs: list[int]) -> set[int]:

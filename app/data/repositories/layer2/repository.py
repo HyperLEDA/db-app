@@ -112,92 +112,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                     ).format(table_ident, column_idents, column_idents, on_conflict)
                 )
 
-    def _construct_batch_query(
-        self,
-        catalogs: list[model.RawCatalog],
-        search_types: Mapping[str, repofilters.Filter],
-        search_params: Mapping[str, params.SearchParams],
-        limit: int,
-        offset: int,
-        ordering: repofilters.Ordering | None = None,
-    ) -> tuple[str, list[Any]]:
-        if not search_params:
-            return "SELECT NULL as record_id, NULL as pgc WHERE FALSE", []
-
-        query = """
-            WITH search_params AS (
-                SELECT * FROM (
-                    VALUES 
-                        {values}
-                ) AS t(record_id, search_type, params)
-            ) 
-            SELECT sp.record_id, pgc, {columns}
-            FROM search_params sp
-            CROSS JOIN {joined_tables}
-            WHERE {conditions}
-            {order_by}
-            LIMIT %s OFFSET %s
-        """
-
-        values_lines = []
-        params = []
-
-        for record_id, sparams in search_params.items():
-            values_lines.append("(%s, %s, %s::jsonb)")
-            params.extend([record_id, sparams.name(), json.dumps(sparams.get_params())])
-
-        columns = []
-        table_names = []
-
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
-
-            table_names.append(object_cls.layer2_table())
-            columns.extend(
-                [
-                    f'{object_cls.layer2_table()}.{column} AS "{catalog.value}|{column}"'
-                    for column in object_cls.layer2_keys()
-                ]
-            )
-            columns.append(
-                f"CASE WHEN {object_cls.layer2_table()}.pgc IS NOT NULL "
-                f'THEN true ELSE false END AS "{catalog.value}|_present"'
-            )
-
-        # This is to avoid using FULL JOINs as this is very slow for cases
-        # where we only want to select from one table, e.g. only coordinate cone search
-        driving_tables = {search_filter.driving_table() for search_filter in search_types.values()}
-        driving_table = driving_tables.pop() if len(driving_tables) == 1 else None
-
-        if driving_table is not None:
-            other_tables = [table_name for table_name in table_names if table_name != driving_table]
-            joined_tables = " LEFT JOIN ".join(
-                [driving_table] + [f"{table_name} USING (pgc)" for table_name in other_tables]
-            )
-        else:
-            joined_tables = " FULL JOIN ".join(
-                [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
-            )
-
-        condition_statements = []
-
-        for search_type, search_filter in search_types.items():
-            condition_statements.append(f"(sp.search_type = '{search_type}' AND {search_filter.get_query()})")
-            params.extend(search_filter.get_params())
-
-        if ordering is not None:
-            params.extend(ordering.get_params())
-
-        params.extend([limit, offset])
-
-        return query.format(
-            values=",".join(values_lines),
-            columns=",".join(columns),
-            joined_tables=joined_tables,
-            conditions=" OR ".join(condition_statements),
-            order_by=f"ORDER BY {ordering.get_query()}" if ordering is not None else "",
-        ), params
-
     def query_catalogs_batch(
         self,
         catalogs: list[model.RawCatalog],
@@ -207,9 +121,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         offset: int,
         ordering: repofilters.Ordering | None = None,
     ) -> dict[str, list[model.Layer2CatalogObject]]:
-        query, params = self._construct_batch_query(
-            catalogs, search_types, search_params, limit, offset, ordering=ordering
-        )
+        query, params = _construct_batch_query(catalogs, search_types, search_params, limit, offset, ordering=ordering)
 
         records = self._storage.query(query, params=params)
 
@@ -221,46 +133,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             if record_id not in result:
                 result[record_id] = []
 
-            result[record_id].extend(self._group_by_pgc(records))
-
-        return result
-
-    def _group_by_pgc(self, objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject]:
-        objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
-        result = []
-
-        for pgc, pgc_objects in objects_by_pgc.items():
-            layer2_obj = model.Layer2CatalogObject(pgc, [])
-
-            # TODO: what if for each pgc there are multiple rows? For example, if
-            # the catalog does not have a UNIQUE constraint on pgc.
-            obj = pgc_objects[0]
-            if "record_id" in obj:
-                obj.pop("record_id")
-            if "pgc" in obj:
-                obj.pop("pgc")
-
-            res: dict[model.RawCatalog, dict[str, Any]] = {}
-            presence_flags: dict[model.RawCatalog, bool] = {}
-
-            for key, value in obj.items():
-                catalog_name, column = key.split("|")
-                catalog = model.RawCatalog(catalog_name)
-
-                if column == "_present":
-                    presence_flags[catalog] = bool(value)
-                else:
-                    if catalog not in res:
-                        res[catalog] = {}
-                    res[catalog][column] = value
-
-            for catalog, data in res.items():
-                object_cls = model.get_catalog_object_type(catalog)
-
-                if presence_flags.get(catalog, False):
-                    layer2_obj.data.append(object_cls.from_layer2(data))
-
-            result.append(layer2_obj)
+            result[record_id].extend(_group_by_pgc(records))
 
         return result
 
@@ -438,7 +311,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
 
         return [
-            self._layer2_object_from_maps(
+            _layer2_object_from_maps(
                 pgc,
                 catalogs,
                 designation_map,
@@ -451,41 +324,6 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             )
             for pgc in pgcs_page
         ]
-
-    def _layer2_object_from_maps(
-        self,
-        pgc: int,
-        catalogs: list[model.RawCatalog],
-        designation_map: dict[int, layer2_model.DesignationCatalog],
-        additional_designations_map: dict[int, layer2_model.AdditionalDesignationsCatalog],
-        icrs_map: dict[int, layer2_model.ICRSCatalog],
-        redshift_map: dict[int, layer2_model.RedshiftCatalog],
-        nature_map: dict[int, layer2_model.NatureCatalog],
-        notes_map: dict[int, layer2_model.NotesCatalog],
-        photometry_total_map: dict[int, layer2_model.PhotometryTotalCatalog],
-    ) -> Layer2Object:
-        designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
-        additional_designations = (
-            additional_designations_map.get(pgc) if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs else None
-        )
-        icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
-        redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
-        nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
-        notes = notes_map.get(pgc) if model.RawCatalog.NOTE in catalogs else None
-        photometry_total = photometry_total_map.get(pgc) if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs else None
-
-        return Layer2Object(
-            pgc=pgc,
-            catalogs=layer2_model.Catalogs(
-                designation=designation,
-                additional_designations=additional_designations,
-                icrs=icrs,
-                redshift=redshift,
-                nature=nature,
-                notes=notes,
-                photometry_total=photometry_total,
-            ),
-        )
 
     def query_catalogs_pgc(
         self,
@@ -540,7 +378,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         objects = self._storage.query(query, params=params)
 
-        return self._group_by_pgc(objects)
+        return _group_by_pgc(objects)
 
     def query_catalogs(
         self,
@@ -564,6 +402,178 @@ class Layer2Repository(postgres.TransactionalPGRepository):
             return []
 
         return res["obj"]
+
+
+def _driving_table(search_types: Mapping[str, repofilters.Filter]) -> str | None:
+    tables: set[str] = set()
+    for search_filter in search_types.values():
+        try:
+            tables.add(search_filter.driving_table())
+        except NotImplementedError:
+            return None
+    if len(tables) != 1:
+        return None
+    return tables.pop()
+
+
+def _construct_batch_query(
+    catalogs: list[model.RawCatalog],
+    search_types: Mapping[str, repofilters.Filter],
+    search_params: Mapping[str, params.SearchParams],
+    limit: int,
+    offset: int,
+    ordering: repofilters.Ordering | None = None,
+) -> tuple[str, list[Any]]:
+    if not search_params:
+        return "SELECT NULL as record_id, NULL as pgc WHERE FALSE", []
+
+    query = """
+            WITH search_params AS (
+                SELECT * FROM (
+                    VALUES 
+                        {values}
+                ) AS t(record_id, search_type, params)
+            ) 
+            SELECT sp.record_id, pgc, {columns}
+            FROM search_params sp
+            CROSS JOIN {joined_tables}
+            WHERE {conditions}
+            {order_by}
+            LIMIT %s OFFSET %s
+        """
+
+    values_lines = []
+    query_params = []
+
+    for record_id, sparams in search_params.items():
+        values_lines.append("(%s, %s, %s::jsonb)")
+        query_params.extend([record_id, sparams.name(), json.dumps(sparams.get_params())])
+
+    columns = []
+    table_names = []
+
+    for catalog in catalogs:
+        object_cls = model.get_catalog_object_type(catalog)
+
+        table_names.append(object_cls.layer2_table())
+        columns.extend(
+            [
+                f'{object_cls.layer2_table()}.{column} AS "{catalog.value}|{column}"'
+                for column in object_cls.layer2_keys()
+            ]
+        )
+        columns.append(
+            f"CASE WHEN {object_cls.layer2_table()}.pgc IS NOT NULL "
+            f'THEN true ELSE false END AS "{catalog.value}|_present"'
+        )
+
+    # This is to avoid using FULL JOINs as this is very slow for cases
+    # where we only want to select from one table, e.g. only coordinate cone search
+    driving_table = _driving_table(search_types)
+
+    if driving_table is not None:
+        other_tables = [table_name for table_name in table_names if table_name != driving_table]
+        joined_tables = " LEFT JOIN ".join(
+            [driving_table] + [f"{table_name} USING (pgc)" for table_name in other_tables]
+        )
+    else:
+        joined_tables = " FULL JOIN ".join(
+            [f"{table_names[0]}"] + [f"{table_name} USING (pgc)" for table_name in table_names[1:]]
+        )
+
+    condition_statements = []
+
+    for search_type, search_filter in search_types.items():
+        condition_statements.append(f"(sp.search_type = '{search_type}' AND {search_filter.get_query()})")
+        query_params.extend(search_filter.get_params())
+
+    if ordering is not None:
+        query_params.extend(ordering.get_params())
+
+    query_params.extend([limit, offset])
+
+    return query.format(
+        values=",".join(values_lines),
+        columns=",".join(columns),
+        joined_tables=joined_tables,
+        conditions=" OR ".join(condition_statements),
+        order_by=f"ORDER BY {ordering.get_query()}" if ordering is not None else "",
+    ), query_params
+
+
+def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject]:
+    objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
+    result = []
+
+    for pgc, pgc_objects in objects_by_pgc.items():
+        layer2_obj = model.Layer2CatalogObject(pgc, [])
+
+        # TODO: what if for each pgc there are multiple rows? For example, if
+        # the catalog does not have a UNIQUE constraint on pgc.
+        obj = pgc_objects[0]
+        if "record_id" in obj:
+            obj.pop("record_id")
+        if "pgc" in obj:
+            obj.pop("pgc")
+
+        res: dict[model.RawCatalog, dict[str, Any]] = {}
+        presence_flags: dict[model.RawCatalog, bool] = {}
+
+        for key, value in obj.items():
+            catalog_name, column = key.split("|")
+            catalog = model.RawCatalog(catalog_name)
+
+            if column == "_present":
+                presence_flags[catalog] = bool(value)
+            else:
+                if catalog not in res:
+                    res[catalog] = {}
+                res[catalog][column] = value
+
+        for catalog, data in res.items():
+            object_cls = model.get_catalog_object_type(catalog)
+
+            if presence_flags.get(catalog, False):
+                layer2_obj.data.append(object_cls.from_layer2(data))
+
+        result.append(layer2_obj)
+
+    return result
+
+
+def _layer2_object_from_maps(
+    pgc: int,
+    catalogs: list[model.RawCatalog],
+    designation_map: dict[int, layer2_model.DesignationCatalog],
+    additional_designations_map: dict[int, layer2_model.AdditionalDesignationsCatalog],
+    icrs_map: dict[int, layer2_model.ICRSCatalog],
+    redshift_map: dict[int, layer2_model.RedshiftCatalog],
+    nature_map: dict[int, layer2_model.NatureCatalog],
+    notes_map: dict[int, layer2_model.NotesCatalog],
+    photometry_total_map: dict[int, layer2_model.PhotometryTotalCatalog],
+) -> Layer2Object:
+    designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
+    additional_designations = (
+        additional_designations_map.get(pgc) if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs else None
+    )
+    icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
+    redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
+    nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
+    notes = notes_map.get(pgc) if model.RawCatalog.NOTE in catalogs else None
+    photometry_total = photometry_total_map.get(pgc) if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs else None
+
+    return Layer2Object(
+        pgc=pgc,
+        catalogs=layer2_model.Catalogs(
+            designation=designation,
+            additional_designations=additional_designations,
+            icrs=icrs,
+            redshift=redshift,
+            nature=nature,
+            notes=notes,
+            photometry_total=photometry_total,
+        ),
+    )
 
 
 def _source_from_row(row: Mapping[str, Any]) -> layer2_model.Source:

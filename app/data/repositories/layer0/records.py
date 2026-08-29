@@ -17,6 +17,25 @@ def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
     return {"possible_matches": candidates}
 
 
+def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any]]:
+    if table_names is None:
+        return "", []
+    return "WHERE t.table_name = ANY(%s)", [table_names]
+
+
+def _progress_catalogs() -> list[model.RawCatalog]:
+    catalogs: list[model.RawCatalog] = []
+    for catalog in model.RawCatalog:
+        if catalog in model.RUNTIME_RAW_CATALOGS:
+            continue
+        try:
+            model.get_catalog_object_type(catalog)
+        except ValueError:
+            continue
+        catalogs.append(catalog)
+    return catalogs
+
+
 class AssignRecordPgcsPreconditionError(Exception):
     def __init__(self, sample: list[str], count: int) -> None:
         self.sample = sample
@@ -265,25 +284,8 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
 
-    def _progress_table_filter(self, table_names: list[str] | None) -> tuple[str, list[Any]]:
-        if table_names is None:
-            return "", []
-        return "WHERE t.table_name = ANY(%s)", [table_names]
-
-    def _progress_catalogs(self) -> list[model.RawCatalog]:
-        catalogs: list[model.RawCatalog] = []
-        for catalog in model.RawCatalog:
-            if catalog in model.RUNTIME_RAW_CATALOGS:
-                continue
-            try:
-                model.get_catalog_object_type(catalog)
-            except ValueError:
-                continue
-            catalogs.append(catalog)
-        return catalogs
-
     def _get_table_progress_funnel(self, table_names: list[str] | None) -> dict[str, dict[str, Any]]:
-        where_clause, params = self._progress_table_filter(table_names)
+        where_clause, params = _progress_table_filter(table_names)
         rows = self._storage.query(
             f"""
             SELECT t.table_name,
@@ -314,7 +316,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
     ) -> dict[str, model.CatalogProgress]:
         object_cls = model.get_catalog_object_type(catalog)
         layer1_table = object_cls.layer1_table()
-        where_clause, params = self._progress_table_filter(table_names)
+        where_clause, params = _progress_table_filter(table_names)
 
         try:
             layer2_table = object_cls.layer2_table()
@@ -381,7 +383,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         }
 
     def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
-        catalogs = self._progress_catalogs()
+        catalogs = _progress_catalogs()
         catalog_names = [catalog.value for catalog in catalogs]
 
         errgr = concurrency.ErrorGroup()

@@ -17,7 +17,7 @@ from tests import lib
 class RawDataTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
         cls.manager = domain.TableUploadManager(
             repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),

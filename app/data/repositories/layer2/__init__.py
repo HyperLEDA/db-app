@@ -1,13 +1,10 @@
 from app.data.repositories.layer2.filters import (
     AndFilter,
-    DesignationCloseFilter,
-    DesignationEqualsFilter,
     DesignationLikeFilter,
     Filter,
     ICRSCoordinatesInRadiusFilter,
     ICRSDistanceOrdering,
     Ordering,
-    OrFilter,
     PGCOneOfFilter,
 )
 from app.data.repositories.layer2.params import (
@@ -29,9 +26,6 @@ __all__ = [
     "ICRSCoordinatesInRadiusFilter",
     "ICRSDistanceOrdering",
     "Ordering",
-    "DesignationEqualsFilter",
-    "DesignationCloseFilter",
     "PGCOneOfFilter",
     "AndFilter",
-    "OrFilter",
 ]

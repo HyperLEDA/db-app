@@ -5,6 +5,7 @@ import structlog
 from app import tasks
 from app.data import model, repositories
 from app.data.repositories import layer2
+from app.lib.storage import enums
 from app.tasks import layer2_import
 from tests import lib
 
@@ -12,7 +13,7 @@ from tests import lib
 class Layer2ImportTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
