@@ -1,8 +1,7 @@
 from astropy import coordinates as coords
 
-from app.data import model, repositories
-from app.data.repositories import layer2
-from app.dataapi import responders
+from app.data import model
+from app.dataapi import repository, responders
 from app.dataapi.domain import reddening
 from app.lib import astronomy
 from app.lib.web.errors import RuleValidationError
@@ -48,13 +47,13 @@ def resolve_query_catalogs(
 
 def _build_filters_and_params(
     query: spec.QuerySimpleRequest,
-) -> tuple[layer2.Filter, layer2.SearchParams, layer2.Ordering | None]:
+) -> tuple[repository.Filter, repository.SearchParams, repository.Ordering | None]:
     filters = []
     search_params = []
-    ordering: layer2.Ordering | None = None
+    ordering: repository.Ordering | None = None
 
     if query.pgcs is not None:
-        filters.append(layer2.PGCOneOfFilter(query.pgcs))
+        filters.append(repository.PGCOneOfFilter(query.pgcs))
 
     if query.radius is not None:
         icrs: coords.SkyCoord | None = None
@@ -68,26 +67,26 @@ def _build_filters_and_params(
             icrs = coords.SkyCoord(sgl=query.sgl, sgb=query.sgb, frame="supergalactic").transform_to("icrs")
 
         if icrs is not None:
-            filters.append(layer2.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(layer2.ICRSSearchParams(icrs.ra, icrs.dec))
-            ordering = layer2.ICRSDistanceOrdering(icrs.ra, icrs.dec)
+            filters.append(repository.ICRSCoordinatesInRadiusFilter(query.radius))
+            search_params.append(repository.ICRSSearchParams(icrs.ra, icrs.dec))
+            ordering = repository.ICRSDistanceOrdering(icrs.ra, icrs.dec)
 
     if query.name is not None:
-        filters.append(layer2.DesignationLikeFilter())
-        search_params.append(layer2.DesignationSearchParams(query.name))
+        filters.append(repository.DesignationLikeFilter())
+        search_params.append(repository.DesignationSearchParams(query.name))
 
-    return layer2.AndFilter(filters), layer2.CombinedSearchParams(search_params), ordering
+    return repository.AndFilter(filters), repository.CombinedSearchParams(search_params), ordering
 
 
 class ParameterizedQueryManager:
     def __init__(
         self,
-        layer2_repo: repositories.Layer2Repository,
+        repo: repository.Repository,
         enabled_catalogs: list[model.RawCatalog],
         catalog_cfg: responders.CatalogConfig,
         reddening_service: reddening.Reddening,
     ) -> None:
-        self.layer2_repo = layer2_repo
+        self.repo = repo
         self.enabled_catalogs = enabled_catalogs
         self.catalog_config = catalog_cfg
         self.reddening_service = reddening_service
@@ -97,7 +96,7 @@ class ParameterizedQueryManager:
         offset = query.page * query.page_size
         if query.pgcs:
             catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
-            objects = self.layer2_repo.query_pgc(
+            objects = self.repo.query_pgc(
                 catalogs,
                 query.pgcs,
                 query.page_size,
@@ -108,7 +107,7 @@ class ParameterizedQueryManager:
         catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
         filters, search_params, ordering = _build_filters_and_params(query)
 
-        objects = self.layer2_repo.query_catalogs(
+        objects = self.repo.query_catalogs(
             catalogs,
             filters,
             search_params,

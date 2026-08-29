@@ -4,7 +4,6 @@ import structlog
 
 from app import tasks
 from app.data import model, repositories
-from app.data.repositories import layer2
 from app.lib.storage import enums
 from app.tasks import layer2_import
 from tests import lib
@@ -36,6 +35,25 @@ class Layer2ImportTest(unittest.TestCase):
 
         return table_resp.table_id
 
+    def _designation(self, pgc: int) -> model.DesignationCatalogObject | None:
+        rows = self.pg_storage.get_storage().query(
+            "SELECT design FROM layer2.designation WHERE pgc = %s",
+            params=[pgc],
+        )
+        if not rows:
+            return None
+        return model.DesignationCatalogObject(design=rows[0]["design"])
+
+    def _icrs(self, pgc: int) -> model.ICRSCatalogObject | None:
+        rows = self.pg_storage.get_storage().query(
+            "SELECT ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = %s",
+            params=[pgc],
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        return model.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
+
     def test_import_two_catalogs(self):
         _ = self._get_table("test_import_two_catalogs")
         self.layer0_repo.register_records(
@@ -58,19 +76,14 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.Layer2CatalogObject(
-            1234, [model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2), model.DesignationCatalogObject("test1")]
-        )
-
-        self.assertEqual(len(actual), 1)
-        lib.assert_layer2_catalog_objects_equal(self, actual, [expected])
+        icrs = self._icrs(1234)
+        designation = self._designation(1234)
+        self.assertIsNotNone(icrs)
+        self.assertIsNotNone(designation)
+        assert icrs is not None
+        assert designation is not None
+        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
+        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test1"))
 
     def test_updated_objects(self):
         self.test_import_two_catalogs()
@@ -96,17 +109,10 @@ class Layer2ImportTest(unittest.TestCase):
         new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.DESIGNATION],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.DesignationCatalogObject("test3")
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(len(actual[0].data), 1)
-        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
+        designation = self._designation(1234)
+        self.assertIsNotNone(designation)
+        assert designation is not None
+        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test3"))
 
     def test_layer1_only_update_recalculates_layer2(self) -> None:
         self.test_import_two_catalogs()
@@ -125,14 +131,7 @@ class Layer2ImportTest(unittest.TestCase):
         new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
-        actual = self.layer2_repo.query_catalogs(
-            [model.RawCatalog.ICRS],
-            layer2.PGCOneOfFilter([1234]),
-            layer2.CombinedSearchParams([]),
-            10,
-            0,
-        )
-        expected = model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2)
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(len(actual[0].data), 1)
-        lib.assert_catalog_object_equal(self, actual[0].data[0], expected)
+        icrs = self._icrs(1234)
+        self.assertIsNotNone(icrs)
+        assert icrs is not None
+        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))
