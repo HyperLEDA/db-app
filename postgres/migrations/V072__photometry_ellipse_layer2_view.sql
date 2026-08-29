@@ -12,7 +12,6 @@ SELECT
 , e.e_pa
 , e.isophote
 , e.e_isophote
-, e.quality
 , t.bib
 , b.code
 , b.year

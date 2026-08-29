@@ -414,7 +414,7 @@ class Repository(postgres.TransactionalPGRepository):
             return {}
         rows = self._storage.query(
             """
-            SELECT pgc, band, method, level, a, e_a, b, e_b, pa, e_pa, isophote, e_isophote, quality,
+            SELECT pgc, band, method, level, a, e_a, b, e_b, pa, e_pa, isophote, e_isophote,
                    code, year, author, title
             FROM layer2.photometry_ellipse
             WHERE pgc = ANY(%s)
@@ -437,7 +437,6 @@ class Repository(postgres.TransactionalPGRepository):
                 e_pa=float(row["e_pa"]) if row.get("e_pa") is not None else None,
                 isophote=float(row["isophote"]) if row.get("isophote") is not None else None,
                 e_isophote=float(row["e_isophote"]) if row.get("e_isophote") is not None else None,
-                quality=str(row["quality"]),
                 source=_source_from_row(row),
             )
             result.setdefault(pgc, []).append(measurement)

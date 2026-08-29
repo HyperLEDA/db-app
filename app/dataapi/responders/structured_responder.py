@@ -103,7 +103,6 @@ def _geometry_measurement(measurement: model.GeometryMeasurement) -> spec.Geomet
         e_pa=measurement.e_pa,
         isophote=measurement.isophote,
         e_isophote=measurement.e_isophote,
-        quality=measurement.quality,
         source=spec.Source(
             bibcode=measurement.source.bibcode,
             title=measurement.source.title,

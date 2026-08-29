@@ -85,7 +85,6 @@ class GeometryMeasurement:
     e_pa: float | None
     isophote: float | None
     e_isophote: float | None
-    quality: str
     source: Source
 
 
