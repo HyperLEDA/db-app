@@ -23,3 +23,10 @@ class RecordTriageStatus(enum.StrEnum):
 class TableStatus(enum.StrEnum):
     INITIATED = "initiated"
     ARCHIVED = "archived"
+
+
+PG_ENUM_REGISTRY: list[tuple[type[enum.Enum], str]] = [
+    (DataType, "common.datatype"),
+    (RecordTriageStatus, "layer0.triage_status"),
+    (TableStatus, "rawdata.status"),
+]

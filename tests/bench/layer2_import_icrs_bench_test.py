@@ -7,6 +7,7 @@ import structlog
 
 from app import tasks
 from app.data import model, repositories
+from app.lib.storage import enums
 from app.tasks import layer2_import_icrs
 from tests import lib
 
@@ -18,7 +19,7 @@ class Layer2ImportIcrsBenchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.WARNING))
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
         cls.storage = cls.pg_storage.get_storage()
         logger = structlog.get_logger()
         cls.common_repo = repositories.CommonRepository(cls.storage, logger)

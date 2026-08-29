@@ -10,10 +10,9 @@ import yaml
 
 from app.adminapi import cache, clients, domain, presentation
 from app.adminapi.domain import table_stats
-from app.data import enums as data_enums
 from app.data import repositories
 from app.lib import audit, auth, commands, config, tracing
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
 
@@ -38,7 +37,7 @@ class AdminAPICommand(commands.Command):
 
         tracing.setup_tracing("adminapi", cfg.tracing)
 
-        self.pg_storage = postgres.PgStorage(cfg.storage, log, data_enums.PG_ENUM_REGISTRY)
+        self.pg_storage = postgres.PgStorage(cfg.storage, log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
 
         authenticator: auth.Authenticator = (

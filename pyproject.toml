@@ -218,7 +218,7 @@ ignore_names = [
 ]
 
 [tool.importlinter]
-root_package = "app"
+root_packages = ["app", "tests"]
 
 [[tool.importlinter.contracts]]
 id = "services-independent"
@@ -249,4 +249,87 @@ layers = [
     "app.adminapi | app.dataapi | app.fieldapi | app.tasks",
     "app.data | app.specs.adminapi | app.specs.dataapi | app.specs.fieldapi",
     "app.lib",
+]
+
+[[tool.importlinter.contracts]]
+id = "test-services-independent"
+name = "Service tests must not import each other"
+type = "independence"
+modules = [
+    "tests.adminapi",
+    "tests.dataapi",
+    "tests.fieldapi",
+    "tests.tasks",
+]
+
+[[tool.importlinter.contracts]]
+id = "test-layers"
+name = "Test packages follow the same layers as application code"
+type = "layers"
+layers = [
+    "tests.adminapi | tests.dataapi | tests.fieldapi | tests.tasks",
+    "tests.data",
+    "tests.lib.unit | tests.lib.integration",
+]
+
+[[tool.importlinter.contracts]]
+id = "test-adminapi-no-other-services"
+name = "Admin API tests must not import other services"
+type = "forbidden"
+source_modules = ["tests.adminapi"]
+forbidden_modules = ["app.dataapi", "app.fieldapi", "app.tasks"]
+
+[[tool.importlinter.contracts]]
+id = "test-dataapi-no-other-services"
+name = "Data API tests must not import other services"
+type = "forbidden"
+source_modules = ["tests.dataapi"]
+forbidden_modules = ["app.adminapi", "app.fieldapi", "app.tasks"]
+
+[[tool.importlinter.contracts]]
+id = "test-fieldapi-no-other-services"
+name = "Field API tests must not import other services"
+type = "forbidden"
+source_modules = ["tests.fieldapi"]
+forbidden_modules = ["app.adminapi", "app.dataapi", "app.tasks"]
+
+[[tool.importlinter.contracts]]
+id = "test-tasks-no-other-services"
+name = "Task tests must not import other services"
+type = "forbidden"
+source_modules = ["tests.tasks"]
+forbidden_modules = ["app.adminapi", "app.dataapi", "app.fieldapi"]
+
+[[tool.importlinter.contracts]]
+id = "test-data-no-services"
+name = "Data tests must not import services"
+type = "forbidden"
+source_modules = ["tests.data"]
+forbidden_modules = [
+    "app.adminapi",
+    "app.dataapi",
+    "app.fieldapi",
+    "app.tasks",
+    "app.specs.adminapi",
+    "app.specs.dataapi",
+    "app.specs.fieldapi",
+]
+
+[[tool.importlinter.contracts]]
+id = "test-lib-no-higher-layers"
+name = "Lib tests must not import higher layers"
+type = "forbidden"
+source_modules = ["tests.lib.unit", "tests.lib.integration"]
+forbidden_modules = [
+    "app.adminapi",
+    "app.dataapi",
+    "app.fieldapi",
+    "app.tasks",
+    "app.data",
+    "app.specs",
+    "tests.adminapi",
+    "tests.dataapi",
+    "tests.fieldapi",
+    "tests.tasks",
+    "tests.data",
 ]

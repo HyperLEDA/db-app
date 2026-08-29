@@ -9,6 +9,7 @@ from concurrent import futures
 import requests
 import structlog
 
+from app.lib.storage import enums
 from tests import lib
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -22,7 +23,7 @@ class DataAPIServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(lib.TestPostgresStorage.get)
+            pg_thread = group.submit(lib.TestPostgresStorage.get, enums.PG_ENUM_REGISTRY)
             port_thread = group.submit(lib.find_free_port)
 
         cls.pg_storage = pg_thread.result()

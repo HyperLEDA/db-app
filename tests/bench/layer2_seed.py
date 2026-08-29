@@ -10,7 +10,7 @@ from fastapi import testclient
 
 from app.data import repositories
 from app.dataapi import clients, command, domain, presentation
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from tests import lib
 
 N_OBJECTS = int(os.environ.get("BENCH_QUERY_N_OBJECTS", "200000"))
@@ -127,7 +127,7 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
 
 def setup_query_simple_bench() -> tuple[lib.TestPostgresStorage, testclient.TestClient, str]:
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.WARNING))
-    pg_storage = lib.TestPostgresStorage.get()
+    pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
     storage = pg_storage.get_storage()
 
     print(f"\nSeeding {N_OBJECTS} layer2 objects...")

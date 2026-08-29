@@ -5,11 +5,10 @@ import pydantic
 import structlog
 import yaml
 
-from app.data import enums as data_enums
 from app.data import repositories
 from app.dataapi import clients, domain, presentation, responders
 from app.lib import commands, config, tracing
-from app.lib.storage import postgres
+from app.lib.storage import enums, postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
 
@@ -33,7 +32,7 @@ class DataAPICommand(commands.Command):
 
         tracing.setup_tracing("dataapi", self.config.tracing)
 
-        self.pg_storage = postgres.PgStorage(self.config.storage, log, data_enums.PG_ENUM_REGISTRY)
+        self.pg_storage = postgres.PgStorage(self.config.storage, log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
 
         actions = domain.Actions(

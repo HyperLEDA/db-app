@@ -5,7 +5,6 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import enums as data_enums
 from app.data import model, repositories
 from app.lib.storage import enums, postgres
 from app.tasks import interface
@@ -55,7 +54,7 @@ class Layer2StorageTask(interface.Task, abc.ABC):
         self.log = logger
 
     def prepare(self, config: interface.Config) -> None:
-        self.pg_storage = postgres.PgStorage(config.storage, self.log, data_enums.PG_ENUM_REGISTRY)
+        self.pg_storage = postgres.PgStorage(config.storage, self.log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
         self.layer2_repository = repositories.Layer2Repository(self.pg_storage, self.log)
 

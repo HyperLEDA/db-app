@@ -7,13 +7,14 @@ from astropy import units as u
 
 from app.data import model, repositories
 from app.data.repositories import layer2
+from app.lib.storage import enums
 from tests import lib
 
 
 class Layer2RepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get()
+        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
