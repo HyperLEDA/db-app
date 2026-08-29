@@ -4,6 +4,7 @@ from astropy import units as u
 
 from app.data import model
 from app.data.model import layer2
+from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
 from app.lib import astronomy, config
 from app.specs import dataapi as spec
@@ -60,8 +61,9 @@ class CatalogConfig(config.BaseConfigSettings):
 
 
 class StructuredResponder(interface.ObjectResponder):
-    def __init__(self, cfg: CatalogConfig) -> None:
+    def __init__(self, cfg: CatalogConfig, reddening_service: reddening.Reddening) -> None:
         self.config = cfg
+        self.reddening_service = reddening_service
 
     def _coordinates_from_icrs(self, ra: float, dec: float, e_ra: float, e_dec: float) -> spec.Coordinates:
         eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
@@ -115,6 +117,70 @@ class StructuredResponder(interface.ObjectResponder):
             )
         return velocities
 
+    def _photometry_total_measurement(
+        self, measurement: layer2.PhotometryTotalMeasurement
+    ) -> spec.PhotometryTotalMeasurement:
+        return spec.PhotometryTotalMeasurement(
+            band=measurement.band,
+            magsys=measurement.magsys,
+            method=measurement.method,
+            wavelength=measurement.wavelength,
+            mag=measurement.mag,
+            e_mag=measurement.e_mag,
+        )
+
+    def _fetch_corrected_photometry(
+        self,
+        objects: list[layer2.Layer2Object],
+    ) -> dict[int, list[spec.PhotometryTotalMeasurement]]:
+        correction_work: list[tuple[int, layer2.ICRSCatalog, list[layer2.PhotometryTotalMeasurement]]] = []
+        for obj in objects:
+            if obj.catalogs.photometry_total is None or obj.catalogs.icrs is None:
+                continue
+            correction_work.append((obj.pgc, obj.catalogs.icrs, obj.catalogs.photometry_total.measurements))
+
+        query_list: list[reddening.ReddeningQuery] = []
+        query_key_to_index: dict[tuple[str, float, float], int] = {}
+        for _, icrs, measurements in correction_work:
+            coordinate = spec.J2000Coordinate(ra=icrs.ra, dec=icrs.dec)
+            for photsys in {measurement.photsys for measurement in measurements}:
+                key = (photsys, icrs.ra, icrs.dec)
+                if key not in query_key_to_index:
+                    query_key_to_index[key] = len(query_list)
+                    query_list.append(reddening.ReddeningQuery(photsys=photsys, coordinate=coordinate))
+
+        if not query_list:
+            return {}
+
+        results = self.reddening_service.calculate(query_list)
+        extinction_lookup: dict[tuple[str, float, float, str], float] = {}
+        for query_index, query in enumerate(query_list):
+            ra = query.coordinate.ra
+            dec = query.coordinate.dec
+            for filter_value in results[query_index].filters:
+                extinction_lookup[(query.photsys, ra, dec, filter_value.filter)] = filter_value.a
+
+        corrected_by_pgc: dict[int, list[spec.PhotometryTotalMeasurement]] = {}
+        for pgc, icrs, measurements in correction_work:
+            corrected: list[spec.PhotometryTotalMeasurement] = []
+            for measurement in measurements:
+                extinction = extinction_lookup.get((measurement.photsys, icrs.ra, icrs.dec, measurement.filter))
+                if extinction is None:
+                    continue
+                corrected.append(
+                    spec.PhotometryTotalMeasurement(
+                        band=measurement.band,
+                        magsys=measurement.magsys,
+                        method=measurement.method,
+                        wavelength=measurement.wavelength,
+                        mag=measurement.mag - extinction,
+                        e_mag=measurement.e_mag,
+                    )
+                )
+            if corrected:
+                corrected_by_pgc[pgc] = corrected
+        return corrected_by_pgc
+
     def build_response_from_catalog(self, objects: list[layer2.Layer2CatalogObject]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
@@ -154,7 +220,8 @@ class StructuredResponder(interface.ObjectResponder):
 
     def build_response(self, objects: list[layer2.Layer2Object]) -> Any:
         catalog_schema = DATA_SCHEMA
-        pgc_objects = []
+        pgc_objects: list[spec.PGCObject] = []
+        corrected_photometry_by_pgc = self._fetch_corrected_photometry(objects)
 
         for obj in objects:
             catalogs = spec.Catalogs()
@@ -203,16 +270,12 @@ class StructuredResponder(interface.ObjectResponder):
 
             if obj.catalogs.photometry_total is not None:
                 catalogs.photometry_total = [
-                    spec.PhotometryTotalMeasurement(
-                        band=measurement.band,
-                        magsys=measurement.magsys,
-                        method=measurement.method,
-                        wavelength=measurement.wavelength,
-                        mag=measurement.mag,
-                        e_mag=measurement.e_mag,
-                    )
+                    self._photometry_total_measurement(measurement)
                     for measurement in obj.catalogs.photometry_total.measurements
                 ]
+
+            if corrected_photometry := corrected_photometry_by_pgc.get(obj.pgc):
+                catalogs.photometry_total_corrected = corrected_photometry
 
             if icrs is not None and obj.catalogs.redshift is not None and catalogs.coordinates is not None:
                 redshift = obj.catalogs.redshift
