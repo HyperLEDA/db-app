@@ -66,8 +66,7 @@ class Layer2ImportTask(layer2_common.Layer2CatalogImportTask):
                 cleanup_orphans=self.cleanup_orphans,
             )
             task.pg_storage = self.pg_storage
-            task.layer1_repository = self.layer1_repository
-            task.layer2_repository = self.layer2_repository
+            task.repository = self.repository
             task.run()
 
         self.log.info("Layer 2 import completed", catalogs=self.catalogs)

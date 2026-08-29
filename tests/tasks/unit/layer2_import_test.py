@@ -218,8 +218,7 @@ class Layer2ImportTaskParamsTest(unittest.TestCase):
             catalogs=["designation"],
         )
         task.pg_storage = mock.Mock()
-        task.layer1_repository = mock.Mock()
-        task.layer2_repository = mock.Mock()
+        task.repository = mock.Mock()
 
         designation_cls = mock.Mock()
         child = mock.Mock()

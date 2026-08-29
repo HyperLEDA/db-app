@@ -72,84 +72,6 @@ class Layer1RepositoryTest(unittest.TestCase):
         result = self.pg_storage.storage.query("SELECT ra FROM icrs.data ORDER BY ra")
         self.assertEqual(result, [{"ra": 11.1}, {"ra": 12.1}])
 
-    def test_get_new_nature_records_returns_empty_when_no_nature_data(self) -> None:
-        self._get_table("empty_table")
-        self.layer0_repo.register_records("empty_table", ["r1"])
-        self.common_repo.register_pgcs([100])
-        self.layer0_repo.upsert_pgc({"r1": 100})
-
-        result = self.layer1_repo.get_new_nature_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), 10, 0)
-        self.assertEqual(len(result), 0)
-
-    def test_get_new_nature_records_returns_all_when_dt_is_epoch(self) -> None:
-        self._insert_nature_data(
-            "t1",
-            ["rec1", "rec2"],
-            {"rec1": 1001, "rec2": 1002},
-            [["G"], ["QSO"]],
-        )
-
-        result = self.layer1_repo.get_new_nature_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), 10, 0)
-
-        self.assertEqual(len(result), 2)
-        by_pgc = {int(pgc): str(type_name) for pgc, type_name in zip(result["pgc"], result["type_name"], strict=True)}
-        self.assertEqual(by_pgc[1001], "G")
-        self.assertEqual(by_pgc[1002], "QSO")
-
-    def test_get_new_nature_records_returns_empty_when_dt_is_in_future(self) -> None:
-        self._insert_nature_data(
-            "t1",
-            ["rec1"],
-            {"rec1": 1001},
-            [["G"]],
-        )
-
-        future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
-        result = self.layer1_repo.get_new_nature_records(future, 10, 0)
-
-        self.assertEqual(len(result), 0)
-
-    def test_get_new_nature_records_respects_limit_and_offset_by_pgc(self) -> None:
-        self._insert_nature_data(
-            "t1",
-            ["r1", "r2", "r3"],
-            {"r1": 10, "r2": 20, "r3": 30},
-            [["G"], ["*"], ["?"]],
-        )
-        dt = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
-
-        first_batch = self.layer1_repo.get_new_nature_records(dt, limit=1, offset=0)
-        self.assertEqual(len(first_batch), 1)
-        self.assertEqual(int(first_batch["pgc"][0]), 10)
-        self.assertEqual(str(first_batch["type_name"][0]), "G")
-
-        second_batch = self.layer1_repo.get_new_nature_records(dt, limit=1, offset=10)
-        self.assertEqual(len(second_batch), 1)
-        self.assertEqual(int(second_batch["pgc"][0]), 20)
-        self.assertEqual(str(second_batch["type_name"][0]), "*")
-
-        third_batch = self.layer1_repo.get_new_nature_records(dt, limit=1, offset=20)
-        self.assertEqual(len(third_batch), 1)
-        self.assertEqual(int(third_batch["pgc"][0]), 30)
-
-    def test_get_new_nature_records_returns_all_records_for_same_pgc_in_one_batch(
-        self,
-    ) -> None:
-        self._insert_nature_data(
-            "t1",
-            ["r1", "r2"],
-            {"r1": 99, "r2": 99},
-            [["G"], ["*"]],
-        )
-
-        result = self.layer1_repo.get_new_nature_records(
-            datetime.datetime.fromtimestamp(0, tz=datetime.UTC), limit=10, offset=0
-        )
-
-        self.assertEqual(len(result), 2)
-        self.assertEqual({int(pgc) for pgc in result["pgc"]}, {99})
-        self.assertEqual({str(t) for t in result["type_name"]}, {"G", "*"})
-
     def test_designation_multiple_names_per_record(self) -> None:
         self._get_table("desig_table")
         self.layer0_repo.register_records("desig_table", ["r1"])
@@ -167,30 +89,6 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
 
         self.assertEqual(result, [{"design": "M 31"}, {"design": "NGC 224"}])
-
-    def test_get_new_redshift_records_defaults_null_e_cz(self) -> None:
-        self._get_table("cz_table")
-        self.layer0_repo.register_records("cz_table", ["r1", "r2"])
-        self.common_repo.register_pgcs([10, 20])
-        self.layer0_repo.upsert_pgc({"r1": 10, "r2": 20})
-        self.layer1_repo.save_structured_data(
-            model.RedshiftCatalogObject.layer1_table(),
-            model.RedshiftCatalogObject.layer1_keys(),
-            ["r1", "r2"],
-            [[1000.0, 10.0], [2000.0, None]],
-            conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
-        )
-
-        result = self.layer1_repo.get_new_redshift_records(
-            datetime.datetime.fromtimestamp(0, tz=datetime.UTC), limit=10, offset=0
-        )
-
-        self.assertEqual(len(result), 2)
-        by_pgc = {
-            int(pgc): (float(cz.to_value(u.Unit("km/s"))), float(e_cz.to_value(u.Unit("km/s"))))
-            for pgc, cz, e_cz in zip(result["pgc"], result["cz"], result["e_cz"], strict=True)
-        }
-        self.assertEqual(by_pgc, {10: (1000.0, 10.0), 20: (2000.0, 100.0)})
 
     def test_get_redshift_records_defaults_null_e_cz(self) -> None:
         self._get_table("cz_table")
@@ -236,10 +134,3 @@ class Layer1RepositoryTest(unittest.TestCase):
             params=[5001],
         )
         self.assertGreater(row["modification_time"].replace(tzinfo=datetime.UTC), old_dt)
-
-        after_old = self.layer1_repo.get_new_nature_records(datetime.datetime(2000, 1, 2, tzinfo=datetime.UTC), 10, 0)
-        self.assertEqual(len(after_old), 1)
-        self.assertEqual(int(after_old["pgc"][0]), 5001)
-
-        future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
-        self.assertEqual(len(self.layer1_repo.get_new_nature_records(future, 10, 0)), 0)

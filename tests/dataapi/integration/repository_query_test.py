@@ -1,7 +1,6 @@
 import unittest
 
 import structlog
-from astropy import table
 from astropy import units as u
 
 from app.data import model, repositories
@@ -18,13 +17,13 @@ class RepositoryQueryTest(unittest.TestCase):
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def _save_layer2_data(self, objects: list[model.Layer2CatalogObject]) -> None:
+        storage = self.pg_storage.get_storage()
         by_table: dict[str, list[tuple[int, model.CatalogObject]]] = {}
         for obj in objects:
             for catalog_obj in obj.data:
@@ -36,10 +35,15 @@ class RepositoryQueryTest(unittest.TestCase):
             if not table_entries:
                 continue
             columns = table_entries[0][1].layer2_keys()
-            qtable_data: dict[str, list[object]] = {"pgc": [pgc for pgc, _ in table_entries]}
-            for column in columns:
-                qtable_data[column] = [catalog_obj.layer2_data()[column] for _, catalog_obj in table_entries]
-            self.layer2_repo.save(table_name, table.QTable(qtable_data))
+            all_columns = ["pgc", *columns]
+            placeholders = ", ".join(["%s"] * len(all_columns))
+            update_set = ", ".join(f"{col} = EXCLUDED.{col}" for col in all_columns)
+            query = (
+                f"INSERT INTO {table_name} ({', '.join(all_columns)}) "
+                f"VALUES ({placeholders}) ON CONFLICT (pgc) DO UPDATE SET {update_set}"
+            )
+            rows = [[pgc, *[catalog_obj.layer2_data()[col] for col in columns]] for pgc, catalog_obj in table_entries]
+            storage.execute_batch(query, rows)
 
     def _get_table(self, table_name: str) -> int:
         bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")

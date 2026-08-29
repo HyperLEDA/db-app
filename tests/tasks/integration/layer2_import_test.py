@@ -5,7 +5,7 @@ import structlog
 from app import tasks
 from app.data import model, repositories
 from app.lib.storage import enums
-from app.tasks import layer2_import
+from app.tasks import layer2_import, repository
 from tests import lib
 
 
@@ -17,7 +17,7 @@ class Layer2ImportTest(unittest.TestCase):
         cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
         cls.task = layer2_import.Layer2ImportTask(structlog.get_logger())
         cls.task.prepare(tasks.Config(storage=cls.pg_storage.config))
@@ -94,7 +94,7 @@ class Layer2ImportTest(unittest.TestCase):
         )
         self.layer0_repo.upsert_pgc({"125": 1234, "126": 1234})
 
-        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
 
         self.layer1_repo.save_structured_data(
             "designation.data",
@@ -106,7 +106,7 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
         designation = self._designation(1234)
@@ -117,7 +117,7 @@ class Layer2ImportTest(unittest.TestCase):
     def test_layer1_only_update_recalculates_layer2(self) -> None:
         self.test_import_two_catalogs()
 
-        last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
 
         self.layer1_repo.save_structured_data(
             "icrs.data",
@@ -128,7 +128,7 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.layer2_repo.get_last_update_time(model.RawCatalog.ICRS)
+        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
         icrs = self._icrs(1234)
