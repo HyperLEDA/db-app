@@ -1,6 +1,6 @@
 from typing import final
 
-from app.data import model
+from app import catalogs
 from app.dataapi import clients, repository, responders
 from app.dataapi.domain import parameterized_query, reddening
 from app.dataapi.presentation import interface
@@ -9,10 +9,10 @@ from app.lib.web import errors
 from app.specs import dataapi as spec
 
 ENABLED_CATALOGS = [
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.ICRS,
-    model.RawCatalog.REDSHIFT,
-    model.RawCatalog.NATURE,
+    catalogs.RawCatalog.DESIGNATION,
+    catalogs.RawCatalog.ICRS,
+    catalogs.RawCatalog.REDSHIFT,
+    catalogs.RawCatalog.NATURE,
 ]
 
 METADATA_ALLOWED_SCHEMAS = frozenset(

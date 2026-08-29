@@ -3,8 +3,7 @@ from typing import Any
 import structlog
 from psycopg import rows
 
-from app.data import model
-from app.data.model import Layer2CatalogObject
+from app import catalogs
 from app.lib import containers
 from app.lib.storage import postgres
 
@@ -16,20 +15,20 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs_pgc(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[Layer2CatalogObject]:
-        if not catalogs:
+    ) -> list[catalogs.Layer2CatalogObject]:
+        if not raw_catalogs:
             return []
 
         cte_parts = []
         select_parts = []
         join_parts = []
 
-        for i, catalog in enumerate(catalogs):
-            object_cls = model.get_catalog_object_type(catalog)
+        for i, catalog in enumerate(raw_catalogs):
+            object_cls = catalogs.get_catalog_object_type(catalog)
             table_name = object_cls.layer2_table()
             alias = f"t{i}"
 
@@ -56,26 +55,26 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
         query = f"""
             WITH {", ".join(cte_parts)}
-            SELECT COALESCE({", ".join([f"t{i}.pgc" for i in range(len(catalogs))])}) AS pgc,
+            SELECT COALESCE({", ".join([f"t{i}.pgc" for i in range(len(raw_catalogs))])}) AS pgc,
                    {", ".join(select_parts)}
             {" ".join(join_parts)}
             ORDER BY pgc
             LIMIT %s OFFSET %s
         """
 
-        query_params = [pgc_numbers] * len(catalogs) + [limit, offset]
+        query_params = [pgc_numbers] * len(raw_catalogs) + [limit, offset]
 
         objects = self._storage.query(query, params=query_params)
 
         return _group_by_pgc(objects)
 
 
-def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject]:
+def _group_by_pgc(objects: list[rows.DictRow]) -> list[catalogs.Layer2CatalogObject]:
     objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
     result = []
 
     for pgc, pgc_objects in objects_by_pgc.items():
-        layer2_obj = model.Layer2CatalogObject(pgc, [])
+        layer2_obj = catalogs.Layer2CatalogObject(pgc, [])
 
         obj = pgc_objects[0]
         if "record_id" in obj:
@@ -83,12 +82,12 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
         if "pgc" in obj:
             obj.pop("pgc")
 
-        res: dict[model.RawCatalog, dict[str, Any]] = {}
-        presence_flags: dict[model.RawCatalog, bool] = {}
+        res: dict[catalogs.RawCatalog, dict[str, Any]] = {}
+        presence_flags: dict[catalogs.RawCatalog, bool] = {}
 
         for key, value in obj.items():
             catalog_name, column = key.split("|")
-            catalog = model.RawCatalog(catalog_name)
+            catalog = catalogs.RawCatalog(catalog_name)
 
             if column == "_present":
                 presence_flags[catalog] = bool(value)
@@ -98,7 +97,7 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
                 res[catalog][column] = value
 
         for catalog, data in res.items():
-            object_cls = model.get_catalog_object_type(catalog)
+            object_cls = catalogs.get_catalog_object_type(catalog)
 
             if presence_flags.get(catalog, False):
                 layer2_obj.data.append(object_cls.from_layer2(data))

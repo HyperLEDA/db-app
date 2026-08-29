@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.data.model import interface
+from app.catalogs import interface
 
 
 @final

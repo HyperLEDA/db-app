@@ -6,7 +6,7 @@ from astropy import table
 from astropy import units as u
 from psycopg import sql
 
-from app.data import model
+from app import catalogs
 from app.lib.storage import postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -18,21 +18,21 @@ class Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def get_last_update_time(self, catalog: model.RawCatalog) -> datetime.datetime:
+    def get_last_update_time(self, catalog: catalogs.RawCatalog) -> datetime.datetime:
         return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=[catalog.value])[
             "dt"
         ]
 
-    def update_last_update_time(self, dt: datetime.datetime, catalog: model.RawCatalog) -> None:
+    def update_last_update_time(self, dt: datetime.datetime, catalog: catalogs.RawCatalog) -> None:
         self._storage.exec(
             "UPDATE layer2.last_update SET dt = %s WHERE catalog = %s",
             params=[dt, catalog.value],
         )
 
-    def get_orphaned_pgcs(self, catalogs: list[model.RawCatalog]) -> dict[str, list[int]]:
+    def get_orphaned_pgcs(self, raw_catalogs: list[catalogs.RawCatalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
+        for catalog in raw_catalogs:
+            object_cls = catalogs.get_catalog_object_type(catalog)
             layer2_table = object_cls.layer2_table()
             layer1_table = object_cls.layer1_table()
             query = f"""
@@ -48,12 +48,12 @@ class Repository(postgres.TransactionalPGRepository):
             result[layer2_table] = [int(row["pgc"]) for row in rows_result]
         return result
 
-    def remove_pgcs(self, catalogs: list[model.RawCatalog], pgcs: list[int]) -> None:
+    def remove_pgcs(self, raw_catalogs: list[catalogs.RawCatalog], pgcs: list[int]) -> None:
         if not pgcs:
             return
 
-        for catalog in catalogs:
-            object_cls = model.get_catalog_object_type(catalog)
+        for catalog in raw_catalogs:
+            object_cls = catalogs.get_catalog_object_type(catalog)
             layer2_table = object_cls.layer2_table()
             query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
             self._storage.exec(query, params=[pgcs])
@@ -116,7 +116,7 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        units = self._get_layer1_column_units(model.RawCatalog.ICRS)
+        units = self._get_layer1_column_units(catalogs.RawCatalog.ICRS)
         return table.QTable(
             {
                 "pgc": [int(r["pgc"]) for r in rows],
@@ -137,7 +137,7 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        units = self._get_layer1_column_units(model.RawCatalog.REDSHIFT)
+        units = self._get_layer1_column_units(catalogs.RawCatalog.REDSHIFT)
         e_cz_unit = u.Unit(units["e_cz"])
         default_e_cz = float(_DEFAULT_E_CZ.to_value(e_cz_unit))
         return table.QTable(
@@ -169,8 +169,8 @@ class Repository(postgres.TransactionalPGRepository):
         )
         return {row["column_name"]: row["unit"] for row in rows}
 
-    def _get_layer1_column_units(self, catalog: model.RawCatalog) -> dict[str, str]:
-        object_cls = model.get_catalog_object_type(catalog)
+    def _get_layer1_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
+        object_cls = catalogs.get_catalog_object_type(catalog)
         schema, table_name = object_cls.layer1_table().split(".")
         return self._get_column_units(schema, table_name)
 

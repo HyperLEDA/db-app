@@ -249,7 +249,7 @@ name = "Layered architecture"
 type = "layers"
 layers = [
     "app.adminapi | app.dataapi | app.fieldapi | app.tasks",
-    "app.data | app.specs.adminapi | app.specs.dataapi | app.specs.fieldapi",
+    "app.catalogs | app.specs.adminapi | app.specs.dataapi | app.specs.fieldapi",
     "app.lib",
 ]
 
@@ -327,7 +327,7 @@ forbidden_modules = [
     "app.dataapi",
     "app.fieldapi",
     "app.tasks",
-    "app.data",
+    "app.catalogs",
     "app.specs",
     "tests.adminapi",
     "tests.dataapi",

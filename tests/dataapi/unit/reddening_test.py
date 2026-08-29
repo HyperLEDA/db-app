@@ -1,7 +1,6 @@
 import unittest
 
-from app.data.model import layer2
-from app.dataapi import clients, domain, repository, responders
+from app.dataapi import clients, domain, model, repository, responders
 from app.dataapi.domain import reddening
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
@@ -141,15 +140,15 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
         self.responder = StructuredResponder(_catalog_config(), self.reddening_service)
 
     def test_build_response_returns_observed_and_corrected_photometry(self) -> None:
-        icrs = layer2.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
+        icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
         objects = [
-            layer2.Layer2Object(
+            model.Layer2Object(
                 pgc=5001,
-                catalogs=layer2.Catalogs(
+                catalogs=model.Catalogs(
                     icrs=icrs,
-                    photometry_total=layer2.PhotometryTotalCatalog(
+                    photometry_total=model.PhotometryTotalCatalog(
                         measurements=[
-                            layer2.PhotometryTotalMeasurement(
+                            model.PhotometryTotalMeasurement(
                                 band="V",
                                 magsys="Vega",
                                 method="psf",
@@ -159,7 +158,7 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
                                 photsys="UBVRIJHKL",
                                 filter="V",
                             ),
-                            layer2.PhotometryTotalMeasurement(
+                            model.PhotometryTotalMeasurement(
                                 band="g",
                                 magsys="AB",
                                 method="psf",
@@ -193,12 +192,12 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
 
     def test_build_response_without_icrs_has_no_corrected_photometry(self) -> None:
         objects = [
-            layer2.Layer2Object(
+            model.Layer2Object(
                 pgc=5001,
-                catalogs=layer2.Catalogs(
-                    photometry_total=layer2.PhotometryTotalCatalog(
+                catalogs=model.Catalogs(
+                    photometry_total=model.PhotometryTotalCatalog(
                         measurements=[
-                            layer2.PhotometryTotalMeasurement(
+                            model.PhotometryTotalMeasurement(
                                 band="g",
                                 magsys="AB",
                                 method="psf",

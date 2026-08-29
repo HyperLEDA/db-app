@@ -1,6 +1,6 @@
 from astropy import coordinates as coords
 
-from app.data import model
+from app import catalogs
 from app.dataapi import repository, responders
 from app.dataapi.domain import reddening
 from app.lib import astronomy
@@ -8,33 +8,33 @@ from app.lib.web.errors import RuleValidationError
 from app.specs import dataapi as spec
 
 CATALOGS_FOR_PGC_QUERY = [
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.ADDITIONAL_DESIGNATIONS,
-    model.RawCatalog.ICRS,
-    model.RawCatalog.REDSHIFT,
-    model.RawCatalog.NATURE,
-    model.RawCatalog.NOTE,
-    model.RawCatalog.PHOTOMETRY__TOTAL,
+    catalogs.RawCatalog.DESIGNATION,
+    catalogs.RawCatalog.ADDITIONAL_DESIGNATIONS,
+    catalogs.RawCatalog.ICRS,
+    catalogs.RawCatalog.REDSHIFT,
+    catalogs.RawCatalog.NATURE,
+    catalogs.RawCatalog.NOTE,
+    catalogs.RawCatalog.PHOTOMETRY__TOTAL,
 ]
 
 
 def resolve_query_catalogs(
     catalog_names: list[str] | None,
-    default_catalogs: list[model.RawCatalog],
-) -> list[model.RawCatalog]:
+    default_catalogs: list[catalogs.RawCatalog],
+) -> list[catalogs.RawCatalog]:
     if catalog_names is None:
         return default_catalogs
     if not catalog_names:
         raise RuleValidationError("catalogs must not be empty")
 
     allowed = set(default_catalogs)
-    result: list[model.RawCatalog] = []
-    seen: set[model.RawCatalog] = set()
+    result: list[catalogs.RawCatalog] = []
+    seen: set[catalogs.RawCatalog] = set()
     for name in catalog_names:
         try:
-            catalog = model.RawCatalog(name)
+            catalog = catalogs.RawCatalog(name)
         except ValueError as exc:
-            valid = ", ".join(c.value for c in model.RawCatalog)
+            valid = ", ".join(c.value for c in catalogs.RawCatalog)
             raise RuleValidationError(f"Unknown catalog {name!r}; valid values are: {valid}") from exc
         if catalog not in allowed:
             allowed_names = ", ".join(c.value for c in default_catalogs)
@@ -82,7 +82,7 @@ class ParameterizedQueryManager:
     def __init__(
         self,
         repo: repository.Repository,
-        enabled_catalogs: list[model.RawCatalog],
+        enabled_catalogs: list[catalogs.RawCatalog],
         catalog_cfg: responders.CatalogConfig,
         reddening_service: reddening.Reddening,
     ) -> None:
@@ -95,20 +95,20 @@ class ParameterizedQueryManager:
         responder = responders.StructuredResponder(self.catalog_config, self.reddening_service)
         offset = query.page * query.page_size
         if query.pgcs:
-            catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
+            raw_catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
             objects = self.repo.query_pgc(
-                catalogs,
+                raw_catalogs,
                 query.pgcs,
                 query.page_size,
                 offset,
             )
             return responder.build_response(objects)
 
-        catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
+        raw_catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
         filters, search_params, ordering = _build_filters_and_params(query)
 
         objects = self.repo.query_catalogs(
-            catalogs,
+            raw_catalogs,
             filters,
             search_params,
             query.page_size,

@@ -2,8 +2,7 @@ import unittest
 
 import structlog
 
-from app import tasks
-from app.data import model
+from app import catalogs, tasks
 from app.lib.storage import enums
 from app.tasks import layer2_import, repository
 from tests import lib
@@ -30,16 +29,16 @@ class Layer2ImportTest(unittest.TestCase):
         bib_id = layer_seed.create_bibliography(self.storage, "123456", 2000, ["test"], "test")
         return layer_seed.create_table(self.storage, table_name, bib_id)
 
-    def _designation(self, pgc: int) -> model.DesignationCatalogObject | None:
+    def _designation(self, pgc: int) -> catalogs.DesignationCatalogObject | None:
         rows = self.storage.query(
             "SELECT design FROM layer2.designation WHERE pgc = %s",
             params=[pgc],
         )
         if not rows:
             return None
-        return model.DesignationCatalogObject(design=rows[0]["design"])
+        return catalogs.DesignationCatalogObject(design=rows[0]["design"])
 
-    def _icrs(self, pgc: int) -> model.ICRSCatalogObject | None:
+    def _icrs(self, pgc: int) -> catalogs.ICRSCatalogObject | None:
         rows = self.storage.query(
             "SELECT ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = %s",
             params=[pgc],
@@ -47,7 +46,7 @@ class Layer2ImportTest(unittest.TestCase):
         if not rows:
             return None
         row = rows[0]
-        return model.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
+        return catalogs.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
 
     def test_import_two_catalogs(self):
         _ = self._get_table("test_import_two_catalogs")
@@ -71,7 +70,7 @@ class Layer2ImportTest(unittest.TestCase):
             ["design"],
             ["123", "124"],
             [["test1"], ["test2"]],
-            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
         )
 
         self.task.run()
@@ -82,8 +81,8 @@ class Layer2ImportTest(unittest.TestCase):
         self.assertIsNotNone(designation)
         assert icrs is not None
         assert designation is not None
-        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
-        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test1"))
+        lib.assert_catalog_object_equal(self, icrs, catalogs.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
+        lib.assert_catalog_object_equal(self, designation, catalogs.DesignationCatalogObject("test1"))
 
     def test_updated_objects(self):
         self.test_import_two_catalogs()
@@ -95,7 +94,7 @@ class Layer2ImportTest(unittest.TestCase):
         )
         layer_seed.upsert_pgc(self.storage, {"125": 1234, "126": 1234})
 
-        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        last_update_dt = self.repo.get_last_update_time(catalogs.RawCatalog.DESIGNATION)
 
         layer_seed.save_structured_data(
             self.storage,
@@ -103,23 +102,23 @@ class Layer2ImportTest(unittest.TestCase):
             ["design"],
             ["125", "126"],
             [["test3"], ["test3"]],
-            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
         )
 
         self.task.run()
 
-        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.DESIGNATION)
+        new_last_update_dt = self.repo.get_last_update_time(catalogs.RawCatalog.DESIGNATION)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
         designation = self._designation(1234)
         self.assertIsNotNone(designation)
         assert designation is not None
-        lib.assert_catalog_object_equal(self, designation, model.DesignationCatalogObject("test3"))
+        lib.assert_catalog_object_equal(self, designation, catalogs.DesignationCatalogObject("test3"))
 
     def test_layer1_only_update_recalculates_layer2(self) -> None:
         self.test_import_two_catalogs()
 
-        last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
+        last_update_dt = self.repo.get_last_update_time(catalogs.RawCatalog.ICRS)
 
         layer_seed.save_structured_data(
             self.storage,
@@ -131,10 +130,10 @@ class Layer2ImportTest(unittest.TestCase):
 
         self.task.run()
 
-        new_last_update_dt = self.repo.get_last_update_time(model.RawCatalog.ICRS)
+        new_last_update_dt = self.repo.get_last_update_time(catalogs.RawCatalog.ICRS)
         self.assertGreater(new_last_update_dt, last_update_dt)
 
         icrs = self._icrs(1234)
         self.assertIsNotNone(icrs)
         assert icrs is not None
-        lib.assert_catalog_object_equal(self, icrs, model.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))
+        lib.assert_catalog_object_equal(self, icrs, catalogs.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))

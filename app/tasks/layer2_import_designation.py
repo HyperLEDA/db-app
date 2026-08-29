@@ -4,15 +4,14 @@ from typing import final
 import structlog
 from astropy import table
 
-from app.data import model
-from app.data.schema.layer2 import Designation
+from app import catalogs
 from app.lib import containers
 from app.tasks import layer2_common, logging
 
 
 def aggregate_designation(tbl: table.QTable) -> table.QTable:
     pgcs, designs = layer2_common.majority_vote_by_pgc(tbl, "design")
-    return table.QTable({Designation.PGC: pgcs, Designation.DESIGN: designs})
+    return table.QTable({"pgc": pgcs, "design": designs})
 
 
 @final
@@ -43,7 +42,7 @@ class Layer2ImportDesignationTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.DESIGNATION)
+            last_update_dt = self.repository.get_last_update_time(catalogs.RawCatalog.DESIGNATION)
         self.log.info(
             "Starting Layer 2 designation import",
             last_update=last_update_dt.ctime(),
@@ -72,7 +71,7 @@ class Layer2ImportDesignationTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(model.RawCatalog.DESIGNATION)
+        orphans_to_delete = self.finalize_catalog(catalogs.RawCatalog.DESIGNATION)
         self.log.info("Layer 2 designation import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

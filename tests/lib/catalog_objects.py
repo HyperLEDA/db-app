@@ -1,9 +1,9 @@
 import unittest
 
-from app.data import model
+from app import catalogs
 
 
-def catalog_objects_equal(actual: model.CatalogObject, expected: model.CatalogObject) -> bool:
+def catalog_objects_equal(actual: catalogs.CatalogObject, expected: catalogs.CatalogObject) -> bool:
     if type(actual) is not type(expected):
         return False
     try:
@@ -14,8 +14,8 @@ def catalog_objects_equal(actual: model.CatalogObject, expected: model.CatalogOb
 
 def assert_catalog_object_equal(
     testcase: unittest.TestCase,
-    actual: model.CatalogObject,
-    expected: model.CatalogObject,
+    actual: catalogs.CatalogObject,
+    expected: catalogs.CatalogObject,
 ) -> None:
     testcase.assertTrue(
         catalog_objects_equal(actual, expected),
@@ -25,8 +25,8 @@ def assert_catalog_object_equal(
 
 def assert_layer2_catalog_objects_equal(
     testcase: unittest.TestCase,
-    actual: list[model.Layer2CatalogObject],
-    expected: list[model.Layer2CatalogObject],
+    actual: list[catalogs.Layer2CatalogObject],
+    expected: list[catalogs.Layer2CatalogObject],
 ) -> None:
     testcase.assertEqual(len(actual), len(expected))
     for act, exp in zip(actual, expected, strict=True):

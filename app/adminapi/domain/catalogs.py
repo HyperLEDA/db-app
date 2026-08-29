@@ -1,7 +1,7 @@
 from typing import Any, final
 
+from app import catalogs
 from app.adminapi import repository
-from app.data import model
 from app.specs import adminapi as spec
 
 _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
@@ -28,16 +28,16 @@ class CatalogManager:
         self._repo = repo
 
     def get_catalogs(self) -> spec.GetCatalogsResponse:
-        catalogs: list[spec.CatalogSchema] = []
-        for catalog in model.RawCatalog:
-            if catalog in model.RUNTIME_RAW_CATALOGS:
+        catalog_schemas: list[spec.CatalogSchema] = []
+        for catalog in catalogs.RawCatalog:
+            if catalog in catalogs.RUNTIME_RAW_CATALOGS:
                 continue
-            object_cls = model.get_catalog_object_type(catalog)
+            object_cls = catalogs.get_catalog_object_type(catalog)
             layer1_table = object_cls.layer1_table()
             schema, table = layer1_table.split(".", maxsplit=1)
             rows = self._repo.get_catalog_columns(schema, table)
             fields = [_field_from_row(row) for row in rows if row["column_name"] not in _INTERNAL_COLUMNS]
-            catalogs.append(
+            catalog_schemas.append(
                 spec.CatalogSchema(
                     catalog=catalog.value,
                     title=object_cls.title(),
@@ -45,4 +45,4 @@ class CatalogManager:
                     fields=fields,
                 )
             )
-        return spec.GetCatalogsResponse(catalogs=catalogs)
+        return spec.GetCatalogsResponse(catalogs=catalog_schemas)

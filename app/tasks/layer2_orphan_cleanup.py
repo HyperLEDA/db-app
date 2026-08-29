@@ -2,14 +2,14 @@ from typing import final
 
 import structlog
 
-from app.data import model
+from app import catalogs
 from app.tasks import layer2_common
 
-catalogs = [
-    model.RawCatalog.ICRS,
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.REDSHIFT,
-    model.RawCatalog.NATURE,
+RAW_CATALOGS = [
+    catalogs.RawCatalog.ICRS,
+    catalogs.RawCatalog.DESIGNATION,
+    catalogs.RawCatalog.REDSHIFT,
+    catalogs.RawCatalog.NATURE,
 ]
 
 
@@ -29,7 +29,7 @@ class Layer2OrphanCleanupTask(layer2_common.Layer2StorageTask):
 
     def run(self) -> None:
         self.log.info("Starting Layer 2 orphan cleanup", write=self.write)
-        orphaned = self.repository.get_orphaned_pgcs(catalogs)
+        orphaned = self.repository.get_orphaned_pgcs(RAW_CATALOGS)
         total = 0
         for table, pgcs in orphaned.items():
             count = len(pgcs)
@@ -40,7 +40,7 @@ class Layer2OrphanCleanupTask(layer2_common.Layer2StorageTask):
 
         if self.write:
             pgcs_to_remove = sorted({pgc for pgcs in orphaned.values() for pgc in pgcs})
-            self.repository.remove_pgcs(catalogs, pgcs_to_remove)
+            self.repository.remove_pgcs(RAW_CATALOGS, pgcs_to_remove)
             self.log.info("Removed orphaned PGCs from layer 2 tables")
 
         self.log.info("Layer 2 orphan cleanup completed")

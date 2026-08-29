@@ -4,9 +4,8 @@ import uuid
 
 import structlog
 
-from app.adminapi import repository
+from app.adminapi import model, repository
 from app.adminapi.domain import crossmatch
-from app.data import model
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.specs import adminapi

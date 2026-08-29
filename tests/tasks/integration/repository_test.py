@@ -5,7 +5,7 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app.data import model
+from app import catalogs
 from app.lib.storage import enums
 from app.tasks import repository
 from tests import lib
@@ -23,8 +23,8 @@ class RepositoryTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def _save_layer2_data(self, objects: list[model.Layer2CatalogObject]) -> None:
-        by_table: dict[str, list[tuple[int, model.CatalogObject]]] = {}
+    def _save_layer2_data(self, objects: list[catalogs.Layer2CatalogObject]) -> None:
+        by_table: dict[str, list[tuple[int, catalogs.CatalogObject]]] = {}
         for obj in objects:
             for catalog_obj in obj.data:
                 layer2_table = catalog_obj.layer2_table()
@@ -58,15 +58,15 @@ class RepositoryTest(unittest.TestCase):
         columns = ["type_name"]
         layer_seed.save_structured_data(
             self.storage,
-            model.NatureCatalogObject.layer1_table(),
+            catalogs.NatureCatalogObject.layer1_table(),
             columns,
             record_ids,
             rows,
         )
 
     def test_get_last_update_time_returns_stored_dt(self) -> None:
-        dt_icrs = self.repo.get_last_update_time(model.RawCatalog.ICRS)
-        dt_nature = self.repo.get_last_update_time(model.RawCatalog.NATURE)
+        dt_icrs = self.repo.get_last_update_time(catalogs.RawCatalog.ICRS)
+        dt_nature = self.repo.get_last_update_time(catalogs.RawCatalog.NATURE)
         epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
         self.assertEqual(dt_icrs if dt_icrs.tzinfo else dt_icrs.replace(tzinfo=datetime.UTC), epoch)
         self.assertEqual(
@@ -76,11 +76,11 @@ class RepositoryTest(unittest.TestCase):
 
     def test_update_last_update_time_updates_stored_dt(self) -> None:
         new_dt = datetime.datetime(2020, 6, 15, 12, 0, 0, tzinfo=datetime.UTC)
-        self.repo.update_last_update_time(new_dt, model.RawCatalog.ICRS)
+        self.repo.update_last_update_time(new_dt, catalogs.RawCatalog.ICRS)
 
-        got_icrs = self.repo.get_last_update_time(model.RawCatalog.ICRS)
+        got_icrs = self.repo.get_last_update_time(catalogs.RawCatalog.ICRS)
         self.assertEqual(got_icrs.replace(tzinfo=None), new_dt.replace(tzinfo=None))
-        got_nature = self.repo.get_last_update_time(model.RawCatalog.NATURE)
+        got_nature = self.repo.get_last_update_time(catalogs.RawCatalog.NATURE)
         epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
         self.assertEqual(
             got_nature if got_nature.tzinfo else got_nature.replace(tzinfo=datetime.UTC),
@@ -91,12 +91,12 @@ class RepositoryTest(unittest.TestCase):
         layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(
             [
-                model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="a")]),
-                model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="b")]),
+                catalogs.Layer2CatalogObject(1, [catalogs.DesignationCatalogObject(design="a")]),
+                catalogs.Layer2CatalogObject(2, [catalogs.DesignationCatalogObject(design="b")]),
             ]
         )
 
-        orphaned = self.repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+        orphaned = self.repo.get_orphaned_pgcs([catalogs.RawCatalog.DESIGNATION])
 
         self.assertEqual(orphaned.keys(), {"layer2.designation"})
         self.assertEqual(set(orphaned["layer2.designation"]), {1, 2})
@@ -112,11 +112,11 @@ class RepositoryTest(unittest.TestCase):
             ["design"],
             ["r1"],
             [["x"]],
-            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
         )
-        self._save_layer2_data([model.Layer2CatalogObject(100, [model.DesignationCatalogObject(design="x")])])
+        self._save_layer2_data([catalogs.Layer2CatalogObject(100, [catalogs.DesignationCatalogObject(design="x")])])
 
-        orphaned = self.repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+        orphaned = self.repo.get_orphaned_pgcs([catalogs.RawCatalog.DESIGNATION])
 
         self.assertEqual(orphaned, {"layer2.designation": []})
 
@@ -131,16 +131,16 @@ class RepositoryTest(unittest.TestCase):
             ["design"],
             ["r1"],
             [["linked"]],
-            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
         )
         self._save_layer2_data(
             [
-                model.Layer2CatalogObject(100, [model.DesignationCatalogObject(design="linked")]),
-                model.Layer2CatalogObject(200, [model.DesignationCatalogObject(design="orphan")]),
+                catalogs.Layer2CatalogObject(100, [catalogs.DesignationCatalogObject(design="linked")]),
+                catalogs.Layer2CatalogObject(200, [catalogs.DesignationCatalogObject(design="orphan")]),
             ]
         )
 
-        orphaned = self.repo.get_orphaned_pgcs([model.RawCatalog.DESIGNATION])
+        orphaned = self.repo.get_orphaned_pgcs([catalogs.RawCatalog.DESIGNATION])
 
         self.assertEqual(orphaned.keys(), {"layer2.designation"})
         self.assertEqual(set(orphaned["layer2.designation"]), {200})
@@ -149,12 +149,12 @@ class RepositoryTest(unittest.TestCase):
         layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(
             [
-                model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="d1")]),
-                model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="d2")]),
+                catalogs.Layer2CatalogObject(1, [catalogs.DesignationCatalogObject(design="d1")]),
+                catalogs.Layer2CatalogObject(2, [catalogs.DesignationCatalogObject(design="d2")]),
             ]
         )
 
-        self.repo.remove_pgcs([model.RawCatalog.DESIGNATION], [1])
+        self.repo.remove_pgcs([catalogs.RawCatalog.DESIGNATION], [1])
 
         storage = self.pg_storage.get_storage()
         removed = storage.query("SELECT pgc FROM layer2.designation WHERE pgc = %s", params=[1])
@@ -248,11 +248,11 @@ class RepositoryTest(unittest.TestCase):
         layer_seed.upsert_pgc(self.storage, {"r1": 10, "r2": 20})
         layer_seed.save_structured_data(
             self.storage,
-            model.RedshiftCatalogObject.layer1_table(),
-            model.RedshiftCatalogObject.layer1_keys(),
+            catalogs.RedshiftCatalogObject.layer1_table(),
+            catalogs.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
             [[1000.0, 10.0], [2000.0, None]],
-            conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.RedshiftCatalogObject.layer1_primary_keys(),
         )
 
         result = self.repo.get_new_redshift_records(
@@ -276,7 +276,7 @@ class RepositoryTest(unittest.TestCase):
 
         layer_seed.save_structured_data(
             self.storage,
-            model.NatureCatalogObject.layer1_table(),
+            catalogs.NatureCatalogObject.layer1_table(),
             ["type_name"],
             ["rec1"],
             [["QSO"]],

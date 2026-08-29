@@ -5,8 +5,7 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import model
-from app.data.schema.layer2 import ICRS
+from app import catalogs
 from app.lib import containers
 from app.tasks import layer2_common, logging
 
@@ -24,11 +23,11 @@ def aggregate_icrs(tbl: table.QTable) -> table.QTable:
 
     return table.QTable(
         {
-            ICRS.PGC: grouped.groups.keys["pgc"],
-            ICRS.RA: sums["ra_w"] / sums["w_ra"],
-            ICRS.E_RA: sums["w_ra"] ** (-0.5),
-            ICRS.DEC: sums["dec_w"] / sums["w_dec"],
-            ICRS.E_DEC: sums["w_dec"] ** (-0.5),
+            "pgc": grouped.groups.keys["pgc"],
+            "ra": sums["ra_w"] / sums["w_ra"],
+            "e_ra": sums["w_ra"] ** (-0.5),
+            "dec": sums["dec_w"] / sums["w_dec"],
+            "e_dec": sums["w_dec"] ** (-0.5),
         }
     )
 
@@ -61,7 +60,7 @@ class Layer2ImportICRSTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.ICRS)
+            last_update_dt = self.repository.get_last_update_time(catalogs.RawCatalog.ICRS)
         self.log.info(
             "Starting Layer 2 ICRS import",
             last_update=last_update_dt.ctime(),
@@ -92,7 +91,7 @@ class Layer2ImportICRSTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(model.RawCatalog.ICRS)
+        orphans_to_delete = self.finalize_catalog(catalogs.RawCatalog.ICRS)
         self.log.info("Layer 2 ICRS import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

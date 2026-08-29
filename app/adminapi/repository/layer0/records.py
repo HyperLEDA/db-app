@@ -2,10 +2,11 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
+from app import catalogs
+from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.common import touch_pgcs
 from app.adminapi.repository.layer0.common import metadata_to_candidates
-from app.data import model
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
 
@@ -24,17 +25,17 @@ def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any
     return "WHERE t.table_name = ANY(%s)", [table_names]
 
 
-def _progress_catalogs() -> list[model.RawCatalog]:
-    catalogs: list[model.RawCatalog] = []
-    for catalog in model.RawCatalog:
-        if catalog in model.RUNTIME_RAW_CATALOGS:
+def _progress_catalogs() -> list[catalogs.RawCatalog]:
+    raw_catalogs: list[catalogs.RawCatalog] = []
+    for catalog in catalogs.RawCatalog:
+        if catalog in catalogs.RUNTIME_RAW_CATALOGS:
             continue
         try:
-            model.get_catalog_object_type(catalog)
+            catalogs.get_catalog_object_type(catalog)
         except ValueError:
             continue
-        catalogs.append(catalog)
-    return catalogs
+        raw_catalogs.append(catalog)
+    return raw_catalogs
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -312,10 +313,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
     def _get_catalog_progress(
         self,
-        catalog: model.RawCatalog,
+        catalog: catalogs.RawCatalog,
         table_names: list[str] | None,
     ) -> dict[str, model.CatalogProgress]:
-        object_cls = model.get_catalog_object_type(catalog)
+        object_cls = catalogs.get_catalog_object_type(catalog)
         layer1_table = object_cls.layer1_table()
         where_clause, params = _progress_table_filter(table_names)
 

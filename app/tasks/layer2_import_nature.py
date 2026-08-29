@@ -4,15 +4,14 @@ from typing import final
 import structlog
 from astropy import table
 
-from app.data import model
-from app.data.schema.layer2 import Nature
+from app import catalogs
 from app.lib import containers
 from app.tasks import layer2_common, logging
 
 
 def aggregate_nature(tbl: table.QTable) -> table.QTable:
     pgcs, type_names = layer2_common.majority_vote_by_pgc(tbl, "type_name")
-    return table.QTable({Nature.PGC: pgcs, Nature.TYPE_NAME: type_names})
+    return table.QTable({"pgc": pgcs, "type_name": type_names})
 
 
 @final
@@ -43,7 +42,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.NATURE)
+            last_update_dt = self.repository.get_last_update_time(catalogs.RawCatalog.NATURE)
         self.log.info(
             "Starting Layer 2 nature import",
             last_update=last_update_dt.ctime(),
@@ -63,7 +62,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         ):
             agg = aggregate_nature(tbl)
 
-            for type_name in agg[Nature.TYPE_NAME]:
+            for type_name in agg["type_name"]:
                 key = str(type_name)
                 type_distribution[key] = type_distribution.get(key, 0) + 1
 
@@ -79,7 +78,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(model.RawCatalog.NATURE)
+        orphans_to_delete = self.finalize_catalog(catalogs.RawCatalog.NATURE)
         self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

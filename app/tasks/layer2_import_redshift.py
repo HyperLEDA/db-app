@@ -5,8 +5,7 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app.data import model
-from app.data.schema.layer2 import Redshift
+from app import catalogs
 from app.lib import containers
 from app.tasks import layer2_common, logging
 
@@ -22,9 +21,9 @@ def aggregate_redshift(tbl: table.QTable) -> table.QTable:
 
     return table.QTable(
         {
-            Redshift.PGC: grouped.groups.keys["pgc"],
-            Redshift.CZ: sums["cz_w"] / sums["w_cz"],
-            Redshift.E_CZ: sums["w_cz"] ** (-0.5),
+            "pgc": grouped.groups.keys["pgc"],
+            "cz": sums["cz_w"] / sums["w_cz"],
+            "e_cz": sums["w_cz"] ** (-0.5),
         }
     )
 
@@ -57,7 +56,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(model.RawCatalog.REDSHIFT)
+            last_update_dt = self.repository.get_last_update_time(catalogs.RawCatalog.REDSHIFT)
 
         self.log.info(
             "Starting Layer 2 redshift import",
@@ -88,7 +87,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(model.RawCatalog.REDSHIFT)
+        orphans_to_delete = self.finalize_catalog(catalogs.RawCatalog.REDSHIFT)
         self.log.info("Layer 2 redshift import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

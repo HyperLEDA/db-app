@@ -3,9 +3,9 @@ from typing import final
 
 import structlog
 
+from app.adminapi import model
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository import sql
-from app.data import model
 from app.lib import concurrency
 from app.lib.storage import postgres
 
