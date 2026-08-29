@@ -19,3 +19,7 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def calculate_reddening(self, request: spec.CalculateReddeningRequest) -> spec.CalculateReddeningResponse:
         pass
+
+    @abc.abstractmethod
+    def list_reddening_references(self) -> spec.ListReddeningReferencesResponse:
+        pass

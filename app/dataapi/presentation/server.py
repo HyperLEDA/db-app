@@ -45,6 +45,10 @@ class API:
         response = self.actions.calculate_reddening(request)
         return server.APIOkResponse(data=response)
 
+    def list_reddening_references(self) -> server.APIOkResponse[spec.ListReddeningReferencesResponse]:
+        response = self.actions.list_reddening_references()
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -91,7 +95,13 @@ When coordinates are specified, results are sorted by increasing distance to the
                 rate_limit="60/minute",
             ),
             server.Route(
-                "/v1/calculate/reddening",
+                "/v1/references/reddening",
+                http.HTTPMethod.GET,
+                api.list_reddening_references,
+                "List photometric systems supported by the reddening calculator.",
+            ),
+            server.Route(
+                "/v1/calculator/reddening",
                 http.HTTPMethod.POST,
                 api.calculate_reddening,
                 "Calculate reddening for a batch of sky positions.",

@@ -22,6 +22,7 @@ __all__ = [
     "GalacticCoordinates",
     "GalacticCoordinatesUnits",
     "J2000Coordinate",
+    "ListReddeningReferencesResponse",
     "Nature",
     "NoteEntry",
     "PGCObject",
@@ -30,6 +31,7 @@ __all__ = [
     "QuerySimpleResponse",
     "ReddeningAtPosition",
     "ReddeningFilterValue",
+    "ReddeningPhotometricSystem",
     "Redshift",
     "Schema",
     "Source",
@@ -384,3 +386,12 @@ class CalculateReddeningRequest(pydantic.BaseModel):
 class CalculateReddeningResponse(pydantic.BaseModel):
     photsys: str
     results: list[ReddeningAtPosition]
+
+
+class ReddeningPhotometricSystem(pydantic.BaseModel):
+    id: str
+    description: str
+
+
+class ListReddeningReferencesResponse(pydantic.BaseModel):
+    systems: list[ReddeningPhotometricSystem]
