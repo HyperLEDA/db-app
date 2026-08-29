@@ -67,6 +67,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             layer2_repo=self.layer2_repo,
             enabled_catalogs=DEFAULT,
             catalog_cfg=mock.Mock(),
+            reddening_service=mock.Mock(),
         )
 
     def _search_params(self) -> layer2.SearchParams:

@@ -477,6 +477,8 @@ class Layer2RepositoryTest(unittest.TestCase):
         self.assertEqual(measurement.band, "V")
         self.assertEqual(measurement.magsys, "Vega")
         self.assertEqual(measurement.method, "psf")
+        self.assertEqual(measurement.photsys, "UBVRIJHKL")
+        self.assertEqual(measurement.filter, "V")
         self.assertAlmostEqual(measurement.wavelength, 5501.40)
         self.assertAlmostEqual(measurement.mag, 12.5)
         self.assertIsNotNone(measurement.e_mag)

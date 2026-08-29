@@ -144,6 +144,7 @@ class Catalogs(pydantic.BaseModel):
     nature: Nature | None = None
     notes: list[NoteEntry] | None = None
     photometry_total: list[PhotometryTotalMeasurement] | None = None
+    photometry_total_corrected: list[PhotometryTotalMeasurement] | None = None
 
 
 class PGCObject(pydantic.BaseModel):

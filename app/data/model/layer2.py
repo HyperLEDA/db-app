@@ -74,6 +74,8 @@ class PhotometryTotalMeasurement:
     wavelength: float
     mag: float
     e_mag: float | None
+    photsys: str
+    filter: str
 
 
 @dataclass

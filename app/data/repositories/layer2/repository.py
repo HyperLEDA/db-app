@@ -356,8 +356,15 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         if not pgcs:
             return {}
         rows = self._storage.query(
-            "SELECT pgc, band, magsys, method, wavelength, mag, e_mag FROM layer2.photometry_total "
-            "WHERE pgc = ANY(%s) ORDER BY pgc, wavelength",
+            """
+            SELECT p.pgc, p.band, p.magsys, p.method, p.wavelength, p.mag, p.e_mag,
+                   b.photsys, b.name AS filter
+            FROM layer2.photometry_total AS p
+              JOIN photometry.calib_bands AS cb ON p.band = cb.id
+              JOIN photometry.bands AS b ON cb.band = b.id
+            WHERE p.pgc = ANY(%s)
+            ORDER BY p.pgc, p.wavelength
+            """,
             params=[pgcs],
         )
         result: dict[int, list[layer2_model.PhotometryTotalMeasurement]] = {}
@@ -370,6 +377,8 @@ class Layer2Repository(postgres.TransactionalPGRepository):
                 wavelength=float(row["wavelength"]),
                 mag=float(row["mag"]),
                 e_mag=float(row["e_mag"]) if row.get("e_mag") is not None else None,
+                photsys=str(row["photsys"]),
+                filter=str(row["filter"]),
             )
             result.setdefault(pgc, []).append(measurement)
         return {
