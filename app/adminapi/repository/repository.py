@@ -4,10 +4,11 @@ from typing import Any, final
 import structlog
 from astropy import table
 
+from app import catalogs
+from app.adminapi import model
 from app.adminapi.repository import common, layer1, layer2, metadata
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository.layer0 import records, tables
-from app.data import model
 from app.lib.storage import enums, postgres
 
 
@@ -163,7 +164,7 @@ class Repository(postgres.TransactionalPGRepository):
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)
 
-    def get_column_units(self, catalog: model.RawCatalog) -> dict[str, str]:
+    def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
         return self._layer1.get_column_units(catalog)
 
     def get_catalog_columns(self, schema: str, table: str) -> list[dict[str, Any]]:
@@ -193,22 +194,22 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_records(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         record_ids: list[str] | None = None,
         table_name: str | None = None,
         offset: str | None = None,
         limit: int | None = None,
     ) -> list[model.Record]:
-        return self._layer1.query_records(catalogs, record_ids, table_name, offset, limit)
+        return self._layer1.query_records(raw_catalogs, record_ids, table_name, offset, limit)
 
     def query_catalogs_pgc(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[model.Layer2CatalogObject]:
-        return self._layer2.query_catalogs_pgc(catalogs, pgc_numbers, limit, offset)
+    ) -> list[catalogs.Layer2CatalogObject]:
+        return self._layer2.query_catalogs_pgc(raw_catalogs, pgc_numbers, limit, offset)
 
     def query_with_metadata(
         self,

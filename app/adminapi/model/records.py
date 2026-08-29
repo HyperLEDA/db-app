@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.data.model import interface
+from app import catalogs
 from app.lib.storage import enums
 
 
@@ -14,16 +14,10 @@ class CrossmatchRecordRow:
 @dataclass
 class Record:
     id: str
-    data: list[interface.CatalogObject]
+    data: list[catalogs.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
-        return interface.get_object(self.data, t)
-
-
-# Record classes below represent how data for each particular record is written
-# and read directly to and from the tables. Most likely they will correspond
-# to actual columns for tables. However, this may not necessarily be true for
-# catalogs which have more than one line per record.
+        return catalogs.get_object(self.data, t)
 
 
 @dataclass

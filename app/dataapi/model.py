@@ -1,16 +1,5 @@
 from dataclasses import dataclass
 
-from app.data.model import interface
-
-
-@dataclass
-class Layer2CatalogObject:
-    pgc: int
-    data: list[interface.CatalogObject]
-
-    def get[T](self, t: type[T]) -> T | None:
-        return interface.get_object(self.data, t)
-
 
 @dataclass
 class DesignationCatalog:
@@ -85,11 +74,6 @@ class PhotometryTotalCatalog:
 
 @dataclass
 class Catalogs:
-    """
-    Description of catalogs as they are stored on layer 2. To properly analyze them one probably needs
-    to read units from metadata of these tables.
-    """
-
     designation: DesignationCatalog | None = None
     additional_designations: AdditionalDesignationsCatalog | None = None
     icrs: ICRSCatalog | None = None
@@ -103,3 +87,20 @@ class Catalogs:
 class Layer2Object:
     pgc: int
     catalogs: Catalogs
+
+
+__all__ = [
+    "AdditionalDesignation",
+    "AdditionalDesignationsCatalog",
+    "Catalogs",
+    "DesignationCatalog",
+    "ICRSCatalog",
+    "Layer2Object",
+    "NatureCatalog",
+    "NoteEntry",
+    "NotesCatalog",
+    "PhotometryTotalCatalog",
+    "PhotometryTotalMeasurement",
+    "RedshiftCatalog",
+    "Source",
+]

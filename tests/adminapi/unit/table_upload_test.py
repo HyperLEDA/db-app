@@ -5,10 +5,9 @@ from unittest import mock
 from astropy import units
 from parameterized import param, parameterized
 
-from app.adminapi import clients, domain, repository
+from app.adminapi import clients, domain, model, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
-from app.data import model
 from app.lib.storage import enums, mapping
 from app.lib.web import errors
 from app.specs import adminapi

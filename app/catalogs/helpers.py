@@ -1,4 +1,4 @@
-from app.data.model import (
+from app.catalogs import (
     designation,
     distance,
     geometry,

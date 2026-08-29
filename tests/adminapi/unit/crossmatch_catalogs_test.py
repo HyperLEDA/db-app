@@ -1,7 +1,8 @@
 import unittest
 
+from app import catalogs
+from app.adminapi import model
 from app.adminapi.domain import crossmatch
-from app.data import model
 
 
 class CatalogsFromObjectTest(unittest.TestCase):
@@ -9,26 +10,26 @@ class CatalogsFromObjectTest(unittest.TestCase):
         record = model.Record(
             id="rec1",
             data=[
-                model.DesignationCatalogObject(design="NGC 1"),
-                model.NatureCatalogObject(type_name="G"),
+                catalogs.DesignationCatalogObject(design="NGC 1"),
+                catalogs.NatureCatalogObject(type_name="G"),
             ],
         )
 
-        catalogs = crossmatch.catalogs_from_object(record)
+        result = crossmatch.catalogs_from_object(record)
 
-        self.assertIsNotNone(catalogs.designation)
-        assert catalogs.designation is not None
-        self.assertEqual(catalogs.designation.name, "NGC 1")
-        self.assertIsNotNone(catalogs.nature)
-        assert catalogs.nature is not None
-        self.assertEqual(catalogs.nature.type_name, "G")
+        self.assertIsNotNone(result.designation)
+        assert result.designation is not None
+        self.assertEqual(result.designation.name, "NGC 1")
+        self.assertIsNotNone(result.nature)
+        assert result.nature is not None
+        self.assertEqual(result.nature.type_name, "G")
 
     def test_omits_nature_when_absent(self) -> None:
         record = model.Record(
             id="rec1",
-            data=[model.DesignationCatalogObject(design="NGC 1")],
+            data=[catalogs.DesignationCatalogObject(design="NGC 1")],
         )
 
-        catalogs = crossmatch.catalogs_from_object(record)
+        result = crossmatch.catalogs_from_object(record)
 
-        self.assertIsNone(catalogs.nature)
+        self.assertIsNone(result.nature)

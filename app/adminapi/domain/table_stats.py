@@ -1,8 +1,7 @@
 import datetime
 from collections.abc import Callable
 
-from app.adminapi import repository
-from app.data import model
+from app.adminapi import model, repository
 from app.specs import adminapi as spec
 
 

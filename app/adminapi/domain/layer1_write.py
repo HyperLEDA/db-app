@@ -1,8 +1,8 @@
 import psycopg
 from astropy import units as u
 
+from app import catalogs
 from app.adminapi import repository
-from app.data import model
 from app.lib.web.errors import RuleValidationError
 from app.specs import adminapi as spec
 
@@ -12,8 +12,8 @@ class Layer1Writer:
         self._repo = repo
 
     def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
-        catalog = model.RawCatalog(request.catalog)
-        object_cls = model.get_catalog_object_type(catalog)
+        catalog = catalogs.RawCatalog(request.catalog)
+        object_cls = catalogs.get_catalog_object_type(catalog)
         table = object_cls.layer1_table()
 
         internal_units = self._repo.get_column_units(catalog)

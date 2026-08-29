@@ -5,16 +5,16 @@ from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
 
-from app.data import model
+from app import catalogs
 from app.dataapi import repository
 from app.dataapi.domain import parameterized_query
 from app.lib.web import errors
 from app.specs import dataapi
 
 DEFAULT = [
-    model.RawCatalog.DESIGNATION,
-    model.RawCatalog.ICRS,
-    model.RawCatalog.REDSHIFT,
+    catalogs.RawCatalog.DESIGNATION,
+    catalogs.RawCatalog.ICRS,
+    catalogs.RawCatalog.REDSHIFT,
 ]
 
 
@@ -31,7 +31,7 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
                 ["icrs", "designation"],
                 DEFAULT,
             ),
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
+            [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.DESIGNATION],
         )
 
     def test_deduplicates(self):
@@ -40,7 +40,7 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
                 ["icrs", "icrs"],
                 DEFAULT,
             ),
-            [model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.ICRS],
         )
 
     def test_empty_list_raises(self):

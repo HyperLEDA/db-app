@@ -3,7 +3,7 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app.data import model
+from app import catalogs
 from app.dataapi import repository
 from app.lib.storage import enums
 from tests import lib
@@ -21,9 +21,9 @@ class RepositoryQueryTest(unittest.TestCase):
     def tearDown(self):
         self.pg_storage.clear()
 
-    def _save_layer2_data(self, objects: list[model.Layer2CatalogObject]) -> None:
+    def _save_layer2_data(self, objects: list[catalogs.Layer2CatalogObject]) -> None:
         storage = self.pg_storage.get_storage()
-        by_table: dict[str, list[tuple[int, model.CatalogObject]]] = {}
+        by_table: dict[str, list[tuple[int, catalogs.CatalogObject]]] = {}
         for obj in objects:
             for catalog_obj in obj.data:
                 layer2_table = catalog_obj.layer2_table()
@@ -49,36 +49,36 @@ class RepositoryQueryTest(unittest.TestCase):
         return layer_seed.create_table(self.storage, table_name, bib_id)
 
     def test_one_object(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="test")]),
-            model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="test2")]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.DesignationCatalogObject(design="test")]),
+            catalogs.Layer2CatalogObject(2, [catalogs.DesignationCatalogObject(design="test2")]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.DESIGNATION],
+            [catalogs.RawCatalog.DESIGNATION],
             repository.PGCOneOfFilter([1]),
             repository.CombinedSearchParams([]),
             10,
             0,
         )
-        expected = [model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="test")])]
+        expected = [catalogs.Layer2CatalogObject(1, [catalogs.DesignationCatalogObject(design="test")])]
 
         lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_several_objects(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.ICRS],
             repository.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
             repository.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
             10,
@@ -86,20 +86,20 @@ class RepositoryQueryTest(unittest.TestCase):
             ordering=repository.ICRSDistanceOrdering(12 * u.Unit("deg"), 12 * u.Unit("deg")),
         )
         expected = [
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
         ]
 
         lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_several_catalogs(self):
         objects = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(
                 2,
                 [
-                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                    model.DesignationCatalogObject(design="test2"),
+                    catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    catalogs.DesignationCatalogObject(design="test2"),
                 ],
             ),
         ]
@@ -108,18 +108,18 @@ class RepositoryQueryTest(unittest.TestCase):
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
+            [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.DESIGNATION],
             repository.PGCOneOfFilter([2]),
             repository.CombinedSearchParams([]),
             10,
             0,
         )
         expected = [
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 2,
                 [
-                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                    model.DesignationCatalogObject(design="test2"),
+                    catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    catalogs.DesignationCatalogObject(design="test2"),
                 ],
             ),
         ]
@@ -128,18 +128,18 @@ class RepositoryQueryTest(unittest.TestCase):
 
     def test_several_filters(self):
         objects = [
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 1,
                 [
-                    model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
-                    model.DesignationCatalogObject(design="test"),
+                    catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
+                    catalogs.DesignationCatalogObject(design="test"),
                 ],
             ),
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 2,
                 [
-                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                    model.DesignationCatalogObject(design="test2"),
+                    catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    catalogs.DesignationCatalogObject(design="test2"),
                 ],
             ),
         ]
@@ -148,7 +148,7 @@ class RepositoryQueryTest(unittest.TestCase):
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.ICRS, model.RawCatalog.DESIGNATION],
+            [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.DESIGNATION],
             repository.AndFilter(
                 [
                     repository.PGCOneOfFilter([2]),
@@ -165,11 +165,11 @@ class RepositoryQueryTest(unittest.TestCase):
         )
 
         expected = [
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 2,
                 [
-                    model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                    model.DesignationCatalogObject(design="test2"),
+                    catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
+                    catalogs.DesignationCatalogObject(design="test2"),
                 ],
             )
         ]
@@ -177,19 +177,19 @@ class RepositoryQueryTest(unittest.TestCase):
         lib.assert_layer2_catalog_objects_equal(self, actual, expected)
 
     def test_pagination(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=12, dec=12, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(4, [model.ICRSCatalogObject(ra=13, dec=13, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(5, [model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(3, [catalogs.ICRSCatalogObject(ra=12, dec=12, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(4, [catalogs.ICRSCatalogObject(ra=13, dec=13, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(5, [catalogs.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.ICRS],
             repository.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg")),
             repository.ICRSSearchParams(12 * u.Unit("deg"), 12 * u.Unit("deg")),
             2,
@@ -199,19 +199,19 @@ class RepositoryQueryTest(unittest.TestCase):
         self.assertEqual(len(actual), 2)
 
     def test_batch_query(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=12, dec=12, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(4, [model.ICRSCatalogObject(ra=13, dec=13, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(5, [model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(3, [catalogs.ICRSCatalogObject(ra=12, dec=12, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(4, [catalogs.ICRSCatalogObject(ra=13, dec=13, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(5, [catalogs.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs_batch(
-            [model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.ICRS],
             {"icrs": repository.ICRSCoordinatesInRadiusFilter(10 * u.Unit("deg"))},
             {
                 "obj1": repository.ICRSSearchParams(10 * u.Unit("deg"), 10 * u.Unit("deg")),
@@ -228,11 +228,11 @@ class RepositoryQueryTest(unittest.TestCase):
         ra: float,
         dec: float,
         radius: float,
-        catalogs: list[model.RawCatalog] | None = None,
+        raw_catalogs: list[catalogs.RawCatalog] | None = None,
         ordering: repository.Ordering | None = None,
-    ) -> list[model.Layer2CatalogObject]:
+    ) -> list[catalogs.Layer2CatalogObject]:
         return self.repo.query_catalogs(
-            catalogs or [model.RawCatalog.ICRS],
+            raw_catalogs or [catalogs.RawCatalog.ICRS],
             repository.ICRSCoordinatesInRadiusFilter(radius * u.Unit("deg")),
             repository.ICRSSearchParams(ra * u.Unit("deg"), dec * u.Unit("deg")),
             10,
@@ -241,10 +241,10 @@ class RepositoryQueryTest(unittest.TestCase):
         )
 
     def test_cone_search_wraps_around_ra_zero(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=359.99, dec=0, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=0.01, dec=0, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=180, dec=0, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=359.99, dec=0, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=0.01, dec=0, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(3, [catalogs.ICRSCatalogObject(ra=180, dec=0, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2, 3])
@@ -255,10 +255,10 @@ class RepositoryQueryTest(unittest.TestCase):
         self.assertEqual({obj.pgc for obj in actual}, {1, 2})
 
     def test_cone_search_accounts_for_declination_convergence(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=100, dec=80, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=102, dec=80, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=100, dec=79, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=100, dec=80, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=102, dec=80, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(3, [catalogs.ICRSCatalogObject(ra=100, dec=79, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2, 3])
@@ -269,9 +269,9 @@ class RepositoryQueryTest(unittest.TestCase):
         self.assertEqual({obj.pgc for obj in actual}, {1, 2})
 
     def test_distance_ordering_sorts_by_true_angular_separation(self):
-        objects: list[model.Layer2CatalogObject] = [
-            model.Layer2CatalogObject(1, [model.ICRSCatalogObject(ra=14, dec=60, e_ra=0.1, e_dec=0.1)]),
-            model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=10, dec=62.5, e_ra=0.1, e_dec=0.1)]),
+        objects: list[catalogs.Layer2CatalogObject] = [
+            catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=14, dec=60, e_ra=0.1, e_dec=0.1)]),
+            catalogs.Layer2CatalogObject(2, [catalogs.ICRSCatalogObject(ra=10, dec=62.5, e_ra=0.1, e_dec=0.1)]),
         ]
 
         layer_seed.register_pgcs(self.storage, [1, 2])
@@ -288,11 +288,11 @@ class RepositoryQueryTest(unittest.TestCase):
 
     def test_coordinate_filter_when_icrs_catalog_not_requested(self):
         objects = [
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 1,
                 [
-                    model.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
-                    model.RedshiftCatalogObject(cz=100, e_cz=1),
+                    catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
+                    catalogs.RedshiftCatalogObject(cz=100, e_cz=1),
                 ],
             ),
         ]
@@ -304,22 +304,22 @@ class RepositoryQueryTest(unittest.TestCase):
             ra=10.0,
             dec=10.0,
             radius=1.0,
-            catalogs=[model.RawCatalog.REDSHIFT],
+            raw_catalogs=[catalogs.RawCatalog.REDSHIFT],
         )
 
         lib.assert_layer2_catalog_objects_equal(
             self,
             actual,
-            [model.Layer2CatalogObject(1, [model.RedshiftCatalogObject(cz=100, e_cz=1)])],
+            [catalogs.Layer2CatalogObject(1, [catalogs.RedshiftCatalogObject(cz=100, e_cz=1)])],
         )
 
     def test_designation_filter_when_designation_catalog_not_requested(self):
         objects = [
-            model.Layer2CatalogObject(
+            catalogs.Layer2CatalogObject(
                 1,
                 [
-                    model.DesignationCatalogObject(design="test"),
-                    model.RedshiftCatalogObject(cz=100, e_cz=1),
+                    catalogs.DesignationCatalogObject(design="test"),
+                    catalogs.RedshiftCatalogObject(cz=100, e_cz=1),
                 ],
             ),
         ]
@@ -328,7 +328,7 @@ class RepositoryQueryTest(unittest.TestCase):
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
-            [model.RawCatalog.REDSHIFT],
+            [catalogs.RawCatalog.REDSHIFT],
             repository.PGCOneOfFilter([1]),
             repository.CombinedSearchParams([]),
             10,
@@ -338,7 +338,7 @@ class RepositoryQueryTest(unittest.TestCase):
         lib.assert_layer2_catalog_objects_equal(
             self,
             actual,
-            [model.Layer2CatalogObject(1, [model.RedshiftCatalogObject(cz=100, e_cz=1)])],
+            [catalogs.Layer2CatalogObject(1, [catalogs.RedshiftCatalogObject(cz=100, e_cz=1)])],
         )
 
     def test_query_photometry_total(self) -> None:
@@ -348,14 +348,14 @@ class RepositoryQueryTest(unittest.TestCase):
         layer_seed.upsert_pgc(self.storage, {"r1": 5001})
         layer_seed.save_structured_data(
             self.storage,
-            model.PhotometryTotalCatalogObject.layer1_table(),
+            catalogs.PhotometryTotalCatalogObject.layer1_table(),
             ["band", "mag", "e_mag", "method"],
             ["r1"],
             [["V", 12.5, 0.1, "psf"]],
-            conflict_keys=model.PhotometryTotalCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.PhotometryTotalCatalogObject.layer1_primary_keys(),
         )
 
-        result = self.repo.query_pgc([model.RawCatalog.PHOTOMETRY__TOTAL], [5001], limit=10)
+        result = self.repo.query_pgc([catalogs.RawCatalog.PHOTOMETRY__TOTAL], [5001], limit=10)
 
         self.assertEqual(len(result), 1)
         photometry = result[0].catalogs.photometry_total

@@ -5,9 +5,8 @@ from typing import Any, final
 import structlog
 from psycopg import rows
 
-from app.data import model
-from app.data.model import Layer2Object
-from app.data.model import layer2 as layer2_model
+from app import catalogs
+from app.dataapi import model
 from app.dataapi.repository import filters as repofilters
 from app.dataapi.repository import model as repo_model
 from app.dataapi.repository import params
@@ -171,22 +170,22 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs_batch(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         search_types: Mapping[str, repofilters.Filter],
         search_params: Mapping[str, params.SearchParams],
         limit: int,
         offset: int,
         ordering: repofilters.Ordering | None = None,
-    ) -> dict[str, list[model.Layer2CatalogObject]]:
+    ) -> dict[str, list[catalogs.Layer2CatalogObject]]:
         query, query_params = _construct_batch_query(
-            catalogs, search_types, search_params, limit, offset, ordering=ordering
+            raw_catalogs, search_types, search_params, limit, offset, ordering=ordering
         )
 
         records = self._storage.query(query, params=query_params)
 
         records_by_id = containers.group_by(records, key_func=lambda obj: str(obj["record_id"]))
 
-        result: dict[str, list[model.Layer2CatalogObject]] = {}
+        result: dict[str, list[catalogs.Layer2CatalogObject]] = {}
 
         for record_id, record_rows in records_by_id.items():
             if record_id not in result:
@@ -198,12 +197,12 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_pgc(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[Layer2Object]:
-        if not catalogs or not pgc_numbers:
+    ) -> list[model.Layer2Object]:
+        if not raw_catalogs or not pgc_numbers:
             return []
 
         pgcs_page = sorted(pgc_numbers)[offset : offset + limit]
@@ -211,29 +210,29 @@ class Repository(postgres.TransactionalPGRepository):
             return []
 
         errgr = concurrency.ErrorGroup()
-        designation_task: concurrency.TaskResult[dict[int, layer2_model.DesignationCatalog]] | None = None
-        additional_designations_task: (
-            concurrency.TaskResult[dict[int, layer2_model.AdditionalDesignationsCatalog]] | None
-        ) = None
-        icrs_task: concurrency.TaskResult[dict[int, layer2_model.ICRSCatalog]] | None = None
-        redshift_task: concurrency.TaskResult[dict[int, layer2_model.RedshiftCatalog]] | None = None
-        nature_task: concurrency.TaskResult[dict[int, layer2_model.NatureCatalog]] | None = None
-        notes_task: concurrency.TaskResult[dict[int, layer2_model.NotesCatalog]] | None = None
-        photometry_total_task: concurrency.TaskResult[dict[int, layer2_model.PhotometryTotalCatalog]] | None = None
+        designation_task: concurrency.TaskResult[dict[int, model.DesignationCatalog]] | None = None
+        additional_designations_task: concurrency.TaskResult[dict[int, model.AdditionalDesignationsCatalog]] | None = (
+            None
+        )
+        icrs_task: concurrency.TaskResult[dict[int, model.ICRSCatalog]] | None = None
+        redshift_task: concurrency.TaskResult[dict[int, model.RedshiftCatalog]] | None = None
+        nature_task: concurrency.TaskResult[dict[int, model.NatureCatalog]] | None = None
+        notes_task: concurrency.TaskResult[dict[int, model.NotesCatalog]] | None = None
+        photometry_total_task: concurrency.TaskResult[dict[int, model.PhotometryTotalCatalog]] | None = None
 
-        if model.RawCatalog.DESIGNATION in catalogs:
+        if catalogs.RawCatalog.DESIGNATION in raw_catalogs:
             designation_task = errgr.run(self._query_designations, pgcs_page)
-        if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs:
+        if catalogs.RawCatalog.ADDITIONAL_DESIGNATIONS in raw_catalogs:
             additional_designations_task = errgr.run(self._query_additional_designations, pgcs_page)
-        if model.RawCatalog.ICRS in catalogs:
+        if catalogs.RawCatalog.ICRS in raw_catalogs:
             icrs_task = errgr.run(self._query_icrs, pgcs_page)
-        if model.RawCatalog.REDSHIFT in catalogs:
+        if catalogs.RawCatalog.REDSHIFT in raw_catalogs:
             redshift_task = errgr.run(self._query_redshift, pgcs_page)
-        if model.RawCatalog.NATURE in catalogs:
+        if catalogs.RawCatalog.NATURE in raw_catalogs:
             nature_task = errgr.run(self._query_nature, pgcs_page)
-        if model.RawCatalog.NOTE in catalogs:
+        if catalogs.RawCatalog.NOTE in raw_catalogs:
             notes_task = errgr.run(self._query_notes, pgcs_page)
-        if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs:
+        if catalogs.RawCatalog.PHOTOMETRY__TOTAL in raw_catalogs:
             photometry_total_task = errgr.run(self._query_photometry_total, pgcs_page)
 
         errgr.wait()
@@ -251,7 +250,7 @@ class Repository(postgres.TransactionalPGRepository):
         return [
             _layer2_object_from_maps(
                 pgc,
-                catalogs,
+                raw_catalogs,
                 designation_map,
                 additional_designations_map,
                 icrs_map,
@@ -265,15 +264,15 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         filters: repofilters.Filter,
         search_params: params.SearchParams,
         limit: int,
         offset: int,
         ordering: repofilters.Ordering | None = None,
-    ) -> list[model.Layer2CatalogObject]:
+    ) -> list[catalogs.Layer2CatalogObject]:
         res = self.query_catalogs_batch(
-            catalogs,
+            raw_catalogs,
             {search_params.name(): filters},
             {"obj": search_params},
             limit,
@@ -286,26 +285,26 @@ class Repository(postgres.TransactionalPGRepository):
 
         return res["obj"]
 
-    def _query_designations(self, pgcs: list[int]) -> dict[int, layer2_model.DesignationCatalog]:
+    def _query_designations(self, pgcs: list[int]) -> dict[int, model.DesignationCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
             "SELECT pgc, design FROM layer2.designation WHERE pgc = ANY(%s) ORDER BY pgc",
             params=[pgcs],
         )
-        return {int(row["pgc"]): layer2_model.DesignationCatalog(name=str(row["design"])) for row in rows}
+        return {int(row["pgc"]): model.DesignationCatalog(name=str(row["design"])) for row in rows}
 
-    def _query_icrs(self, pgcs: list[int]) -> dict[int, layer2_model.ICRSCatalog]:
+    def _query_icrs(self, pgcs: list[int]) -> dict[int, model.ICRSCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
             "SELECT pgc, ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = ANY(%s) ORDER BY pgc",
             params=[pgcs],
         )
-        result: dict[int, layer2_model.ICRSCatalog] = {}
+        result: dict[int, model.ICRSCatalog] = {}
         for row in rows:
             if all(row.get(k) is not None for k in ("ra", "e_ra", "dec", "e_dec")):
-                result[int(row["pgc"])] = layer2_model.ICRSCatalog(
+                result[int(row["pgc"])] = model.ICRSCatalog(
                     ra=float(row["ra"]),
                     e_ra=float(row["e_ra"]),
                     dec=float(row["dec"]),
@@ -313,7 +312,7 @@ class Repository(postgres.TransactionalPGRepository):
                 )
         return result
 
-    def _query_redshift(self, pgcs: list[int]) -> dict[int, layer2_model.RedshiftCatalog]:
+    def _query_redshift(self, pgcs: list[int]) -> dict[int, model.RedshiftCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
@@ -321,12 +320,12 @@ class Repository(postgres.TransactionalPGRepository):
             params=[pgcs],
         )
         return {
-            int(row["pgc"]): layer2_model.RedshiftCatalog(cz=float(row["cz"]), e_cz=float(row["e_cz"]))
+            int(row["pgc"]): model.RedshiftCatalog(cz=float(row["cz"]), e_cz=float(row["e_cz"]))
             for row in rows
             if row.get("cz") is not None and row.get("e_cz") is not None
         }
 
-    def _query_nature(self, pgcs: list[int]) -> dict[int, layer2_model.NatureCatalog]:
+    def _query_nature(self, pgcs: list[int]) -> dict[int, model.NatureCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
@@ -334,12 +333,12 @@ class Repository(postgres.TransactionalPGRepository):
             params=[pgcs],
         )
         return {
-            int(row["pgc"]): layer2_model.NatureCatalog(type_name=str(row["type_name"]))
+            int(row["pgc"]): model.NatureCatalog(type_name=str(row["type_name"]))
             for row in rows
             if row.get("type_name") is not None
         }
 
-    def _query_additional_designations(self, pgcs: list[int]) -> dict[int, layer2_model.AdditionalDesignationsCatalog]:
+    def _query_additional_designations(self, pgcs: list[int]) -> dict[int, model.AdditionalDesignationsCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
@@ -347,34 +346,34 @@ class Repository(postgres.TransactionalPGRepository):
             "WHERE pgc = ANY(%s) ORDER BY pgc, design",
             params=[pgcs],
         )
-        result: dict[int, list[layer2_model.AdditionalDesignation]] = {}
+        result: dict[int, list[model.AdditionalDesignation]] = {}
         for row in rows:
             pgc = int(row["pgc"])
-            ad = layer2_model.AdditionalDesignation(
+            ad = model.AdditionalDesignation(
                 name=str(row["design"]) if row.get("design") is not None else "",
                 source=_source_from_row(row),
             )
             result.setdefault(pgc, []).append(ad)
-        return {pgc: layer2_model.AdditionalDesignationsCatalog(names=names) for pgc, names in result.items()}
+        return {pgc: model.AdditionalDesignationsCatalog(names=names) for pgc, names in result.items()}
 
-    def _query_notes(self, pgcs: list[int]) -> dict[int, layer2_model.NotesCatalog]:
+    def _query_notes(self, pgcs: list[int]) -> dict[int, model.NotesCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
             "SELECT pgc, note, code, year, author, title FROM layer2.notes WHERE pgc = ANY(%s) ORDER BY pgc",
             params=[pgcs],
         )
-        result: dict[int, list[layer2_model.NoteEntry]] = {}
+        result: dict[int, list[model.NoteEntry]] = {}
         for row in rows:
             pgc = int(row["pgc"])
-            note = layer2_model.NoteEntry(
+            note = model.NoteEntry(
                 note=str(row["note"]) if row.get("note") is not None else "",
                 source=_source_from_row(row),
             )
             result.setdefault(pgc, []).append(note)
-        return {pgc: layer2_model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
+        return {pgc: model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
 
-    def _query_photometry_total(self, pgcs: list[int]) -> dict[int, layer2_model.PhotometryTotalCatalog]:
+    def _query_photometry_total(self, pgcs: list[int]) -> dict[int, model.PhotometryTotalCatalog]:
         if not pgcs:
             return {}
         rows = self._storage.query(
@@ -389,10 +388,10 @@ class Repository(postgres.TransactionalPGRepository):
             """,
             params=[pgcs],
         )
-        result: dict[int, list[layer2_model.PhotometryTotalMeasurement]] = {}
+        result: dict[int, list[model.PhotometryTotalMeasurement]] = {}
         for row in rows:
             pgc = int(row["pgc"])
-            measurement = layer2_model.PhotometryTotalMeasurement(
+            measurement = model.PhotometryTotalMeasurement(
                 band=str(row["band"]),
                 magsys=str(row["magsys"]) if row.get("magsys") is not None else None,
                 method=str(row["method"]),
@@ -403,9 +402,7 @@ class Repository(postgres.TransactionalPGRepository):
                 filter=str(row["filter"]),
             )
             result.setdefault(pgc, []).append(measurement)
-        return {
-            pgc: layer2_model.PhotometryTotalCatalog(measurements=measurements) for pgc, measurements in result.items()
-        }
+        return {pgc: model.PhotometryTotalCatalog(measurements=measurements) for pgc, measurements in result.items()}
 
 
 def _driving_table(search_types: Mapping[str, repofilters.Filter]) -> str | None:
@@ -421,7 +418,7 @@ def _driving_table(search_types: Mapping[str, repofilters.Filter]) -> str | None
 
 
 def _construct_batch_query(
-    catalogs: list[model.RawCatalog],
+    raw_catalogs: list[catalogs.RawCatalog],
     search_types: Mapping[str, repofilters.Filter],
     search_params: Mapping[str, params.SearchParams],
     limit: int,
@@ -456,8 +453,8 @@ def _construct_batch_query(
     columns = []
     table_names = []
 
-    for catalog in catalogs:
-        object_cls = model.get_catalog_object_type(catalog)
+    for catalog in raw_catalogs:
+        object_cls = catalogs.get_catalog_object_type(catalog)
 
         table_names.append(object_cls.layer2_table())
         columns.extend(
@@ -503,12 +500,12 @@ def _construct_batch_query(
     ), query_params
 
 
-def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject]:
+def _group_by_pgc(objects: list[rows.DictRow]) -> list[catalogs.Layer2CatalogObject]:
     objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
     result = []
 
     for pgc, pgc_objects in objects_by_pgc.items():
-        layer2_obj = model.Layer2CatalogObject(pgc, [])
+        layer2_obj = catalogs.Layer2CatalogObject(pgc, [])
 
         obj = pgc_objects[0]
         if "record_id" in obj:
@@ -516,12 +513,12 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
         if "pgc" in obj:
             obj.pop("pgc")
 
-        res: dict[model.RawCatalog, dict[str, Any]] = {}
-        presence_flags: dict[model.RawCatalog, bool] = {}
+        res: dict[catalogs.RawCatalog, dict[str, Any]] = {}
+        presence_flags: dict[catalogs.RawCatalog, bool] = {}
 
         for key, value in obj.items():
             catalog_name, column = key.split("|")
-            catalog = model.RawCatalog(catalog_name)
+            catalog = catalogs.RawCatalog(catalog_name)
 
             if column == "_present":
                 presence_flags[catalog] = bool(value)
@@ -531,7 +528,7 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
                 res[catalog][column] = value
 
         for catalog, data in res.items():
-            object_cls = model.get_catalog_object_type(catalog)
+            object_cls = catalogs.get_catalog_object_type(catalog)
 
             if presence_flags.get(catalog, False):
                 layer2_obj.data.append(object_cls.from_layer2(data))
@@ -543,28 +540,28 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[model.Layer2CatalogObject
 
 def _layer2_object_from_maps(
     pgc: int,
-    catalogs: list[model.RawCatalog],
-    designation_map: dict[int, layer2_model.DesignationCatalog],
-    additional_designations_map: dict[int, layer2_model.AdditionalDesignationsCatalog],
-    icrs_map: dict[int, layer2_model.ICRSCatalog],
-    redshift_map: dict[int, layer2_model.RedshiftCatalog],
-    nature_map: dict[int, layer2_model.NatureCatalog],
-    notes_map: dict[int, layer2_model.NotesCatalog],
-    photometry_total_map: dict[int, layer2_model.PhotometryTotalCatalog],
-) -> Layer2Object:
-    designation = designation_map.get(pgc) if model.RawCatalog.DESIGNATION in catalogs else None
+    raw_catalogs: list[catalogs.RawCatalog],
+    designation_map: dict[int, model.DesignationCatalog],
+    additional_designations_map: dict[int, model.AdditionalDesignationsCatalog],
+    icrs_map: dict[int, model.ICRSCatalog],
+    redshift_map: dict[int, model.RedshiftCatalog],
+    nature_map: dict[int, model.NatureCatalog],
+    notes_map: dict[int, model.NotesCatalog],
+    photometry_total_map: dict[int, model.PhotometryTotalCatalog],
+) -> model.Layer2Object:
+    designation = designation_map.get(pgc) if catalogs.RawCatalog.DESIGNATION in raw_catalogs else None
     additional_designations = (
-        additional_designations_map.get(pgc) if model.RawCatalog.ADDITIONAL_DESIGNATIONS in catalogs else None
+        additional_designations_map.get(pgc) if catalogs.RawCatalog.ADDITIONAL_DESIGNATIONS in raw_catalogs else None
     )
-    icrs = icrs_map.get(pgc) if model.RawCatalog.ICRS in catalogs else None
-    redshift = redshift_map.get(pgc) if model.RawCatalog.REDSHIFT in catalogs else None
-    nature = nature_map.get(pgc) if model.RawCatalog.NATURE in catalogs else None
-    notes = notes_map.get(pgc) if model.RawCatalog.NOTE in catalogs else None
-    photometry_total = photometry_total_map.get(pgc) if model.RawCatalog.PHOTOMETRY__TOTAL in catalogs else None
+    icrs = icrs_map.get(pgc) if catalogs.RawCatalog.ICRS in raw_catalogs else None
+    redshift = redshift_map.get(pgc) if catalogs.RawCatalog.REDSHIFT in raw_catalogs else None
+    nature = nature_map.get(pgc) if catalogs.RawCatalog.NATURE in raw_catalogs else None
+    notes = notes_map.get(pgc) if catalogs.RawCatalog.NOTE in raw_catalogs else None
+    photometry_total = photometry_total_map.get(pgc) if catalogs.RawCatalog.PHOTOMETRY__TOTAL in raw_catalogs else None
 
-    return Layer2Object(
+    return model.Layer2Object(
         pgc=pgc,
-        catalogs=layer2_model.Catalogs(
+        catalogs=model.Catalogs(
             designation=designation,
             additional_designations=additional_designations,
             icrs=icrs,
@@ -576,10 +573,10 @@ def _layer2_object_from_maps(
     )
 
 
-def _source_from_row(row: Mapping[str, Any]) -> layer2_model.Source:
+def _source_from_row(row: Mapping[str, Any]) -> model.Source:
     author_val = row.get("author")
     authors = author_val if isinstance(author_val, list) else [str(author_val)] if author_val is not None else []
-    return layer2_model.Source(
+    return model.Source(
         bibcode=str(row["code"]) if row.get("code") is not None else "",
         title=str(row["title"]) if row.get("title") is not None else "",
         authors=authors,

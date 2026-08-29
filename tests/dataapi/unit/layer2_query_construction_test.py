@@ -4,7 +4,7 @@ from unittest import mock
 
 from astropy import units as u
 
-from app.data import model
+from app import catalogs
 from app.dataapi import repository
 
 
@@ -16,17 +16,17 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
     def _query_for(
         self,
-        catalogs: list[model.RawCatalog],
+        raw_catalogs: list[catalogs.RawCatalog],
         search_filter: repository.Filter,
         search_params: repository.SearchParams,
     ) -> str:
-        self.repo.query_catalogs(catalogs, search_filter, search_params, 25, 0)
+        self.repo.query_catalogs(raw_catalogs, search_filter, search_params, 25, 0)
         query = self.storage.query.call_args.args[0]
         return re.sub(r"\s+", " ", query).strip()
 
     def test_designation_filter_drives_join(self):
         query = self._query_for(
-            [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS, model.RawCatalog.REDSHIFT],
+            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS, catalogs.RawCatalog.REDSHIFT],
             repository.DesignationLikeFilter(),
             repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
         )
@@ -40,7 +40,7 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
     def test_coordinate_filter_drives_join(self):
         query = self._query_for(
-            [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS, model.RawCatalog.REDSHIFT],
+            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS, catalogs.RawCatalog.REDSHIFT],
             repository.ICRSCoordinatesInRadiusFilter(1 * u.Unit("arcmin")),
             repository.CombinedSearchParams(
                 [repository.ICRSSearchParams(10 * u.Unit("deg"), 10 * u.Unit("deg"))],
@@ -55,7 +55,7 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
     def test_pgc_filter_keeps_full_join(self):
         query = self._query_for(
-            [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS],
             repository.PGCOneOfFilter([1, 2]),
             repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
         )
@@ -65,7 +65,7 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
     def test_and_filter_drives_join_from_strict_child(self):
         query = self._query_for(
-            [model.RawCatalog.DESIGNATION, model.RawCatalog.ICRS],
+            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS],
             repository.AndFilter(
                 [
                     repository.PGCOneOfFilter([1, 2]),
@@ -82,7 +82,7 @@ class QueryCatalogsJoinTest(unittest.TestCase):
 
     def test_driving_table_is_joined_even_when_its_catalog_not_requested(self):
         query = self._query_for(
-            [model.RawCatalog.REDSHIFT],
+            [catalogs.RawCatalog.REDSHIFT],
             repository.DesignationLikeFilter(),
             repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
         )

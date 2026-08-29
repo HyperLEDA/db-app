@@ -4,8 +4,8 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app.adminapi import repository
-from app.data import model
+from app import catalogs
+from app.adminapi import model, repository
 from app.lib.storage import enums
 from tests import lib
 
@@ -37,7 +37,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         self.repo.upsert_pgc(pgcs)
         columns = ["type_name"]
         self.repo.save_structured_data(
-            model.NatureCatalogObject.layer1_table(),
+            catalogs.NatureCatalogObject.layer1_table(),
             columns,
             record_ids,
             rows,
@@ -59,9 +59,9 @@ class Layer1RepositoryTest(unittest.TestCase):
             )
         )
         self.repo.register_records("test_table", ["111", "112"])
-        columns = model.ICRSCatalogObject.layer1_keys()
+        columns = catalogs.ICRSCatalogObject.layer1_keys()
         self.repo.save_structured_data(
-            model.ICRSCatalogObject.layer1_table(),
+            catalogs.ICRSCatalogObject.layer1_table(),
             columns,
             ["111", "112"],
             [[12.1, 0.1, 1, 0.3], [11.1, 0.2, 2, 0.4]],
@@ -74,11 +74,11 @@ class Layer1RepositoryTest(unittest.TestCase):
         self._get_table("desig_table")
         self.repo.register_records("desig_table", ["r1"])
         self.repo.save_structured_data(
-            model.DesignationCatalogObject.layer1_table(),
-            model.DesignationCatalogObject.layer1_keys(),
+            catalogs.DesignationCatalogObject.layer1_table(),
+            catalogs.DesignationCatalogObject.layer1_keys(),
             ["r1", "r1"],
             [["NGC 224"], ["M 31"]],
-            conflict_keys=model.DesignationCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
         )
 
         result = self.pg_storage.storage.query(
@@ -92,11 +92,11 @@ class Layer1RepositoryTest(unittest.TestCase):
         self._get_table("cz_table")
         self.repo.register_records("cz_table", ["r1", "r2"])
         self.repo.save_structured_data(
-            model.RedshiftCatalogObject.layer1_table(),
-            model.RedshiftCatalogObject.layer1_keys(),
+            catalogs.RedshiftCatalogObject.layer1_table(),
+            catalogs.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
             [[1000.0, 10.0], [2000.0, None]],
-            conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
+            conflict_keys=catalogs.RedshiftCatalogObject.layer1_primary_keys(),
         )
 
         result = self.repo.get_redshift_records(["r1", "r2", "missing"])
@@ -121,7 +121,7 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
 
         self.repo.save_structured_data(
-            model.NatureCatalogObject.layer1_table(),
+            catalogs.NatureCatalogObject.layer1_table(),
             ["type_name"],
             ["rec1"],
             [["QSO"]],

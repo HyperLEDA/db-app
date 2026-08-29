@@ -5,8 +5,7 @@ import pandas as pd
 import structlog
 from astropy import units as u
 
-from app.adminapi import repository
-from app.data import model
+from app.adminapi import model, repository
 from app.lib.storage import enums
 from tests import lib
 

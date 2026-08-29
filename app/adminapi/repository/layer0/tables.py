@@ -11,9 +11,9 @@ from astropy import table
 from astropy import units as u
 from psycopg import sql
 
+from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
-from app.data import model
 from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()

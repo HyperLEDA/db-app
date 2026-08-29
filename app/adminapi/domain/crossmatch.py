@@ -4,8 +4,8 @@ from typing import Any, Protocol, final
 import structlog
 from astropy import units as u
 
-from app.adminapi import repository
-from app.data import model
+from app import catalogs
+from app.adminapi import model, repository
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
@@ -37,7 +37,7 @@ class _CatalogBearing(Protocol):
     def get[T](self, t: type[T]) -> T | None: ...
 
 
-def icrs_to_response(obj: model.ICRSCatalogObject) -> spec.Coordinates:
+def icrs_to_response(obj: catalogs.ICRSCatalogObject) -> spec.Coordinates:
     lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(obj.ra, obj.dec, obj.e_ra, obj.e_dec, "galactic")
 
     return spec.Coordinates(
@@ -56,7 +56,7 @@ def icrs_to_response(obj: model.ICRSCatalogObject) -> spec.Coordinates:
     )
 
 
-def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[spec.Redshift, spec.Velocity]:
+def redshift_to_response(obj: catalogs.RedshiftCatalogObject) -> tuple[spec.Redshift, spec.Velocity]:
     z = astronomy.heliocentric_cz_to_z(obj.cz * u.Unit("km/s"))
     e_z = astronomy.heliocentric_cz_to_z(obj.e_cz * u.Unit("km/s"))
 
@@ -69,21 +69,21 @@ def redshift_to_response(obj: model.RedshiftCatalogObject) -> tuple[spec.Redshif
 
 
 def catalogs_from_object(obj: _CatalogBearing) -> spec.Catalogs:
-    catalogs = spec.Catalogs()
+    result = spec.Catalogs()
 
-    if (icrs := obj.get(model.ICRSCatalogObject)) is not None:
-        catalogs.coordinates = icrs_to_response(icrs)
+    if (icrs := obj.get(catalogs.ICRSCatalogObject)) is not None:
+        result.coordinates = icrs_to_response(icrs)
 
-    if (designation := obj.get(model.DesignationCatalogObject)) is not None:
-        catalogs.designation = spec.Designation(name=designation.designation)
+    if (designation := obj.get(catalogs.DesignationCatalogObject)) is not None:
+        result.designation = spec.Designation(name=designation.designation)
 
-    if (redshift := obj.get(model.RedshiftCatalogObject)) is not None:
-        catalogs.redshift, catalogs.velocity = redshift_to_response(redshift)
+    if (redshift := obj.get(catalogs.RedshiftCatalogObject)) is not None:
+        result.redshift, result.velocity = redshift_to_response(redshift)
 
-    if (nature := obj.get(model.NatureCatalogObject)) is not None:
-        catalogs.nature = spec.Nature(type_name=nature.type_name)
+    if (nature := obj.get(catalogs.NatureCatalogObject)) is not None:
+        result.nature = spec.Nature(type_name=nature.type_name)
 
-    return catalogs
+    return result
 
 
 def _append_crossmatch_rows(
@@ -157,10 +157,10 @@ class CrossmatchManager:
         record_ids = [row.record_id for row in rows]
         layer1_data = self._repo.query_records(
             [
-                model.RawCatalog.ICRS,
-                model.RawCatalog.DESIGNATION,
-                model.RawCatalog.REDSHIFT,
-                model.RawCatalog.NATURE,
+                catalogs.RawCatalog.ICRS,
+                catalogs.RawCatalog.DESIGNATION,
+                catalogs.RawCatalog.REDSHIFT,
+                catalogs.RawCatalog.NATURE,
             ],
             record_ids=record_ids,
         )
@@ -232,11 +232,11 @@ class CrossmatchManager:
             return response
 
         layer2_objects = self._repo.query_catalogs_pgc(
-            catalogs=[
-                model.RawCatalog.ICRS,
-                model.RawCatalog.DESIGNATION,
-                model.RawCatalog.REDSHIFT,
-                model.RawCatalog.NATURE,
+            raw_catalogs=[
+                catalogs.RawCatalog.ICRS,
+                catalogs.RawCatalog.DESIGNATION,
+                catalogs.RawCatalog.REDSHIFT,
+                catalogs.RawCatalog.NATURE,
             ],
             pgc_numbers=list(candidate_pgcs),
             limit=len(candidate_pgcs),

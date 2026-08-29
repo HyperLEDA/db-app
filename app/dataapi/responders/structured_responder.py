@@ -2,8 +2,8 @@ from typing import Any
 
 from astropy import units as u
 
-from app.data import model
-from app.data.model import layer2
+from app import catalogs
+from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
 from app.lib import astronomy, config
@@ -79,7 +79,7 @@ def _redshift_from_cz(cz: float, e_cz: float) -> spec.Redshift:
     )
 
 
-def _photometry_total_measurement(measurement: layer2.PhotometryTotalMeasurement) -> spec.PhotometryTotalMeasurement:
+def _photometry_total_measurement(measurement: model.PhotometryTotalMeasurement) -> spec.PhotometryTotalMeasurement:
     return spec.PhotometryTotalMeasurement(
         band=measurement.band,
         magsys=measurement.magsys,
@@ -132,9 +132,9 @@ class StructuredResponder(interface.ObjectResponder):
 
     def _fetch_corrected_photometry(
         self,
-        objects: list[layer2.Layer2Object],
+        objects: list[model.Layer2Object],
     ) -> dict[int, list[spec.PhotometryTotalMeasurement]]:
-        correction_work: list[tuple[int, layer2.ICRSCatalog, list[layer2.PhotometryTotalMeasurement]]] = []
+        correction_work: list[tuple[int, model.ICRSCatalog, list[model.PhotometryTotalMeasurement]]] = []
         for obj in objects:
             if obj.catalogs.photometry_total is None or obj.catalogs.icrs is None:
                 continue
@@ -182,30 +182,30 @@ class StructuredResponder(interface.ObjectResponder):
                 corrected_by_pgc[pgc] = corrected
         return corrected_by_pgc
 
-    def build_response_from_catalog(self, objects: list[layer2.Layer2CatalogObject]) -> Any:
+    def build_response_from_catalog(self, objects: list[catalogs.Layer2CatalogObject]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
 
         for obj in objects:
-            catalogs = spec.Catalogs()
+            result = spec.Catalogs()
 
-            if (designation := obj.get(model.DesignationCatalogObject)) is not None:
-                catalogs.designation = spec.Designation(name=designation.designation)
+            if (designation := obj.get(catalogs.DesignationCatalogObject)) is not None:
+                result.designation = spec.Designation(name=designation.designation)
 
-            icrs = obj.get(model.ICRSCatalogObject)
+            icrs = obj.get(catalogs.ICRSCatalogObject)
             if icrs is not None:
-                catalogs.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+                result.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
-            redshift = obj.get(model.RedshiftCatalogObject)
+            redshift = obj.get(catalogs.RedshiftCatalogObject)
             if redshift is not None:
-                catalogs.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
+                result.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
 
-            if (nature := obj.get(model.NatureCatalogObject)) is not None:
-                catalogs.nature = spec.Nature(type_name=nature.type_name)
+            if (nature := obj.get(catalogs.NatureCatalogObject)) is not None:
+                result.nature = spec.Nature(type_name=nature.type_name)
 
-            if icrs is not None and redshift is not None and catalogs.coordinates is not None:
-                gal = catalogs.coordinates.galactic
-                catalogs.velocity = self._velocities_from_apexes(
+            if icrs is not None and redshift is not None and result.coordinates is not None:
+                gal = result.coordinates.galactic
+                result.velocity = self._velocities_from_apexes(
                     gal.lon,
                     gal.lat,
                     gal.e_lon,
@@ -215,11 +215,11 @@ class StructuredResponder(interface.ObjectResponder):
                     catalog_schema,
                 )
 
-            pgc_objects.append(spec.PGCObject(pgc=obj.pgc, catalogs=catalogs))
+            pgc_objects.append(spec.PGCObject(pgc=obj.pgc, catalogs=result))
 
         return spec.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)
 
-    def build_response(self, objects: list[layer2.Layer2Object]) -> Any:
+    def build_response(self, objects: list[model.Layer2Object]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects: list[spec.PGCObject] = []
         corrected_photometry_by_pgc = self._fetch_corrected_photometry(objects)
