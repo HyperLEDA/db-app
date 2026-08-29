@@ -10,6 +10,7 @@ from fastapi import testclient
 
 from app.data import repositories
 from app.dataapi import clients, command, domain, presentation
+from app.dataapi.repository import Repository
 from app.lib.storage import postgres
 from tests import lib
 
@@ -111,6 +112,7 @@ def build_client(storage: postgres.PgStorage) -> tuple[testclient.TestClient, st
     config = command.parse_config("configs/dev/dataapi.yaml")
     actions = domain.Actions(
         layer2_repo=repositories.Layer2Repository(storage, logger),
+        repo=Repository(storage),
         catalog_cfg=config.catalogs,
         metadata_repo=repositories.MetadataRepository(storage),
         references_repo=repositories.ReferencesRepository(storage),

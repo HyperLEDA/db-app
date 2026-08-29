@@ -63,8 +63,10 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
     def setUp(self) -> None:
         self.layer2_repo = mock.Mock()
         self.layer2_repo.query_catalogs.return_value = []
+        self.repo = mock.Mock()
         self.manager = parameterized_query.ParameterizedQueryManager(
             layer2_repo=self.layer2_repo,
+            repo=self.repo,
             enabled_catalogs=DEFAULT,
             catalog_cfg=mock.Mock(),
             reddening_service=mock.Mock(),
@@ -120,8 +122,8 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[2], 10)
-        self.assertEqual(self.layer2_repo.query_pgc.call_args.args[3], 10)
+        self.assertEqual(self.repo.query_pgc.call_args.args[2], 10)
+        self.assertEqual(self.repo.query_pgc.call_args.args[3], 10)
 
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112

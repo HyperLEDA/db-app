@@ -11,7 +11,7 @@ from app.data.model.interface import (
     get_object,
 )
 from app.data.model.kinematics import KinematicsLineWidthCatalogObject
-from app.data.model.layer2 import Layer2CatalogObject, Layer2Object
+from app.data.model.layer2 import Layer2CatalogObject
 from app.data.model.morphology import (
     MorphologyExtraCatalogObject,
     MorphologyFeaturesCatalogObject,
@@ -61,7 +61,6 @@ __all__ = [
     "RedshiftRecord",
     "Record",
     "Layer2CatalogObject",
-    "Layer2Object",
     "TableRecord",
     "RawCatalog",
     "RUNTIME_RAW_CATALOGS",

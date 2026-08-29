@@ -4,6 +4,7 @@ from app.data import model, repositories
 from app.dataapi import clients, responders
 from app.dataapi.domain import parameterized_query, reddening
 from app.dataapi.presentation import interface
+from app.dataapi.repository import Repository
 from app.lib.tap import types as tap_types
 from app.lib.web import errors
 from app.specs import dataapi as spec
@@ -44,17 +45,19 @@ class Actions(interface.Actions):
     def __init__(
         self,
         layer2_repo: repositories.Layer2Repository,
+        repo: Repository,
         catalog_cfg: responders.CatalogConfig,
         metadata_repo: repositories.MetadataRepository,
         references_repo: repositories.ReferencesRepository,
         fieldapi_client: clients.FieldAPIClient,
     ) -> None:
         self.layer2_repo = layer2_repo
+        self.repo = repo
         self.catalog_cfg = catalog_cfg
         self.metadata_repo = metadata_repo
         self.reddening = reddening.Reddening(references_repo, fieldapi_client)
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
-            layer2_repo, ENABLED_CATALOGS, catalog_cfg, self.reddening
+            layer2_repo, repo, ENABLED_CATALOGS, catalog_cfg, self.reddening
         )
 
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
