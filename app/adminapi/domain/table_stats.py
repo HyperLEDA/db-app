@@ -1,7 +1,8 @@
 import datetime
 from collections.abc import Callable
 
-from app.data import model, repositories
+from app.adminapi import repository
+from app.data import model
 from app.specs import adminapi as spec
 
 
@@ -24,10 +25,10 @@ def table_progress_to_presentation(progress: model.TableProgress) -> spec.TableP
 
 
 def make_table_stats_refresh(
-    layer0_repo: repositories.Layer0Repository,
+    repo: repository.Repository,
 ) -> Callable[[], spec.TableStatsSnapshot]:
     def refresh() -> spec.TableStatsSnapshot:
-        progress = layer0_repo.get_table_progress(None)
+        progress = repo.get_table_progress(None)
         return spec.TableStatsSnapshot(
             tables={name: table_progress_to_presentation(p) for name, p in progress.items()},
             computed_at=datetime.datetime.now(tz=datetime.UTC),

@@ -5,10 +5,11 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums
 from app.tasks import repository
 from tests import lib
+from tests.lib import layer_seed
 
 
 class RepositoryTest(unittest.TestCase):
@@ -16,10 +17,8 @@ class RepositoryTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.storage = cls.pg_storage.get_storage()
 
     def tearDown(self):
         self.pg_storage.clear()
@@ -42,9 +41,8 @@ class RepositoryTest(unittest.TestCase):
             self.repo.save(table_name, table.QTable(qtable_data))
 
     def _get_table(self, table_name: str) -> int:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
-        return table_resp.table_id
+        bib_id = layer_seed.create_bibliography(self.storage, "123456", 2000, ["test"], "test")
+        return layer_seed.create_table(self.storage, table_name, bib_id)
 
     def _insert_nature_data(
         self,
@@ -54,11 +52,12 @@ class RepositoryTest(unittest.TestCase):
         rows: list[list[str]],
     ) -> None:
         self._get_table(table_name)
-        self.layer0_repo.register_records(table_name, record_ids)
-        self.common_repo.register_pgcs(list(pgcs.values()))
-        self.layer0_repo.upsert_pgc(pgcs)
+        layer_seed.register_records(self.storage, table_name, record_ids)
+        layer_seed.register_pgcs(self.storage, list(pgcs.values()))
+        layer_seed.upsert_pgc(self.storage, pgcs)
         columns = ["type_name"]
-        self.layer1_repo.save_structured_data(
+        layer_seed.save_structured_data(
+            self.storage,
             model.NatureCatalogObject.layer1_table(),
             columns,
             record_ids,
@@ -89,7 +88,7 @@ class RepositoryTest(unittest.TestCase):
         )
 
     def test_get_orphaned_pgcs_returns_pgcs_without_layer1_data(self) -> None:
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(
             [
                 model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="a")]),
@@ -104,10 +103,11 @@ class RepositoryTest(unittest.TestCase):
 
     def test_get_orphaned_pgcs_returns_empty_when_layer1_present(self) -> None:
         self._get_table("t1")
-        self.layer0_repo.register_records("t1", ["r1"])
-        self.common_repo.register_pgcs([100])
-        self.layer0_repo.upsert_pgc({"r1": 100})
-        self.layer1_repo.save_structured_data(
+        layer_seed.register_records(self.storage, "t1", ["r1"])
+        layer_seed.register_pgcs(self.storage, [100])
+        layer_seed.upsert_pgc(self.storage, {"r1": 100})
+        layer_seed.save_structured_data(
+            self.storage,
             "designation.data",
             ["design"],
             ["r1"],
@@ -122,10 +122,11 @@ class RepositoryTest(unittest.TestCase):
 
     def test_get_orphaned_pgcs_returns_only_pgcs_without_layer1_data(self) -> None:
         self._get_table("t1")
-        self.layer0_repo.register_records("t1", ["r1"])
-        self.common_repo.register_pgcs([100, 200])
-        self.layer0_repo.upsert_pgc({"r1": 100})
-        self.layer1_repo.save_structured_data(
+        layer_seed.register_records(self.storage, "t1", ["r1"])
+        layer_seed.register_pgcs(self.storage, [100, 200])
+        layer_seed.upsert_pgc(self.storage, {"r1": 100})
+        layer_seed.save_structured_data(
+            self.storage,
             "designation.data",
             ["design"],
             ["r1"],
@@ -145,7 +146,7 @@ class RepositoryTest(unittest.TestCase):
         self.assertEqual(set(orphaned["layer2.designation"]), {200})
 
     def test_remove_pgcs_removes_specified_pgcs(self) -> None:
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(
             [
                 model.Layer2CatalogObject(1, [model.DesignationCatalogObject(design="d1")]),
@@ -164,9 +165,9 @@ class RepositoryTest(unittest.TestCase):
 
     def test_get_new_nature_records_returns_empty_when_no_nature_data(self) -> None:
         self._get_table("empty_table")
-        self.layer0_repo.register_records("empty_table", ["r1"])
-        self.common_repo.register_pgcs([100])
-        self.layer0_repo.upsert_pgc({"r1": 100})
+        layer_seed.register_records(self.storage, "empty_table", ["r1"])
+        layer_seed.register_pgcs(self.storage, [100])
+        layer_seed.upsert_pgc(self.storage, {"r1": 100})
 
         result = self.repo.get_new_nature_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), 10, 0)
         self.assertEqual(len(result), 0)
@@ -242,10 +243,11 @@ class RepositoryTest(unittest.TestCase):
 
     def test_get_new_redshift_records_defaults_null_e_cz(self) -> None:
         self._get_table("cz_table")
-        self.layer0_repo.register_records("cz_table", ["r1", "r2"])
-        self.common_repo.register_pgcs([10, 20])
-        self.layer0_repo.upsert_pgc({"r1": 10, "r2": 20})
-        self.layer1_repo.save_structured_data(
+        layer_seed.register_records(self.storage, "cz_table", ["r1", "r2"])
+        layer_seed.register_pgcs(self.storage, [10, 20])
+        layer_seed.upsert_pgc(self.storage, {"r1": 10, "r2": 20})
+        layer_seed.save_structured_data(
+            self.storage,
             model.RedshiftCatalogObject.layer1_table(),
             model.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
@@ -272,7 +274,8 @@ class RepositoryTest(unittest.TestCase):
             params=[old_dt, 5001],
         )
 
-        self.layer1_repo.save_structured_data(
+        layer_seed.save_structured_data(
+            self.storage,
             model.NatureCatalogObject.layer1_table(),
             ["type_name"],
             ["rec1"],

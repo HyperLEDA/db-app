@@ -2,9 +2,8 @@ import unittest
 
 import structlog
 
-from app.adminapi import clients, domain
+from app.adminapi import clients, domain, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
-from app.data import repositories
 from app.lib.storage import enums
 from app.specs import adminapi
 from tests import lib
@@ -15,15 +14,10 @@ class CreateTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-
-        cls.source_manager = domain.SourceManager(cls.common_repo)
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.source_manager = domain.SourceManager(cls.repo)
         cls.upload_manager = domain.TableUploadManager(
-            cls.common_repo,
-            cls.layer0_repo,
-            cls.layer1_repo,
+            cls.repo,
             clients.get_mock_clients(),
             get_mock_table_stats_cache(),
         )

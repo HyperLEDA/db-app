@@ -4,8 +4,9 @@ import uuid
 
 import structlog
 
+from app.adminapi import repository
 from app.adminapi.domain import crossmatch
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.specs import adminapi
@@ -16,28 +17,25 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer2_repo = repositories.Layer2Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.manager = crossmatch.CrossmatchManager(cls.layer0_repo, cls.layer1_repo, cls.layer2_repo)
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.manager = crossmatch.CrossmatchManager(cls.repo)
 
     def tearDown(self) -> None:
         self.pg_storage.clear()
 
     def _create_table(self, table_name: str) -> None:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
+        self.repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
 
     def _register(self, table_name: str, record_ids: list[str]) -> None:
         self._create_table(table_name)
-        self.layer0_repo.register_records(table_name, record_ids)
+        self.repo.register_records(table_name, record_ids)
 
     def _set_crossmatch(
         self,
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]],
     ) -> None:
-        self.layer0_repo.set_crossmatch_results(rows)
+        self.repo.set_crossmatch_results(rows)
 
     def _pgc_for(self, record_id: str) -> int | None:
         row = self.pg_storage.storage.query_one(
@@ -52,7 +50,7 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
         existing_id = str(uuid.uuid4())
         existing_pgc = 4242
         self._register(table_name, [new_id, existing_id])
-        self.common_repo.register_pgcs([existing_pgc])
+        self.repo.register_pgcs([existing_pgc])
         self._set_crossmatch(
             [
                 (new_id, enums.RecordTriageStatus.RESOLVED, []),
@@ -120,7 +118,7 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
         table_name = "submit_collided"
         collided_id = str(uuid.uuid4())
         self._register(table_name, [collided_id])
-        self.common_repo.register_pgcs([10, 11])
+        self.repo.register_pgcs([10, 11])
         self._set_crossmatch(
             [(collided_id, enums.RecordTriageStatus.RESOLVED, [10, 11])],
         )

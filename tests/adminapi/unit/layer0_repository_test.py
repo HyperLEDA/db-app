@@ -7,7 +7,7 @@ import structlog
 from parameterized import param, parameterized
 from psycopg import sql
 
-from app.data.repositories import Layer0Repository
+from app.adminapi import repository
 from app.lib.storage import enums
 from tests import lib
 
@@ -21,7 +21,7 @@ def normalize_query(s: str | sql.Composable) -> str:
 class Layer0RepositoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.storage_mock = mock.MagicMock()
-        self.repo = Layer0Repository(self.storage_mock, structlog.get_logger())
+        self.repo = repository.Repository(self.storage_mock, structlog.get_logger())
 
     @parameterized.expand(
         [

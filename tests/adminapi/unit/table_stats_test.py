@@ -26,8 +26,8 @@ class TableStatsTest(unittest.TestCase):
         self.assertEqual(result.catalogs["icrs"].layer2_pending, 1)
 
     def test_make_table_stats_refresh(self) -> None:
-        layer0_repo = mock.MagicMock()
-        layer0_repo.get_table_progress.return_value = {
+        repo = mock.MagicMock()
+        repo.get_table_progress.return_value = {
             "t1": model.TableProgress(
                 total_records=1,
                 unprocessed=0,
@@ -38,9 +38,9 @@ class TableStatsTest(unittest.TestCase):
             )
         }
 
-        refresh = table_stats.make_table_stats_refresh(layer0_repo)
+        refresh = table_stats.make_table_stats_refresh(repo)
         snapshot = refresh()
 
         self.assertIn("t1", snapshot.tables)
         self.assertEqual(snapshot.tables["t1"].submitted, 1)
-        layer0_repo.get_table_progress.assert_called_once_with(None)
+        repo.get_table_progress.assert_called_once_with(None)

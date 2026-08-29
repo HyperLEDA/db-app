@@ -125,7 +125,7 @@ class CatalogObject(abc.ABC):
         """Build a catalog object from a layer 2 row.
 
         Override together with ``layer2_table()`` and ``layer2_keys()`` when layer 2
-        data is queried through ``Layer2Repository``.
+        data is queried through the admin API repository.
         """
         raise NotImplementedError
 

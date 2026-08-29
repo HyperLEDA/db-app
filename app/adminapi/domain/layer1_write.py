@@ -1,22 +1,22 @@
 import psycopg
 from astropy import units as u
 
+from app.adminapi import repository
 from app.data import model
-from app.data.repositories import layer1
 from app.lib.web.errors import RuleValidationError
 from app.specs import adminapi as spec
 
 
 class Layer1Writer:
-    def __init__(self, layer1_repo: layer1.Layer1Repository) -> None:
-        self._layer1_repo = layer1_repo
+    def __init__(self, repo: repository.Repository) -> None:
+        self._repo = repo
 
     def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         catalog = model.RawCatalog(request.catalog)
         object_cls = model.get_catalog_object_type(catalog)
         table = object_cls.layer1_table()
 
-        internal_units = self._layer1_repo.get_column_units(catalog)
+        internal_units = self._repo.get_column_units(catalog)
         missing = [col for col in request.columns if col in internal_units and col not in request.units]
         if missing:
             raise RuleValidationError(f"units required for columns: {', '.join(sorted(missing))}")
@@ -40,9 +40,7 @@ class Layer1Writer:
 
         try:
             conflict_keys = object_cls.layer1_primary_keys()
-            self._layer1_repo.save_structured_data(
-                table, request.columns, request.ids, converted, conflict_keys=conflict_keys
-            )
+            self._repo.save_structured_data(table, request.columns, request.ids, converted, conflict_keys=conflict_keys)
         except psycopg.errors.ForeignKeyViolation as e:
             diag = getattr(e, "diag", None)
             detail = getattr(diag, "message_detail", None) if diag else None

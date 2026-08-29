@@ -5,9 +5,9 @@ import psycopg
 import structlog
 from pandas import DataFrame
 
-from app.adminapi import clients, domain
+from app.adminapi import clients, domain, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 from app.specs import adminapi
@@ -19,10 +19,9 @@ class RawDataTableTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.manager = domain.TableUploadManager(
-            repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger()),
-            repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
-            repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger()),
+            cls.repo,
             clients.get_mock_clients(),
             get_mock_table_stats_cache(),
         )
@@ -196,8 +195,8 @@ class RawDataTableTest(unittest.TestCase):
 
     def test_fetch_raw_table(self):
         data = DataFrame({"col0": [1, 2, 3, 4], "col1": ["ad", "ad", "a", "he"]})
-        bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
-        _ = self.manager.layer0_repo.create_table(
+        bib_id = self.repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        _ = self.repo.create_table(
             model.Layer0TableMeta(
                 "test_table",
                 [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
@@ -205,16 +204,16 @@ class RawDataTableTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             ),
         )
-        self.manager.layer0_repo.insert_raw_data(model.Layer0RawData("test_table", data))
-        expected = self.manager.layer0_repo.fetch_raw_data("test_table")
+        self.repo.insert_raw_data(model.Layer0RawData("test_table", data))
+        expected = self.repo.fetch_raw_data("test_table")
 
         self.assertTrue(expected.data.equals(data))
 
-        expected = self.manager.layer0_repo.fetch_raw_data("test_table", columns=["col1"])
+        expected = self.repo.fetch_raw_data("test_table", columns=["col1"])
         self.assertTrue(expected.data.equals(data.drop(["col0"], axis=1)))
 
     def test_fetch_metadata(self):
-        bib_id = self.manager.common_repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
+        bib_id = self.repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected = model.Layer0TableMeta(
             table_name,
@@ -222,9 +221,9 @@ class RawDataTableTest(unittest.TestCase):
             bib_id,
             enums.DataType.REGULAR,
         )
-        _ = self.manager.layer0_repo.create_table(expected)
+        _ = self.repo.create_table(expected)
 
-        actual = self.manager.layer0_repo.fetch_metadata("test_table")
+        actual = self.repo.fetch_metadata("test_table")
 
         self.assertEqual(expected.table_name, actual.table_name)
         self.assertEqual(expected.column_descriptions, actual.column_descriptions)

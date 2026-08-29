@@ -4,7 +4,8 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app.data import model, repositories
+from app.adminapi import repository
+from app.data import model
 from app.lib.storage import enums
 from tests import lib
 
@@ -13,17 +14,14 @@ class Layer1RepositoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
-
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
 
     def tearDown(self):
         self.pg_storage.clear()
 
     def _get_table(self, table_name: str) -> int:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
+        table_resp = self.repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
         return table_resp.table_id
 
     def _insert_nature_data(
@@ -34,11 +32,11 @@ class Layer1RepositoryTest(unittest.TestCase):
         rows: list[list[str]],
     ) -> None:
         self._get_table(table_name)
-        self.layer0_repo.register_records(table_name, record_ids)
-        self.common_repo.register_pgcs(list(pgcs.values()))
-        self.layer0_repo.upsert_pgc(pgcs)
+        self.repo.register_records(table_name, record_ids)
+        self.repo.register_pgcs(list(pgcs.values()))
+        self.repo.upsert_pgc(pgcs)
         columns = ["type_name"]
-        self.layer1_repo.save_structured_data(
+        self.repo.save_structured_data(
             model.NatureCatalogObject.layer1_table(),
             columns,
             record_ids,
@@ -46,8 +44,8 @@ class Layer1RepositoryTest(unittest.TestCase):
         )
 
     def test_icrs(self):
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        _ = self.layer0_repo.create_table(
+        bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
+        _ = self.repo.create_table(
             model.Layer0TableMeta(
                 "test_table",
                 [
@@ -60,9 +58,9 @@ class Layer1RepositoryTest(unittest.TestCase):
                 enums.DataType.REGULAR,
             )
         )
-        self.layer0_repo.register_records("test_table", ["111", "112"])
+        self.repo.register_records("test_table", ["111", "112"])
         columns = model.ICRSCatalogObject.layer1_keys()
-        self.layer1_repo.save_structured_data(
+        self.repo.save_structured_data(
             model.ICRSCatalogObject.layer1_table(),
             columns,
             ["111", "112"],
@@ -74,8 +72,8 @@ class Layer1RepositoryTest(unittest.TestCase):
 
     def test_designation_multiple_names_per_record(self) -> None:
         self._get_table("desig_table")
-        self.layer0_repo.register_records("desig_table", ["r1"])
-        self.layer1_repo.save_structured_data(
+        self.repo.register_records("desig_table", ["r1"])
+        self.repo.save_structured_data(
             model.DesignationCatalogObject.layer1_table(),
             model.DesignationCatalogObject.layer1_keys(),
             ["r1", "r1"],
@@ -92,8 +90,8 @@ class Layer1RepositoryTest(unittest.TestCase):
 
     def test_get_redshift_records_defaults_null_e_cz(self) -> None:
         self._get_table("cz_table")
-        self.layer0_repo.register_records("cz_table", ["r1", "r2"])
-        self.layer1_repo.save_structured_data(
+        self.repo.register_records("cz_table", ["r1", "r2"])
+        self.repo.save_structured_data(
             model.RedshiftCatalogObject.layer1_table(),
             model.RedshiftCatalogObject.layer1_keys(),
             ["r1", "r2"],
@@ -101,7 +99,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             conflict_keys=model.RedshiftCatalogObject.layer1_primary_keys(),
         )
 
-        result = self.layer1_repo.get_redshift_records(["r1", "r2", "missing"])
+        result = self.repo.get_redshift_records(["r1", "r2", "missing"])
 
         self.assertEqual(len(result), 3)
         self.assertIsNotNone(result[0])
@@ -122,7 +120,7 @@ class Layer1RepositoryTest(unittest.TestCase):
             params=[old_dt, 5001],
         )
 
-        self.layer1_repo.save_structured_data(
+        self.repo.save_structured_data(
             model.NatureCatalogObject.layer1_table(),
             ["type_name"],
             ["rec1"],

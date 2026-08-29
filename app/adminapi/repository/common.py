@@ -1,10 +1,11 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import final
 
 import structlog
 
-from app.data import model, template
+from app.adminapi.repository import model as repo_model
+from app.adminapi.repository import sql
+from app.data import model
 from app.lib import concurrency
 from app.lib.storage import postgres
 
@@ -27,20 +28,6 @@ def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
     )
 
 
-@dataclass
-class ColumnSchemaInfo:
-    name: str
-    description: str | None
-    unit: str | None
-    ucd: str | None
-
-
-@dataclass
-class TableSchemaInfo:
-    table_description: str
-    columns: list[ColumnSchemaInfo]
-
-
 @final
 class CommonRepository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
@@ -61,12 +48,12 @@ class CommonRepository(postgres.TransactionalPGRepository):
         return int(result["id"])
 
     def get_source_entry(self, source_name: str) -> model.Bibliography:
-        row = self._storage.query_one(template.GET_SOURCE_BY_CODE, params=[source_name])
+        row = self._storage.query_one(sql.GET_SOURCE_BY_CODE, params=[source_name])
 
         return model.Bibliography(**row)
 
     def get_source_by_id(self, source_id: int) -> model.Bibliography:
-        row = self._storage.query_one(template.GET_SOURCE_BY_ID, params=[source_id])
+        row = self._storage.query_one(sql.GET_SOURCE_BY_ID, params=[source_id])
 
         return model.Bibliography(**row)
 
@@ -89,7 +76,7 @@ class CommonRepository(postgres.TransactionalPGRepository):
     def touch_pgcs(self, pgc_ids: Sequence[int]) -> None:
         touch_pgcs(self._storage, pgc_ids)
 
-    def get_schema(self, schema_name: str, table_name: str) -> TableSchemaInfo:
+    def get_schema(self, schema_name: str, table_name: str) -> repo_model.TableSchemaInfo:
         errgr = concurrency.ErrorGroup()
         table_task = errgr.run(
             self._storage.query_one,
@@ -117,14 +104,14 @@ class CommonRepository(postgres.TransactionalPGRepository):
             if not isinstance(param, dict):
                 param = {}
             columns.append(
-                ColumnSchemaInfo(
+                repo_model.ColumnSchemaInfo(
                     name=row["column_name"],
                     description=param.get("description"),
                     unit=param.get("unit"),
                     ucd=param.get("ucd"),
                 )
             )
-        return TableSchemaInfo(table_description=table_description, columns=columns)
+        return repo_model.TableSchemaInfo(table_description=table_description, columns=columns)
 
     def get_nature_object_types(self) -> list[dict]:
         return self._storage.query(

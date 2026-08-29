@@ -6,10 +6,10 @@ import unittest
 import structlog
 
 from app import tasks
-from app.data import model, repositories
 from app.lib.storage import enums
 from app.tasks import layer2_import_icrs
 from tests import lib
+from tests.lib import layer_seed
 
 N_OBJECTS = int(os.environ.get("BENCH_ICRS_N_OBJECTS", "50000"))
 MEASUREMENTS_PER_OBJECT = int(os.environ.get("BENCH_ICRS_MEASUREMENTS_PER_OBJECT", "2"))
@@ -22,8 +22,6 @@ class Layer2ImportIcrsBenchTest(unittest.TestCase):
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
         cls.storage = cls.pg_storage.get_storage()
         logger = structlog.get_logger()
-        cls.common_repo = repositories.CommonRepository(cls.storage, logger)
-        cls.layer0_repo = repositories.Layer0Repository(cls.storage, logger)
         cls.task = layer2_import_icrs.Layer2ImportICRSTask(logger, silent=True)
         cls.task.prepare(tasks.Config(storage=cls.pg_storage.config))
 
@@ -35,9 +33,11 @@ class Layer2ImportIcrsBenchTest(unittest.TestCase):
         cls.task.cleanup()
 
     def _seed_layer1_icrs(self, n_objects: int, measurements_per_object: int) -> None:
-        bib_id = self.common_repo.create_bibliography("bench_icrs", 2000, ["bench"], "bench icrs import")
-        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta("bench_icrs_import", [], bib_id))
-        table_id = table_resp.table_id
+        table_id = layer_seed.create_table(
+            self.storage,
+            "bench_icrs_import",
+            layer_seed.create_bibliography(self.storage, "bench_icrs", 2000, ["bench"], "bench icrs import"),
+        )
         n_records = n_objects * measurements_per_object
 
         self.storage.exec(

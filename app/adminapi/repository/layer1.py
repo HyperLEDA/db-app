@@ -4,9 +4,9 @@ import structlog
 from astropy import units as u
 from psycopg import sql
 
+from app.adminapi.repository.common import get_column_units as query_column_units
+from app.adminapi.repository.common import touch_pgcs
 from app.data import model
-from app.data.repositories.common import get_column_units as query_column_units
-from app.data.repositories.common import touch_pgcs
 from app.lib.storage import postgres
 
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))

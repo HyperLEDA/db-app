@@ -4,10 +4,9 @@ import psycopg
 import structlog
 from starlette import testclient
 
-from app.adminapi import clients, domain
+from app.adminapi import clients, domain, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.presentation.server import Server
-from app.data import repositories
 from app.lib import audit, auth
 from app.lib.storage import enums
 from app.lib.web import server
@@ -22,13 +21,8 @@ class AdminTapSyncTest(unittest.TestCase):
     def setUp(self) -> None:
         pg = self.pg_storage.get_storage()
         log = structlog.get_logger()
-        layer0_repo = repositories.Layer0Repository(pg, log)
         self.actions = domain.Actions(
-            common_repo=repositories.CommonRepository(pg, log),
-            layer0_repo=layer0_repo,
-            layer1_repo=repositories.Layer1Repository(pg, log),
-            layer2_repo=repositories.Layer2Repository(pg, log),
-            metadata_repo=repositories.MetadataRepository(pg),
+            repo=repository.Repository(pg, log),
             authenticator=auth.NoopAuthenticator(),
             storage=pg,
             clients=clients.Clients(ads_token="test"),

@@ -8,9 +8,8 @@ import pydantic_settings as settings
 import structlog
 import yaml
 
-from app.adminapi import cache, clients, domain, presentation
+from app.adminapi import cache, clients, domain, presentation, repository
 from app.adminapi.domain import table_stats
-from app.data import repositories
 from app.lib import audit, auth, commands, config, tracing
 from app.lib.storage import enums, postgres
 from app.lib.tracing import TracingConfig
@@ -47,8 +46,8 @@ class AdminAPICommand(commands.Command):
             audit.PostgresActionRecorder(self.pg_storage) if cfg.auth_enabled else audit.NoopActionRecorder()
         )
 
-        layer0_repo = repositories.Layer0Repository(self.pg_storage, log)
-        refresh = table_stats.make_table_stats_refresh(layer0_repo)
+        repo = repository.Repository(self.pg_storage, log)
+        refresh = table_stats.make_table_stats_refresh(repo)
         self.table_stats_cache = cache.BackgroundCache(
             "table_stats",
             refresh,
@@ -59,11 +58,7 @@ class AdminAPICommand(commands.Command):
         self._table_stats_thread.start()
 
         actions = domain.Actions(
-            common_repo=repositories.CommonRepository(self.pg_storage, log),
-            layer0_repo=layer0_repo,
-            layer1_repo=repositories.Layer1Repository(self.pg_storage, log),
-            layer2_repo=repositories.Layer2Repository(self.pg_storage, log),
-            metadata_repo=repositories.MetadataRepository(self.pg_storage),
+            repo=repo,
             authenticator=authenticator,
             storage=self.pg_storage,
             clients=clients.Clients(cfg.clients.ads_token),

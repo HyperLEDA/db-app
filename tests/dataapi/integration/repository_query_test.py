@@ -3,10 +3,11 @@ import unittest
 import structlog
 from astropy import units as u
 
-from app.data import model, repositories
+from app.data import model
 from app.dataapi import repository
 from app.lib.storage import enums
 from tests import lib
+from tests.lib import layer_seed
 
 
 class RepositoryQueryTest(unittest.TestCase):
@@ -14,10 +15,8 @@ class RepositoryQueryTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
 
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer1_repo = repositories.Layer1Repository(cls.pg_storage.get_storage(), structlog.get_logger())
         cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.storage = cls.pg_storage.get_storage()
 
     def tearDown(self):
         self.pg_storage.clear()
@@ -46,9 +45,8 @@ class RepositoryQueryTest(unittest.TestCase):
             storage.execute_batch(query, rows)
 
     def _get_table(self, table_name: str) -> int:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
-        return table_resp.table_id
+        bib_id = layer_seed.create_bibliography(self.storage, "123456", 2000, ["test"], "test")
+        return layer_seed.create_table(self.storage, table_name, bib_id)
 
     def test_one_object(self):
         objects: list[model.Layer2CatalogObject] = [
@@ -56,7 +54,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, [model.DesignationCatalogObject(design="test2")]),
         ]
 
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -76,7 +74,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -106,7 +104,7 @@ class RepositoryQueryTest(unittest.TestCase):
             ),
         ]
 
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -146,7 +144,7 @@ class RepositoryQueryTest(unittest.TestCase):
             ),
         ]
 
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -187,7 +185,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(5, [model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2, 3, 4, 5])
+        layer_seed.register_pgcs(self.storage, [1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -209,7 +207,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(5, [model.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2, 3, 4, 5])
+        layer_seed.register_pgcs(self.storage, [1, 2, 3, 4, 5])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs_batch(
@@ -249,7 +247,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=180, dec=0, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2, 3])
+        layer_seed.register_pgcs(self.storage, [1, 2, 3])
         self._save_layer2_data(objects)
 
         actual = self._query_icrs_in_radius(ra=0.0, dec=0.0, radius=0.05)
@@ -263,7 +261,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(3, [model.ICRSCatalogObject(ra=100, dec=79, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2, 3])
+        layer_seed.register_pgcs(self.storage, [1, 2, 3])
         self._save_layer2_data(objects)
 
         actual = self._query_icrs_in_radius(ra=100.0, dec=80.0, radius=0.5)
@@ -276,7 +274,7 @@ class RepositoryQueryTest(unittest.TestCase):
             model.Layer2CatalogObject(2, [model.ICRSCatalogObject(ra=10, dec=62.5, e_ra=0.1, e_dec=0.1)]),
         ]
 
-        self.common_repo.register_pgcs([1, 2])
+        layer_seed.register_pgcs(self.storage, [1, 2])
         self._save_layer2_data(objects)
 
         actual = self._query_icrs_in_radius(
@@ -299,7 +297,7 @@ class RepositoryQueryTest(unittest.TestCase):
             ),
         ]
 
-        self.common_repo.register_pgcs([1])
+        layer_seed.register_pgcs(self.storage, [1])
         self._save_layer2_data(objects)
 
         actual = self._query_icrs_in_radius(
@@ -326,7 +324,7 @@ class RepositoryQueryTest(unittest.TestCase):
             ),
         ]
 
-        self.common_repo.register_pgcs([1])
+        layer_seed.register_pgcs(self.storage, [1])
         self._save_layer2_data(objects)
 
         actual = self.repo.query_catalogs(
@@ -345,10 +343,11 @@ class RepositoryQueryTest(unittest.TestCase):
 
     def test_query_photometry_total(self) -> None:
         self._get_table("phot_table")
-        self.layer0_repo.register_records("phot_table", ["r1"])
-        self.common_repo.register_pgcs([5001])
-        self.layer0_repo.upsert_pgc({"r1": 5001})
-        self.layer1_repo.save_structured_data(
+        layer_seed.register_records(self.storage, "phot_table", ["r1"])
+        layer_seed.register_pgcs(self.storage, [5001])
+        layer_seed.upsert_pgc(self.storage, {"r1": 5001})
+        layer_seed.save_structured_data(
+            self.storage,
             model.PhotometryTotalCatalogObject.layer1_table(),
             ["band", "mag", "e_mag", "method"],
             ["r1"],

@@ -5,8 +5,9 @@ import uuid
 import pydantic
 import structlog
 
+from app.adminapi import repository
 from app.adminapi.domain import pgc
-from app.data import model, repositories
+from app.data import model
 from app.lib.storage import enums
 from app.lib.web import errors
 from app.specs import adminapi
@@ -17,23 +18,22 @@ class MergePgcsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
-        cls.common_repo = repositories.CommonRepository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.layer0_repo = repositories.Layer0Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.manager = pgc.PgcManager(cls.common_repo, cls.layer0_repo)
+        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
+        cls.manager = pgc.PgcManager(cls.repo)
 
     def tearDown(self) -> None:
         self.pg_storage.clear()
 
     def _create_table(self, table_name: str) -> None:
-        bib_id = self.common_repo.create_bibliography("123456", 2000, ["test"], "test")
-        self.layer0_repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
+        self.repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
 
     def _register_with_pgcs(self, table_name: str, record_pgcs: dict[str, int]) -> None:
         self._create_table(table_name)
         record_ids = list(record_pgcs.keys())
-        self.layer0_repo.register_records(table_name, record_ids)
-        self.common_repo.register_pgcs(list(set(record_pgcs.values())))
-        self.layer0_repo.upsert_pgc(dict(record_pgcs))
+        self.repo.register_records(table_name, record_ids)
+        self.repo.register_pgcs(list(set(record_pgcs.values())))
+        self.repo.upsert_pgc(dict(record_pgcs))
 
     def _pgc_for(self, record_id: str) -> int | None:
         row = self.pg_storage.storage.query_one(
@@ -96,7 +96,7 @@ class MergePgcsTest(unittest.TestCase):
     def test_reject_missing_target(self) -> None:
         source_pgc = 9_000_001
         missing_target = 9_000_002
-        self.common_repo.register_pgcs([source_pgc])
+        self.repo.register_pgcs([source_pgc])
 
         with self.assertRaises(errors.NotFoundError):
             self.manager.merge_pgcs(
@@ -106,7 +106,7 @@ class MergePgcsTest(unittest.TestCase):
     def test_reject_missing_source(self) -> None:
         target_pgc = 9_000_003
         missing_source = 9_000_004
-        self.common_repo.register_pgcs([target_pgc])
+        self.repo.register_pgcs([target_pgc])
 
         with self.assertRaises(errors.NotFoundError):
             self.manager.merge_pgcs(

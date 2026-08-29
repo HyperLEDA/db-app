@@ -11,11 +11,9 @@ from astropy import units
 from astropy import units as u
 from astroquery import nasa_ads as ads
 
-from app.adminapi import cache, clients
+from app.adminapi import cache, clients, repository
 from app.adminapi.domain import table_stats
-from app.data import model, repositories
-from app.data.repositories.common import ColumnSchemaInfo, TableSchemaInfo
-from app.data.repositories.layer0.common import RAWDATA_SCHEMA
+from app.data import model
 from app.lib import astronomy, concurrency
 from app.lib.storage import enums, mapping
 from app.lib.web.errors import NotFoundError, RuleValidationError
@@ -23,12 +21,12 @@ from app.specs import adminapi as spec
 
 BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-Z])$"
 
-FORBIDDEN_COLUMN_NAMES = {repositories.INTERNAL_ID_COLUMN_NAME}
+FORBIDDEN_COLUMN_NAMES = {repository.INTERNAL_ID_COLUMN_NAME}
 
 logger = structlog.stdlib.get_logger()
 
 
-def _column_meta(columns: list[ColumnSchemaInfo], name: str) -> tuple[str, str]:
+def _column_meta(columns: list[repository.ColumnSchemaInfo], name: str) -> tuple[str, str]:
     for c in columns:
         if c.name == name:
             return (c.description or "", c.unit or "")
@@ -36,9 +34,9 @@ def _column_meta(columns: list[ColumnSchemaInfo], name: str) -> tuple[str, str]:
 
 
 def _build_catalog_schema(
-    designation_schema: TableSchemaInfo,
-    icrs_schema: TableSchemaInfo,
-    nature_schema: TableSchemaInfo,
+    designation_schema: repository.TableSchemaInfo,
+    icrs_schema: repository.TableSchemaInfo,
+    nature_schema: repository.TableSchemaInfo,
     nature_object_types: dict[str, str],
 ) -> spec.RecordCatalogSchema:
     design_desc, _ = _column_meta(designation_schema.columns, "design")
@@ -83,20 +81,16 @@ def _build_catalog_schema(
 class TableUploadManager:
     def __init__(
         self,
-        common_repo: repositories.CommonRepository,
-        layer0_repo: repositories.Layer0Repository,
-        layer1_repo: repositories.Layer1Repository,
+        repo: repository.Repository,
         clients: clients.Clients,
         table_stats_cache: cache.BackgroundCache[spec.TableStatsSnapshot],
     ) -> None:
-        self.common_repo = common_repo
-        self.layer0_repo = layer0_repo
-        self.layer1_repo = layer1_repo
+        self._repo = repo
         self.clients = clients
         self.table_stats_cache = table_stats_cache
 
     def create_table(self, r: spec.CreateTableRequest) -> tuple[spec.CreateTableResponse, bool]:
-        source_id = ensure_source_id(self.common_repo, self.clients.ads, r.bibcode)
+        source_id = ensure_source_id(self._repo, self.clients.ads, r.bibcode)
 
         for col in r.columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
@@ -104,7 +98,7 @@ class TableUploadManager:
 
         columns = domain_descriptions_to_data(r.columns)
 
-        table_resp = self.layer0_repo.create_table(
+        table_resp = self._repo.create_table(
             model.Layer0TableMeta(
                 table_name=r.table_name,
                 column_descriptions=columns,
@@ -117,20 +111,20 @@ class TableUploadManager:
         return spec.CreateTableResponse(id=table_resp.table_id), table_resp.created
 
     def patch_table(self, r: spec.PatchTableRequest) -> spec.PatchTableResponse:
-        table_metadata = self.layer0_repo.fetch_metadata_by_name(r.table_name)
+        table_metadata = self._repo.fetch_metadata_by_name(r.table_name)
         columns_by_name = {col.name: col for col in table_metadata.column_descriptions}
 
         if r.new_table_name is not None and r.new_table_name != r.table_name:
-            if self.layer0_repo.is_raw_table_name_taken(r.new_table_name):
+            if self._repo.is_raw_table_name_taken(r.new_table_name):
                 raise RuleValidationError(f"table name {r.new_table_name!r} is already in use")
 
-        with self.layer0_repo.with_tx():
+        with self._repo.with_tx():
             if r.description is not None:
-                self.layer0_repo.update_table_metadata(r.table_name, r.description)
+                self._repo.update_table_metadata(r.table_name, r.description)
             if r.datatype is not None:
-                self.layer0_repo.update_table_datatype(r.table_name, r.datatype)
+                self._repo.update_table_datatype(r.table_name, r.datatype)
             if r.status is not None:
-                self.layer0_repo.update_table_status(r.table_name, r.status)
+                self._repo.update_table_status(r.table_name, r.status)
 
             for column_name, column_spec in r.columns.items():
                 if column_name not in columns_by_name:
@@ -144,31 +138,31 @@ class TableUploadManager:
                 if column_spec.description is not None:
                     column_metadata.description = column_spec.description
                 if column_spec.ucd is not None or column_spec.unit is not None or column_spec.description is not None:
-                    self.layer0_repo.update_column_metadata(r.table_name, column_metadata)
+                    self._repo.update_column_metadata(r.table_name, column_metadata)
 
             if r.new_table_name is not None and r.new_table_name != r.table_name:
-                self.layer0_repo.rename_raw_table(r.table_name, r.new_table_name)
+                self._repo.rename_raw_table(r.table_name, r.new_table_name)
 
         return spec.PatchTableResponse()
 
     def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repositories.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
-        data_df = data_df.drop_duplicates(subset=repositories.INTERNAL_ID_COLUMN_NAME, keep="last")
+        data_df[repository.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
+        data_df = data_df.drop_duplicates(subset=repository.INTERNAL_ID_COLUMN_NAME, keep="last")
 
-        with self.layer0_repo.with_tx():
+        with self._repo.with_tx():
             errgr = concurrency.ErrorGroup()
             errgr.run(
-                self.layer0_repo.insert_raw_data,
+                self._repo.insert_raw_data,
                 model.Layer0RawData(
                     table_name=r.table_name,
                     data=data_df,
                 ),
             )
             errgr.run(
-                self.layer0_repo.register_records,
+                self._repo.register_records,
                 r.table_name,
-                record_ids=data_df[repositories.INTERNAL_ID_COLUMN_NAME].tolist(),
+                record_ids=data_df[repository.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
 
             errgr.wait()
@@ -176,7 +170,7 @@ class TableUploadManager:
         return spec.AddDataResponse()
 
     def get_table_list(self, r: spec.GetTableListRequest) -> spec.GetTableListResponse:
-        items = self.layer0_repo.search_tables(r.query, r.page_size, r.page, r.statuses)
+        items = self._repo.search_tables(r.query, r.page_size, r.page, r.statuses)
         cached_tables = self.table_stats_cache.get().tables
         empty_progress = spec.TableProgress(
             total_records=0,
@@ -204,9 +198,9 @@ class TableUploadManager:
         return spec.GetTableListResponse(tables=tables)
 
     def get_table(self, r: spec.GetTableRequest) -> spec.GetTableResponse:
-        meta = self.layer0_repo.fetch_metadata_by_name(r.table_name)
+        meta = self._repo.fetch_metadata_by_name(r.table_name)
 
-        bibliography = self.common_repo.get_source_by_id(meta.bibliography_id)
+        bibliography = self._repo.get_source_by_id(meta.bibliography_id)
 
         if meta.table_id is None:
             raise RuntimeError(f"Table {r.table_name} has no ID")
@@ -219,7 +213,7 @@ class TableUploadManager:
 
         progress = self.table_stats_cache.get().tables.get(r.table_name)
         if progress is None:
-            fallback = self.layer0_repo.get_table_progress([r.table_name])
+            fallback = self._repo.get_table_progress([r.table_name])
             table_progress = fallback.get(r.table_name)
             if table_progress is None:
                 table_progress = model.TableProgress(
@@ -251,7 +245,7 @@ class TableUploadManager:
         triage_filter = r.triage_status.value if r.triage_status is not None else None
         errgr = concurrency.ErrorGroup()
         records_task = errgr.run(
-            self.layer0_repo.fetch_records,
+            self._repo.fetch_records,
             table_name=r.table_name,
             limit=r.page_size,
             row_offset=r.page * r.page_size,
@@ -261,27 +255,27 @@ class TableUploadManager:
             triage_status=triage_filter,
         )
         schema_task = errgr.run(
-            self.common_repo.get_schema,
-            RAWDATA_SCHEMA,
+            self._repo.get_schema,
+            repository.RAWDATA_SCHEMA,
             r.table_name,
         )
         designation_schema_task = errgr.run(
-            self.common_repo.get_schema,
+            self._repo.get_schema,
             "designation",
             "data",
         )
         icrs_schema_task = errgr.run(
-            self.common_repo.get_schema,
+            self._repo.get_schema,
             "icrs",
             "data",
         )
         nature_schema_task = errgr.run(
-            self.common_repo.get_schema,
+            self._repo.get_schema,
             "nature",
             "data",
         )
         nature_object_types_task = errgr.run(
-            self.common_repo.get_nature_object_types,
+            self._repo.get_nature_object_types,
         )
         errgr.wait()
 
@@ -297,19 +291,19 @@ class TableUploadManager:
 
         catalog_errgr = concurrency.ErrorGroup()
         designation_task = catalog_errgr.run(
-            self.layer1_repo.get_designation_records,
+            self._repo.get_designation_records,
             record_ids,
         )
         icrs_task = catalog_errgr.run(
-            self.layer1_repo.get_icrs_records,
+            self._repo.get_icrs_records,
             record_ids,
         )
         redshift_task = catalog_errgr.run(
-            self.layer1_repo.get_redshift_records,
+            self._repo.get_redshift_records,
             record_ids,
         )
         nature_task = catalog_errgr.run(
-            self.layer1_repo.get_nature_records,
+            self._repo.get_nature_records,
             record_ids,
         )
         catalog_errgr.wait()
@@ -429,7 +423,7 @@ def _hashfunc(string: str) -> str:
     return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
-def ensure_source_id(repo: repositories.CommonRepository, ads_client: ads.ADSClass, code: str) -> int:
+def ensure_source_id(repo: repository.Repository, ads_client: ads.ADSClass, code: str) -> int:
     if not regex.match(BIBCODE_REGEX, code):
         try:
             entry_id = repo.get_source_entry(code).id
@@ -468,7 +462,7 @@ def get_unit(u: str) -> units.Unit:
 def domain_descriptions_to_data(columns: list[spec.ColumnDescription]) -> list[model.ColumnDescription]:
     result = [
         model.ColumnDescription(
-            name=repositories.INTERNAL_ID_COLUMN_NAME,
+            name=repository.INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
             is_primary_key=True,
         )
