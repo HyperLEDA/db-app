@@ -1,3 +1,4 @@
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any, final
 
@@ -7,8 +8,7 @@ from astropy import units as u
 from app import catalogs
 from app.dataapi import model
 from app.dataapi.repository import model as repo_model
-from app.dataapi.repository import pgc_finders
-from app.lib import concurrency
+from app.lib import astronomy, concurrency
 from app.lib.storage import postgres
 
 _ONE_TO_ONE_CATALOGS = frozenset(
@@ -49,6 +49,7 @@ def _infer_column_sample(column: str, rows: list[dict[str, Any]]) -> object | No
 
 
 _TAP_SYNC_QUERY_TIMEOUT_SECONDS = 20
+_SPHERE_RADIUS_M = 6371008.7714
 
 
 @final
@@ -58,7 +59,17 @@ class Repository(postgres.TransactionalPGRepository):
         super().__init__(storage)
 
     def find_pgcs_by_designation(self, name: str, limit: int, offset: int) -> list[int]:
-        return pgc_finders.find_pgcs_by_designation(self._storage, name, limit, offset)
+        rows = self._storage.query(
+            """
+            SELECT DISTINCT pgc
+            FROM layer2.designations
+            WHERE design ILIKE '%' || %s || '%'
+            ORDER BY pgc
+            LIMIT %s OFFSET %s
+            """,
+            params=[name, limit, offset],
+        )
+        return [int(row["pgc"]) for row in rows]
 
     def find_pgcs_by_equatorial(
         self,
@@ -68,10 +79,39 @@ class Repository(postgres.TransactionalPGRepository):
         limit: int,
         offset: int,
     ) -> list[int]:
-        return pgc_finders.find_pgcs_by_equatorial(self._storage, ra, dec, radius, limit, offset)
+        radius_m = math.radians(astronomy.to(radius, "deg")) * _SPHERE_RADIUS_M
+        rows = self._storage.query(
+            """
+            SELECT pgc
+            FROM layer2.icrs
+            WHERE ST_DWithin(
+                ST_MakePoint(%s, %s)::geography,
+                ST_MakePoint(ra, dec)::geography,
+                %s,
+                false
+            )
+            ORDER BY ST_Distance(
+                ST_MakePoint(%s, %s)::geography,
+                ST_MakePoint(ra, dec)::geography,
+                false
+            ), pgc
+            LIMIT %s OFFSET %s
+            """,
+            params=[ra, dec, radius_m, ra, dec, limit, offset],
+        )
+        return [int(row["pgc"]) for row in rows]
 
     def find_pgcs_unfiltered(self, limit: int, offset: int) -> list[int]:
-        return pgc_finders.find_pgcs_unfiltered(self._storage, limit, offset)
+        rows = self._storage.query(
+            """
+            SELECT id
+            FROM common.pgc
+            ORDER BY id
+            LIMIT %s OFFSET %s
+            """,
+            params=[limit, offset],
+        )
+        return [int(row["id"]) for row in rows]
 
     def list_reddening_systems(self, r_v: str = "3.1") -> list[repo_model.ReddeningPhotometricSystem]:
         rows = self._storage.query(
