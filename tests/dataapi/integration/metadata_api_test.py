@@ -84,24 +84,24 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": "SELECT type_name, objclass, description FROM nature.object_type ORDER BY type_name LIMIT 1",
+                "query": "SELECT catalog FROM last_update ORDER BY catalog LIMIT 1",
             },
         )
         self.assertEqual(response.status_code, 200)
         table = response.json()["data"]["resource"]["table"]
         col_names = [c["name"] for c in table["columns"]]
-        self.assertEqual(col_names, ["type_name", "objclass", "description"])
-        type_name_col = table["columns"][0]
-        self.assertEqual(type_name_col["datatype"], "char")
-        self.assertEqual(type_name_col["arraysize"], "*")
+        self.assertEqual(col_names, ["catalog"])
+        catalog_col = table["columns"][0]
+        self.assertEqual(catalog_col["datatype"], "char")
+        self.assertEqual(catalog_col["arraysize"], "*")
         self.assertEqual(len(table["data"]), 1)
-        self.assertEqual(len(table["data"][0]), 3)
+        self.assertEqual(len(table["data"][0]), 1)
 
     def test_tap_sync_maxrec(self) -> None:
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name",
+                "query": "SELECT catalog FROM last_update ORDER BY catalog",
                 "maxrec": 2,
             },
         )
@@ -113,7 +113,7 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": "SELECT type_name FROM nature.object_type ORDER BY type_name --",
+                "query": "SELECT catalog FROM last_update ORDER BY catalog --",
                 "maxrec": 2,
             },
         )
@@ -125,7 +125,7 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": ("SELECT type_name FROM nature.object_type ORDER BY type_name) AS _tap_sync LIMIT 10000 /*"),
+                "query": ("SELECT catalog FROM last_update ORDER BY catalog) AS _tap_sync LIMIT 10000 /*"),
                 "maxrec": 2,
             },
         )
@@ -135,9 +135,7 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": (
-                    "SELECT type_name FROM nature.object_type LIMIT 1; SELECT type_name FROM nature.object_type LIMIT 1"
-                ),
+                "query": ("SELECT catalog FROM last_update LIMIT 1; SELECT catalog FROM last_update LIMIT 1"),
             },
         )
         self.assertEqual(response.status_code, 500)
@@ -146,13 +144,13 @@ class MetadataAPITest(unittest.TestCase):
         response = self.client.get(
             "/api/v1/tap/sync",
             params={
-                "query": "SELECT type_name FROM nature.object_type WHERE type_name NOT LIKE '%gal%'",
+                "query": "SELECT catalog FROM last_update WHERE catalog NOT LIKE '%icrs%'",
             },
         )
         self.assertEqual(response.status_code, 200)
         table = response.json()["data"]["resource"]["table"]
-        self.assertEqual([c["name"] for c in table["columns"]], ["type_name"])
-        self.assertTrue(all("gal" not in row[0].lower() for row in table["data"]))
+        self.assertEqual([c["name"] for c in table["columns"]], ["catalog"])
+        self.assertTrue(all("icrs" not in row[0] for row in table["data"]))
 
     def test_tap_sync_query_timeout(self) -> None:
         with self.assertRaises(psycopg.errors.QueryCanceled):
