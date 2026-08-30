@@ -83,6 +83,34 @@ class RepositoryQueryTest(unittest.TestCase):
 
         self.assertEqual(actual, [10])
 
+    def test_find_pgcs_by_designation_ranks_by_match_closeness(self):
+        self._get_table("desig_table")
+        record_ids = ["r1", "r2", "r3", "r4", "r5"]
+        layer_seed.register_records(self.storage, "desig_table", record_ids)
+        layer_seed.register_pgcs(self.storage, [10, 20, 30, 40, 50])
+        layer_seed.upsert_pgc(
+            self.storage,
+            {"r1": 10, "r2": 20, "r3": 30, "r4": 40, "r5": 50},
+        )
+        layer_seed.save_structured_data(
+            self.storage,
+            "designation.data",
+            ["design"],
+            record_ids,
+            [
+                ["IC 144ABC"],
+                ["XIC 144"],
+                ["IC 144"],
+                ["IC 144A"],
+                ["FOO IC 144"],
+            ],
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
+        )
+
+        actual = self.repo.find_pgcs_by_designation("IC 144", 10, 0)
+
+        self.assertEqual(actual, [30, 40, 10, 20, 50])
+
     def test_several_objects(self):
         objects: list[catalogs.Layer2CatalogObject] = [
             catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),

@@ -61,13 +61,25 @@ class Repository(postgres.TransactionalPGRepository):
     def find_pgcs_by_designation(self, name: str, limit: int, offset: int) -> list[int]:
         rows = self._storage.query(
             """
-            SELECT DISTINCT pgc
-            FROM layer2.designations
-            WHERE design ILIKE %s
-            ORDER BY pgc
+            SELECT pgc
+            FROM (
+                SELECT DISTINCT ON (pgc)
+                    pgc,
+                    CASE
+                        WHEN design ILIKE %s THEN 0
+                        WHEN design ILIKE %s THEN 1
+                        ELSE 2
+                    END AS match_class,
+                    strpos(lower(design), lower(%s)) AS match_pos,
+                    length(design) AS design_len
+                FROM layer2.designations
+                WHERE design ILIKE %s
+                ORDER BY pgc, match_class, match_pos, design_len
+            ) best
+            ORDER BY match_class, match_pos, design_len, pgc
             LIMIT %s OFFSET %s
             """,
-            params=[f"%{name}%", limit, offset],
+            params=[name, f"{name}%", name, f"%{name}%", limit, offset],
         )
         return [int(row["pgc"]) for row in rows]
 
