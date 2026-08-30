@@ -413,14 +413,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         return self.fetch_metadata_by_name(table_name)
 
     def fetch_metadata_by_name(self, table_name: str) -> model.Layer0TableMeta:
-        row = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
-
-        modification_dt: datetime.datetime | None = row.get("modification_dt")
-        return self._fetch_metadata_by_name(table_name, modification_dt)
-
-    def _fetch_metadata_by_name(
-        self, table_name: str, modification_dt: datetime.datetime | None
-    ) -> model.Layer0TableMeta:
         table_info = self.get_table_metadata(RAWDATA_SCHEMA, table_name)
         registry_item = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
@@ -429,7 +421,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             bibliography_id=registry_item["bib"],
             datatype=registry_item["datatype"],
             status=registry_item["status"],
-            modification_dt=modification_dt,
+            modification_dt=registry_item.get("modification_dt"),
             table_id=registry_item["id"],
         )
 
