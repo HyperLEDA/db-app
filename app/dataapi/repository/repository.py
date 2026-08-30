@@ -63,11 +63,11 @@ class Repository(postgres.TransactionalPGRepository):
             """
             SELECT DISTINCT pgc
             FROM layer2.designations
-            WHERE design ILIKE '%' || %s || '%'
+            WHERE design ILIKE %s
             ORDER BY pgc
             LIMIT %s OFFSET %s
             """,
-            params=[name, limit, offset],
+            params=[f"%{name}%", limit, offset],
         )
         return [int(row["pgc"]) for row in rows]
 

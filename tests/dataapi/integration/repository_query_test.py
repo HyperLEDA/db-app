@@ -65,6 +65,24 @@ class RepositoryQueryTest(unittest.TestCase):
         assert actual[0].catalogs.designation is not None
         self.assertEqual(actual[0].catalogs.designation.name, "test")
 
+    def test_find_pgcs_by_designation(self):
+        self._get_table("desig_table")
+        layer_seed.register_records(self.storage, "desig_table", ["r1", "r2", "r3"])
+        layer_seed.register_pgcs(self.storage, [10, 20, 30])
+        layer_seed.upsert_pgc(self.storage, {"r1": 10, "r2": 20, "r3": 30})
+        layer_seed.save_structured_data(
+            self.storage,
+            "designation.data",
+            ["design"],
+            ["r1", "r2", "r3"],
+            [["IC 1440"], ["NGC 500"], ["IC 999"]],
+            conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
+        )
+
+        actual = self.repo.find_pgcs_by_designation("IC 144", 10, 0)
+
+        self.assertEqual(actual, [10])
+
     def test_several_objects(self):
         objects: list[catalogs.Layer2CatalogObject] = [
             catalogs.Layer2CatalogObject(1, [catalogs.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
