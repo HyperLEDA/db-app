@@ -4,19 +4,13 @@ from typing import final
 import structlog
 
 from app.adminapi import model
-from app.adminapi.repository import model as repo_model
 from app.adminapi.repository import sql
-from app.lib import concurrency
 from app.lib.storage import postgres
 
 
 def get_column_units(storage: postgres.PgStorage, schema: str, table: str) -> dict[str, str]:
-    rows = storage.query(
-        "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
-        "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
-        params=[schema, table],
-    )
-    return {row["column_name"]: row["unit"] for row in rows}
+    info = postgres.get_table_metadata(storage, schema, table)
+    return {name: col.unit for name, col in info.columns.items() if col.unit}
 
 
 def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
@@ -76,42 +70,8 @@ class CommonRepository(postgres.TransactionalPGRepository):
     def touch_pgcs(self, pgc_ids: Sequence[int]) -> None:
         touch_pgcs(self._storage, pgc_ids)
 
-    def get_schema(self, schema_name: str, table_name: str) -> repo_model.TableSchemaInfo:
-        errgr = concurrency.ErrorGroup()
-        table_task = errgr.run(
-            self._storage.query_one,
-            "SELECT param FROM meta.table_info WHERE schema_name=%s AND table_name=%s",
-            params=[schema_name, table_name],
-        )
-        column_task = errgr.run(
-            self._storage.query,
-            "SELECT column_name, param FROM meta.column_info WHERE schema_name=%s AND table_name=%s",
-            params=[schema_name, table_name],
-        )
-        errgr.wait()
-
-        table_row = table_task.result()
-        table_description = ""
-        if table_row.get("param") is not None:
-            param = table_row["param"]
-            if isinstance(param, dict):
-                table_description = param.get("description") or ""
-
-        column_rows = column_task.result()
-        columns = []
-        for row in column_rows:
-            param = row.get("param") or {}
-            if not isinstance(param, dict):
-                param = {}
-            columns.append(
-                repo_model.ColumnSchemaInfo(
-                    name=row["column_name"],
-                    description=param.get("description"),
-                    unit=param.get("unit"),
-                    ucd=param.get("ucd"),
-                )
-            )
-        return repo_model.TableSchemaInfo(table_description=table_description, columns=columns)
+    def get_table_metadata(self, schema_name: str, table_name: str) -> postgres.TableInfo:
+        return postgres.get_table_metadata(self._storage, schema_name, table_name)
 
     def get_nature_object_types(self) -> list[dict]:
         return self._storage.query(

@@ -23,24 +23,6 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         schema, table_name = object_cls.layer1_table().split(".")
         return query_column_units(self._storage, schema, table_name)
 
-    def get_catalog_columns(self, schema: str, table: str) -> list[dict[str, Any]]:
-        return self._storage.query(
-            """
-            SELECT c.column_name,
-                   c.data_type::text AS data_type,
-                   (c.is_nullable = 'NO') AS not_null,
-                   ci.param
-            FROM information_schema.columns c
-            LEFT JOIN meta.column_info ci
-              ON ci.schema_name = c.table_schema
-             AND ci.table_name = c.table_name
-             AND ci.column_name = c.column_name
-            WHERE c.table_schema = %s AND c.table_name = %s
-            ORDER BY c.ordinal_position
-            """,
-            params=[schema, table],
-        )
-
     def save_structured_data(
         self,
         table: str,

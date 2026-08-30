@@ -40,8 +40,8 @@ class Repository(postgres.TransactionalPGRepository):
     def get_existing_pgcs(self, pgcs: list[int]) -> set[int]:
         return self._common.get_existing_pgcs(pgcs)
 
-    def get_schema(self, schema_name: str, table_name: str) -> repo_model.TableSchemaInfo:
-        return self._common.get_schema(schema_name, table_name)
+    def get_table_metadata(self, schema_name: str, table_name: str) -> postgres.TableInfo:
+        return self._common.get_table_metadata(schema_name, table_name)
 
     def get_nature_object_types(self) -> list[dict]:
         return self._common.get_nature_object_types()
@@ -114,8 +114,8 @@ class Repository(postgres.TransactionalPGRepository):
     ) -> list[model.Layer0TableListItem]:
         return self._layer0_tables.search_tables(query, page_size, page, statuses)
 
-    def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
-        return self._layer0_tables.update_column_metadata(table_name, column_description)
+    def update_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
+        return self._layer0_tables.update_column_metadata(table_name, column)
 
     def update_table_metadata(self, table_name: str, description: str) -> None:
         return self._layer0_tables.update_table_metadata(table_name, description)
@@ -166,9 +166,6 @@ class Repository(postgres.TransactionalPGRepository):
 
     def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
         return self._layer1.get_column_units(catalog)
-
-    def get_catalog_columns(self, schema: str, table: str) -> list[dict[str, Any]]:
-        return self._layer1.get_catalog_columns(schema, table)
 
     def save_structured_data(
         self,

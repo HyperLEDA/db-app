@@ -2,11 +2,10 @@ import datetime
 import unittest
 
 import structlog
-from astropy import units as u
 
 from app import catalogs
 from app.adminapi import model, repository
-from app.lib.storage import enums
+from app.lib.storage import enums, postgres
 from tests import lib
 
 
@@ -21,7 +20,12 @@ class Layer1RepositoryTest(unittest.TestCase):
 
     def _get_table(self, table_name: str) -> int:
         bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
-        table_resp = self.repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        table_resp = self.repo.create_table(
+            model.Layer0TableMeta(
+                postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name),
+                bib_id,
+            )
+        )
         return table_resp.table_id
 
     def _insert_nature_data(
@@ -47,13 +51,16 @@ class Layer1RepositoryTest(unittest.TestCase):
         bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
         _ = self.repo.create_table(
             model.Layer0TableMeta(
-                "test_table",
-                [
-                    model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.Unit("hour")),
-                    model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.Unit("hour")),
-                    model.ColumnDescription("e_ra", "float", ucd="stat.error", unit=u.Unit("hour")),
-                    model.ColumnDescription("e_dec", "float", ucd="stat.error", unit=u.Unit("hour")),
-                ],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test_table",
+                    columns={
+                        "ra": postgres.ColumnInfo("ra", "float", ucd="pos.eq.ra", unit="hour"),
+                        "dec": postgres.ColumnInfo("dec", "float", ucd="pos.eq.dec", unit="hour"),
+                        "e_ra": postgres.ColumnInfo("e_ra", "float", ucd="stat.error", unit="hour"),
+                        "e_dec": postgres.ColumnInfo("e_dec", "float", ucd="stat.error", unit="hour"),
+                    },
+                ),
                 bib_id,
                 enums.DataType.REGULAR,
             )

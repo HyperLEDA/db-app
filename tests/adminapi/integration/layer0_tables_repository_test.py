@@ -6,7 +6,7 @@ import structlog
 from astropy import units as u
 
 from app.adminapi import model, repository
-from app.lib.storage import enums
+from app.lib.storage import enums, postgres
 from tests import lib
 
 
@@ -22,21 +22,24 @@ class LayerTables0RepositoryTest(unittest.TestCase):
 
     def test_write_and_fetch_table(self):
         table_meta = model.Layer0TableMeta(
-            "test_table",
-            [
-                model.ColumnDescription("ra", "float", ucd="pos.eq.ra", unit=u.Unit("hour")),
-                model.ColumnDescription("dec", "float", ucd="pos.eq.dec", unit=u.Unit("hour")),
-            ],
+            postgres.TableInfo(
+                schema=repository.RAWDATA_SCHEMA,
+                name="test_table",
+                columns={
+                    "ra": postgres.ColumnInfo("ra", "float", ucd="pos.eq.ra", unit="hour"),
+                    "dec": postgres.ColumnInfo("dec", "float", ucd="pos.eq.dec", unit="hour"),
+                },
+            ),
             self.bib_id,
         )
 
         _ = self.repo.create_table(table_meta)
         test_data = pd.DataFrame({"ra": [12.1, 11.1], "dec": [1.0, 2.0]})
-        raw_data = model.Layer0RawData(table_meta.table_name, test_data)
+        raw_data = model.Layer0RawData(table_meta.table_info.name, test_data)
 
         self.repo.insert_raw_data(raw_data)
 
-        fetched_data = self.repo.fetch_table(table_meta.table_name)
+        fetched_data = self.repo.fetch_table(table_meta.table_info.name)
 
         self.assertEqual(len(fetched_data), 2)
         self.assertEqual(list(fetched_data.columns), ["ra", "dec"])

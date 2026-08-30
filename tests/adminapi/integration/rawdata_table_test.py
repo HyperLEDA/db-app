@@ -7,8 +7,9 @@ from pandas import DataFrame
 
 from app.adminapi import clients, domain, model, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
-from app.lib.storage import enums
+from app.lib.storage import enums, postgres
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
+from app.lib.web import errors
 from app.specs import adminapi
 from tests import lib
 
@@ -130,7 +131,7 @@ class RawDataTableTest(unittest.TestCase):
             ],
         )
 
-        with self.assertRaises(psycopg.errors.DuplicateColumn):
+        with self.assertRaises(errors.RuleValidationError):
             _ = self.manager.create_table(
                 adminapi.CreateTableRequest(
                     table_name="test_table",
@@ -197,8 +198,14 @@ class RawDataTableTest(unittest.TestCase):
         bib_id = self.repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         _ = self.repo.create_table(
             model.Layer0TableMeta(
-                "test_table",
-                [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test_table",
+                    columns={
+                        "col0": postgres.ColumnInfo("col0", TYPE_INTEGER),
+                        "col1": postgres.ColumnInfo("col1", TYPE_TEXT),
+                    },
+                ),
                 bib_id,
                 enums.DataType.REGULAR,
             ),
@@ -215,8 +222,14 @@ class RawDataTableTest(unittest.TestCase):
         bib_id = self.repo.create_bibliography("2024arXiv240411942F", 1999, ["ade"], "title")
         table_name = "test_table"
         expected = model.Layer0TableMeta(
-            table_name,
-            [model.ColumnDescription("col0", TYPE_INTEGER), model.ColumnDescription("col1", TYPE_TEXT)],
+            postgres.TableInfo(
+                schema=repository.RAWDATA_SCHEMA,
+                name=table_name,
+                columns={
+                    "col0": postgres.ColumnInfo("col0", TYPE_INTEGER),
+                    "col1": postgres.ColumnInfo("col1", TYPE_TEXT),
+                },
+            ),
             bib_id,
             enums.DataType.REGULAR,
         )
@@ -224,7 +237,7 @@ class RawDataTableTest(unittest.TestCase):
 
         actual = self.repo.fetch_metadata("test_table")
 
-        self.assertEqual(expected.table_name, actual.table_name)
-        self.assertEqual(expected.column_descriptions, actual.column_descriptions)
+        self.assertEqual(expected.table_info.name, actual.table_info.name)
+        self.assertEqual(expected.table_info.columns, actual.table_info.columns)
         self.assertEqual(expected.bibliography_id, actual.bibliography_id)
         self.assertEqual(expected.datatype, actual.datatype)

@@ -8,8 +8,6 @@ from app.dataapi.repository.filters import (
     PGCOneOfFilter,
 )
 from app.dataapi.repository.model import (
-    MetadataColumnDetail,
-    MetadataTableDetail,
     QueryColumnMetadata,
     QueryWithMetadataResult,
     ReddeningCoefficient,
@@ -33,8 +31,6 @@ __all__ = [
     "ICRSCoordinatesInRadiusFilter",
     "ICRSDistanceOrdering",
     "ICRSSearchParams",
-    "MetadataColumnDetail",
-    "MetadataTableDetail",
     "Ordering",
     "PGCOneOfFilter",
     "QueryColumnMetadata",
