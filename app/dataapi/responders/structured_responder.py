@@ -1,5 +1,6 @@
 from typing import Any
 
+import structlog
 from astropy import units as u
 
 from app import catalogs
@@ -7,7 +8,10 @@ from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
 from app.lib import astronomy, config
+from app.lib.web import errors
 from app.specs import dataapi as spec
+
+logger = structlog.stdlib.get_logger()
 
 DATA_SCHEMA = spec.Schema(
     units=spec.Units(
@@ -153,7 +157,14 @@ class StructuredResponder(interface.ObjectResponder):
         if not query_list:
             return {}
 
-        results = self.reddening_service.calculate(query_list)
+        try:
+            results = self.reddening_service.calculate(query_list)
+        except errors.InternalError as exc:
+            logger.warning(
+                "Field API unavailable, skipping photometry extinction correction",
+                error=str(exc),
+            )
+            return {}
         extinction_lookup: dict[tuple[str, float, float, str], float] = {}
         for query_index, query in enumerate(query_list):
             ra = query.coordinate.ra
