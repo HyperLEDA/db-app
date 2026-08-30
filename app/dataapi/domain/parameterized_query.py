@@ -45,37 +45,91 @@ def resolve_query_catalogs(
     return result
 
 
-def _build_filters_and_params(
+def _resolve_pgcs(
+    repo: repository.Repository,
     query: spec.QuerySimpleRequest,
-) -> tuple[repository.Filter, repository.SearchParams, repository.Ordering | None]:
-    filters = []
-    search_params = []
-    ordering: repository.Ordering | None = None
-
+    limit: int,
+    offset: int,
+) -> list[int]:
     if query.pgcs is not None:
-        filters.append(repository.PGCOneOfFilter(query.pgcs))
-
-    if query.radius is not None:
-        icrs: coords.SkyCoord | None = None
-        if query.ra is not None and query.dec is not None:
-            equinox = astronomy.parse_coordinate_epoch(query.eq_epoch)
-            coord = coords.SkyCoord(ra=query.ra, dec=query.dec, frame=coords.FK5(equinox=equinox))
-            icrs = coord.transform_to("icrs")
-        elif query.glon is not None and query.glat is not None:
-            icrs = coords.SkyCoord(l=query.glon, b=query.glat, frame="galactic").transform_to("icrs")
-        elif query.sgl is not None and query.sgb is not None:
-            icrs = coords.SkyCoord(sgl=query.sgl, sgb=query.sgb, frame="supergalactic").transform_to("icrs")
-
-        if icrs is not None:
-            filters.append(repository.ICRSCoordinatesInRadiusFilter(query.radius))
-            search_params.append(repository.ICRSSearchParams(icrs.ra, icrs.dec))
-            ordering = repository.ICRSDistanceOrdering(icrs.ra, icrs.dec)
+        return sorted(query.pgcs)[offset : offset + limit]
 
     if query.name is not None:
-        filters.append(repository.DesignationLikeFilter())
-        search_params.append(repository.DesignationSearchParams(query.name))
+        return repo.find_pgcs_by_designation(query.name, limit, offset)
 
-    return repository.AndFilter(filters), repository.CombinedSearchParams(search_params), ordering
+    if query.ra is not None and query.dec is not None:
+        if query.radius is not None:
+            return _find_pgcs_by_equatorial(repo, query.ra, query.dec, query.radius, query.eq_epoch, limit, offset)
+        return repo.find_pgcs_unfiltered(limit, offset)
+
+    if query.glon is not None and query.glat is not None:
+        if query.radius is not None:
+            return _find_pgcs_by_galactic(repo, query.glon, query.glat, query.radius, limit, offset)
+        return repo.find_pgcs_unfiltered(limit, offset)
+
+    if query.sgl is not None and query.sgb is not None:
+        if query.radius is not None:
+            return _find_pgcs_by_supergalactic(repo, query.sgl, query.sgb, query.radius, limit, offset)
+        return repo.find_pgcs_unfiltered(limit, offset)
+
+    return repo.find_pgcs_unfiltered(limit, offset)
+
+
+def _find_pgcs_by_equatorial(
+    repo: repository.Repository,
+    ra: object,
+    dec: object,
+    radius: object,
+    eq_epoch: str,
+    limit: int,
+    offset: int,
+) -> list[int]:
+    equinox = astronomy.parse_coordinate_epoch(eq_epoch)
+    coord = coords.SkyCoord(ra=ra, dec=dec, frame=coords.FK5(equinox=equinox))
+    icrs = coord.transform_to("icrs")
+    return repo.find_pgcs_by_equatorial(
+        float(icrs.ra.deg),
+        float(icrs.dec.deg),
+        radius,
+        limit,
+        offset,
+    )
+
+
+def _find_pgcs_by_galactic(
+    repo: repository.Repository,
+    glon: object,
+    glat: object,
+    radius: object,
+    limit: int,
+    offset: int,
+) -> list[int]:
+    icrs = coords.SkyCoord(l=glon, b=glat, frame="galactic").transform_to("icrs")
+    return repo.find_pgcs_by_equatorial(
+        float(icrs.ra.deg),
+        float(icrs.dec.deg),
+        radius,
+        limit,
+        offset,
+    )
+
+
+def _find_pgcs_by_supergalactic(
+    repo: repository.Repository,
+    sgl: object,
+    sgb: object,
+    radius: object,
+    limit: int,
+    offset: int,
+) -> list[int]:
+    icrs = coords.SkyCoord(sgl=sgl, sgb=sgb, frame="supergalactic").transform_to("icrs")
+    return repo.find_pgcs_by_equatorial(
+        float(icrs.ra.deg),
+        float(icrs.dec.deg),
+        radius,
+        limit,
+        offset,
+    )
 
 
 class ParameterizedQueryManager:
@@ -94,25 +148,10 @@ class ParameterizedQueryManager:
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
         responder = responders.StructuredResponder(self.catalog_config, self.reddening_service)
         offset = query.page * query.page_size
-        if query.pgcs:
-            raw_catalogs = resolve_query_catalogs(query.catalogs, CATALOGS_FOR_PGC_QUERY)
-            objects = self.repo.query_pgc(
-                raw_catalogs,
-                query.pgcs,
-                query.page_size,
-                offset,
-            )
-            return responder.build_response(objects)
 
-        raw_catalogs = resolve_query_catalogs(query.catalogs, self.enabled_catalogs)
-        filters, search_params, ordering = _build_filters_and_params(query)
+        default_catalogs = CATALOGS_FOR_PGC_QUERY if query.pgcs is not None else self.enabled_catalogs
+        raw_catalogs = resolve_query_catalogs(query.catalogs, default_catalogs)
 
-        objects = self.repo.query_catalogs(
-            raw_catalogs,
-            filters,
-            search_params,
-            query.page_size,
-            offset,
-            ordering=ordering,
-        )
-        return responder.build_response_from_catalog(objects)
+        pgcs = _resolve_pgcs(self.repo, query, query.page_size, offset)
+        objects = self.repo.query_catalogs(raw_catalogs, pgcs)
+        return responder.build_response(objects)

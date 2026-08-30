@@ -6,7 +6,6 @@ from astropy import units as u
 from astropy.time import Time
 
 from app import catalogs
-from app.dataapi import repository
 from app.dataapi.domain import parameterized_query
 from app.lib.web import errors
 from app.specs import dataapi
@@ -59,10 +58,13 @@ class ResolveQueryCatalogsTest(unittest.TestCase):
             )
 
 
-class QuerySimpleCoordinateConversionTest(unittest.TestCase):
+class QuerySimpleDispatchTest(unittest.TestCase):
     def setUp(self) -> None:
         self.repo = mock.Mock()
         self.repo.query_catalogs.return_value = []
+        self.repo.find_pgcs_by_designation.return_value = []
+        self.repo.find_pgcs_by_equatorial.return_value = []
+        self.repo.find_pgcs_unfiltered.return_value = []
         self.manager = parameterized_query.ParameterizedQueryManager(
             repo=self.repo,
             enabled_catalogs=DEFAULT,
@@ -70,13 +72,7 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             reddening_service=mock.Mock(),
         )
 
-    def _search_params(self) -> repository.SearchParams:
-        return self.repo.query_catalogs.call_args.args[2]
-
-    def _ordering(self) -> repository.Ordering | None:
-        return self.repo.query_catalogs.call_args.kwargs.get("ordering")
-
-    def test_coordinate_search_defaults_to_j2000(self):
+    def test_coordinate_search_calls_equatorial_finder(self):
         ra_fk5, dec_fk5 = 10.0, 20.0
         expected = coords.SkyCoord(
             ra=ra_fk5 * u.Unit("deg"),
@@ -86,42 +82,34 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
 
         query = dataapi.QuerySimpleRequest(ra=ra_fk5, dec=dec_fk5, radius=0.1)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        got = self._search_params().get_params()
-        self.assertAlmostEqual(got["ra"], expected.ra.deg, places=10)
-        self.assertAlmostEqual(got["dec"], expected.dec.deg, places=10)
-        ordering = self._ordering()
-        self.assertIsInstance(ordering, repository.ICRSDistanceOrdering)
-        assert ordering is not None
-        self.assertEqual(ordering.get_params(), [expected.ra.deg, expected.dec.deg])
+        self.repo.find_pgcs_by_equatorial.assert_called_once()
+        call = self.repo.find_pgcs_by_equatorial.call_args
+        self.assertAlmostEqual(call.args[0], expected.ra.deg, places=10)
+        self.assertAlmostEqual(call.args[1], expected.dec.deg, places=10)
+        self.assertEqual(call.args[3], query.page_size)
+        self.assertEqual(call.args[4], 0)
 
-    def test_name_search_has_no_distance_ordering(self):
-        query = dataapi.QuerySimpleRequest(name="NGC")
-        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
-            self.manager.query_simple(query)
-
-        self.assertIsNone(self._ordering())
-
-    def test_page_is_converted_to_offset(self):
+    def test_name_search_calls_designation_finder(self):
         query = dataapi.QuerySimpleRequest(name="NGC", page=2, page_size=25)
-        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
-            self.manager.query_simple(query)
-
-        self.assertEqual(self.repo.query_catalogs.call_args.args[3], 25)
-        self.assertEqual(self.repo.query_catalogs.call_args.args[4], 50)
-
-    def test_pgc_page_is_converted_to_offset(self):
-        query = dataapi.QuerySimpleRequest(pgcs=[1, 2, 3], page=1, page_size=10)
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
             responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        self.assertEqual(self.repo.query_pgc.call_args.args[2], 10)
-        self.assertEqual(self.repo.query_pgc.call_args.args[3], 10)
+        self.repo.find_pgcs_by_designation.assert_called_once_with("NGC", 25, 50)
+
+    def test_pgc_filter_paginates_in_memory(self):
+        query = dataapi.QuerySimpleRequest(pgcs=[3, 1, 2], page=1, page_size=1)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.repo.find_pgcs_by_designation.assert_not_called()
+        self.repo.find_pgcs_by_equatorial.assert_not_called()
+        self.repo.query_catalogs.assert_called_once()
+        self.assertEqual(self.repo.query_catalogs.call_args.args[1], [2])
 
     def test_coordinate_search_precesses_b1950(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112
@@ -138,12 +126,12 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             eq_epoch="B1950",
         )
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        got = self._search_params().get_params()
-        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
-        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+        call = self.repo.find_pgcs_by_equatorial.call_args
+        self.assertAlmostEqual(call.args[0], ra_j2000, places=5)
+        self.assertAlmostEqual(call.args[1], dec_j2000, places=5)
 
     def test_galactic_coordinate_search_converts_to_icrs(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112
@@ -159,12 +147,12 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             radius=0.1,
         )
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        got = self._search_params().get_params()
-        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
-        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+        call = self.repo.find_pgcs_by_equatorial.call_args
+        self.assertAlmostEqual(call.args[0], ra_j2000, places=5)
+        self.assertAlmostEqual(call.args[1], dec_j2000, places=5)
 
     def test_supergalactic_coordinate_search_converts_to_icrs(self):
         ra_j2000, dec_j2000 = 187.70593, 12.39112
@@ -180,9 +168,26 @@ class QuerySimpleCoordinateConversionTest(unittest.TestCase):
             radius=0.1,
         )
         with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
-            responder_cls.return_value.build_response_from_catalog.return_value = mock.Mock()
+            responder_cls.return_value.build_response.return_value = mock.Mock()
             self.manager.query_simple(query)
 
-        got = self._search_params().get_params()
-        self.assertAlmostEqual(got["ra"], ra_j2000, places=5)
-        self.assertAlmostEqual(got["dec"], dec_j2000, places=5)
+        call = self.repo.find_pgcs_by_equatorial.call_args
+        self.assertAlmostEqual(call.args[0], ra_j2000, places=5)
+        self.assertAlmostEqual(call.args[1], dec_j2000, places=5)
+
+    def test_unfiltered_search_calls_unfiltered_finder(self):
+        query = dataapi.QuerySimpleRequest(page=1, page_size=10)
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        self.repo.find_pgcs_unfiltered.assert_called_once_with(10, 10)
+
+    def test_always_builds_response(self):
+        query = dataapi.QuerySimpleRequest(name="NGC")
+        with mock.patch("app.dataapi.responders.StructuredResponder") as responder_cls:
+            responder_cls.return_value.build_response.return_value = mock.Mock()
+            self.manager.query_simple(query)
+
+        responder_cls.return_value.build_response.assert_called_once()
+        responder_cls.return_value.build_response_from_catalog.assert_not_called()
