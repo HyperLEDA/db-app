@@ -6,7 +6,7 @@ import structlog
 
 from app.adminapi import model, repository
 from app.adminapi.domain import crossmatch
-from app.lib.storage import enums
+from app.lib.storage import enums, postgres
 from app.lib.web import errors
 from app.specs import adminapi
 from tests import lib
@@ -24,7 +24,12 @@ class AssignRecordPgcsRepositoryTest(unittest.TestCase):
 
     def _create_table(self, table_name: str) -> None:
         bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
-        self.repo.create_table(model.Layer0TableMeta(table_name, [], bib_id))
+        self.repo.create_table(
+            model.Layer0TableMeta(
+                postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name),
+                bib_id,
+            )
+        )
 
     def _register(self, table_name: str, record_ids: list[str]) -> None:
         self._create_table(table_name)

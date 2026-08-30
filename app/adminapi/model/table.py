@@ -3,9 +3,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas
-from astropy import units as u
 
-from app.lib.storage import enums
+from app.lib.storage import enums, postgres
 
 
 @dataclass
@@ -24,24 +23,12 @@ class TableRecord:
 
 
 @dataclass
-class ColumnDescription:
-    name: str
-    data_type: str
-    is_primary_key: bool = False
-    unit: u.Unit | None = None
-    description: str | None = None
-    ucd: str | None = None
-
-
-@dataclass
 class Layer0TableMeta:
-    table_name: str
-    column_descriptions: list[ColumnDescription]
+    table_info: postgres.TableInfo
     bibliography_id: int
     datatype: enums.DataType = enums.DataType.REGULAR
     status: enums.TableStatus = enums.TableStatus.INITIATED
     modification_dt: datetime.datetime | None = None
-    description: str | None = None
     table_id: int | None = None
 
 

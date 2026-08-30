@@ -196,13 +196,13 @@ class MappingTest(unittest.TestCase):
     class TestData:
         name: str
         input_columns: list[adminapi.ColumnDescription]
-        expected: list[model.ColumnDescription] | None = None
+        expected: postgres.TableInfo | None = None
         err_substr: str | None = None
 
-    internal_id_column = model.ColumnDescription(
+    internal_id_column = postgres.ColumnInfo(
         name=repository.INTERNAL_ID_COLUMN_NAME,
         data_type=mapping.TYPE_TEXT,
-        is_primary_key=True,
+        not_null=True,
     )
 
     @parameterized.expand(
@@ -218,17 +218,34 @@ class MappingTest(unittest.TestCase):
                         description="description",
                     )
                 ],
-                [
-                    internal_id_column,
-                    model.ColumnDescription(
-                        "name", "text", ucd="phys.veloc.orbital", unit=units.Unit("m / s"), description="description"
-                    ),
-                ],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test",
+                    columns={
+                        repository.INTERNAL_ID_COLUMN_NAME: internal_id_column,
+                        "name": postgres.ColumnInfo(
+                            "name",
+                            "text",
+                            ucd="phys.veloc.orbital",
+                            unit=units.Unit("m / s").to_string(),
+                            description="description",
+                        ),
+                    },
+                    primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+                ),
             ),
             param(
                 "unit is None",
                 [adminapi.ColumnDescription(name="name", data_type=adminapi.DatatypeEnum["str"])],
-                [internal_id_column, model.ColumnDescription("name", "text")],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test",
+                    columns={
+                        repository.INTERNAL_ID_COLUMN_NAME: internal_id_column,
+                        "name": postgres.ColumnInfo("name", "text"),
+                    },
+                    primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+                ),
             ),
             param(
                 "unit has extra spaces",
@@ -237,7 +254,15 @@ class MappingTest(unittest.TestCase):
                         name="name", data_type=adminapi.DatatypeEnum["str"], unit="m     /       s"
                     )
                 ],
-                [internal_id_column, model.ColumnDescription("name", "text", unit=units.Unit("m / s"))],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test",
+                    columns={
+                        repository.INTERNAL_ID_COLUMN_NAME: internal_id_column,
+                        "name": postgres.ColumnInfo("name", "text", unit=units.Unit("m / s").to_string()),
+                    },
+                    primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+                ),
             ),
             param(
                 "invalid unit is ignored and appended to description",
@@ -249,12 +274,15 @@ class MappingTest(unittest.TestCase):
                         description="some description",
                     )
                 ],
-                [
-                    internal_id_column,
-                    model.ColumnDescription(
-                        "name", "text", unit=None, description="some description (unit not_a_unit)"
-                    ),
-                ],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test",
+                    columns={
+                        repository.INTERNAL_ID_COLUMN_NAME: internal_id_column,
+                        "name": postgres.ColumnInfo("name", "text", description="some description (unit not_a_unit)"),
+                    },
+                    primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+                ),
             ),
             param(
                 "invalid unit with no description",
@@ -265,10 +293,15 @@ class MappingTest(unittest.TestCase):
                         unit="not_a_unit",
                     )
                 ],
-                [
-                    internal_id_column,
-                    model.ColumnDescription("name", "text", unit=None, description="(unit not_a_unit)"),
-                ],
+                postgres.TableInfo(
+                    schema=repository.RAWDATA_SCHEMA,
+                    name="test",
+                    columns={
+                        repository.INTERNAL_ID_COLUMN_NAME: internal_id_column,
+                        "name": postgres.ColumnInfo("name", "text", description="(unit not_a_unit)"),
+                    },
+                    primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+                ),
             ),
         ],
     )
@@ -276,16 +309,16 @@ class MappingTest(unittest.TestCase):
         self,
         _: str,
         input_columns: list[adminapi.ColumnDescription],
-        expected: list[model.ColumnDescription] | None = None,
+        expected: postgres.TableInfo | None = None,
         err_substr: str | None = None,
     ):
         if err_substr:
             with self.assertRaises(errors.RuleValidationError) as err:
-                domain_descriptions_to_data(input_columns)
+                domain_descriptions_to_data("test", input_columns)
 
             self.assertIn(err_substr, err.exception.message())
         else:
-            self.assertEqual(domain_descriptions_to_data(input_columns), expected)
+            self.assertEqual(domain_descriptions_to_data("test", input_columns), expected)
 
 
 class GetRecordsTest(unittest.TestCase):

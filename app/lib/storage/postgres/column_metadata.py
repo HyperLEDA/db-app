@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.lib.storage.postgres.postgres_storage import PgStorage
@@ -47,19 +47,19 @@ LEFT JOIN (
 class ColumnInfo:
     name: str
     data_type: str
-    description: str | None
-    unit: str | None
-    ucd: str | None
-    not_null: bool
+    description: str | None = None
+    unit: str | None = None
+    ucd: str | None = None
+    not_null: bool = False
 
 
 @dataclass
 class TableInfo:
     schema: str
     name: str
-    description: str | None
-    columns: dict[str, ColumnInfo]
-    primary_keys: set[str]
+    description: str | None = None
+    columns: dict[str, ColumnInfo] = field(default_factory=dict)
+    primary_keys: set[str] = field(default_factory=set)
 
 
 def get_table_metadata(storage: PgStorage, schema: str, table: str) -> TableInfo:

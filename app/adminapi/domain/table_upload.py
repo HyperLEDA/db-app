@@ -1,7 +1,7 @@
 import hashlib
 import json
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import astropy.io.votable.ucd as ucd
 import pandas
@@ -95,15 +95,13 @@ class TableUploadManager:
             if col.name in FORBIDDEN_COLUMN_NAMES:
                 raise RuleValidationError(f"{col} is a reserved column name")
 
-        columns = domain_descriptions_to_data(r.columns)
+        table_info = domain_descriptions_to_data(r.table_name, r.columns, r.description)
 
         table_resp = self._repo.create_table(
             model.Layer0TableMeta(
-                table_name=r.table_name,
-                column_descriptions=columns,
+                table_info=table_info,
                 bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
-                description=r.description,
             ),
         )
 
@@ -111,7 +109,7 @@ class TableUploadManager:
 
     def patch_table(self, r: spec.PatchTableRequest) -> spec.PatchTableResponse:
         table_metadata = self._repo.fetch_metadata_by_name(r.table_name)
-        columns_by_name = {col.name: col for col in table_metadata.column_descriptions}
+        columns_by_name = table_metadata.table_info.columns
 
         if r.new_table_name is not None and r.new_table_name != r.table_name:
             if self._repo.is_raw_table_name_taken(r.new_table_name):
@@ -133,7 +131,7 @@ class TableUploadManager:
                 if column_spec.ucd is not None:
                     column_metadata.ucd = column_spec.ucd
                 if column_spec.unit is not None:
-                    column_metadata.unit = units.Unit(column_spec.unit)
+                    column_metadata.unit = get_unit(column_spec.unit).to_string()
                 if column_spec.description is not None:
                     column_metadata.description = column_spec.description
                 if column_spec.ucd is not None or column_spec.unit is not None or column_spec.description is not None:
@@ -227,8 +225,8 @@ class TableUploadManager:
 
         return spec.GetTableResponse(
             id=meta.table_id,
-            description=meta.description or "",
-            column_info=_column_description_to_presentation(meta.column_descriptions),
+            description=meta.table_info.description or "",
+            column_info=_column_info_to_presentation(meta.table_info.columns.values()),
             meta=metadata,
             bibliography=_bibliography_to_presentation(bibliography),
             progress=progress,
@@ -383,7 +381,7 @@ def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:
     return spec.Bibliography(title=bib.title, authors=bib.author, year=bib.year, bibcode=bib.code)
 
 
-def _column_description_to_presentation(columns: list[model.ColumnDescription]) -> list[spec.ColumnDescription]:
+def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list[spec.ColumnDescription]:
     res = []
 
     for col in sorted(columns, key=lambda c: c.name):
@@ -395,7 +393,7 @@ def _column_description_to_presentation(columns: list[model.ColumnDescription]) 
                 name=col.name,
                 data_type=spec.DatatypeEnum[col.data_type],
                 ucd=col.ucd,
-                unit=col.unit.to_string() if col.unit is not None else None,
+                unit=col.unit,
                 description=col.description,
             )
         )
@@ -458,41 +456,55 @@ def get_unit(u: str) -> units.Unit:
         raise RuleValidationError(f"unknown unit: '{u}'") from None
 
 
-def domain_descriptions_to_data(columns: list[spec.ColumnDescription]) -> list[model.ColumnDescription]:
-    result = [
-        model.ColumnDescription(
+def domain_descriptions_to_data(
+    table_name: str,
+    columns: list[spec.ColumnDescription],
+    description: str | None = None,
+) -> postgres.TableInfo:
+    result: dict[str, postgres.ColumnInfo] = {
+        repository.INTERNAL_ID_COLUMN_NAME: postgres.ColumnInfo(
             name=repository.INTERNAL_ID_COLUMN_NAME,
             data_type=mapping.TYPE_TEXT,
-            is_primary_key=True,
+            description=None,
+            unit=None,
+            ucd=None,
+            not_null=True,
         )
-    ]
+    }
 
     for col in columns:
         data_type = col.data_type.strip()
         unit = None
-        description = col.description
+        col_description = col.description
 
         if data_type not in mapping.type_map:
             raise RuleValidationError(f"unknown type of data: '{col.data_type}'")
 
         if col.unit is not None:
             try:
-                unit = get_unit(col.unit)
+                unit = get_unit(col.unit).to_string()
             except RuleValidationError:
                 logger.error("Failed to parse unit, ignoring", unit=col.unit, column=col.name)
-                description = f"{description or ''} (unit {col.unit})".lstrip()
+                col_description = f"{col_description or ''} (unit {col.unit})".lstrip()
 
         if ucd is not None and not ucd.check_ucd(col.ucd, check_controlled_vocabulary=False):
             raise RuleValidationError(f"invalid or unknown UCD: {col.ucd}")
 
-        result.append(
-            model.ColumnDescription(
-                name=col.name,
-                data_type=mapping.type_map[data_type],
-                unit=unit,
-                ucd=col.ucd,
-                description=description,
-            )
+        if col.name in result:
+            raise RuleValidationError(f"duplicate column name: {col.name}")
+
+        result[col.name] = postgres.ColumnInfo(
+            name=col.name,
+            data_type=mapping.type_map[data_type],
+            unit=unit,
+            ucd=col.ucd,
+            description=col_description,
         )
 
-    return result
+    return postgres.TableInfo(
+        schema=repository.RAWDATA_SCHEMA,
+        name=table_name,
+        description=description,
+        columns=result,
+        primary_keys={repository.INTERNAL_ID_COLUMN_NAME},
+    )

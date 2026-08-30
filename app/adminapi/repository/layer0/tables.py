@@ -123,42 +123,46 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         Creates table, writes metadata and returns integer that identifies the table for
         further requests. If table already exists, returns its ID instead of creating a new one.
         """
-        table_id, ok = self._get_table_id(data.table_name)
+        table_id, ok = self._get_table_id(data.table_info.name)
         if ok:
             return model.Layer0CreationResponse(table_id, False)
 
         fields = []
 
-        for column_descr in data.column_descriptions:
+        for column in data.table_info.columns.values():
             constraint = ""
-            if column_descr.is_primary_key:
+            if column.name in data.table_info.primary_keys:
                 constraint = "PRIMARY KEY"
 
-            fields.append((column_descr.name, column_descr.data_type, constraint))
+            fields.append((column.name, column.data_type, constraint))
 
         with self.with_tx():
             row = self._storage.query_one(
                 repo_sql.INSERT_TABLE_REGISTRY_ITEM,
-                params=[data.bibliography_id, data.table_name, data.datatype],
+                params=[data.bibliography_id, data.table_info.name, data.datatype],
             )
             table_id = int(row.get("id"))
 
             self._storage.exec(
                 repo_sql.build_create_table_query(
                     schema=RAWDATA_SCHEMA,
-                    name=data.table_name,
+                    name=data.table_info.name,
                     fields=fields,
                 )
             )
 
-            if data.description is not None:
+            if data.table_info.description is not None:
                 self._storage.exec(
                     "SELECT meta.setparams(%s, %s, %s::json)",
-                    params=[RAWDATA_SCHEMA, data.table_name, json.dumps({"description": data.description})],
+                    params=[
+                        RAWDATA_SCHEMA,
+                        data.table_info.name,
+                        json.dumps({"description": data.table_info.description}),
+                    ],
                 )
 
-            for column_descr in data.column_descriptions:
-                self.update_column_metadata(data.table_name, column_descr)
+            for column in data.table_info.columns.values():
+                self.update_column_metadata(data.table_info.name, column)
 
         return model.Layer0CreationResponse(table_id, True)
 
@@ -223,18 +227,19 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if len(df) == 0:
             return tbl
 
-        for col in meta.column_descriptions:
+        for col in meta.table_info.columns.values():
             values = df[col.name]
 
             if col.unit is not None:
+                unit = u.Unit(col.unit)
                 try:
-                    if isinstance(col.unit, u.LogUnit):
-                        values = u.Quantity(col.unit.to_physical(values), col.unit.physical_unit)
+                    if isinstance(unit, u.LogUnit):
+                        values = u.Quantity(unit.to_physical(values), unit.physical_unit)
                     else:
-                        values = u.Quantity(values, col.unit)
+                        values = u.Quantity(values, unit)
                 except Exception as e:
-                    log.warning("Unable to assign unit to column", error=e, column=col.name, unit=col.unit)
-                    values = QuantityMock(values, col.unit)
+                    log.warning("Unable to assign unit to column", error=e, column=col.name, unit=unit)
+                    values = QuantityMock(values, unit)
 
             tbl[col.name] = values
 
@@ -417,55 +422,35 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         self, table_name: str, modification_dt: datetime.datetime | None
     ) -> model.Layer0TableMeta:
         table_info = self.get_table_metadata(RAWDATA_SCHEMA, table_name)
-
-        descriptions = []
-        for col in table_info.columns.values():
-            unit = None
-            if col.unit is not None:
-                unit = u.Unit(col.unit)
-
-            descriptions.append(
-                model.ColumnDescription(
-                    col.name,
-                    col.data_type,
-                    is_primary_key=col.name in table_info.primary_keys,
-                    unit=unit,
-                    description=col.description,
-                    ucd=col.ucd,
-                )
-            )
-
         registry_item = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         return model.Layer0TableMeta(
-            table_name,
-            descriptions,
-            registry_item["bib"],
-            registry_item["datatype"],
-            registry_item["status"],
-            modification_dt,
-            table_info.description,
+            table_info=table_info,
+            bibliography_id=registry_item["bib"],
+            datatype=registry_item["datatype"],
+            status=registry_item["status"],
+            modification_dt=modification_dt,
             table_id=registry_item["id"],
         )
 
-    def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
+    def update_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
         table_id, _ = self._get_table_id(table_name)
 
         column_params: dict[str, str | None] = {
-            "description": column_description.description,
+            "description": column.description,
         }
 
-        if column_description.unit is not None:
-            column_params["unit"] = column_description.unit.to_string()
+        if column.unit is not None:
+            column_params["unit"] = column.unit
 
-        if column_description.ucd is not None:
-            column_params["ucd"] = column_description.ucd
+        if column.ucd is not None:
+            column_params["ucd"] = column.ucd
 
         modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
 
         self._storage.exec(
             "SELECT meta.setparams(%s, %s, %s, %s::json)",
-            params=[RAWDATA_SCHEMA, table_name, column_description.name, json.dumps(column_params)],
+            params=[RAWDATA_SCHEMA, table_name, column.name, json.dumps(column_params)],
         )
         self._storage.exec(modification_query, params=[table_id])
 

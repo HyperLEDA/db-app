@@ -114,8 +114,8 @@ class Repository(postgres.TransactionalPGRepository):
     ) -> list[model.Layer0TableListItem]:
         return self._layer0_tables.search_tables(query, page_size, page, statuses)
 
-    def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
-        return self._layer0_tables.update_column_metadata(table_name, column_description)
+    def update_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
+        return self._layer0_tables.update_column_metadata(table_name, column)
 
     def update_table_metadata(self, table_name: str, description: str) -> None:
         return self._layer0_tables.update_table_metadata(table_name, description)

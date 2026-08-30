@@ -9,7 +9,6 @@ from app.adminapi.model.records import (
 )
 from app.adminapi.model.table import (
     CatalogProgress,
-    ColumnDescription,
     Layer0CreationResponse,
     Layer0RawData,
     Layer0TableListItem,
@@ -21,7 +20,6 @@ from app.adminapi.model.table import (
 __all__ = [
     "Bibliography",
     "CatalogProgress",
-    "ColumnDescription",
     "CrossmatchRecordRow",
     "DesignationRecord",
     "ICRSRecord",
