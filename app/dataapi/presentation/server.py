@@ -66,14 +66,11 @@ class Server(server.WebServer):
                 api.query_simple,
                 "Query data about objects",
                 """Obtains data about the objects according to the specified parameters.
-All of the conditions are combined with the logical AND operator.
-For example, if both coordinates and designation are specified, object must be in the specified area and have
-the specified designation.
+Exactly one search filter may be used at a time: pgcs, name, or a coordinate cone.
 
 Several notes:
-- You cannot specify both PGC numbers and additional filters. If both are specified, the request is rejected.
 - Coordinate searches use equatorial (ra/dec), galactic (glon/glat), or
-supergalactic (sgl/sgb) coordinates with radius. Only one coordinate system may be specified.
+supergalactic (sgl/sgb) coordinates with radius.
 For equatorial coordinates, eq_epoch sets the equinox (default J2000); non-J2000 coordinates
 are precessed to ICRS. Galactic and supergalactic coordinates are converted to ICRS before searching.
 When coordinates are specified, results are sorted by increasing distance to the search center.

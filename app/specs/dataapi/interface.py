@@ -198,7 +198,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
 
     pgcs: list[int] | None = pydantic.Field(
         default=None,
-        description="List of PGC numbers. If specified, no other filters are allowed",
+        description="List of PGC numbers",
     )
     ra: (
         Annotated[
@@ -315,7 +315,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
         return value
 
     @pydantic.model_validator(mode="after")
-    def _coordinate_sets(self) -> "QuerySimpleRequest":
+    def _exclusive_filter(self) -> "QuerySimpleRequest":
         if (self.ra is None) != (self.dec is None):
             raise ValueError("ra and dec must be specified together")
         if (self.glon is None) != (self.glat is None):
@@ -323,38 +323,28 @@ class QuerySimpleRequest(pydantic.BaseModel):
         if (self.sgl is None) != (self.sgb is None):
             raise ValueError("sgl and sgb must be specified together")
 
-        systems = [
-            self.ra is not None,
-            self.glon is not None,
-            self.sgl is not None,
-        ]
-        if sum(systems) > 1:
+        equatorial = self.ra is not None
+        galactic = self.glon is not None
+        supergalactic = self.sgl is not None
+        if self.radius is not None and not (equatorial or galactic or supergalactic):
             raise ValueError(
-                "Only one coordinate system may be specified: "
+                "When radius is specified, a coordinate set must be specified: "
                 "equatorial (ra/dec), galactic (glon/glat), or supergalactic (sgl/sgb)"
             )
-        if self.radius is not None and sum(systems) == 0:
-            raise ValueError(
-                "When radius is specified, at least one coordinate set must be specified: "
-                "equatorial (ra/dec), galactic (glon/glat), or supergalactic (sgl/sgb)"
-            )
-        return self
 
-    @pydantic.model_validator(mode="after")
-    def _pgcs_exclusive_with_filters(self) -> "QuerySimpleRequest":
-        if self.pgcs:
-            filters = [
-                self.ra,
-                self.dec,
-                self.glon,
-                self.glat,
-                self.sgl,
-                self.sgb,
-                self.radius,
-                self.name,
-            ]
-            if any(f is not None for f in filters):
-                raise ValueError("When pgcs is specified, no other filters are allowed")
+        filters = [
+            self.pgcs is not None,
+            self.name is not None,
+            equatorial,
+            galactic,
+            supergalactic,
+        ]
+        if sum(filters) > 1:
+            raise ValueError(
+                "Only one filter may be specified at a time: "
+                "pgcs, name, or a single coordinate cone "
+                "(equatorial ra/dec, galactic glon/glat, or supergalactic sgl/sgb)"
+            )
         return self
 
 
