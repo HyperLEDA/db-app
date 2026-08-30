@@ -2,8 +2,6 @@ import re
 import unittest
 from unittest import mock
 
-from astropy import units as u
-
 from app import catalogs
 from app.dataapi import repository
 
@@ -14,78 +12,44 @@ class QueryCatalogsJoinTest(unittest.TestCase):
         self.storage.query.return_value = []
         self.repo = repository.Repository(self.storage, mock.Mock())
 
-    def _query_for(
-        self,
-        raw_catalogs: list[catalogs.RawCatalog],
-        search_filter: repository.Filter,
-        search_params: repository.SearchParams,
-    ) -> str:
-        self.repo.query_catalogs(raw_catalogs, search_filter, search_params, 25, 0)
-        query = self.storage.query.call_args.args[0]
-        return re.sub(r"\s+", " ", query).strip()
+    def _one_to_one_query_for(self, raw_catalogs: list[catalogs.RawCatalog]) -> str:
+        self.repo.query_catalogs(raw_catalogs, [1, 2])
+        queries = [call.args[0] for call in self.storage.query.call_args_list]
+        join_queries = [q for q in queries if "unnest" in q]
+        self.assertEqual(len(join_queries), 1)
+        return re.sub(r"\s+", " ", join_queries[0]).strip()
 
-    def test_designation_filter_drives_join(self):
-        query = self._query_for(
+    def test_one_to_one_uses_unnest_left_join(self):
+        query = self._one_to_one_query_for(
             [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS, catalogs.RawCatalog.REDSHIFT],
-            repository.DesignationLikeFilter(),
-            repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
         )
 
+        self.assertIn("unnest(%s::int[]) WITH ORDINALITY", query)
+        self.assertIn("LEFT JOIN layer2.designation USING (pgc)", query)
+        self.assertIn("LEFT JOIN layer2.icrs USING (pgc)", query)
+        self.assertIn("LEFT JOIN layer2.cz USING (pgc)", query)
         self.assertNotIn("FULL JOIN", query)
-        self.assertIn(
-            "CROSS JOIN layer2.designations LEFT JOIN layer2.designation USING (pgc) "
-            "LEFT JOIN layer2.icrs USING (pgc) LEFT JOIN layer2.cz USING (pgc)",
-            query,
+        self.assertNotIn("search_params", query)
+
+    def test_one_to_many_catalogs_use_separate_queries(self):
+        self.repo.query_catalogs(
+            [catalogs.RawCatalog.PHOTOMETRY__TOTAL, catalogs.RawCatalog.NOTE],
+            [1],
         )
+        queries = [call.args[0] for call in self.storage.query.call_args_list]
+        self.assertTrue(any("layer2.photometry_total" in q for q in queries))
+        self.assertTrue(any("layer2.notes" in q for q in queries))
+        self.assertFalse(any("unnest" in q for q in queries))
 
-    def test_coordinate_filter_drives_join(self):
-        query = self._query_for(
-            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS, catalogs.RawCatalog.REDSHIFT],
-            repository.ICRSCoordinatesInRadiusFilter(1 * u.Unit("arcmin")),
-            repository.CombinedSearchParams(
-                [repository.ICRSSearchParams(10 * u.Unit("deg"), 10 * u.Unit("deg"))],
-            ),
+    def test_mixed_catalogs_join_only_one_to_one(self):
+        self.repo.query_catalogs(
+            [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.PHOTOMETRY__TOTAL],
+            [1],
         )
-
-        self.assertNotIn("FULL JOIN", query)
-        self.assertIn(
-            "CROSS JOIN layer2.icrs LEFT JOIN layer2.designation USING (pgc) LEFT JOIN layer2.cz USING (pgc)",
-            query,
-        )
-
-    def test_pgc_filter_keeps_full_join(self):
-        query = self._query_for(
-            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS],
-            repository.PGCOneOfFilter([1, 2]),
-            repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
-        )
-
-        self.assertIn("FULL JOIN", query)
-        self.assertNotIn("LEFT JOIN", query)
-
-    def test_and_filter_drives_join_from_strict_child(self):
-        query = self._query_for(
-            [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS],
-            repository.AndFilter(
-                [
-                    repository.PGCOneOfFilter([1, 2]),
-                    repository.ICRSCoordinatesInRadiusFilter(1 * u.Unit("arcmin")),
-                ]
-            ),
-            repository.CombinedSearchParams(
-                [repository.ICRSSearchParams(10 * u.Unit("deg"), 10 * u.Unit("deg"))],
-            ),
-        )
-
-        self.assertNotIn("FULL JOIN", query)
-        self.assertIn("CROSS JOIN layer2.icrs LEFT JOIN layer2.designation USING (pgc)", query)
-
-    def test_driving_table_is_joined_even_when_its_catalog_not_requested(self):
-        query = self._query_for(
-            [catalogs.RawCatalog.REDSHIFT],
-            repository.DesignationLikeFilter(),
-            repository.CombinedSearchParams([repository.DesignationSearchParams("IC 1440")]),
-        )
-
-        self.assertIn("CROSS JOIN layer2.designations LEFT JOIN layer2.cz USING (pgc)", query)
-        self.assertNotIn('"designation|design"', query)
+        queries = [call.args[0] for call in self.storage.query.call_args_list]
+        join_queries = [q for q in queries if "unnest" in q]
+        self.assertEqual(len(join_queries), 1)
+        query = re.sub(r"\s+", " ", join_queries[0]).strip()
+        self.assertIn("LEFT JOIN layer2.icrs USING (pgc)", query)
+        self.assertNotIn("photometry_total", query)
+        self.assertTrue(any("layer2.photometry_total" in q for q in queries))

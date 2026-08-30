@@ -17,6 +17,11 @@ class _FakeFieldAPIClient(clients.FieldAPIClient):
         return [0.03 + index * 0.01 for index in range(len(coordinates))]
 
 
+class _FailingFieldAPIClient(clients.FieldAPIClient):
+    def sample_sfd_ebv(self, coordinates: list[fieldapi_spec.SkyCoordinate]) -> list[float]:
+        raise errors.InternalError("fieldapi unavailable")
+
+
 class _FakeRepository:
     def list_reddening(self, photsys: str, r_v: str = "3.1") -> list[repository.ReddeningCoefficient]:
         if photsys == "Landolt":
@@ -189,6 +194,42 @@ class StructuredResponderPhotometryCorrectionTest(unittest.TestCase):
         corrected = catalogs.photometry_total_corrected[0]
         self.assertEqual(corrected.band, "g")
         self.assertAlmostEqual(corrected.mag, 13.0 - 3.237 * 0.03)
+
+    def test_build_response_degrades_when_fieldapi_unavailable(self) -> None:
+        reddening_service = reddening.Reddening(_FakeRepository(), _FailingFieldAPIClient())
+        responder = StructuredResponder(_catalog_config(), reddening_service)
+        icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
+        objects = [
+            model.Layer2Object(
+                pgc=5001,
+                catalogs=model.Catalogs(
+                    icrs=icrs,
+                    photometry_total=model.PhotometryTotalCatalog(
+                        measurements=[
+                            model.PhotometryTotalMeasurement(
+                                band="g",
+                                magsys="AB",
+                                method="psf",
+                                wavelength=4702.5,
+                                mag=13.0,
+                                e_mag=0.1,
+                                photsys="SDSS",
+                                filter="g",
+                            ),
+                        ]
+                    ),
+                ),
+            )
+        ]
+
+        response = responder.build_response(objects)
+
+        catalogs = response.objects[0].catalogs
+        self.assertIsNotNone(catalogs.photometry_total)
+        assert catalogs.photometry_total is not None
+        self.assertEqual(len(catalogs.photometry_total), 1)
+        self.assertAlmostEqual(catalogs.photometry_total[0].mag, 13.0)
+        self.assertIsNone(catalogs.photometry_total_corrected)
 
     def test_build_response_without_icrs_has_no_corrected_photometry(self) -> None:
         objects = [
