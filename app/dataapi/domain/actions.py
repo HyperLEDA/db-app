@@ -15,22 +15,7 @@ ENABLED_CATALOGS = [
     catalogs.RawCatalog.NATURE,
 ]
 
-METADATA_ALLOWED_SCHEMAS = frozenset(
-    {
-        "common",
-        "rawdata",
-        "designation",
-        "icrs",
-        "cz",
-        "layer2",
-        "layer0",
-        "nature",
-        "note",
-        "photometry",
-        "distance",
-        "morphology",
-    },
-)
+METADATA_ALLOWED_SCHEMAS = frozenset({"layer2"})
 
 
 def _json_cell(value: object) -> object:

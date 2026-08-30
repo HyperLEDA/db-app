@@ -54,14 +54,14 @@ class MetadataAPITest(unittest.TestCase):
         data = response.json()["data"]
         self.assertIn("schemas", data)
         self.assertGreater(len(data["schemas"]), 0)
-        common = next(s for s in data["schemas"] if s["schema_name"] == "common")
-        bib = next(t for t in common["tables"] if t["name"] == 'common."bib"')
-        self.assertEqual(bib["type"], "table")
-        self.assertIn("columns", bib)
-        self.assertIsInstance(bib["columns"], list)
-        self.assertGreater(len(bib["columns"]), 0)
-        id_col = next(c for c in bib["columns"] if c["name"] == "id")
-        self.assertEqual(id_col["datatype"], "int")
+        layer2 = next(s for s in data["schemas"] if s["schema_name"] == "layer2")
+        icrs = next(t for t in layer2["tables"] if t["name"] == 'layer2."icrs"')
+        self.assertEqual(icrs["type"], "table")
+        self.assertIn("columns", icrs)
+        self.assertIsInstance(icrs["columns"], list)
+        self.assertGreater(len(icrs["columns"]), 0)
+        pgc_col = next(c for c in icrs["columns"] if c["name"] == "pgc")
+        self.assertEqual(pgc_col["datatype"], "int")
 
     def test_tap_tables_min(self) -> None:
         response = self.client.get("/api/v1/tap/tables", params={"detail": "min"})

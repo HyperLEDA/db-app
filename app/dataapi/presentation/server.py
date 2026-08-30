@@ -81,7 +81,7 @@ When coordinates are specified, results are sorted by increasing distance to the
                 "/v1/tap/tables",
                 http.HTTPMethod.GET,
                 api.tap_tables,
-                "List TAP table metadata for whitelisted schemas.",
+                "List TAP table metadata for LEDA tables.",
             ),
             server.Route(
                 "/v1/tap/sync",
