@@ -14,7 +14,7 @@ from astroquery import nasa_ads as ads
 from app.adminapi import cache, clients, model, repository
 from app.adminapi.domain import table_stats
 from app.lib import astronomy, concurrency
-from app.lib.storage import enums, mapping
+from app.lib.storage import enums, mapping, postgres
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
@@ -25,25 +25,25 @@ FORBIDDEN_COLUMN_NAMES = {repository.INTERNAL_ID_COLUMN_NAME}
 logger = structlog.stdlib.get_logger()
 
 
-def _column_meta(columns: list[repository.ColumnSchemaInfo], name: str) -> tuple[str, str]:
-    for c in columns:
-        if c.name == name:
-            return (c.description or "", c.unit or "")
-    return ("", "")
+def _column_meta(schema: postgres.TableInfo, name: str) -> tuple[str, str]:
+    col = schema.columns.get(name)
+    if col is None:
+        return ("", "")
+    return (col.description or "", col.unit or "")
 
 
 def _build_catalog_schema(
-    designation_schema: repository.TableSchemaInfo,
-    icrs_schema: repository.TableSchemaInfo,
-    nature_schema: repository.TableSchemaInfo,
+    designation_schema: postgres.TableInfo,
+    icrs_schema: postgres.TableInfo,
+    nature_schema: postgres.TableInfo,
     nature_object_types: dict[str, str],
 ) -> spec.RecordCatalogSchema:
-    design_desc, _ = _column_meta(designation_schema.columns, "design")
-    ra_desc, ra_unit = _column_meta(icrs_schema.columns, "ra")
-    e_ra_desc, e_ra_unit = _column_meta(icrs_schema.columns, "e_ra")
-    dec_desc, dec_unit = _column_meta(icrs_schema.columns, "dec")
-    e_dec_desc, e_dec_unit = _column_meta(icrs_schema.columns, "e_dec")
-    type_name_desc, _ = _column_meta(nature_schema.columns, "type_name")
+    design_desc, _ = _column_meta(designation_schema, "design")
+    ra_desc, ra_unit = _column_meta(icrs_schema, "ra")
+    e_ra_desc, e_ra_unit = _column_meta(icrs_schema, "e_ra")
+    dec_desc, dec_unit = _column_meta(icrs_schema, "dec")
+    e_dec_desc, e_dec_unit = _column_meta(icrs_schema, "e_dec")
+    type_name_desc, _ = _column_meta(nature_schema, "type_name")
     return spec.RecordCatalogSchema(
         designation=spec.RecordDesignationCatalogSchema(
             description=spec.RecordDesignationCatalogDescriptionSchema(name=design_desc),
@@ -254,22 +254,22 @@ class TableUploadManager:
             triage_status=triage_filter,
         )
         schema_task = errgr.run(
-            self._repo.get_schema,
+            self._repo.get_table_metadata,
             repository.RAWDATA_SCHEMA,
             r.table_name,
         )
         designation_schema_task = errgr.run(
-            self._repo.get_schema,
+            self._repo.get_table_metadata,
             "designation",
             "data",
         )
         icrs_schema_task = errgr.run(
-            self._repo.get_schema,
+            self._repo.get_table_metadata,
             "icrs",
             "data",
         )
         nature_schema_task = errgr.run(
-            self._repo.get_schema,
+            self._repo.get_table_metadata,
             "nature",
             "data",
         )
@@ -352,7 +352,7 @@ class TableUploadManager:
         description_data: dict[str, str] = {}
         unit_data: dict[str, str] = {}
         ucd_data: dict[str, str] = {}
-        for col in schema_info.columns:
+        for col in schema_info.columns.values():
             if col.name in FORBIDDEN_COLUMN_NAMES:
                 continue
             if col.description is not None:
@@ -386,7 +386,7 @@ def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:
 def _column_description_to_presentation(columns: list[model.ColumnDescription]) -> list[spec.ColumnDescription]:
     res = []
 
-    for col in columns:
+    for col in sorted(columns, key=lambda c: c.name):
         if col.name in FORBIDDEN_COLUMN_NAMES:
             continue
 

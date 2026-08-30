@@ -16,23 +16,6 @@ class ReddeningPhotometricSystem:
 
 
 @dataclass
-class MetadataColumnDetail:
-    column_name: str
-    data_type: str | None
-    description: str | None
-    unit: str | None
-    ucd: str | None
-
-
-@dataclass
-class MetadataTableDetail:
-    schema_name: str
-    table_name: str
-    description: str | None
-    columns: list[MetadataColumnDetail]
-
-
-@dataclass
 class QueryColumnMetadata:
     column_name: str
     sample_value: object | None

@@ -115,6 +115,9 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage) -> None:
         super().__init__(storage)
 
+    def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
+        return postgres.get_table_metadata(self._storage, schema, table)
+
     def create_table(self, data: model.Layer0TableMeta) -> model.Layer0CreationResponse:
         """
         Creates table, writes metadata and returns integer that identifies the table for
@@ -413,31 +416,25 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def _fetch_metadata_by_name(
         self, table_name: str, modification_dt: datetime.datetime | None
     ) -> model.Layer0TableMeta:
-        column_descriptions = self._storage.query(
-            "SELECT column_name, param FROM meta.column_info WHERE schema_name=%s AND table_name=%s",
-            params=[RAWDATA_SCHEMA, table_name],
-        )
+        table_info = self.get_table_metadata(RAWDATA_SCHEMA, table_name)
 
         descriptions = []
-        for description in column_descriptions:
-            column_name = description["column_name"]
-            metadata = description["param"]
-
+        for col in table_info.columns.values():
             unit = None
-            if metadata.get("unit") is not None:
-                unit = u.Unit(metadata["unit"])
+            if col.unit is not None:
+                unit = u.Unit(col.unit)
 
             descriptions.append(
                 model.ColumnDescription(
-                    column_name,
-                    metadata["data_type"],
+                    col.name,
+                    col.data_type,
+                    is_primary_key=col.name in table_info.primary_keys,
                     unit=unit,
-                    description=metadata["description"],
-                    ucd=metadata.get("ucd"),
+                    description=col.description,
+                    ucd=col.ucd,
                 )
             )
 
-        table_metadata = self._storage.query_one(repo_sql.FETCH_TABLE_METADATA, params=[RAWDATA_SCHEMA, table_name])
         registry_item = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
 
         return model.Layer0TableMeta(
@@ -447,16 +444,15 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             registry_item["datatype"],
             registry_item["status"],
             modification_dt,
-            table_metadata["param"].get("description"),
+            table_info.description,
             table_id=registry_item["id"],
         )
 
     def update_column_metadata(self, table_name: str, column_description: model.ColumnDescription) -> None:
         table_id, _ = self._get_table_id(table_name)
 
-        column_params = {
+        column_params: dict[str, str | None] = {
             "description": column_description.description,
-            "data_type": column_description.data_type,
         }
 
         if column_description.unit is not None:

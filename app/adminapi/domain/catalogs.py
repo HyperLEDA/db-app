@@ -1,24 +1,21 @@
-from typing import Any, final
+from typing import final
 
 from app import catalogs
 from app.adminapi import repository
+from app.lib.storage import postgres
 from app.specs import adminapi as spec
 
 _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
 
 
-def _field_from_row(row: dict[str, Any]) -> spec.CatalogField:
-    param = row.get("param") or {}
-    if not isinstance(param, dict):
-        param = {}
-    description = param.get("description")
+def _field_from_column(col: postgres.ColumnInfo) -> spec.CatalogField:
     return spec.CatalogField(
-        name=row["column_name"],
-        data_type=spec.postgres_type_to_datatype(row["data_type"]),
-        unit=param.get("unit"),
-        required=bool(row["not_null"]),
-        ucd=param.get("ucd"),
-        description=str(description) if description else "",
+        name=col.name,
+        data_type=spec.postgres_type_to_datatype(col.data_type),
+        unit=col.unit,
+        required=col.not_null,
+        ucd=col.ucd,
+        description=str(col.description) if col.description else "",
     )
 
 
@@ -35,8 +32,11 @@ class CatalogManager:
             object_cls = catalogs.get_catalog_object_type(catalog)
             layer1_table = object_cls.layer1_table()
             schema, table = layer1_table.split(".", maxsplit=1)
-            rows = self._repo.get_catalog_columns(schema, table)
-            fields = [_field_from_row(row) for row in rows if row["column_name"] not in _INTERNAL_COLUMNS]
+            table_info = self._repo.get_table_metadata(schema, table)
+            fields = sorted(
+                [_field_from_column(col) for name, col in table_info.columns.items() if name not in _INTERNAL_COLUMNS],
+                key=lambda field: field.name,
+            )
             catalog_schemas.append(
                 spec.CatalogSchema(
                     catalog=catalog.value,

@@ -25,19 +25,6 @@ def _description_from_param(param: Any) -> str | None:
     return str(d) if d != "" else None
 
 
-def _column_detail_from_row(row: dict[str, Any]) -> repo_model.MetadataColumnDetail:
-    param = row.get("param") or {}
-    if not isinstance(param, dict):
-        param = {}
-    return repo_model.MetadataColumnDetail(
-        column_name=row["column_name"],
-        data_type=row.get("data_type"),
-        description=param.get("description"),
-        unit=param.get("unit"),
-        ucd=param.get("ucd"),
-    )
-
-
 def _infer_column_sample(column: str, rows: list[dict[str, Any]]) -> object | None:
     for row in rows:
         value = row[column]
@@ -117,12 +104,15 @@ class Repository(postgres.TransactionalPGRepository):
         result_rows = [[row[name] for name in col_names] for row in dict_rows]
         return repo_model.QueryWithMetadataResult(columns=columns, rows=result_rows)
 
+    def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
+        return postgres.get_table_metadata(self._storage, schema, table)
+
     def list_tables_with_columns(
         self,
         schemas: Sequence[str],
         *,
         include_columns: bool,
-    ) -> list[repo_model.MetadataTableDetail]:
+    ) -> list[postgres.TableInfo]:
         if not schemas:
             return []
 
@@ -135,38 +125,23 @@ class Repository(postgres.TransactionalPGRepository):
             """,
             params=[list(schemas)],
         )
-        columns_by_table: dict[tuple[str, str], list[repo_model.MetadataColumnDetail]] = {}
-        if include_columns:
-            column_rows = self._storage.query(
-                """
-                SELECT c.table_schema AS schema_name,
-                       c.table_name,
-                       c.column_name,
-                       c.data_type::text AS data_type,
-                       ci.param
-                FROM information_schema.columns c
-                INNER JOIN meta.column_info ci
-                  ON ci.schema_name = c.table_schema
-                 AND ci.table_name = c.table_name
-                 AND ci.column_name = c.column_name
-                WHERE c.table_schema = ANY(%s)
-                ORDER BY c.table_schema, c.table_name, c.ordinal_position
-                """,
-                params=[list(schemas)],
-            )
-            for row in column_rows:
-                key = (row["schema_name"], row["table_name"])
-                columns_by_table.setdefault(key, []).append(_column_detail_from_row(row))
-
-        return [
-            repo_model.MetadataTableDetail(
-                schema_name=row["schema_name"],
-                table_name=row["table_name"],
-                description=_description_from_param(row.get("param")),
-                columns=columns_by_table.get((row["schema_name"], row["table_name"]), []),
-            )
-            for row in table_rows
-        ]
+        result: list[postgres.TableInfo] = []
+        for row in table_rows:
+            schema_name = row["schema_name"]
+            table_name = row["table_name"]
+            if include_columns:
+                result.append(self.get_table_metadata(schema_name, table_name))
+            else:
+                result.append(
+                    postgres.TableInfo(
+                        schema=schema_name,
+                        name=table_name,
+                        description=_description_from_param(row.get("param")),
+                        columns={},
+                        primary_keys=set(),
+                    )
+                )
+        return result
 
     def query_catalogs_batch(
         self,

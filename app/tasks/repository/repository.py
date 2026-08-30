@@ -63,7 +63,8 @@ class Repository(postgres.TransactionalPGRepository):
             return
 
         schema, relation = table_name.split(".", maxsplit=1)
-        column_units = self._get_column_units(schema, relation)
+        table_info = self.get_table_metadata(schema, relation)
+        column_units = {name: col.unit for name, col in table_info.columns.items() if col.unit}
 
         work = table.QTable(data, copy=True)
         columns = [name for name in work.colnames if name != "pgc"]
@@ -116,7 +117,10 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        units = self._get_layer1_column_units(catalogs.RawCatalog.ICRS)
+        icrs_table = catalogs.get_catalog_object_type(catalogs.RawCatalog.ICRS).layer1_table()
+        icrs_schema, icrs_name = icrs_table.split(".", maxsplit=1)
+        icrs_info = self.get_table_metadata(icrs_schema, icrs_name)
+        units = {name: col.unit for name, col in icrs_info.columns.items() if col.unit}
         return table.QTable(
             {
                 "pgc": [int(r["pgc"]) for r in rows],
@@ -137,7 +141,10 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        units = self._get_layer1_column_units(catalogs.RawCatalog.REDSHIFT)
+        redshift_table = catalogs.get_catalog_object_type(catalogs.RawCatalog.REDSHIFT).layer1_table()
+        redshift_schema, redshift_name = redshift_table.split(".", maxsplit=1)
+        redshift_info = self.get_table_metadata(redshift_schema, redshift_name)
+        units = {name: col.unit for name, col in redshift_info.columns.items() if col.unit}
         e_cz_unit = u.Unit(units["e_cz"])
         default_e_cz = float(_DEFAULT_E_CZ.to_value(e_cz_unit))
         return table.QTable(
@@ -161,18 +168,8 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
-    def _get_column_units(self, schema: str, table_name: str) -> dict[str, str]:
-        rows = self._storage.query(
-            "SELECT column_name, param->>'unit' as unit FROM meta.column_info "
-            "WHERE schema_name = %s AND table_name = %s AND param->>'unit' IS NOT NULL",
-            params=[schema, table_name],
-        )
-        return {row["column_name"]: row["unit"] for row in rows}
-
-    def _get_layer1_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
-        object_cls = catalogs.get_catalog_object_type(catalog)
-        schema, table_name = object_cls.layer1_table().split(".")
-        return self._get_column_units(schema, table_name)
+    def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
+        return postgres.get_table_metadata(self._storage, schema, table)
 
     def _query_new_pgc_records(
         self,

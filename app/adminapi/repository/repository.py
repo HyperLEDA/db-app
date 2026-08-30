@@ -40,8 +40,8 @@ class Repository(postgres.TransactionalPGRepository):
     def get_existing_pgcs(self, pgcs: list[int]) -> set[int]:
         return self._common.get_existing_pgcs(pgcs)
 
-    def get_schema(self, schema_name: str, table_name: str) -> repo_model.TableSchemaInfo:
-        return self._common.get_schema(schema_name, table_name)
+    def get_table_metadata(self, schema_name: str, table_name: str) -> postgres.TableInfo:
+        return self._common.get_table_metadata(schema_name, table_name)
 
     def get_nature_object_types(self) -> list[dict]:
         return self._common.get_nature_object_types()
@@ -166,9 +166,6 @@ class Repository(postgres.TransactionalPGRepository):
 
     def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
         return self._layer1.get_column_units(catalog)
-
-    def get_catalog_columns(self, schema: str, table: str) -> list[dict[str, Any]]:
-        return self._layer1.get_catalog_columns(schema, table)
 
     def save_structured_data(
         self,

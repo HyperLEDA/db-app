@@ -69,17 +69,17 @@ class Actions(interface.Actions):
             if include_columns:
                 columns = [
                     spec.TAPColumnInfo(
-                        name=c.column_name,
+                        name=c.name,
                         datatype=tap_types.pg_to_tap_datatype(c.data_type),
                         unit=c.unit,
                         ucd=c.ucd,
                         description=c.description,
                     )
-                    for c in table.columns
+                    for c in sorted(table.columns.values(), key=lambda col: col.name)
                 ]
-            schemas.setdefault(table.schema_name, []).append(
+            schemas.setdefault(table.schema, []).append(
                 spec.TAPTableInfo(
-                    name=f'{table.schema_name}."{table.table_name}"',
+                    name=f'{table.schema}."{table.name}"',
                     type="table",
                     description=table.description,
                     columns=columns,

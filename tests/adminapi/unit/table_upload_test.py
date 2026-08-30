@@ -8,7 +8,7 @@ from parameterized import param, parameterized
 from app.adminapi import clients, domain, model, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
-from app.lib.storage import enums, mapping
+from app.lib.storage import enums, mapping, postgres
 from app.lib.web import errors
 from app.specs import adminapi
 from tests import lib
@@ -291,6 +291,13 @@ class MappingTest(unittest.TestCase):
 class GetRecordsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.repo = mock.MagicMock()
+        self.repo.get_table_metadata.return_value = postgres.TableInfo(
+            schema="",
+            name="",
+            description=None,
+            columns={},
+            primary_keys=set(),
+        )
         self.repo.get_designation_records.side_effect = lambda record_ids: [None] * len(record_ids)
         self.repo.get_icrs_records.side_effect = lambda record_ids: [None] * len(record_ids)
         self.repo.get_redshift_records.side_effect = lambda record_ids: [None] * len(record_ids)
