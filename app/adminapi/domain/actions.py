@@ -2,7 +2,7 @@ from typing import final
 
 from app.adminapi import cache, clients, repository
 from app.adminapi.domain import auth as admin_auth
-from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, sources, table_upload
+from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, references, sources, table_upload
 from app.adminapi.presentation import interface
 from app.lib import auth
 from app.lib.storage import postgres
@@ -40,6 +40,7 @@ class Actions(interface.Actions):
         self.pgc_manager = pgc.PgcManager(repo)
         self.layer1_writer = layer1_write.Layer1Writer(repo)
         self.catalog_manager = catalogs.CatalogManager(repo)
+        self.references_manager = references.ReferencesManager(repo)
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
         return self.source_manager.create_source(r)
@@ -111,3 +112,39 @@ class Actions(interface.Actions):
                 table=spec.TAPVOTableTable(columns=columns, data=data),
             )
         )
+
+    def list_references(self) -> spec.ListReferencesResponse:
+        return self.references_manager.list_references()
+
+    def list_reference_rows(
+        self,
+        schema: str,
+        table: str,
+        request: spec.ListReferenceRowsRequest,
+    ) -> spec.ListReferenceRowsResponse:
+        return self.references_manager.list_rows(schema, table, request)
+
+    def list_reference_field_options(
+        self,
+        schema: str,
+        table: str,
+        field: str,
+        request: spec.ListReferenceFieldOptionsRequest,
+    ) -> spec.ListReferenceFieldOptionsResponse:
+        return self.references_manager.list_field_options(schema, table, field, request)
+
+    def create_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.CreateReferenceRowRequest,
+    ) -> spec.CreateReferenceRowResponse:
+        return self.references_manager.create_row(schema, table, request)
+
+    def patch_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.PatchReferenceRowRequest,
+    ) -> spec.PatchReferenceRowResponse:
+        return self.references_manager.patch_row(schema, table, request)

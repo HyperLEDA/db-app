@@ -441,15 +441,26 @@ class GetCatalogsResponse(pydantic.BaseModel):
 
 def postgres_type_to_datatype(pg_type: str) -> DatatypeEnum:
     normalized = pg_type.lower().strip()
-    if normalized in {"text", "character varying", "character", "char", "user-defined"}:
+    if normalized == "array":
+        return DatatypeEnum["array"]
+    if normalized in {"boolean", "bool"}:
+        return DatatypeEnum["boolean"]
+    if normalized in {"json", "jsonb"}:
+        return DatatypeEnum["json"]
+    if normalized in {"text", "character varying", "character", "char", "user-defined", "name", "uuid"}:
         return DatatypeEnum["str"]
-    if normalized in {"double precision", "real", "numeric"}:
+    if normalized in {"double precision", "real", "numeric", "float4", "float8"}:
         return DatatypeEnum["float"]
-    if normalized in {"integer", "smallint"}:
+    if normalized in {"integer", "smallint", "serial", "int2", "int4"}:
         return DatatypeEnum["int"]
-    if normalized == "bigint":
+    if normalized in {"bigint", "int8"}:
         return DatatypeEnum["long"]
-    if normalized == "timestamp without time zone":
+    if normalized in {
+        "timestamp without time zone",
+        "timestamp with time zone",
+        "date",
+        "time without time zone",
+    }:
         return DatatypeEnum["timestamp without time zone"]
     if normalized in DatatypeEnum.__members__:
         return DatatypeEnum[normalized]

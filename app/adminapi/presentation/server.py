@@ -140,6 +140,47 @@ class API:
         response = self.actions.tap_sync(tap_request)
         return server.APIOkResponse(data=response)
 
+    def list_references(self) -> server.APIOkResponse[spec.ListReferencesResponse]:
+        response = self.actions.list_references()
+        return server.APIOkResponse(data=response)
+
+    def list_reference_rows(
+        self,
+        schema: str,
+        table: str,
+        request: Annotated[spec.ListReferenceRowsRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[spec.ListReferenceRowsResponse]:
+        response = self.actions.list_reference_rows(schema, table, request)
+        return server.APIOkResponse(data=response)
+
+    def list_reference_field_options(
+        self,
+        schema: str,
+        table: str,
+        field: str,
+        request: Annotated[spec.ListReferenceFieldOptionsRequest, fastapi.Query()],
+    ) -> server.APIOkResponse[spec.ListReferenceFieldOptionsResponse]:
+        response = self.actions.list_reference_field_options(schema, table, field, request)
+        return server.APIOkResponse(data=response)
+
+    def create_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.CreateReferenceRowRequest,
+    ) -> server.APIOkResponse[spec.CreateReferenceRowResponse]:
+        response = self.actions.create_reference_row(schema, table, request)
+        return server.APIOkResponse(data=response)
+
+    def patch_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.PatchReferenceRowRequest,
+    ) -> server.APIOkResponse[spec.PatchReferenceRowResponse]:
+        response = self.actions.patch_reference_row(schema, table, request)
+        return server.APIOkResponse(data=response)
+
 
 class Server(server.WebServer):
     def __init__(
@@ -418,6 +459,48 @@ For every column that has unit metadata in the database, the request must includ
                 "Runs a read-only SQL query and returns a VOTable-like JSON payload.",
                 allowed_roles=admin_only,
                 rate_limit="60/minute",
+            ),
+            server.Route(
+                "/v1/references",
+                http.HTTPMethod.GET,
+                api.list_references,
+                "List editable reference tables",
+                "Returns metadata for allowlisted reference tables used to render admin forms.",
+                allowed_roles=admin_only,
+            ),
+            server.Route(
+                "/v1/references/{schema}/{table}/rows",
+                http.HTTPMethod.GET,
+                api.list_reference_rows,
+                "List reference table rows",
+                "Returns paginated rows from an allowlisted reference table.",
+                allowed_roles=admin_only,
+            ),
+            server.Route(
+                "/v1/references/{schema}/{table}/rows",
+                http.HTTPMethod.POST,
+                api.create_reference_row,
+                "Create a reference table row",
+                "Creates a row in an allowlisted reference table.",
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/references/{schema}/{table}/rows",
+                http.HTTPMethod.PATCH,
+                api.patch_reference_row,
+                "Update a reference table row",
+                "Partially updates a row in an allowlisted reference table.",
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/references/{schema}/{table}/fields/{field}/options",
+                http.HTTPMethod.GET,
+                api.list_reference_field_options,
+                "List reference field options",
+                "Returns paginated options for a foreign-key reference field.",
+                allowed_roles=admin_only,
             ),
         ]
 

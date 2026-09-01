@@ -127,6 +127,9 @@ class TestPostgresStorage:
         if not self.need_new_container:
             return
 
+        self.storage.exec("TRUNCATE distance.data CASCADE")
+        self.storage.exec("TRUNCATE distance.calibrations CASCADE")
+        self.storage.exec("TRUNCATE distance.methods CASCADE")
         self.storage.exec("TRUNCATE common.bib CASCADE")
         self.storage.exec("TRUNCATE layer0.tables CASCADE")
         tables = self.storage.query("""
