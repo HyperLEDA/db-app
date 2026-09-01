@@ -242,7 +242,8 @@ class ReferencesRepository(postgres.TransactionalPGRepository):
         params: list[Any] = []
         if query.strip():
             where_clause = sql.SQL("WHERE {}").format(_build_search_condition(column_names))
-            params.append(f"%{_escape_like_pattern(query.strip())}%")
+            pattern = f"%{_escape_like_pattern(query.strip())}%"
+            params.extend([pattern] * len(column_names))
 
         statement = sql.SQL("SELECT COUNT(*) AS total FROM {} {}").format(table_ref, where_clause)
         row = self._storage.query_one(statement, params=params)
@@ -263,7 +264,8 @@ class ReferencesRepository(postgres.TransactionalPGRepository):
         params: list[Any] = []
         if query.strip():
             where_clause = sql.SQL("WHERE {}").format(_build_search_condition(column_names))
-            params.append(f"%{_escape_like_pattern(query.strip())}%")
+            pattern = f"%{_escape_like_pattern(query.strip())}%"
+            params.extend([pattern] * len(column_names))
 
         order_by = sql.SQL(", ").join(sql.Identifier(name) for name in primary_key_columns)
         params.extend([page_size, page * page_size])

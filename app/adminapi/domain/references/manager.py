@@ -30,8 +30,9 @@ def _postgres_to_data_type(
     if column.data_type == "ARRAY":
         element_type = spec.postgres_type_to_datatype(column.udt_name.lstrip("_"))
         return spec.DatatypeEnum["array"], element_type
-    pg_type = column.udt_name if column.data_type == "USER-DEFINED" else column.data_type
-    return spec.postgres_type_to_datatype(pg_type), None
+    if column.data_type == "USER-DEFINED":
+        return spec.DatatypeEnum["str"], None
+    return spec.postgres_type_to_datatype(column.data_type), None
 
 
 def _is_numeric(data_type: spec.DatatypeEnum) -> bool:
