@@ -6,7 +6,7 @@ from astropy import table
 
 from app import catalogs
 from app.adminapi import model
-from app.adminapi.repository import common, layer1, layer2, metadata
+from app.adminapi.repository import common, layer1, layer2, metadata, references
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository.layer0 import records, tables
 from app.lib.storage import enums, postgres
@@ -24,6 +24,7 @@ class Repository(postgres.TransactionalPGRepository):
         self._layer1 = layer1.Layer1Repository(storage, logger)
         self._layer2 = layer2.Layer2Repository(storage, logger)
         self._metadata = metadata.MetadataRepository(storage)
+        self._references = references.ReferencesRepository(storage, logger)
 
     def create_bibliography(self, code: str, year: int, authors: list[str], title: str) -> int:
         return self._common.create_bibliography(code, year, authors, title)
@@ -219,3 +220,91 @@ class Repository(postgres.TransactionalPGRepository):
         if timeout_seconds is not None:
             kwargs["timeout_seconds"] = timeout_seconds
         return self._metadata.query_with_metadata(query, max_rows, **kwargs)
+
+    def get_reference_table_metadata(
+        self,
+        schema_name: str,
+        table_name: str,
+    ) -> references.ReferenceTableInfo:
+        return self._references.get_table_metadata(schema_name, table_name)
+
+    def count_reference_rows(
+        self,
+        schema: str,
+        table: str,
+        query: str,
+        column_names: list[str],
+    ) -> int:
+        return self._references.count_rows(schema, table, query, column_names)
+
+    def list_reference_rows(
+        self,
+        schema: str,
+        table: str,
+        query: str,
+        column_names: list[str],
+        primary_key_columns: list[str],
+        page: int,
+        page_size: int,
+    ) -> list[dict]:
+        return self._references.list_rows(schema, table, query, column_names, primary_key_columns, page, page_size)
+
+    def count_reference_options(
+        self,
+        schema: str,
+        table: str,
+        query: str,
+        column_names: list[str],
+    ) -> int:
+        return self._references.count_reference_options(schema, table, query, column_names)
+
+    def list_reference_options(
+        self,
+        schema: str,
+        table: str,
+        query: str,
+        column_names: list[str],
+        primary_key_columns: list[str],
+        page: int,
+        page_size: int,
+    ) -> list[dict]:
+        return self._references.list_reference_options(
+            schema,
+            table,
+            query,
+            column_names,
+            primary_key_columns,
+            page,
+            page_size,
+        )
+
+    def get_reference_row_by_key(
+        self,
+        schema: str,
+        table: str,
+        primary_key_columns: list[str],
+        key: dict,
+    ) -> dict | None:
+        return self._references.get_row_by_key(schema, table, primary_key_columns, key)
+
+    def reference_foreign_key_exists(
+        self,
+        schema: str,
+        table: str,
+        column: str,
+        value: object,
+    ) -> bool:
+        return self._references.foreign_key_exists(schema, table, column, value)
+
+    def insert_reference_row(self, schema: str, table: str, values: dict) -> None:
+        return self._references.insert_row(schema, table, values)
+
+    def update_reference_row(
+        self,
+        schema: str,
+        table: str,
+        primary_key_columns: list[str],
+        key: dict,
+        changes: dict,
+    ) -> int:
+        return self._references.update_row(schema, table, primary_key_columns, key, changes)

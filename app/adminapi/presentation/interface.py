@@ -71,3 +71,44 @@ class Actions(abc.ABC):
     @abc.abstractmethod
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         pass
+
+    @abc.abstractmethod
+    def list_references(self) -> spec.ListReferencesResponse:
+        pass
+
+    @abc.abstractmethod
+    def list_reference_rows(
+        self,
+        schema: str,
+        table: str,
+        request: spec.ListReferenceRowsRequest,
+    ) -> spec.ListReferenceRowsResponse:
+        pass
+
+    @abc.abstractmethod
+    def list_reference_field_options(
+        self,
+        schema: str,
+        table: str,
+        field: str,
+        request: spec.ListReferenceFieldOptionsRequest,
+    ) -> spec.ListReferenceFieldOptionsResponse:
+        pass
+
+    @abc.abstractmethod
+    def create_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.CreateReferenceRowRequest,
+    ) -> spec.CreateReferenceRowResponse:
+        pass
+
+    @abc.abstractmethod
+    def patch_reference_row(
+        self,
+        schema: str,
+        table: str,
+        request: spec.PatchReferenceRowRequest,
+    ) -> spec.PatchReferenceRowResponse:
+        pass
