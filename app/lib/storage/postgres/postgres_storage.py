@@ -146,6 +146,7 @@ class PgStorage:
         params: list[Any] | None = None,
         timeout_seconds: float | None = None,
         read_only: bool = False,
+        search_path: str | None = None,
     ) -> list[rows.DictRow]:
         log.debug("SQL query", query=self.query_str(query).replace("\n", " "), args=params or [])
 
@@ -172,6 +173,10 @@ class PgStorage:
                                 timeout_ms = int(timeout_seconds * 1000)
                                 cursor.execute(
                                     sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(f"{timeout_ms}ms"))
+                                )
+                            if search_path is not None:
+                                cursor.execute(
+                                    sql.SQL("SET LOCAL search_path TO {}").format(sql.Identifier(search_path))
                                 )
                             result = _execute(cursor)
                 finally:

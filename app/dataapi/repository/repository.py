@@ -176,6 +176,7 @@ class Repository(postgres.TransactionalPGRepository):
             wrapped,
             timeout_seconds=timeout_seconds,
             read_only=True,
+            search_path="layer2",
         )
         if not dict_rows:
             return repo_model.QueryWithMetadataResult(columns=[], rows=[])

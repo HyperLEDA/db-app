@@ -81,14 +81,14 @@ When coordinates are specified, results are sorted by increasing distance to the
                 "/v1/tap/tables",
                 http.HTTPMethod.GET,
                 api.tap_tables,
-                "List TAP table metadata for whitelisted schemas.",
+                "List TAP table metadata for LEDA tables.",
             ),
             server.Route(
                 "/v1/tap/sync",
                 http.HTTPMethod.GET,
                 api.tap_sync,
-                "Execute an arbitrary SQL query (TAP /sync).",
-                "Runs a read-only SQL query against whitelisted schemas and returns a VOTable-like JSON payload.",
+                "Execute a read-only SQL query against layer2 (TAP /sync).",
+                "Runs a read-only SQL query with search_path set to layer2 and returns a VOTable-like JSON payload.",
                 rate_limit="60/minute",
             ),
             server.Route(

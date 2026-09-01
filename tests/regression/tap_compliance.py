@@ -30,7 +30,7 @@ def check_tap_sync(session: requests.Session) -> None:
     response = session.get(
         "/v1/tap/sync",
         params={
-            "query": "SELECT type_name, objclass, description FROM nature.object_type ORDER BY type_name",
+            "query": "SELECT pgc, ra, dec FROM icrs ORDER BY pgc",
             "lang": "PostgreSQL",
             "format": "json",
             "maxrec": 5,
@@ -38,8 +38,10 @@ def check_tap_sync(session: requests.Session) -> None:
     )
     response.raise_for_status()
     table = response.json()["data"]["resource"]["table"]
-    assert [c["name"] for c in table["columns"]] == ["type_name", "objclass", "description"]
-    assert all(c["datatype"] == "char" for c in table["columns"])
+    assert [c["name"] for c in table["columns"]] == ["pgc", "ra", "dec"]
+    assert table["columns"][0]["datatype"] == "int"
+    assert table["columns"][1]["datatype"] == "double"
+    assert table["columns"][2]["datatype"] == "double"
     assert len(table["data"]) == 5
     assert all(len(row) == 3 for row in table["data"])
 
