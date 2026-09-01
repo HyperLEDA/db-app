@@ -3,6 +3,9 @@ TYPE_INTEGER = "integer"
 TYPE_BIGINT = "bigint"
 TYPE_DOUBLE_PRECISION = "double precision"
 TYPE_TIMESTAMP = "timestamp without time zone"
+TYPE_BOOLEAN = "boolean"
+TYPE_JSON = "jsonb"
+TYPE_ARRAY = "ARRAY"
 
 type_map = {
     # SQL types
@@ -22,6 +25,9 @@ type_map = {
     "double precision": TYPE_DOUBLE_PRECISION,
     "real": TYPE_DOUBLE_PRECISION,
     "timestamp without time zone": TYPE_TIMESTAMP,
+    "boolean": TYPE_BOOLEAN,
+    "json": TYPE_JSON,
+    "array": TYPE_ARRAY,
     # XML Schema types
     "unsignedLong": TYPE_BIGINT,
     "unsignedInt": TYPE_INTEGER,

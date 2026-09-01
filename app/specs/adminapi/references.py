@@ -3,18 +3,10 @@ from typing import Any
 
 import pydantic
 
+from app.specs.adminapi.interface import DatatypeEnum
+
 ReferenceScalar = str | int | float | bool | None
 ReferenceValue = ReferenceScalar | list[ReferenceScalar] | dict[str, Any]
-
-
-class ReferenceDataType(enum.StrEnum):
-    STRING = "string"
-    INTEGER = "integer"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    ARRAY = "array"
-    JSON = "json"
-    DATETIME = "datetime"
 
 
 class ReferenceInputKind(enum.StrEnum):
@@ -39,10 +31,9 @@ class ReferenceInput(pydantic.BaseModel):
 
 class ReferenceFieldDescriptor(pydantic.BaseModel):
     name: str
-    label: str
-    description: str
-    data_type: ReferenceDataType
-    items_data_type: ReferenceDataType | None = None
+    description: str | None = None
+    data_type: DatatypeEnum
+    items_data_type: DatatypeEnum | None = None
     required: bool
     nullable: bool
     input: ReferenceInput
@@ -51,8 +42,7 @@ class ReferenceFieldDescriptor(pydantic.BaseModel):
 class ReferenceResourceDescriptor(pydantic.BaseModel):
     schema_name: str = pydantic.Field(serialization_alias="schema")
     table: str
-    title: str
-    description: str
+    description: str | None = None
     fields: list[ReferenceFieldDescriptor]
 
     model_config = pydantic.ConfigDict(populate_by_name=True)

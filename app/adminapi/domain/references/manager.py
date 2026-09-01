@@ -9,10 +9,6 @@ from app.lib.web.errors import ConflictError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
 
-def _humanize_name(name: str) -> str:
-    return name.replace("_", " ").strip().capitalize()
-
-
 def _format_option_description(row: dict[str, Any], display: registry.ReferenceOptionDisplay) -> str | None:
     parts: list[str] = []
     for column_name in display.description_columns:
@@ -30,48 +26,35 @@ def _format_option_description(row: dict[str, Any], display: registry.ReferenceO
 
 def _postgres_to_data_type(
     column: references.ReferenceColumnInfo,
-) -> tuple[spec.ReferenceDataType, spec.ReferenceDataType | None]:
-    data_type = column.data_type
-    udt_name = column.udt_name
-
-    if data_type == "ARRAY":
-        element_type, _ = _postgres_udt_to_data_type(udt_name.lstrip("_"))
-        return spec.ReferenceDataType.ARRAY, element_type
-
-    result, _ = _postgres_udt_to_data_type(udt_name if data_type == "USER-DEFINED" else data_type)
-    return result, None
+) -> tuple[spec.DatatypeEnum, spec.DatatypeEnum | None]:
+    if column.data_type == "ARRAY":
+        element_type = spec.postgres_type_to_datatype(column.udt_name.lstrip("_"))
+        return spec.DatatypeEnum["array"], element_type
+    pg_type = column.udt_name if column.data_type == "USER-DEFINED" else column.data_type
+    return spec.postgres_type_to_datatype(pg_type), None
 
 
-def _postgres_udt_to_data_type(type_name: str) -> tuple[spec.ReferenceDataType, spec.ReferenceDataType | None]:
-    normalized = type_name.lower()
-    if normalized in {"text", "character varying", "character", "char", "name", "uuid"}:
-        return spec.ReferenceDataType.STRING, None
-    if normalized in {"integer", "smallint", "bigint", "int2", "int4", "int8", "serial"}:
-        return spec.ReferenceDataType.INTEGER, None
-    if normalized in {"double precision", "real", "numeric", "float4", "float8"}:
-        return spec.ReferenceDataType.NUMBER, None
-    if normalized == "boolean":
-        return spec.ReferenceDataType.BOOLEAN, None
-    if normalized in {"json", "jsonb"}:
-        return spec.ReferenceDataType.JSON, None
-    if normalized in {"timestamp without time zone", "timestamp with time zone", "date", "time without time zone"}:
-        return spec.ReferenceDataType.DATETIME, None
-    return spec.ReferenceDataType.STRING, None
+def _is_numeric(data_type: spec.DatatypeEnum) -> bool:
+    return data_type in {
+        spec.DatatypeEnum["int"],
+        spec.DatatypeEnum["long"],
+        spec.DatatypeEnum["float"],
+    }
 
 
 def _input_kind_for_column(
     column: references.ReferenceColumnInfo,
-    data_type: spec.ReferenceDataType,
+    data_type: spec.DatatypeEnum,
 ) -> spec.ReferenceInputKind:
     if column.enum_values:
         return spec.ReferenceInputKind.SELECT
     if column.foreign_key is not None:
         return spec.ReferenceInputKind.REFERENCE
-    if data_type in {spec.ReferenceDataType.NUMBER, spec.ReferenceDataType.INTEGER}:
+    if _is_numeric(data_type):
         return spec.ReferenceInputKind.NUMBER
-    if data_type in {spec.ReferenceDataType.JSON, spec.ReferenceDataType.ARRAY}:
+    if data_type in {spec.DatatypeEnum["json"], spec.DatatypeEnum["array"]}:
         return spec.ReferenceInputKind.JSON
-    if column.name == "description" and data_type == spec.ReferenceDataType.STRING:
+    if column.name == "description" and data_type == spec.DatatypeEnum["str"]:
         return spec.ReferenceInputKind.TEXTAREA
     return spec.ReferenceInputKind.TEXT
 
@@ -89,26 +72,26 @@ def _build_select_options(
     ]
 
 
-def _db_value_to_json(value: Any, data_type: spec.ReferenceDataType) -> spec.ReferenceValue:
+def _db_value_to_json(value: Any, data_type: spec.DatatypeEnum) -> spec.ReferenceValue:
     if value is None:
         return None
-    if data_type == spec.ReferenceDataType.DATETIME and isinstance(value, datetime.datetime):
+    if data_type == spec.DatatypeEnum["timestamp without time zone"] and isinstance(value, datetime.datetime):
         if value.tzinfo is None:
             return value.replace(tzinfo=datetime.UTC).isoformat().replace("+00:00", "Z")
         return value.astimezone(datetime.UTC).isoformat().replace("+00:00", "Z")
-    if data_type == spec.ReferenceDataType.NUMBER:
+    if data_type == spec.DatatypeEnum["float"]:
         return float(value)
-    if data_type == spec.ReferenceDataType.INTEGER:
+    if data_type in {spec.DatatypeEnum["int"], spec.DatatypeEnum["long"]}:
         return int(value)
-    if data_type == spec.ReferenceDataType.BOOLEAN:
+    if data_type == spec.DatatypeEnum["boolean"]:
         return bool(value)
-    if data_type == spec.ReferenceDataType.JSON:
+    if data_type == spec.DatatypeEnum["json"]:
         if isinstance(value, (dict, list)):
             return value
         if isinstance(value, str):
             return json.loads(value)
         return value
-    if data_type == spec.ReferenceDataType.ARRAY:
+    if data_type == spec.DatatypeEnum["array"]:
         if isinstance(value, list):
             return value
         return list(value)
@@ -143,7 +126,7 @@ def _parse_datetime_value(value: spec.ReferenceValue, field_name: str) -> dateti
 
 def _parse_scalar_value(
     value: spec.ReferenceValue,
-    data_type: spec.ReferenceDataType,
+    data_type: spec.DatatypeEnum,
     field_name: str,
     *,
     nullable: bool,
@@ -153,30 +136,30 @@ def _parse_scalar_value(
             return None
         raise RuleValidationError(f"Field '{field_name}' cannot be null")
 
-    if data_type == spec.ReferenceDataType.STRING:
+    if data_type == spec.DatatypeEnum["str"]:
         if not isinstance(value, str):
             raise RuleValidationError(f"Field '{field_name}' must be a string")
         return value
 
-    if data_type == spec.ReferenceDataType.INTEGER:
+    if data_type in {spec.DatatypeEnum["int"], spec.DatatypeEnum["long"]}:
         if isinstance(value, bool) or not isinstance(value, int):
             raise RuleValidationError(f"Field '{field_name}' must be an integer")
         return value
 
-    if data_type == spec.ReferenceDataType.NUMBER:
+    if data_type == spec.DatatypeEnum["float"]:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise RuleValidationError(f"Field '{field_name}' must be a number")
         return float(value)
 
-    if data_type == spec.ReferenceDataType.BOOLEAN:
+    if data_type == spec.DatatypeEnum["boolean"]:
         if not isinstance(value, bool):
             raise RuleValidationError(f"Field '{field_name}' must be a boolean")
         return value
 
-    if data_type == spec.ReferenceDataType.JSON:
+    if data_type == spec.DatatypeEnum["json"]:
         return _parse_json_value(value, field_name)
 
-    if data_type == spec.ReferenceDataType.DATETIME:
+    if data_type == spec.DatatypeEnum["timestamp without time zone"]:
         return _parse_datetime_value(value, field_name)
 
     raise RuleValidationError(f"Field '{field_name}' has unsupported data type")
@@ -184,7 +167,7 @@ def _parse_scalar_value(
 
 def _parse_array_value(
     value: spec.ReferenceValue,
-    items_data_type: spec.ReferenceDataType | None,
+    items_data_type: spec.DatatypeEnum | None,
     field_name: str,
     *,
     nullable: bool,
@@ -211,8 +194,7 @@ def _resource_descriptor(
         fields.append(
             spec.ReferenceFieldDescriptor(
                 name=column_name,
-                label=_humanize_name(column_name),
-                description=column.description or _humanize_name(column_name),
+                description=column.description,
                 data_type=data_type,
                 items_data_type=items_data_type,
                 required=column.not_null and column.column_default is None,
@@ -223,8 +205,7 @@ def _resource_descriptor(
     return spec.ReferenceResourceDescriptor(
         schema_name=metadata.schema,
         table=metadata.name,
-        title=metadata.description or _humanize_name(metadata.name),
-        description=metadata.description or _humanize_name(metadata.name),
+        description=metadata.description,
         fields=fields,
     )
 
@@ -280,7 +261,7 @@ def _parse_key(
             raise RuleValidationError(f"Key is missing field '{column_name}'")
         column = metadata.columns[column_name]
         data_type, items_data_type = _postgres_to_data_type(column)
-        if data_type == spec.ReferenceDataType.ARRAY:
+        if data_type == spec.DatatypeEnum["array"]:
             parsed[column_name] = _parse_array_value(
                 key[column_name],
                 items_data_type,
@@ -314,7 +295,7 @@ def _parse_row_values(
     for column_name, raw_value in values.items():
         column = metadata.columns[column_name]
         data_type, items_data_type = _postgres_to_data_type(column)
-        if data_type == spec.ReferenceDataType.ARRAY:
+        if data_type == spec.DatatypeEnum["array"]:
             parsed[column_name] = _parse_array_value(
                 raw_value,
                 items_data_type,
