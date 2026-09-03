@@ -384,7 +384,7 @@ def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:
 def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list[spec.ColumnDescription]:
     res = []
 
-    for col in sorted(columns, key=lambda c: c.name):
+    for col in columns:
         if col.name in FORBIDDEN_COLUMN_NAMES:
             continue
 
