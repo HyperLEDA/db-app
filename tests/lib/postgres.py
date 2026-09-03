@@ -13,7 +13,7 @@ from tests.lib import web
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
-_test_storage: "TestPostgresStorage | None" = None
+_test_storage: "PostgresTestStorage | None" = None
 
 
 def exit_handler():
@@ -39,7 +39,7 @@ def debug_enabled() -> bool:
     return False
 
 
-class TestPostgresStorage:
+class PostgresTestStorage:
     def __init__(
         self,
         migrations_dir: str,
@@ -85,7 +85,7 @@ class TestPostgresStorage:
         )
 
     @staticmethod
-    def get(enum_registry: Sequence[tuple[type[enum.Enum], str]] = ()) -> "TestPostgresStorage":
+    def get(enum_registry: Sequence[tuple[type[enum.Enum], str]] = ()) -> "PostgresTestStorage":
         """
         Obtains Postgres storage object that may be used for testing.
 
@@ -99,7 +99,7 @@ class TestPostgresStorage:
         """
         global _test_storage
         if _test_storage is None:
-            _test_storage = TestPostgresStorage("postgres/migrations", enum_registry)
+            _test_storage = PostgresTestStorage("postgres/migrations", enum_registry)
             logger.info("Starting postgres container")
             _test_storage.start()
 

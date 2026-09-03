@@ -1,9 +1,9 @@
 import http
-import unittest
 from typing import cast
-from unittest.mock import Mock
+from unittest import mock
 
 import pydantic
+import pytest
 import structlog
 from fastapi import testclient
 
@@ -20,50 +20,63 @@ class MockResponse(pydantic.BaseModel):
     echo: str
 
 
-class ServerTest(unittest.TestCase):
-    def setUp(self):
-        self.config = ServerConfig(port=8000, host="127.0.0.1")
-        self.logger = Mock(spec=structlog.stdlib.BoundLogger)
+@pytest.fixture
+def config() -> ServerConfig:
+    return ServerConfig(port=8000, host="127.0.0.1")
 
-        def test_handler(request: MockRequest) -> APIOkResponse[MockResponse]:
-            return APIOkResponse(data=MockResponse(echo=request.message))
 
-        self.test_route = Route(
-            path="/test",
-            method=http.HTTPMethod.POST,
-            handler=test_handler,
-            summary="Test endpoint",
-        )
+@pytest.fixture
+def logger() -> mock.Mock:
+    return mock.Mock(spec=structlog.stdlib.BoundLogger)
 
-        self.routes = [self.test_route]
 
-    def test_ping_endpoint(self):
-        server = WebServer(self.routes, self.config, self.logger, auth.NoopAuthenticator())
-        client = testclient.TestClient(server.app)
+@pytest.fixture
+def test_route() -> Route:
+    def test_handler(request: MockRequest) -> APIOkResponse[MockResponse]:
+        return APIOkResponse(data=MockResponse(echo=request.message))
 
-        response = client.get("/ping")
+    return Route(
+        path="/test",
+        method=http.HTTPMethod.POST,
+        handler=test_handler,
+        summary="Test endpoint",
+    )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"data": {"ping": "pong"}})
 
-    def test_custom_endpoint(self):
-        server = WebServer(self.routes, self.config, self.logger, auth.NoopAuthenticator())
-        client = testclient.TestClient(server.app)
+@pytest.fixture
+def routes(test_route: Route) -> list[Route]:
+    return [test_route]
 
-        test_data = {"message": "Hello, World!"}
-        response = client.post("/api/test", json=test_data)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"data": {"echo": "Hello, World!"}})
+def test_ping_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
+    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    client = testclient.TestClient(server.app)
 
-    def test_custom_endpoint_validation_error(self):
-        server = WebServer(self.routes, self.config, self.logger, auth.NoopAuthenticator())
-        client = testclient.TestClient(server.app)
+    response = client.get("/ping")
 
-        invalid_data = {"invalid_field": "value"}
-        response = client.post("/api/test", json=invalid_data)
+    assert response.status_code == 200
+    assert response.json() == {"data": {"ping": "pong"}}
 
-        self.assertEqual(response.status_code, 400)
+
+def test_custom_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
+    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    client = testclient.TestClient(server.app)
+
+    test_data = {"message": "Hello, World!"}
+    response = client.post("/api/test", json=test_data)
+
+    assert response.status_code == 200
+    assert response.json() == {"data": {"echo": "Hello, World!"}}
+
+
+def test_custom_endpoint_validation_error(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
+    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    client = testclient.TestClient(server.app)
+
+    invalid_data = {"invalid_field": "value"}
+    response = client.post("/api/test", json=invalid_data)
+
+    assert response.status_code == 400
 
 
 class _FakeAuthenticator(auth.Authenticator):
@@ -80,83 +93,83 @@ class _FakeAuthenticator(auth.Authenticator):
         pass
 
 
-class ServerRouteAuthTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.config = ServerConfig(port=8000, host="127.0.0.1")
-        self.logger = Mock(spec=structlog.stdlib.BoundLogger)
+@pytest.fixture
+def auth_routes() -> list[Route]:
+    def public_get() -> APIOkResponse[MockResponse]:
+        return APIOkResponse(data=MockResponse(echo="public"))
 
-        def public_get() -> APIOkResponse[MockResponse]:
-            return APIOkResponse(data=MockResponse(echo="public"))
+    def secured_post(request: MockRequest) -> APIOkResponse[MockResponse]:
+        return APIOkResponse(data=MockResponse(echo=request.message))
 
-        def secured_post(request: MockRequest) -> APIOkResponse[MockResponse]:
-            return APIOkResponse(data=MockResponse(echo=request.message))
+    return [
+        Route(
+            path="/pub",
+            method=http.HTTPMethod.GET,
+            handler=public_get,
+            summary="public",
+        ),
+        Route(
+            path="/sec",
+            method=http.HTTPMethod.POST,
+            handler=secured_post,
+            summary="secured",
+            allowed_roles=[auth.Role.ADMIN],
+        ),
+        Route(
+            path="/closed",
+            method=http.HTTPMethod.POST,
+            handler=secured_post,
+            summary="closed",
+            allowed_roles=[],
+        ),
+    ]
 
-        self.routes = [
-            Route(
-                path="/pub",
-                method=http.HTTPMethod.GET,
-                handler=public_get,
-                summary="public",
-            ),
-            Route(
-                path="/sec",
-                method=http.HTTPMethod.POST,
-                handler=secured_post,
-                summary="secured",
-                allowed_roles=[auth.Role.ADMIN],
-            ),
-            Route(
-                path="/closed",
-                method=http.HTTPMethod.POST,
-                handler=secured_post,
-                summary="closed",
-                allowed_roles=[],
-            ),
-        ]
 
-    def test_public_and_role_gates(self) -> None:
-        authenticator = _FakeAuthenticator(
-            {
-                "good": (auth.User(1, auth.Role.ADMIN, "admin"), True),
-            }
-        )
-        srv = WebServer(self.routes, self.config, self.logger, authenticator, auth_enabled=True)
-        client = testclient.TestClient(srv.app)
+def test_public_and_role_gates(
+    config: ServerConfig,
+    logger: mock.Mock,
+    auth_routes: list[Route],
+) -> None:
+    authenticator = _FakeAuthenticator(
+        {
+            "good": (auth.User(1, auth.Role.ADMIN, "admin"), True),
+        }
+    )
+    srv = WebServer(auth_routes, config, logger, authenticator, auth_enabled=True)
+    client = testclient.TestClient(srv.app)
 
-        self.assertEqual(client.get("/api/pub").status_code, 200)
+    assert client.get("/api/pub").status_code == 200
 
-        self.assertEqual(client.post("/api/sec", json={"message": "x"}).status_code, 401)
-        self.assertEqual(
-            client.post("/api/sec", json={"message": "x"}).json()["message"],
-            "No authorization header",
-        )
-        bad_scheme = client.post(
-            "/api/sec",
-            json={"message": "x"},
-            headers={"Authorization": "Basic abc"},
-        )
-        self.assertEqual(bad_scheme.status_code, 401)
-        self.assertEqual(bad_scheme.json()["message"], "Invalid authorization header")
-        self.assertEqual(
-            client.post("/api/sec", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code,
-            200,
-        )
-        invalid = client.post(
-            "/api/sec",
-            json={"message": "x"},
-            headers={"Authorization": "Bearer invalid"},
-        )
-        self.assertEqual(invalid.status_code, 401)
-        self.assertEqual(invalid.json()["message"], "Invalid token")
+    assert client.post("/api/sec", json={"message": "x"}).status_code == 401
+    assert client.post("/api/sec", json={"message": "x"}).json()["message"] == "No authorization header"
+    bad_scheme = client.post(
+        "/api/sec",
+        json={"message": "x"},
+        headers={"Authorization": "Basic abc"},
+    )
+    assert bad_scheme.status_code == 401
+    assert bad_scheme.json()["message"] == "Invalid authorization header"
+    assert client.post("/api/sec", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code == 200
+    invalid = client.post(
+        "/api/sec",
+        json={"message": "x"},
+        headers={"Authorization": "Bearer invalid"},
+    )
+    assert invalid.status_code == 401
+    assert invalid.json()["message"] == "Invalid token"
 
-        self.assertEqual(
-            client.post("/api/closed", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code,
-            403,
-        )
+    assert (
+        client.post("/api/closed", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code == 403
+    )
 
-    def test_auth_disabled_skips_middleware_gate(self) -> None:
-        authenticator = _FakeAuthenticator({})
-        srv = WebServer(self.routes, self.config, self.logger, authenticator, auth_enabled=False)
-        client = testclient.TestClient(srv.app)
 
-        self.assertEqual(client.post("/api/sec", json={"message": "x"}).status_code, 200)
+def test_auth_disabled_skips_middleware_gate(
+    config: ServerConfig,
+    logger: mock.Mock,
+    auth_routes: list[Route],
+) -> None:
+    authenticator = _FakeAuthenticator({})
+    srv = WebServer(auth_routes, config, logger, authenticator, auth_enabled=False)
+    client = testclient.TestClient(srv.app)
+
+    assert client.post("/api/sec", json={"message": "x"}).status_code == 200

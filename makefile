@@ -33,7 +33,7 @@ check-schema:
 	docker compose stop hyperledadb migrate wait-for-migrate
 	docker compose rm -f -v hyperledadb migrate wait-for-migrate
 	docker compose up -d hyperledadb migrate wait-for-migrate
-	npx --yes schemalint@2.3.2
+	bunx schemalint@2.3.2
 
 check:
 	@output=$$(copier check-update --answers-file .template.yaml 2>&1) || true; \
@@ -76,11 +76,23 @@ check:
 	@$(MAKE) check-migrations
 	@echo "Migrations ok."
 
-	@uv run pytest \
-		--quiet \
-		--config-file=pyproject.toml \
-		tests/env_test.py tests/*/unit
+	@docker info >/dev/null 2>&1 || { \
+		echo "Docker is not running. Start Docker and retry to run test suite."; \
+		exit 1; \
+	}
+
+	@$(MAKE) test
+
 	@echo "Testing ok."
+
+test:
+	@uv run pytest \
+		--config-file=pyproject.toml \
+		--quiet \
+		-n auto \
+		--maxprocesses=4 \
+		--dist loadscope \
+		tests
 
 fix:
 	@uv run ruff format \
@@ -148,25 +160,5 @@ cleanup:
 		__pycache__ */__pycache__ \
 		.coverage htmlcov
 
-## Testing
-
-# pytest is used to run unittest test cases
-test-all: check
-	@uv run pytest \
-		--config-file=pyproject.toml \
-		--quiet \
-		tests \
-		--ignore=tests/bench
-
-test-bench:
-	@uv run pytest \
-		--config-file=pyproject.toml \
-		-s \
-		tests/bench
-
 test-regression:
 	uv run tests.py regression-tests
-
-coverage:
-	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
-	uvx coverage html

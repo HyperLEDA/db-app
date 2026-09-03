@@ -22,10 +22,8 @@ jobs:
       - name: Start database and apply migrations
         run: docker compose up -d hyperledadb migrate wait-for-migrate
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Lint database schema
         env:
@@ -34,4 +32,4 @@ jobs:
           PGUSER: hyperleda
           PGPASSWORD: password
           PGDATABASE: hyperleda
-        run: npx --yes schemalint@2.3.2
+        run: bunx schemalint@2.3.2

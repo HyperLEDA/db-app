@@ -81,11 +81,11 @@ dev = [
     # probably should not update outside the template
     "ruff~=0.16.2",
     "pytest~=9.1.0",
+    "pytest-xdist~=3.8.0",
     "basedpyright~=1.39.0",
     "types-pyyaml~=6.0.12.20260724",
     "types-regex~=2026.7.19.20260720",
     "pandas-stubs~=3.0.0",
-    "parameterized~=0.9.0",
     "httpx2>=2.10,<2.13",
     "httpx~=0.28.0",
     "requests~=2.34.0",

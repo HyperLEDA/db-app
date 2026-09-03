@@ -2,77 +2,83 @@ import os
 import pathlib
 import subprocess
 import tempfile
-import time
-import unittest
+from collections.abc import Generator
 from concurrent import futures
+from dataclasses import dataclass
 
+import pytest
 import requests
 import structlog
 
-from app.lib.storage import enums
 from tests import lib
+from tests.lib.postgres import PostgresTestStorage
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
-class DataAPIServerTest(unittest.TestCase):
-    """
-    Tests server startup.
-    """
+@dataclass
+class DataAPIServer:
+    server_port: int
+    process: subprocess.Popen[bytes]
+    stdout_file: object
+    stderr_file: object
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        with futures.ThreadPoolExecutor() as group:
-            pg_thread = group.submit(lib.TestPostgresStorage.get, enums.PG_ENUM_REGISTRY)
-            port_thread = group.submit(lib.find_free_port)
 
-        cls.pg_storage = pg_thread.result()
-        cls.server_port = port_thread.result()
+@pytest.fixture(scope="module")
+def dataapi_server(pg_storage: PostgresTestStorage) -> Generator[DataAPIServer]:
+    with futures.ThreadPoolExecutor() as group:
+        port_thread = group.submit(lib.find_free_port)
 
-        cls.temp_dir = tempfile.mkdtemp()
-        cls.stdout_path = pathlib.Path(cls.temp_dir) / "stdout.log"
-        cls.stderr_path = pathlib.Path(cls.temp_dir) / "stderr.log"
+    server_port = port_thread.result()
 
-        cls.stdout_file = cls.stdout_path.open("w")
-        cls.stderr_file = cls.stderr_path.open("w")
+    temp_dir = tempfile.mkdtemp()
+    stdout_path = pathlib.Path(temp_dir) / "stdout.log"
+    stderr_path = pathlib.Path(temp_dir) / "stderr.log"
 
-        os.environ["SERVER_PORT"] = str(cls.server_port)
-        os.environ["STORAGE_ENDPOINT"] = "localhost"
-        os.environ["STORAGE_PORT"] = str(cls.pg_storage.port)
-        os.environ["STORAGE_USER"] = "hyperleda_reader"
-        os.environ["STORAGE_PASSWORD"] = "password"
+    stdout_file = stdout_path.open("w")
+    stderr_file = stderr_path.open("w")
 
-        logger.info("starting server", port=cls.server_port)
+    os.environ["SERVER_PORT"] = str(server_port)
+    os.environ["STORAGE_ENDPOINT"] = "localhost"
+    os.environ["STORAGE_PORT"] = str(pg_storage.port)
+    os.environ["STORAGE_USER"] = "hyperleda_reader"
+    os.environ["STORAGE_PASSWORD"] = "password"
 
-        cls.process = subprocess.Popen(
-            [
-                "uv",
-                "run",
-                "dataapi",
-                "-c",
-                "configs/dev/dataapi.yaml",
-            ],
-            stdout=cls.stdout_file,
-            stderr=cls.stderr_file,
+    logger.info("starting server", port=server_port)
+
+    process = subprocess.Popen(
+        [
+            "uv",
+            "run",
+            "dataapi",
+            "-c",
+            "configs/dev/dataapi.yaml",
+        ],
+        stdout=stdout_file,
+        stderr=stderr_file,
+    )
+    try:
+        try:
+            lib.wait_for_server(f"http://127.0.0.1:{server_port}/ping", process=process)
+        except RuntimeError as e:
+            raise RuntimeError(f"""{e}
+STDOUT: {stdout_path}
+STDERR: {stderr_path}""") from e
+        yield DataAPIServer(
+            server_port=server_port,
+            process=process,
+            stdout_file=stdout_file,
+            stderr_file=stderr_file,
         )
-        # give process some time to set up properly
-        time.sleep(2)
+    finally:
+        process.kill()
+        process.wait()
+        stdout_file.close()
+        stderr_file.close()
 
-        if cls.process.poll() is not None and cls.process.returncode != 0:
-            raise RuntimeError(f"""Process failed to start.
-STDOUT: {cls.stdout_path}
-STDERR: {cls.stderr_path}""")
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.process.kill()
-        cls.process.wait()
+def test_startup(dataapi_server: DataAPIServer) -> None:
+    response = requests.get(f"http://localhost:{dataapi_server.server_port}/ping", timeout=2)
+    data = response.json()
 
-        cls.stdout_file.close()
-        cls.stderr_file.close()
-
-    def test_startup(self):
-        response = requests.get(f"http://localhost:{self.server_port}/ping", timeout=2)
-        data = response.json()
-
-        self.assertDictEqual(data, {"data": {"ping": "pong"}})
+    assert data == {"data": {"ping": "pong"}}
