@@ -33,10 +33,9 @@ class CatalogManager:
             layer1_table = object_cls.layer1_table()
             schema, table = layer1_table.split(".", maxsplit=1)
             table_info = self._repo.get_table_metadata(schema, table)
-            fields = sorted(
-                [_field_from_column(col) for name, col in table_info.columns.items() if name not in _INTERNAL_COLUMNS],
-                key=lambda field: field.name,
-            )
+            fields = [
+                _field_from_column(col) for name, col in table_info.columns.items() if name not in _INTERNAL_COLUMNS
+            ]
             catalog_schemas.append(
                 spec.CatalogSchema(
                     catalog=catalog.value,

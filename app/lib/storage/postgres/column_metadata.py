@@ -40,6 +40,7 @@ LEFT JOIN (
    AND kcu.table_schema = tc.table_schema
    AND kcu.table_name = tc.table_name
 ) AS pk ON pk.column_name = c.column_name
+ORDER BY c.ordinal_position
 """
 
 
