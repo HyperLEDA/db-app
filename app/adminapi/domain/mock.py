@@ -1,9 +1,8 @@
 import datetime
-from unittest import mock
 
 from app.adminapi import clients
 from app.adminapi.domain import actions
-from app.lib import auth
+from app.lib import auth, mock
 from app.specs import adminapi as spec
 
 

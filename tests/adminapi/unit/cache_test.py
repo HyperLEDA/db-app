@@ -1,6 +1,5 @@
 import contextvars
 import threading
-import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from time import monotonic
@@ -15,78 +14,80 @@ class SampleSnapshot(pydantic.BaseModel):
     value: int
 
 
-class BackgroundCacheTest(unittest.TestCase):
-    def test_get_returns_initial_value(self) -> None:
-        cache = BackgroundCache(
-            "test",
-            lambda: SampleSnapshot(value=1),
-            refresh_frequency=timedelta(hours=1),
-            refresh_timeout=timedelta(seconds=1),
-        )
-        self.assertEqual(cache.get().value, 1)
-        cache.stop()
+def test_get_returns_initial_value() -> None:
+    cache = BackgroundCache(
+        "test",
+        lambda: SampleSnapshot(value=1),
+        refresh_frequency=timedelta(hours=1),
+        refresh_timeout=timedelta(seconds=1),
+    )
+    assert cache.get().value == 1
+    cache.stop()
 
-    def test_run_refreshes_value(self) -> None:
-        counter = {"n": 0}
 
-        def refresh() -> SampleSnapshot:
-            counter["n"] += 1
-            return SampleSnapshot(value=counter["n"])
+def test_run_refreshes_value() -> None:
+    counter = {"n": 0}
 
-        cache = BackgroundCache(
-            "test",
-            refresh,
-            refresh_frequency=timedelta(milliseconds=50),
-            refresh_timeout=timedelta(seconds=1),
-        )
-        thread = threading.Thread(target=cache.run, daemon=True)
-        thread.start()
+    def refresh() -> SampleSnapshot:
+        counter["n"] += 1
+        return SampleSnapshot(value=counter["n"])
 
-        deadline = monotonic() + 2.0
-        while monotonic() < deadline:
-            if cache.get().value >= 2:
-                break
-            threading.Event().wait(0.05)
+    cache = BackgroundCache(
+        "test",
+        refresh,
+        refresh_frequency=timedelta(milliseconds=50),
+        refresh_timeout=timedelta(seconds=1),
+    )
+    thread = threading.Thread(target=cache.run, daemon=True)
+    thread.start()
 
-        cache.stop()
-        thread.join(timeout=2.0)
-        self.assertGreaterEqual(cache.get().value, 2)
+    deadline = monotonic() + 2.0
+    while monotonic() < deadline:
+        if cache.get().value >= 2:
+            break
+        threading.Event().wait(0.05)
 
-    def test_run_keeps_old_value_on_refresh_failure(self) -> None:
-        fail_refresh = {"v": False}
+    cache.stop()
+    thread.join(timeout=2.0)
+    assert cache.get().value >= 2
 
-        def refresh() -> SampleSnapshot:
-            if fail_refresh["v"]:
-                raise RuntimeError("refresh failed")
-            return SampleSnapshot(value=1)
 
-        cache = BackgroundCache(
-            "test",
-            refresh,
-            refresh_frequency=timedelta(milliseconds=50),
-            refresh_timeout=timedelta(seconds=1),
-        )
-        self.assertEqual(cache.get().value, 1)
+def test_run_keeps_old_value_on_refresh_failure() -> None:
+    fail_refresh = {"v": False}
 
-        fail_refresh["v"] = True
-        thread = threading.Thread(target=cache.run, daemon=True)
-        thread.start()
+    def refresh() -> SampleSnapshot:
+        if fail_refresh["v"]:
+            raise RuntimeError("refresh failed")
+        return SampleSnapshot(value=1)
 
-        threading.Event().wait(0.2)
+    cache = BackgroundCache(
+        "test",
+        refresh,
+        refresh_frequency=timedelta(milliseconds=50),
+        refresh_timeout=timedelta(seconds=1),
+    )
+    assert cache.get().value == 1
 
-        cache.stop()
-        thread.join(timeout=2.0)
-        self.assertEqual(cache.get().value, 1)
+    fail_refresh["v"] = True
+    thread = threading.Thread(target=cache.run, daemon=True)
+    thread.start()
 
-    def test_run_in_context_propagates_context_to_worker_thread(self) -> None:
-        seen = contextvars.ContextVar("seen", default=False)
-        seen.set(True)
-        ctx = contextvars.copy_context()
+    threading.Event().wait(0.2)
 
-        def check_context() -> bool:
-            return seen.get()
+    cache.stop()
+    thread.join(timeout=2.0)
+    assert cache.get().value == 1
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            result = executor.submit(_run_in_context, ctx, check_context).result()
 
-        self.assertTrue(result)
+def test_run_in_context_propagates_context_to_worker_thread() -> None:
+    seen = contextvars.ContextVar("seen", default=False)
+    seen.set(True)
+    ctx = contextvars.copy_context()
+
+    def check_context() -> bool:
+        return seen.get()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        result = executor.submit(_run_in_context, ctx, check_context).result()
+
+    assert result

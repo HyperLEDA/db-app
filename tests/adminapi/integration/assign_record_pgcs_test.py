@@ -1,7 +1,7 @@
 import datetime
-import unittest
 import uuid
 
+import pytest
 import structlog
 
 from app.adminapi import model, repository
@@ -9,143 +9,176 @@ from app.adminapi.domain import crossmatch
 from app.lib.storage import enums, postgres
 from app.lib.web import errors
 from app.specs import adminapi
-from tests import lib
+from tests.lib.postgres import TestPostgresStorage
+
+pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
-class AssignRecordPgcsRepositoryTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.pg_storage = lib.TestPostgresStorage.get(enums.PG_ENUM_REGISTRY)
-        cls.repo = repository.Repository(cls.pg_storage.get_storage(), structlog.get_logger())
-        cls.manager = crossmatch.CrossmatchManager(cls.repo)
+@pytest.fixture(scope="module")
+def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+    return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
-    def tearDown(self) -> None:
-        self.pg_storage.clear()
 
-    def _create_table(self, table_name: str) -> None:
-        bib_id = self.repo.create_bibliography("123456", 2000, ["test"], "test")
-        self.repo.create_table(
-            model.Layer0TableMeta(
-                postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name),
-                bib_id,
-            )
+@pytest.fixture(scope="module")
+def manager(repo: repository.Repository) -> crossmatch.CrossmatchManager:
+    return crossmatch.CrossmatchManager(repo)
+
+
+def _create_table(repo: repository.Repository, table_name: str) -> None:
+    bib_id = repo.create_bibliography("123456", 2000, ["test"], "test")
+    repo.create_table(
+        model.Layer0TableMeta(
+            postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name),
+            bib_id,
+        )
+    )
+
+
+def _register(repo: repository.Repository, table_name: str, record_ids: list[str]) -> None:
+    _create_table(repo, table_name)
+    repo.register_records(table_name, record_ids)
+
+
+def _set_crossmatch(
+    repo: repository.Repository,
+    rows: list[tuple[str, enums.RecordTriageStatus, list[int]]],
+) -> None:
+    repo.set_crossmatch_results(rows)
+
+
+def _pgc_for(pg_storage: TestPostgresStorage, record_id: str) -> int | None:
+    row = pg_storage.storage.query_one(
+        "SELECT pgc FROM layer0.records WHERE id = %s",
+        params=[record_id],
+    )
+    return row["pgc"]
+
+
+def test_submit_new_and_existing_records(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: TestPostgresStorage,
+) -> None:
+    table_name = "submit_happy"
+    new_id = str(uuid.uuid4())
+    existing_id = str(uuid.uuid4())
+    existing_pgc = 4242
+    _register(repo, table_name, [new_id, existing_id])
+    repo.register_pgcs([existing_pgc])
+    _set_crossmatch(
+        repo,
+        [
+            (new_id, enums.RecordTriageStatus.RESOLVED, []),
+            (existing_id, enums.RecordTriageStatus.RESOLVED, [existing_pgc]),
+        ],
+    )
+
+    old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+    pg_storage.storage.exec(
+        "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
+        params=[old_dt, existing_pgc],
+    )
+
+    manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[new_id, existing_id]))
+
+    new_pgc = _pgc_for(pg_storage, new_id)
+    assert new_pgc is not None
+    assert _pgc_for(pg_storage, existing_id) == existing_pgc
+    assert new_pgc != existing_pgc
+    existing_mt = pg_storage.storage.query_one(
+        "SELECT modification_time FROM common.pgc WHERE id = %s",
+        params=[existing_pgc],
+    )["modification_time"]
+    assert existing_mt.replace(tzinfo=datetime.UTC) > old_dt
+    new_mt = pg_storage.storage.query_one(
+        "SELECT modification_time FROM common.pgc WHERE id = %s",
+        params=[new_pgc],
+    )["modification_time"]
+    assert new_mt.replace(tzinfo=datetime.UTC) > old_dt
+
+
+def test_reject_pending_records(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: TestPostgresStorage,
+) -> None:
+    table_name = "submit_pending"
+    pending_id = str(uuid.uuid4())
+    resolved_id = str(uuid.uuid4())
+    _register(repo, table_name, [pending_id, resolved_id])
+    _set_crossmatch(
+        repo,
+        [
+            (pending_id, enums.RecordTriageStatus.PENDING, []),
+            (resolved_id, enums.RecordTriageStatus.RESOLVED, []),
+        ],
+    )
+
+    with pytest.raises(errors.ConflictError) as exc_info:
+        manager.assign_record_pgcs(
+            adminapi.AssignRecordPgcsRequest(record_ids=[pending_id, resolved_id]),
         )
 
-    def _register(self, table_name: str, record_ids: list[str]) -> None:
-        self._create_table(table_name)
-        self.repo.register_records(table_name, record_ids)
+    assert exc_info.value.count == 1
+    assert pending_id in (exc_info.value.sample_record_ids or [])
+    assert _pgc_for(pg_storage, pending_id) is None
+    assert _pgc_for(pg_storage, resolved_id) is None
 
-    def _set_crossmatch(
-        self,
-        rows: list[tuple[str, enums.RecordTriageStatus, list[int]]],
-    ) -> None:
-        self.repo.set_crossmatch_results(rows)
 
-    def _pgc_for(self, record_id: str) -> int | None:
-        row = self.pg_storage.storage.query_one(
-            "SELECT pgc FROM layer0.records WHERE id = %s",
-            params=[record_id],
-        )
-        return row["pgc"]
+def test_reject_missing_crossmatch_row(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: TestPostgresStorage,
+) -> None:
+    table_name = "submit_missing"
+    missing_id = str(uuid.uuid4())
+    _register(repo, table_name, [missing_id])
 
-    def test_submit_new_and_existing_records(self) -> None:
-        table_name = "submit_happy"
-        new_id = str(uuid.uuid4())
-        existing_id = str(uuid.uuid4())
-        existing_pgc = 4242
-        self._register(table_name, [new_id, existing_id])
-        self.repo.register_pgcs([existing_pgc])
-        self._set_crossmatch(
-            [
-                (new_id, enums.RecordTriageStatus.RESOLVED, []),
-                (existing_id, enums.RecordTriageStatus.RESOLVED, [existing_pgc]),
-            ]
-        )
+    with pytest.raises(errors.ConflictError) as exc_info:
+        manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[missing_id]))
 
-        old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
-        self.pg_storage.storage.exec(
-            "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
-            params=[old_dt, existing_pgc],
-        )
+    assert exc_info.value.count == 1
+    assert _pgc_for(pg_storage, missing_id) is None
 
-        self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[new_id, existing_id]))
 
-        new_pgc = self._pgc_for(new_id)
-        self.assertIsNotNone(new_pgc)
-        self.assertEqual(self._pgc_for(existing_id), existing_pgc)
-        self.assertNotEqual(new_pgc, existing_pgc)
-        existing_mt = self.pg_storage.storage.query_one(
-            "SELECT modification_time FROM common.pgc WHERE id = %s",
-            params=[existing_pgc],
-        )["modification_time"]
-        self.assertGreater(existing_mt.replace(tzinfo=datetime.UTC), old_dt)
-        new_mt = self.pg_storage.storage.query_one(
-            "SELECT modification_time FROM common.pgc WHERE id = %s",
-            params=[new_pgc],
-        )["modification_time"]
-        self.assertGreater(new_mt.replace(tzinfo=datetime.UTC), old_dt)
+def test_reject_collided_metadata(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: TestPostgresStorage,
+) -> None:
+    table_name = "submit_collided"
+    collided_id = str(uuid.uuid4())
+    _register(repo, table_name, [collided_id])
+    repo.register_pgcs([10, 11])
+    _set_crossmatch(
+        repo,
+        [(collided_id, enums.RecordTriageStatus.RESOLVED, [10, 11])],
+    )
 
-    def test_reject_pending_records(self) -> None:
-        table_name = "submit_pending"
-        pending_id = str(uuid.uuid4())
-        resolved_id = str(uuid.uuid4())
-        self._register(table_name, [pending_id, resolved_id])
-        self._set_crossmatch(
-            [
-                (pending_id, enums.RecordTriageStatus.PENDING, []),
-                (resolved_id, enums.RecordTriageStatus.RESOLVED, []),
-            ]
-        )
+    with pytest.raises(errors.ConflictError):
+        manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[collided_id]))
 
-        with self.assertRaises(errors.ConflictError) as ctx:
-            self.manager.assign_record_pgcs(
-                adminapi.AssignRecordPgcsRequest(record_ids=[pending_id, resolved_id]),
-            )
+    assert _pgc_for(pg_storage, collided_id) is None
 
-        self.assertEqual(ctx.exception.count, 1)
-        self.assertIn(pending_id, ctx.exception.sample_record_ids or [])
-        self.assertIsNone(self._pgc_for(pending_id))
-        self.assertIsNone(self._pgc_for(resolved_id))
 
-    def test_reject_missing_crossmatch_row(self) -> None:
-        table_name = "submit_missing"
-        missing_id = str(uuid.uuid4())
-        self._register(table_name, [missing_id])
+def test_idempotent_retry(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: TestPostgresStorage,
+) -> None:
+    table_name = "submit_retry"
+    record_id = str(uuid.uuid4())
+    _register(repo, table_name, [record_id])
+    _set_crossmatch(repo, [(record_id, enums.RecordTriageStatus.RESOLVED, [])])
 
-        with self.assertRaises(errors.ConflictError) as ctx:
-            self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[missing_id]))
+    request = adminapi.AssignRecordPgcsRequest(record_ids=[record_id])
+    manager.assign_record_pgcs(request)
+    first_pgc = _pgc_for(pg_storage, record_id)
+    assert first_pgc is not None
 
-        self.assertEqual(ctx.exception.count, 1)
-        self.assertIsNone(self._pgc_for(missing_id))
+    pgc_count_before = pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
+    manager.assign_record_pgcs(request)
+    pgc_count_after = pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
 
-    def test_reject_collided_metadata(self) -> None:
-        table_name = "submit_collided"
-        collided_id = str(uuid.uuid4())
-        self._register(table_name, [collided_id])
-        self.repo.register_pgcs([10, 11])
-        self._set_crossmatch(
-            [(collided_id, enums.RecordTriageStatus.RESOLVED, [10, 11])],
-        )
-
-        with self.assertRaises(errors.ConflictError):
-            self.manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[collided_id]))
-
-        self.assertIsNone(self._pgc_for(collided_id))
-
-    def test_idempotent_retry(self) -> None:
-        table_name = "submit_retry"
-        record_id = str(uuid.uuid4())
-        self._register(table_name, [record_id])
-        self._set_crossmatch([(record_id, enums.RecordTriageStatus.RESOLVED, [])])
-
-        request = adminapi.AssignRecordPgcsRequest(record_ids=[record_id])
-        self.manager.assign_record_pgcs(request)
-        first_pgc = self._pgc_for(record_id)
-        self.assertIsNotNone(first_pgc)
-
-        pgc_count_before = self.pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
-        self.manager.assign_record_pgcs(request)
-        pgc_count_after = self.pg_storage.storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
-
-        self.assertEqual(self._pgc_for(record_id), first_pgc)
-        self.assertEqual(pgc_count_before, pgc_count_after)
+    assert _pgc_for(pg_storage, record_id) == first_pgc
+    assert pgc_count_before == pgc_count_after

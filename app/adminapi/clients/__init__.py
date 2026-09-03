@@ -1,7 +1,7 @@
-from unittest import mock
-
 from astroquery import nasa_ads as ads
 from astroquery import vizier
+
+from app.lib import mock
 
 
 class Clients:

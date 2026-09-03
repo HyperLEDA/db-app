@@ -150,23 +150,12 @@ cleanup:
 
 ## Testing
 
-# pytest is used to run unittest test cases
+# pytest runs the test suite
 test-all: check
 	@uv run pytest \
 		--config-file=pyproject.toml \
 		--quiet \
-		tests \
-		--ignore=tests/bench
-
-test-bench:
-	@uv run pytest \
-		--config-file=pyproject.toml \
-		-s \
-		tests/bench
+		tests
 
 test-regression:
 	uv run tests.py regression-tests
-
-coverage:
-	uvx coverage run -m unittest discover -s tests -p "*_test.py" -v
-	uvx coverage html
