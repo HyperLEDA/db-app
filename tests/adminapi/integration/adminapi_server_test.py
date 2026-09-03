@@ -2,7 +2,6 @@ import os
 import pathlib
 import subprocess
 import tempfile
-import time
 from collections.abc import Generator
 from concurrent import futures
 from dataclasses import dataclass
@@ -33,8 +32,12 @@ def adminapi_server(pg_storage: PostgresTestStorage) -> Generator[AdminAPIServer
     server_port = port_thread.result()
 
     os.environ["SERVER_PORT"] = str(server_port)
+    os.environ["STORAGE_ENDPOINT"] = "localhost"
     os.environ["STORAGE_PORT"] = str(pg_storage.port)
+    os.environ["STORAGE_USER"] = "hyperleda"
+    os.environ["STORAGE_PASSWORD"] = "password"
     os.environ["CLIENTS_ADS_TOKEN"] = "test"
+    os.environ["AUTH_ENABLED"] = "false"
 
     logger.info("starting server", port=server_port)
 
@@ -56,25 +59,24 @@ def adminapi_server(pg_storage: PostgresTestStorage) -> Generator[AdminAPIServer
         stdout=stdout_file,
         stderr=stderr_file,
     )
-    time.sleep(2)
-
-    if process.poll() is not None and process.returncode != 0:
-        raise RuntimeError(f"""Process failed to start.
+    try:
+        try:
+            lib.wait_for_server(f"http://127.0.0.1:{server_port}/ping", process=process)
+        except RuntimeError as e:
+            raise RuntimeError(f"""{e}
 STDOUT: {stdout_path}
-STDERR: {stderr_path}""")
-
-    server = AdminAPIServer(
-        server_port=server_port,
-        process=process,
-        stdout_file=stdout_file,
-        stderr_file=stderr_file,
-    )
-    yield server
-
-    process.kill()
-    process.wait()
-    stdout_file.close()
-    stderr_file.close()
+STDERR: {stderr_path}""") from e
+        yield AdminAPIServer(
+            server_port=server_port,
+            process=process,
+            stdout_file=stdout_file,
+            stderr_file=stderr_file,
+        )
+    finally:
+        process.kill()
+        process.wait()
+        stdout_file.close()
+        stderr_file.close()
 
 
 def test_startup(adminapi_server: AdminAPIServer) -> None:

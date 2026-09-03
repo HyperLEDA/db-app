@@ -2,7 +2,6 @@ import os
 import pathlib
 import subprocess
 import tempfile
-import time
 from collections.abc import Generator
 from concurrent import futures
 from dataclasses import dataclass
@@ -58,25 +57,24 @@ def dataapi_server(pg_storage: PostgresTestStorage) -> Generator[DataAPIServer]:
         stdout=stdout_file,
         stderr=stderr_file,
     )
-    time.sleep(2)
-
-    if process.poll() is not None and process.returncode != 0:
-        raise RuntimeError(f"""Process failed to start.
+    try:
+        try:
+            lib.wait_for_server(f"http://127.0.0.1:{server_port}/ping", process=process)
+        except RuntimeError as e:
+            raise RuntimeError(f"""{e}
 STDOUT: {stdout_path}
-STDERR: {stderr_path}""")
-
-    server = DataAPIServer(
-        server_port=server_port,
-        process=process,
-        stdout_file=stdout_file,
-        stderr_file=stderr_file,
-    )
-    yield server
-
-    process.kill()
-    process.wait()
-    stdout_file.close()
-    stderr_file.close()
+STDERR: {stderr_path}""") from e
+        yield DataAPIServer(
+            server_port=server_port,
+            process=process,
+            stdout_file=stdout_file,
+            stderr_file=stderr_file,
+        )
+    finally:
+        process.kill()
+        process.wait()
+        stdout_file.close()
+        stderr_file.close()
 
 
 def test_startup(dataapi_server: DataAPIServer) -> None:

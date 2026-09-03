@@ -2,7 +2,6 @@ import hashlib
 import os
 import secrets
 import subprocess
-import time
 from collections.abc import Generator
 from concurrent import futures
 from dataclasses import dataclass
@@ -47,6 +46,8 @@ def adminapi_auth_server(pg_storage: PostgresTestStorage) -> Generator[AdminAPIA
     os.environ["SERVER_PORT"] = str(server_port)
     os.environ["STORAGE_ENDPOINT"] = "localhost"
     os.environ["STORAGE_PORT"] = str(pg_storage.port)
+    os.environ["STORAGE_USER"] = "hyperleda"
+    os.environ["STORAGE_PASSWORD"] = "password"
     os.environ["CLIENTS_ADS_TOKEN"] = "test"
     os.environ["AUTH_ENABLED"] = "true"
 
@@ -63,33 +64,19 @@ def adminapi_auth_server(pg_storage: PostgresTestStorage) -> Generator[AdminAPIA
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    deadline = time.time() + 30
-    while time.time() < deadline:
-        try:
-            r = requests.get(f"http://127.0.0.1:{server_port}/ping", timeout=1)
-            if r.status_code == 200:
-                break
-        except (requests.RequestException, OSError):
-            pass
-        time.sleep(0.3)
-        if process.poll() is not None and process.returncode != 0:
-            raise RuntimeError("adminapi process exited before becoming ready")
-    else:
+    try:
+        lib.wait_for_server(f"http://127.0.0.1:{server_port}/ping", process=process)
+        yield AdminAPIAuthServer(server_port=server_port, process=process, pg_storage=pg_storage)
+    finally:
         process.kill()
-        raise RuntimeError("adminapi did not respond on /ping within 30s")
+        process.wait()
 
-    server = AdminAPIAuthServer(server_port=server_port, process=process, pg_storage=pg_storage)
-    yield server
-
-    process.kill()
-    process.wait()
-
-    storage = pg_storage.get_storage()
-    storage.exec(
-        "DELETE FROM private.tokens WHERE user_id IN (SELECT id FROM private.users WHERE login = %s)",
-        params=[_LOGIN],
-    )
-    storage.exec("DELETE FROM private.users WHERE login = %s", params=[_LOGIN])
+        storage = pg_storage.get_storage()
+        storage.exec(
+            "DELETE FROM private.tokens WHERE user_id IN (SELECT id FROM private.users WHERE login = %s)",
+            params=[_LOGIN],
+        )
+        storage.exec("DELETE FROM private.users WHERE login = %s", params=[_LOGIN])
 
 
 def _base(server: AdminAPIAuthServer) -> str:
