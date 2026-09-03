@@ -1,5 +1,6 @@
 import pathlib
 import tempfile
+from unittest import mock
 
 import numpy as np
 import pydantic
@@ -7,7 +8,6 @@ import pytest
 
 from app.fieldapi import config as fieldapi_config
 from app.fieldapi.providers import registry, sfd
-from app.lib import mock
 from app.specs import fieldapi
 
 

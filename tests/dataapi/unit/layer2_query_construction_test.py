@@ -1,10 +1,10 @@
 import re
+from unittest import mock
 
 import pytest
 
 from app import catalogs
 from app.dataapi import repository
-from app.lib import mock
 
 
 @pytest.fixture

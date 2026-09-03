@@ -1,12 +1,13 @@
 import http
 from typing import cast
+from unittest import mock
 
 import pydantic
 import pytest
 import structlog
 from fastapi import testclient
 
-from app.lib import auth, mock
+from app.lib import auth
 from app.lib.web.server.config import ServerConfig
 from app.lib.web.server.server import APIOkResponse, Route, WebServer
 

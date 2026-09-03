@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from unittest import mock
 
 import pytest
 from astropy import units
@@ -6,7 +7,6 @@ from astropy import units
 from app.adminapi import clients, domain, model, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
-from app.lib import mock
 from app.lib.storage import enums, mapping, postgres
 from app.lib.web import errors
 from app.specs import adminapi

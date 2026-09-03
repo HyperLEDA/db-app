@@ -1,12 +1,12 @@
 import datetime
 import uuid
+from unittest import mock
 
 import pytest
 import structlog
 from psycopg import sql
 
 from app.adminapi import repository
-from app.lib import mock
 from app.lib.storage import enums
 from tests import lib
 

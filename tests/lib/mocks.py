@@ -1,6 +1,5 @@
 from typing import Any
-
-from app.lib import mock
+from unittest import mock
 
 
 def returns(func: Any, return_value: Any):

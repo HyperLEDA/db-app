@@ -1,5 +1,6 @@
 import http
 from typing import cast
+from unittest import mock
 
 import pydantic
 import pytest
@@ -10,7 +11,7 @@ from opentelemetry.sdk import trace as sdk_trace
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from app.lib import auth, mock
+from app.lib import auth
 from app.lib.web.server.config import ServerConfig
 from app.lib.web.server.server import APIOkResponse, Route, WebServer
 

@@ -1,5 +1,6 @@
 import pathlib
 from collections.abc import Generator
+from unittest import mock
 
 import psycopg
 import pytest
@@ -10,7 +11,6 @@ import app.dataapi.command as dataapi_command
 from app.dataapi import clients, domain, repository
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
-from app.lib import mock
 from app.lib.storage import enums, postgres
 from tests.lib.postgres import TestPostgresStorage
 

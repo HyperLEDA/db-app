@@ -1,9 +1,10 @@
 import hashlib
+from unittest import mock
 
 import bcrypt
 import pytest
 
-from app.lib import auth, mock
+from app.lib import auth
 from tests.lib import mocks
 
 

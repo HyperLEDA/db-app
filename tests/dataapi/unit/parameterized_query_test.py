@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 from astropy import coordinates as coords
 from astropy import units as u
@@ -5,7 +7,6 @@ from astropy.time import Time
 
 from app import catalogs
 from app.dataapi.domain import parameterized_query
-from app.lib import mock
 from app.lib.web import errors
 from app.specs import dataapi
 

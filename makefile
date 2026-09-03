@@ -76,10 +76,16 @@ check:
 	@$(MAKE) check-migrations
 	@echo "Migrations ok."
 
+	@docker info >/dev/null 2>&1 || { \
+		echo "Docker is not running. Start Docker and retry to run test suite."; \
+		exit 1; \
+	}
+
 	@uv run pytest \
-		--quiet \
 		--config-file=pyproject.toml \
-		tests/env_test.py tests/*/unit
+		--quiet \
+		tests
+
 	@echo "Testing ok."
 
 fix:
@@ -147,15 +153,6 @@ cleanup:
 	rm -rf .venv .pytest_cache .ruff_cache \
 		__pycache__ */__pycache__ \
 		.coverage htmlcov
-
-## Testing
-
-# pytest runs the test suite
-test-all: check
-	@uv run pytest \
-		--config-file=pyproject.toml \
-		--quiet \
-		tests
 
 test-regression:
 	uv run tests.py regression-tests

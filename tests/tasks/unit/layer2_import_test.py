@@ -1,11 +1,11 @@
 import datetime
+from unittest import mock
 
 import pytest
 import structlog
 from astropy import table
 from astropy import units as u
 
-from app.lib import mock
 from app.tasks import (
     interface,
     layer2_import,

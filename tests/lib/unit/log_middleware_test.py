@@ -1,11 +1,12 @@
 from collections.abc import Awaitable, Callable
+from unittest import mock
 
 import fastapi
 import structlog
 from fastapi import testclient
 from starlette.middleware import base as middlewares
 
-from app.lib import auth, mock
+from app.lib import auth
 from app.lib.web.middlewares.auth import AUTH_CTX_STATE_ATTR, AuthContext
 from app.lib.web.middlewares.log import LoggingMiddleware
 

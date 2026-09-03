@@ -1,11 +1,12 @@
 from contextlib import contextmanager
+from unittest import mock
 
 import bcrypt
 import pytest
 from psycopg import sql
 
 from app.adminapi.domain.auth import AuthManager
-from app.lib import auth, mock
+from app.lib import auth
 from app.lib.web.errors import ConflictError
 from app.specs import adminapi
 
