@@ -9,13 +9,13 @@ from app.adminapi.domain import crossmatch
 from app.lib.storage import enums, postgres
 from app.lib.web import errors
 from app.specs import adminapi
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
@@ -46,7 +46,7 @@ def _set_crossmatch(
     repo.set_crossmatch_results(rows)
 
 
-def _pgc_for(pg_storage: TestPostgresStorage, record_id: str) -> int | None:
+def _pgc_for(pg_storage: PostgresTestStorage, record_id: str) -> int | None:
     row = pg_storage.storage.query_one(
         "SELECT pgc FROM layer0.records WHERE id = %s",
         params=[record_id],
@@ -57,7 +57,7 @@ def _pgc_for(pg_storage: TestPostgresStorage, record_id: str) -> int | None:
 def test_submit_new_and_existing_records(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_happy"
     new_id = str(uuid.uuid4())
@@ -100,7 +100,7 @@ def test_submit_new_and_existing_records(
 def test_reject_pending_records(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_pending"
     pending_id = str(uuid.uuid4())
@@ -128,7 +128,7 @@ def test_reject_pending_records(
 def test_reject_missing_crossmatch_row(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_missing"
     missing_id = str(uuid.uuid4())
@@ -144,7 +144,7 @@ def test_reject_missing_crossmatch_row(
 def test_reject_collided_metadata(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_collided"
     collided_id = str(uuid.uuid4())
@@ -164,7 +164,7 @@ def test_reject_collided_metadata(
 def test_idempotent_retry(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_retry"
     record_id = str(uuid.uuid4())

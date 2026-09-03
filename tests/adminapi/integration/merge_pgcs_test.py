@@ -10,13 +10,13 @@ from app.adminapi.domain import pgc
 from app.lib.storage import postgres
 from app.lib.web import errors
 from app.specs import adminapi
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
@@ -47,7 +47,7 @@ def _register_with_pgcs(
     repo.upsert_pgc(dict(record_pgcs))
 
 
-def _pgc_for(pg_storage: TestPostgresStorage, record_id: str) -> int | None:
+def _pgc_for(pg_storage: PostgresTestStorage, record_id: str) -> int | None:
     row = pg_storage.storage.query_one(
         "SELECT pgc FROM layer0.records WHERE id = %s",
         params=[record_id],
@@ -55,7 +55,7 @@ def _pgc_for(pg_storage: TestPostgresStorage, record_id: str) -> int | None:
     return row["pgc"]
 
 
-def _modification_time(pg_storage: TestPostgresStorage, pgc_id: int) -> datetime.datetime:
+def _modification_time(pg_storage: PostgresTestStorage, pgc_id: int) -> datetime.datetime:
     row = pg_storage.storage.query_one(
         "SELECT modification_time FROM common.pgc WHERE id = %s",
         params=[pgc_id],
@@ -66,7 +66,7 @@ def _modification_time(pg_storage: TestPostgresStorage, pgc_id: int) -> datetime
 def test_merge_multiple_sources_onto_target(
     repo: repository.Repository,
     manager: pgc.PgcManager,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     target_pgc = 100
     source_a = 200

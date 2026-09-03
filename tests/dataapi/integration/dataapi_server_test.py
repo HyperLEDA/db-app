@@ -12,7 +12,7 @@ import requests
 import structlog
 
 from tests import lib
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -26,7 +26,7 @@ class DataAPIServer:
 
 
 @pytest.fixture(scope="module")
-def dataapi_server(pg_storage: TestPostgresStorage) -> Generator[DataAPIServer]:
+def dataapi_server(pg_storage: PostgresTestStorage) -> Generator[DataAPIServer]:
     with futures.ThreadPoolExecutor() as group:
         port_thread = group.submit(lib.find_free_port)
 

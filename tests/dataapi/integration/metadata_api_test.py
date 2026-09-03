@@ -12,7 +12,7 @@ from app.dataapi import clients, domain, repository
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
 from app.lib.storage import enums, postgres
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
@@ -29,7 +29,7 @@ def log() -> structlog.stdlib.BoundLogger:
 
 
 @pytest.fixture(scope="module")
-def reader_storage(pg_storage: TestPostgresStorage, log: structlog.stdlib.BoundLogger) -> Generator[postgres.PgStorage]:
+def reader_storage(pg_storage: PostgresTestStorage, log: structlog.stdlib.BoundLogger) -> Generator[postgres.PgStorage]:
     reader_config = postgres.PgStorageConfig(
         endpoint=pg_storage.config.endpoint,
         port=pg_storage.config.port,
@@ -172,7 +172,7 @@ def test_tap_sync_like_with_percent_wildcard(client: testclient.TestClient) -> N
     assert all("gal" not in row[0].lower() for row in table["data"])
 
 
-def test_tap_sync_query_timeout(pg_storage: TestPostgresStorage) -> None:
+def test_tap_sync_query_timeout(pg_storage: PostgresTestStorage) -> None:
     pg = pg_storage.get_storage()
     with pytest.raises(psycopg.errors.QueryCanceled):
         pg.query("SELECT pg_sleep(2)", timeout_seconds=1)

@@ -17,7 +17,7 @@ from psycopg import sql
 from app.lib import audit
 from tests import lib
 from tests.lib import auth_seed
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -32,11 +32,11 @@ _REGISTERED_PASSWORD = "registered-user-secret"
 class AdminAPIAuthServer:
     server_port: int
     process: subprocess.Popen[bytes]
-    pg_storage: TestPostgresStorage
+    pg_storage: PostgresTestStorage
 
 
 @pytest.fixture(scope="module")
-def adminapi_auth_server(pg_storage: TestPostgresStorage) -> Generator[AdminAPIAuthServer]:
+def adminapi_auth_server(pg_storage: PostgresTestStorage) -> Generator[AdminAPIAuthServer]:
     with futures.ThreadPoolExecutor() as group:
         port_thread = group.submit(lib.find_free_port)
 

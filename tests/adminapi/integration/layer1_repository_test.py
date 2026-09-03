@@ -6,13 +6,13 @@ import structlog
 from app import catalogs
 from app.adminapi import model, repository
 from app.lib.storage import enums, postgres
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
@@ -47,7 +47,7 @@ def _insert_nature_data(
     )
 
 
-def test_icrs(repo: repository.Repository, pg_storage: TestPostgresStorage) -> None:
+def test_icrs(repo: repository.Repository, pg_storage: PostgresTestStorage) -> None:
     bib_id = repo.create_bibliography("123456", 2000, ["test"], "test")
     _ = repo.create_table(
         model.Layer0TableMeta(
@@ -78,7 +78,7 @@ def test_icrs(repo: repository.Repository, pg_storage: TestPostgresStorage) -> N
     assert result == [{"ra": 11.1}, {"ra": 12.1}]
 
 
-def test_designation_multiple_names_per_record(repo: repository.Repository, pg_storage: TestPostgresStorage) -> None:
+def test_designation_multiple_names_per_record(repo: repository.Repository, pg_storage: PostgresTestStorage) -> None:
     _get_table(repo, "desig_table")
     repo.register_records("desig_table", ["r1"])
     repo.save_structured_data(
@@ -122,7 +122,7 @@ def test_get_redshift_records_defaults_null_e_cz(repo: repository.Repository) ->
 
 def test_save_structured_data_bumps_pgc_modification_time(
     repo: repository.Repository,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     _insert_nature_data(repo, "t_bump", ["rec1"], {"rec1": 5001}, [["G"]])
     old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)

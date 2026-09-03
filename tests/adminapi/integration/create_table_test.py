@@ -5,13 +5,13 @@ from app.adminapi import clients, domain, repository
 from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.lib.storage import enums
 from app.specs import adminapi
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def upload_context(pg_storage: TestPostgresStorage) -> tuple[domain.SourceManager, domain.TableUploadManager]:
+def upload_context(pg_storage: PostgresTestStorage) -> tuple[domain.SourceManager, domain.TableUploadManager]:
     repo = repository.Repository(pg_storage.get_storage(), structlog.get_logger())
     source_manager = domain.SourceManager(repo)
     upload_manager = domain.TableUploadManager(

@@ -1,10 +1,10 @@
 import pytest
 
 from app.lib.storage.postgres import transactional
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 
-def test_several_queries(pg_storage: TestPostgresStorage) -> None:
+def test_several_queries(pg_storage: PostgresTestStorage) -> None:
     repo = transactional.TransactionalPGRepository(pg_storage.get_storage())
     with repo.with_tx():
         pg_storage.get_storage().exec("CREATE TABLE test_table1 (id INTEGER)")
@@ -14,7 +14,7 @@ def test_several_queries(pg_storage: TestPostgresStorage) -> None:
     assert result["id"] == 42
 
 
-def test_multiple_statements_in_transaction(pg_storage: TestPostgresStorage) -> None:
+def test_multiple_statements_in_transaction(pg_storage: PostgresTestStorage) -> None:
     repo = transactional.TransactionalPGRepository(pg_storage.get_storage())
     with repo.with_tx():
         pg_storage.get_storage().exec("CREATE TABLE test_table2 (id INTEGER)")
@@ -24,7 +24,7 @@ def test_multiple_statements_in_transaction(pg_storage: TestPostgresStorage) -> 
     assert result["id"] == 42
 
 
-def test_rollback_queries(pg_storage: TestPostgresStorage) -> None:
+def test_rollback_queries(pg_storage: PostgresTestStorage) -> None:
     repo = transactional.TransactionalPGRepository(pg_storage.get_storage())
     try:
         with repo.with_tx():
@@ -38,7 +38,7 @@ def test_rollback_queries(pg_storage: TestPostgresStorage) -> None:
         pg_storage.get_storage().query_one("SELECT id FROM test_table3 LIMIT 1")
 
 
-def test_rollback_expressions(pg_storage: TestPostgresStorage) -> None:
+def test_rollback_expressions(pg_storage: PostgresTestStorage) -> None:
     repo = transactional.TransactionalPGRepository(pg_storage.get_storage())
     try:
         with repo.with_tx():

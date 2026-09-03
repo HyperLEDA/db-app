@@ -8,13 +8,13 @@ from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.presentation.server import Server
 from app.lib import audit, auth
 from app.lib.web import server
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture
-def client(cleared_pg_storage: TestPostgresStorage) -> testclient.TestClient:
+def client(cleared_pg_storage: PostgresTestStorage) -> testclient.TestClient:
     pg = cleared_pg_storage.get_storage()
     log = structlog.get_logger()
     actions = domain.Actions(
@@ -129,7 +129,7 @@ def test_tap_sync_rejects_insert(client: testclient.TestClient) -> None:
     assert response.status_code == 500
 
 
-def test_tap_sync_read_only_restored_for_writes(pg_storage: TestPostgresStorage) -> None:
+def test_tap_sync_read_only_restored_for_writes(pg_storage: PostgresTestStorage) -> None:
     pg = pg_storage.get_storage()
     with pytest.raises(psycopg.errors.ReadOnlySqlTransaction):
         pg.query(

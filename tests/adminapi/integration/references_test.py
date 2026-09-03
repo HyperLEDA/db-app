@@ -4,19 +4,19 @@ import structlog
 from app.adminapi import domain, repository
 from app.lib.web.errors import ConflictError, NotFoundError, RuleValidationError
 from app.specs import adminapi
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def manager(pg_storage: TestPostgresStorage) -> domain.ReferencesManager:
+def manager(pg_storage: PostgresTestStorage) -> domain.ReferencesManager:
     repo = repository.Repository(pg_storage.get_storage(), structlog.get_logger())
     return domain.ReferencesManager(repo)
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 

@@ -6,18 +6,18 @@ from app import catalogs
 from app.dataapi import model, repository
 from app.lib.storage import postgres
 from tests.lib import layer_seed
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
 @pytest.fixture(scope="module")
-def storage(pg_storage: TestPostgresStorage) -> postgres.PgStorage:
+def storage(pg_storage: PostgresTestStorage) -> postgres.PgStorage:
     return pg_storage.get_storage()
 
 

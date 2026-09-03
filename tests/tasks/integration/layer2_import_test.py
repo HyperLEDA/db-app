@@ -7,13 +7,13 @@ from app import catalogs, tasks
 from app.lib.storage import postgres
 from app.tasks import layer2_import, repository
 from tests.lib import assert_catalog_object_equal, layer_seed
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def storage(pg_storage: TestPostgresStorage) -> postgres.PgStorage:
+def storage(pg_storage: PostgresTestStorage) -> postgres.PgStorage:
     return pg_storage.get_storage()
 
 
@@ -23,7 +23,7 @@ def repo(storage: postgres.PgStorage) -> repository.Repository:
 
 
 @pytest.fixture(scope="module")
-def layer2_import_task(pg_storage: TestPostgresStorage) -> Generator[layer2_import.Layer2ImportTask]:
+def layer2_import_task(pg_storage: PostgresTestStorage) -> Generator[layer2_import.Layer2ImportTask]:
     task = layer2_import.Layer2ImportTask(structlog.get_logger())
     task.prepare(tasks.Config(storage=pg_storage.config))
     yield task

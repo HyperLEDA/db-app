@@ -9,18 +9,18 @@ from app import catalogs
 from app.lib.storage import postgres
 from app.tasks import repository
 from tests.lib import layer_seed
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
 @pytest.fixture(scope="module")
-def storage(pg_storage: TestPostgresStorage) -> postgres.PgStorage:
+def storage(pg_storage: PostgresTestStorage) -> postgres.PgStorage:
     return pg_storage.get_storage()
 
 
@@ -309,7 +309,7 @@ def test_get_new_redshift_records_defaults_null_e_cz(
 def test_save_structured_data_bumps_pgc_modification_time(
     repo: repository.Repository,
     storage: postgres.PgStorage,
-    pg_storage: TestPostgresStorage,
+    pg_storage: PostgresTestStorage,
 ) -> None:
     _insert_nature_data(storage, "t_bump", ["rec1"], {"rec1": 5001}, [["G"]])
     old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)

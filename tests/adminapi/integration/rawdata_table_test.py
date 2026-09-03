@@ -11,18 +11,18 @@ from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 from app.lib.web import errors
 from app.specs import adminapi
 from tests import lib
-from tests.lib.postgres import TestPostgresStorage
+from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
 @pytest.fixture(scope="module")
-def repo(pg_storage: TestPostgresStorage) -> repository.Repository:
+def repo(pg_storage: PostgresTestStorage) -> repository.Repository:
     return repository.Repository(pg_storage.get_storage(), structlog.get_logger())
 
 
 @pytest.fixture(scope="module")
-def manager(pg_storage: TestPostgresStorage) -> domain.TableUploadManager:
+def manager(pg_storage: PostgresTestStorage) -> domain.TableUploadManager:
     repo = repository.Repository(pg_storage.get_storage(), structlog.get_logger())
     return domain.TableUploadManager(
         repo,
@@ -31,7 +31,7 @@ def manager(pg_storage: TestPostgresStorage) -> domain.TableUploadManager:
     )
 
 
-def test_create_table_happy_case(manager: domain.TableUploadManager, pg_storage: TestPostgresStorage) -> None:
+def test_create_table_happy_case(manager: domain.TableUploadManager, pg_storage: PostgresTestStorage) -> None:
     lib.returns(
         manager.clients.ads.query_simple,
         [
@@ -78,7 +78,7 @@ def test_create_table_happy_case(manager: domain.TableUploadManager, pg_storage:
     assert data_df["dec"].to_list() == [-50, 88]
 
 
-def test_create_table_with_nulls(manager: domain.TableUploadManager, pg_storage: TestPostgresStorage) -> None:
+def test_create_table_with_nulls(manager: domain.TableUploadManager, pg_storage: PostgresTestStorage) -> None:
     lib.returns(
         manager.clients.ads.query_simple,
         [
