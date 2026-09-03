@@ -81,12 +81,18 @@ check:
 		exit 1; \
 	}
 
+	@$(MAKE) test
+
+	@echo "Testing ok."
+
+test:
 	@uv run pytest \
 		--config-file=pyproject.toml \
 		--quiet \
+		-n auto \
+		--maxprocesses=4 \
+		--dist loadscope \
 		tests
-
-	@echo "Testing ok."
 
 fix:
 	@uv run ruff format \
