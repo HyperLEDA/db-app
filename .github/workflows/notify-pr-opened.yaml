@@ -1,0 +1,33 @@
+name: Notify PR opened
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.DEPLOYMENT_APP_ID }}
+          private-key: ${{ secrets.DEPLOYMENT_APP_PRIVATE_KEY }}
+          owner: HyperLEDA
+          repositories: deployment
+
+      - name: Dispatch PR opened event
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          repository: HyperLEDA/deployment
+          event-type: pr-opened
+          client-payload: >-
+            {
+              "repository": ${{ toJSON(github.repository) }},
+              "number": ${{ github.event.pull_request.number }},
+              "title": ${{ toJSON(github.event.pull_request.title) }},
+              "author": ${{ toJSON(github.event.pull_request.user.login) }},
+              "url": ${{ toJSON(github.event.pull_request.html_url) }}
+            }
