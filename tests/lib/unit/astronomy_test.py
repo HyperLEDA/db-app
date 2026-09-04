@@ -17,7 +17,7 @@ def ignore_ufloat_zero_std_dev_warning() -> None:
 @pytest.mark.parametrize(
     "vel,lon,lat,vel_apex,lon_apex,lat_apex,expected_vel",
     [
-        pytest.param(100, 147, 50, 40, 147, 50, 60, id="apex and object in the same spot"),
+        pytest.param(100, 147, 50, 40, 147, 50, 140, id="apex and object in the same spot"),
         pytest.param(100, 147, 0, 40, 147, 90, 100, id="apex and object are perpendicular"),
         pytest.param(
             100,
@@ -26,7 +26,7 @@ def ignore_ufloat_zero_std_dev_warning() -> None:
             40,
             147,
             90,
-            100 - 40 / np.sqrt(2),
+            100 + 40 / np.sqrt(2),
             id="apex and object are angled",
         ),
         pytest.param(
@@ -36,7 +36,7 @@ def ignore_ufloat_zero_std_dev_warning() -> None:
             40,
             147,
             -90,
-            100 + 40 / np.sqrt(2),
+            100 - 40 / np.sqrt(2),
             id="apex and object are angled oppositely",
         ),
         pytest.param(100, 147, 45, 0, 147, -90, 100, id="apex is zero"),
@@ -80,7 +80,7 @@ def test_apex_velocity(
             ufloat(40, 0),
             ufloat(147, 0),
             ufloat(50, 0),
-            ufloat(60, 5),
+            ufloat(140, 5),
             id="with velocity uncertainty only",
         ),
         pytest.param(
@@ -90,7 +90,7 @@ def test_apex_velocity(
             ufloat(40, 3),
             ufloat(147, 1),
             ufloat(50, 1),
-            ufloat(60, 5.8309518),
+            ufloat(140, 5.8309518),
             id="with all uncertainties",
         ),
     ],
