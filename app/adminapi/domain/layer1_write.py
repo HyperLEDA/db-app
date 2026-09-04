@@ -3,6 +3,7 @@ from astropy import units as u
 
 from app import catalogs
 from app.adminapi import repository
+from app.catalogs import designation_normalization
 from app.lib.web.errors import RuleValidationError
 from app.specs import adminapi as spec
 
@@ -37,6 +38,11 @@ class Layer1Writer:
                 else:
                     new_row.append(value)
             converted.append(new_row)
+
+        if catalog == catalogs.RawCatalog.DESIGNATION and "design" in request.columns:
+            design_idx = request.columns.index("design")
+            for row in converted:
+                row[design_idx] = designation_normalization.normalize_designation(str(row[design_idx]))
 
         try:
             conflict_keys = object_cls.layer1_primary_keys()
