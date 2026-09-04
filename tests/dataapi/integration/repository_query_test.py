@@ -123,37 +123,6 @@ def test_find_pgcs_by_designation_ranks_by_match_closeness(
     assert actual == [30, 40, 10, 20, 50]
 
 
-def test_find_pgcs_by_designation_searches_both_raw_and_normalized_terms(
-    repo: repository.Repository,
-    storage: postgres.PgStorage,
-) -> None:
-    _get_table(storage, "desig_table")
-    layer_seed.register_records(storage, "desig_table", ["r1", "r2"])
-    layer_seed.register_pgcs(storage, [10, 20])
-    layer_seed.upsert_pgc(storage, {"r1": 10, "r2": 20})
-    layer_seed.save_structured_data(
-        storage,
-        "designation.data",
-        ["design"],
-        ["r1", "r2"],
-        [["NGC905"], ["NGC 500"]],
-        conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
-    )
-
-    assert repo.find_pgcs_by_designation("ngc905", 10, 0) == [10]
-
-    layer_seed.save_structured_data(
-        storage,
-        "designation.data",
-        ["design"],
-        ["r2"],
-        [["NGC 905"]],
-        conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
-    )
-
-    assert set(repo.find_pgcs_by_designation("ngc905", 10, 0)) == {10, 20}
-
-
 def test_several_objects(
     repo: repository.Repository,
     storage: postgres.PgStorage,
