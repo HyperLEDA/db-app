@@ -107,7 +107,7 @@ def velocity_wr_apex(
     lon_apex_u = ufloat(lon_apex.value, lon_apex_err_val)
     lat_apex_u = ufloat(lat_apex.value, lat_apex_err_val)
 
-    result = vel_u - vel_apex_u * (
+    result = vel_u + vel_apex_u * (
         sin(lat_u) * sin(lat_apex_u) + cos(lat_u) * cos(lat_apex_u) * cos(lon_u - lon_apex_u)
     )
 
