@@ -1,7 +1,6 @@
 from astropy import coordinates as coords
 
 from app import catalogs
-from app.catalogs import designation_normalization
 from app.dataapi import repository, responders
 from app.dataapi.domain import reddening
 from app.lib import astronomy
@@ -56,8 +55,7 @@ def _resolve_pgcs(
         return sorted(query.pgcs)[offset : offset + limit]
 
     if query.name is not None:
-        normalized_name = designation_normalization.normalize_designation(query.name)
-        return repo.find_pgcs_by_designation(normalized_name, limit, offset)
+        return repo.find_pgcs_by_designation(query.name, limit, offset)
 
     if query.ra is not None and query.dec is not None:
         if query.radius is not None:

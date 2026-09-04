@@ -6,6 +6,7 @@ import structlog
 from astropy import units as u
 
 from app import catalogs
+from app.catalogs import designation_normalization
 from app.dataapi import model
 from app.dataapi.repository import model as repo_model
 from app.lib import astronomy, concurrency
@@ -59,27 +60,33 @@ class Repository(postgres.TransactionalPGRepository):
         super().__init__(storage)
 
     def find_pgcs_by_designation(self, name: str, limit: int, offset: int) -> list[int]:
+        stripped = name.strip() if name else ""
+        if not stripped:
+            return []
+        normalized = designation_normalization.normalize_designation(name)
+        names = [stripped] if normalized == stripped else [stripped, normalized]
         rows = self._storage.query(
             """
             SELECT pgc
             FROM (
-                SELECT DISTINCT ON (pgc)
-                    pgc,
+                SELECT DISTINCT ON (d.pgc)
+                    d.pgc,
                     CASE
-                        WHEN design ILIKE %s THEN 0
-                        WHEN design ILIKE %s THEN 1
+                        WHEN d.design ILIKE t.term THEN 0
+                        WHEN d.design ILIKE t.term || '%%' THEN 1
                         ELSE 2
                     END AS match_class,
-                    strpos(lower(design), lower(%s)) AS match_pos,
-                    length(design) AS design_len
-                FROM layer2.designations
-                WHERE design ILIKE %s
-                ORDER BY pgc, match_class, match_pos, design_len
+                    strpos(lower(d.design), lower(t.term)) AS match_pos,
+                    length(d.design) AS design_len
+                FROM layer2.designations AS d
+                CROSS JOIN unnest(%s::text[]) AS t(term)
+                WHERE d.design ILIKE '%%' || t.term || '%%'
+                ORDER BY d.pgc, match_class, match_pos, design_len
             ) best
             ORDER BY match_class, match_pos, design_len, pgc
             LIMIT %s OFFSET %s
             """,
-            params=[name, f"{name}%", name, f"%{name}%", limit, offset],
+            params=[names, limit, offset],
         )
         return [int(row["pgc"]) for row in rows]
 
