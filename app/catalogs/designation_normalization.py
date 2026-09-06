@@ -99,7 +99,7 @@ RULES: list[NameRule] = [
         replacement="ACO {0}",
         replacer=lambda m: f"ACO {'S ' if m.group(1) else ''}{m.group(2)}",
     ),
-    
+    #
     # Constellation
     NameRule(
         name="Andromeda",
@@ -118,7 +118,7 @@ RULES: list[NameRule] = [
         replacement="",
         replacer=lambda m: f"Tri {int(m.group(1)) if m.group(1).isdigit() else _roman_to_int(m.group(1).upper())}",
     ),
-    
+    #
     # Eponym
     NameRule(
         name="Eponym",
@@ -147,7 +147,7 @@ RULES: list[NameRule] = [
         replacement="{0} {1}",
         replacer=lambda m: f"{m.group(1).capitalize()} {m.group(2)}",
     ),
-    
+    #
     # LSB galaxies
     NameRule(
         name="LSBG",
@@ -161,7 +161,7 @@ RULES: list[NameRule] = [
         replacement="",
         replacer=lambda m: f"[ISI96] {m.group(1)}{m.group(2).lower()}",
     ),
-    
+    #
     # General rules
     # NameRule(
     #     name="[REF]J",
@@ -189,7 +189,7 @@ RULES: list[NameRule] = [
     #     replacement="",
     #     replacer=lambda m: f"[{m.group(1)}] {m.group(2).strip()}",
     # ),
-    
+    #
     # Mixed characters in an acronym
     NameRule(
         name="6dF",
@@ -216,7 +216,7 @@ RULES: list[NameRule] = [
         replacement="dwJ{0}{1}",
         replacer=lambda m: f"dwJ{m.group(1)}{m.group(2).lower() or ''}",
     ),
-    
+    #
     #### General rules
     # CAT+number
     NameRule(
@@ -320,7 +320,7 @@ RULES: list[NameRule] = [
         replacement="",
         replacer=lambda m: f"{m.group(1).upper()} {int(m.group(2))}-{int(m.group(3))}-{int(m.group(4))}",
     ),
-
+    #
     # Other catalogs
     NameRule(
         name="CGCG",
