@@ -217,7 +217,7 @@ RULES: list[NameRule] = [
         replacer=lambda m: f"dwJ{m.group(1)}{m.group(2).lower() or ''}",
     ),
     #
-    #### General rules
+    # --- General rules ---
     # CAT+number
     NameRule(
         name="CAT N",
