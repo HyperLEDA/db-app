@@ -28,7 +28,7 @@ adminapi = [
     "opentelemetry-instrumentation-psycopg~=0.65b0",
     "opentelemetry-exporter-otlp~=1.44.0",
     "astroquery~=0.4.10",
-    "regex~=2026.7.0",
+    "regex>=2026.7,<2026.10",
 ]
 dataapi = [
     "fastapi~=0.141.0",
@@ -84,13 +84,13 @@ dev = [
     "pytest-xdist~=3.8.0",
     "basedpyright~=1.39.0",
     "types-pyyaml~=6.0.12.20260724",
-    "types-regex~=2026.7.19.20260720",
+    "types-regex>=2026.7.19.20260720,<2026.9.4.0",
     "pandas-stubs~=3.0.0",
     "httpx2>=2.10,<2.13",
     "httpx~=0.28.0",
     "requests~=2.34.0",
     "testcontainers-postgres~=0.0.1rc1",
-    "import-linter~=2.13.0",
+    "import-linter>=2.13,<2.15",
 ]
 
 [tool.pytest.ini_options]
