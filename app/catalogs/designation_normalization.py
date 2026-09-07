@@ -182,7 +182,10 @@ RULES: list[NameRule] = [
     # CAT+coords
     NameRule(
         name="CAT DDD.ddd+DD.ddd",
-        pattern=re.compile(r"^(\[[a-z]{1,3}(?:[5-9]\d|20\d{2})\]|[a-z0-9]{2,6}?)\s*([JB]?)\s*(\d{1,3}\.\d+[+-]\d{1,3}\.\d+)$", re.IGNORECASE),
+        pattern=re.compile(
+            r"^(\[[a-z]{1,3}(?:[5-9]\d|20\d{2})\]|[a-z0-9]{2,6}?)\s*([JB]?)\s*(\d{1,3}\.\d+[+-]\d{1,3}\.\d+)$",
+            re.IGNORECASE,
+        ),
         replacement="",
         replacer=lambda m: f"{m.group(1).upper()} {m.group(2).upper()}{m.group(3)}",
     ),
