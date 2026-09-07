@@ -442,6 +442,7 @@ RULE_CASES: list[tuple[str, tuple[str, str] | None]] = [
     ("IRAS 13125-3431", ("CAT HHMMm+DDMM", "IRAS 13125-3431")),
     ("iras13125-3431", ("CAT HHMMm+DDMM", "IRAS 13125-3431")),
     (" iras  13125-3431  ", ("CAT HHMMm+DDMM", "IRAS 13125-3431")),
+    ("QNQJ23495-4338", ("CAT HHMMm+DDMM", "QNQ J23495-4338")),
 ]
 
 
