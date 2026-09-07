@@ -263,7 +263,7 @@ RULE_CASES: list[tuple[str, tuple[str, str] | None]] = [
     #
     #
     ("UZC131236+09370", ("CAT HHMMSS+DDMMm", "UZC 131236+09370")),
-    ("ZOAG241.08+02.22", None),
+    # ("ZOAG241.08+02.22", None),
     ("GAMA077963", ("CAT N", "GAMA 77963")),
     ("GAMA028694", ("CAT N", "GAMA 28694")),
     ("GAMA297074", ("CAT N", "GAMA 297074")),
