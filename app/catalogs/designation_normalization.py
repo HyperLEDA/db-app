@@ -65,24 +65,6 @@ RULES: list[NameRule] = [
         pattern=re.compile(r"^U(?:GC)?A\s*0*(\d{1,3})$", re.IGNORECASE),
         replacement="UGCA {0}",
     ),
-    NameRule(
-        name="ESO",
-        pattern=re.compile(r"^E(?:SO)?\s*0*(\d+)-\s*G?\s*0*(\d+)([a-z]?)$", re.IGNORECASE),
-        replacement="ESO {0}-{1}{2}",
-        replacer=lambda m: f"ESO {m.group(1)}-{m.group(2)}{m.group(3).upper() or ''}",
-    ),
-    NameRule(
-        name="MCG",
-        pattern=re.compile(r"^MCG\s*([+-]?)(\d{1,2})-(\d{1,2})-(\d+)$", re.IGNORECASE),
-        replacement="MCG {0}-{1}-{2}",
-        replacer=lambda m: f"MCG {m.group(1) or '+'}{m.group(2).zfill(2)}-{m.group(3).zfill(2)}-{m.group(4).zfill(3)}",
-    ),
-    NameRule(
-        name="ABELL",
-        pattern=re.compile(r"^(?:ABELL?|ABGC|ACO)\s*(S?)0*(\d+)$", re.IGNORECASE),
-        replacement="ACO {0}",
-        replacer=lambda m: f"ACO {'S ' if m.group(1) else ''}{m.group(2)}",
-    ),
     #
     # Constellation
     NameRule(
@@ -132,7 +114,13 @@ RULES: list[NameRule] = [
         replacer=lambda m: f"{m.group(1).capitalize()} {m.group(2)}",
     ),
     #
-    # LSB galaxies
+    # Catalogs with alternate prefix
+    NameRule(
+        name="ABELL",
+        pattern=re.compile(r"^(?:ABELL?|ABGC|ACO)\s*(S?)0*(\d+)$", re.IGNORECASE),
+        replacement="ACO {0}",
+        replacer=lambda m: f"ACO {'S ' if m.group(1) else ''}{m.group(2)}",
+    ),
     NameRule(
         name="LSBG",
         pattern=re.compile(r"^(?:LSBG|\[MDS99\])?\s*F([1-5]\d{2})-(\d{1,3})$", re.IGNORECASE),
@@ -145,6 +133,12 @@ RULES: list[NameRule] = [
         replacement="",
         replacer=lambda m: f"[ISI96] {m.group(1)}{m.group(2).lower()}",
     ),
+    NameRule(
+        name="USGC",
+        pattern=re.compile(r"^USGC\s*([US])\s*(\d+)$", re.IGNORECASE),
+        replacement="USGC {0}{1}",
+        replacer=lambda m: f"USGC {m.group(1).upper()}{m.group(2)}",
+    ),
     #
     # Mixed characters in an acronym
     NameRule(
@@ -152,25 +146,27 @@ RULES: list[NameRule] = [
         pattern=re.compile(r"^6dF\s*J\s*(\d{7}[+-]\d{6})\:?$", re.IGNORECASE),
         replacement="6dF J{0}",
     ),
-    NameRule(
-        name="USGC",
-        pattern=re.compile(r"^USGC\s*([US])\s*(\d+)$", re.IGNORECASE),
-        replacement="USGC {0}{1}",
-        replacer=lambda m: f"USGC {m.group(1).upper()}{m.group(2)}",
-    ),
+    #
+    # Some specific cases
     NameRule(
         name="3C",
         pattern=re.compile(r"^3C\s*(\d+(?:\.\d)?)([a-z]?)$", re.IGNORECASE),
         replacement="3C {0}",
         replacer=lambda m: f"3C {m.group(1).zfill(3)}{m.group(2).upper()}",
     ),
+    NameRule(
+        name="MCG",
+        pattern=re.compile(r"^MCG\s*([+-]?)(\d{1,2})-(\d{1,2})-(\d+)$", re.IGNORECASE),
+        replacement="MCG {0}-{1}-{2}",
+        replacer=lambda m: f"MCG {m.group(1) or '+'}{m.group(2).zfill(2)}-{m.group(3).zfill(2)}-{m.group(4).zfill(3)}",
+    ),
     #
     # Non standard
     NameRule(
         name="Dw",
         pattern=re.compile(r"^Dw\s*J?(\d{4}[+-]\d{2,4})([ab]?)$", re.IGNORECASE),
-        replacement="dwJ{0}{1}",
-        replacer=lambda m: f"dwJ{m.group(1)}{m.group(2).lower() or ''}",
+        replacement="dw J{0}{1}",
+        replacer=lambda m: f"dw J{m.group(1)}{m.group(2).lower() or ''}",
     ),
     #
     # --- General rules ---
@@ -255,7 +251,7 @@ RULES: list[NameRule] = [
         replacement="",
         replacer=lambda m: f"{m.group(1).upper()} {m.group(2).upper()}{m.group(3)}{m.group(4) or ''}",
     ),
-    # N+N+N
+    # CAT N+N+N
     NameRule(
         name="CAT N-N-N",
         pattern=re.compile(r"^([a-z]{2,6})\s*0*(\d{1,5})-0*(\d{1,5})-0*(\d{1,5})$", re.IGNORECASE),
@@ -264,6 +260,12 @@ RULES: list[NameRule] = [
     ),
     #
     # Other catalogs
+    NameRule(
+        name="ESO",
+        pattern=re.compile(r"^E(?:SO)?\s*0*(\d+)-\s*G?\s*0*(\d+)([a-z]?)$", re.IGNORECASE),
+        replacement="ESO {0}-{1}{2}",
+        replacer=lambda m: f"ESO {m.group(1)}-{m.group(2)}{m.group(3).upper() or ''}",
+    ),
     NameRule(
         name="CGCG",
         pattern=re.compile(r"^CGCG\s*(\d{3})-0*(\d{2,3})$", re.IGNORECASE),
@@ -279,43 +281,16 @@ RULES: list[NameRule] = [
         pattern=re.compile(r"^DR8-(\d{4})([pm])(\d{3})-(\d{1,5})$", re.IGNORECASE),
         replacement="DR8-{0}{1}{2}-{3}",
     ),
-    # NameRule(
-    #     name="AM",
-    #     pattern=re.compile(r"^AM\s*(\d{4})([+-])(\d{2,3})$", re.IGNORECASE),
-    #     replacement="AM {0}{1}{2}",
-    # ),
     NameRule(
         name="LSBC",
         pattern=re.compile(r"^LSBC\s*D\s*0*(\d+)-0*(\d+)$", re.IGNORECASE),
         replacement="LSBC D{0}-{1}",
     ),
-    # NameRule(
-    #     name="LV",
-    #     pattern=re.compile(r"^LV\s*J\s*(\d{4})([+-])(\d{4})$", re.IGNORECASE),
-    #     replacement="LV J{0}{1}{2}",
-    # ),
-    # NameRule(
-    #     name="ABELL",
-    #     pattern=re.compile(r"^ABELL\s*0*(\d+)_(\d+)$", re.IGNORECASE),
-    #     replacement="ABELL {0}_{1}",
-    #     replacer=lambda m: f"ABELL {int(m.group(1))}_{int(m.group(2))}",
-    # ),
     NameRule(
         name="CNOC2",
         pattern=re.compile(r"^CNOC2_(\d+)\.(\d+)$", re.IGNORECASE),
         replacement="CNOC2_{0}.{1}",
     ),
-    # NameRule(
-    #     name="2MFGC",
-    #     pattern=re.compile(r"^2MFGC\s*0*(\d+)$", re.IGNORECASE),
-    #     replacement="2MFGC {0}",
-    #     replacer=lambda m: f"2MFGC {int(m.group(1))}",
-    # ),
-    # NameRule(
-    #     name="VVDS",
-    #     pattern=re.compile(r"^VVDS\s*(\d+)$", re.IGNORECASE),
-    #     replacement="VVDS {0}",
-    # ),
     NameRule(
         name="GALFA",
         pattern=re.compile(
@@ -336,25 +311,6 @@ RULES: list[NameRule] = [
             + (f" [{m.group(6)}] {m.group(7)}" if m.group(6) else "")
         ),
     ),
-    # NameRule(
-    #     name="CLJ",
-    #     pattern=re.compile(
-    #         r"^CLJ(\d{4})([+-])(\d{4})(?::\[([^\]]+)\](\d+))?$",
-    #         re.IGNORECASE,
-    #     ),
-    #     replacement="CL J{0}{1}{2}",
-    #     replacer=lambda m: (
-    #         f"CL J{m.group(1)}{m.group(2)}{m.group(3)}" + (f" [{m.group(4)}] {m.group(5)}" if m.group(4) else "")
-    #     ),
-    # ),
-    # NameRule(
-    #     name="SMMJ",
-    #     pattern=re.compile(
-    #         r"^SMMJ(\d{2})(\d{2})(\d{2}(?:\.\d+)?)([+-])(\d{2})(\d{2})(\d{2}(?:\.\d+)?)$",
-    #         re.IGNORECASE,
-    #     ),
-    #     replacement="SMM J{0}{1}{2}{3}{4}{5}{6}",
-    # ),
     NameRule(
         name="NGC",
         pattern=re.compile(
@@ -369,11 +325,6 @@ RULES: list[NameRule] = [
         pattern=re.compile(r"^N\s*0*(\d+)([a-zA-Z]{1,3})$", re.IGNORECASE),
         replacement="NGC {0}{1}",
     ),
-    # NameRule(
-    #     name="3C",
-    #     pattern=re.compile(r"^3C\s*(\d+(?:\.\d+)?)([a-zA-Z]{1,3})$", re.IGNORECASE),
-    #     replacement="3C {0}{1}",
-    # ),
     NameRule(
         name="2dFGRS",
         pattern=re.compile(r"^2dfgrs\s*([NS]\d+Z\d+)$", re.IGNORECASE),
