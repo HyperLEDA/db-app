@@ -120,6 +120,32 @@ def test_find_pgcs_by_designation_ranks_by_match_closeness(
 
     assert repo.find_pgcs_by_designation("IC 144", 10, 0) == [30]
     assert repo.find_pgcs_by_designation("IC 144%", 10, 0) == [30, 40, 10]
+    assert repo.find_pgcs_by_designation("IC 144_", 10, 0) == [40]
+    assert repo.find_pgcs_by_designation("IC 144%", 1, 0) == [30]
+    assert repo.find_pgcs_by_designation("IC 144%", 1, 1) == [40]
+    assert repo.find_pgcs_by_designation("IC 144%", 1, 2) == [10]
+
+
+def test_find_pgcs_by_designation_exact_deduplicates_and_paginates(
+    repo: repository.Repository,
+    storage: postgres.PgStorage,
+) -> None:
+    _get_table(storage, "desig_exact")
+    layer_seed.register_records(storage, "desig_exact", ["r1", "r2", "r3", "r4", "unassigned"])
+    layer_seed.register_pgcs(storage, [30, 10, 20])
+    layer_seed.upsert_pgc(storage, {"r1": 30, "r2": 10, "r3": 20, "r4": 10})
+    layer_seed.save_structured_data(
+        storage,
+        "designation.data",
+        ["design"],
+        ["r1", "r2", "r3", "r4", "unassigned"],
+        [["M 31"], ["M 31"], ["M 31"], ["M 31"], ["M 31"]],
+        conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
+    )
+
+    assert repo.find_pgcs_by_designation("M 31", 2, 0) == [10, 20]
+    assert repo.find_pgcs_by_designation("M 31", 2, 2) == [30]
+    assert repo.find_pgcs_by_designation("M 32", 10, 0) == []
 
 
 def test_several_objects(
