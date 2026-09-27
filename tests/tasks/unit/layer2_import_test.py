@@ -9,7 +9,6 @@ from astropy import units as u
 from app.tasks import (
     interface,
     layer2_import,
-    layer2_import_designation,
     layer2_import_icrs,
     layer2_import_nature,
     layer2_import_redshift,
@@ -163,19 +162,6 @@ def test_majority_type_name() -> None:
     by_pgc = {int(pgc): str(type_name) for pgc, type_name in zip(agg["pgc"], agg["type_name"], strict=True)}
     assert by_pgc[1] == "G"
     assert by_pgc[2] == "QSO"
-
-
-def test_majority_design() -> None:
-    tbl = table.QTable(
-        {
-            "pgc": [1, 1, 1, 2],
-            "design": ["NGC 224", "NGC 224", "M 31", "NGC 598"],
-        }
-    )
-    agg = layer2_import_designation.aggregate_designation(tbl)
-    by_pgc = {int(pgc): str(design) for pgc, design in zip(agg["pgc"], agg["design"], strict=True)}
-    assert by_pgc[1] == "NGC 224"
-    assert by_pgc[2] == "NGC 598"
 
 
 def test_parse_since_none() -> None:

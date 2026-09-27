@@ -5,15 +5,15 @@ from typing import final
 import structlog
 
 from app.tasks import (
+    designation,
     layer2_common,
-    layer2_import_designation,
     layer2_import_icrs,
     layer2_import_nature,
     layer2_import_redshift,
 )
 
 CATALOG_TASKS = {
-    "designation": layer2_import_designation.Layer2ImportDesignationTask,
+    "designation": designation.Layer2ImportDesignationTask,
     "icrs": layer2_import_icrs.Layer2ImportICRSTask,
     "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
     "nature": layer2_import_nature.Layer2ImportNatureTask,
