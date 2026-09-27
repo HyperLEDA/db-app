@@ -52,6 +52,10 @@ _TAP_SYNC_QUERY_TIMEOUT_SECONDS = 20
 _SPHERE_RADIUS_M = 6371008.7714
 
 
+def _has_sql_wildcard(name: str) -> bool:
+    return "%" in name or "_" in name
+
+
 @final
 class Repository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage, logger: structlog.stdlib.BoundLogger) -> None:
@@ -59,6 +63,29 @@ class Repository(postgres.TransactionalPGRepository):
         super().__init__(storage)
 
     def find_pgcs_by_designation(self, name: str, limit: int, offset: int) -> list[int]:
+        if _has_sql_wildcard(name):
+            return self._find_pgcs_by_designation_pattern(name, limit, offset)
+        return self._find_pgcs_by_designation_exact(name, limit, offset)
+
+    def _find_pgcs_by_designation_exact(self, name: str, limit: int, offset: int) -> list[int]:
+        rows = self._storage.query(
+            """
+            SELECT pgc
+            FROM (
+                SELECT DISTINCT r.pgc AS pgc
+                FROM designation.data AS d
+                JOIN layer0.records AS r ON r.id = d.record_id
+                WHERE d.design = %s
+                  AND r.pgc IS NOT NULL
+            ) matches
+            ORDER BY pgc
+            LIMIT %s OFFSET %s
+            """,
+            params=[name, limit, offset],
+        )
+        return [int(row["pgc"]) for row in rows]
+
+    def _find_pgcs_by_designation_pattern(self, name: str, limit: int, offset: int) -> list[int]:
         rows = self._storage.query(
             """
             SELECT pgc
