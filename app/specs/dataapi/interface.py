@@ -290,7 +290,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
     )
     name: str | None = pydantic.Field(
         default=None,
-        description="Name of the object",
+        description="Exact object designation; use % as a wildcard",
     )
     page_size: int = pydantic.Field(
         default=25,

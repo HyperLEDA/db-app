@@ -591,7 +591,7 @@ def check_pgc_names(session: lib.TestSession, name_prefix: str):
     response = session.get(
         "/v1/query/simple",
         params={
-            "name": name_prefix,
+            "name": f"{name_prefix}%",
             "page_size": 100,
             "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
         },
@@ -637,7 +637,7 @@ def check_pgc_notes(session: lib.TestSession, name_prefix: str) -> None:
     response = session.get(
         "/v1/query/simple",
         params={
-            "name": name_prefix,
+            "name": f"{name_prefix}%",
             "page_size": 100,
             "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
         },
@@ -673,7 +673,7 @@ def check_pgc_photometry(session: lib.TestSession, name_prefix: str) -> None:
     response = session.get(
         "/v1/query/simple",
         params={
-            "name": name_prefix,
+            "name": f"{name_prefix}%",
             "page_size": 100,
             "catalogs": SIMPLE_FILTER_QUERY_CATALOGS,
         },

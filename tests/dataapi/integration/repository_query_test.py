@@ -86,9 +86,9 @@ def test_find_pgcs_by_designation(
         conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
     )
 
-    actual = repo.find_pgcs_by_designation("IC 144", 10, 0)
-
-    assert actual == [10]
+    assert repo.find_pgcs_by_designation("IC 144", 10, 0) == []
+    assert repo.find_pgcs_by_designation("IC 1440", 10, 0) == [10]
+    assert repo.find_pgcs_by_designation("IC 144%", 10, 0) == [10]
 
 
 def test_find_pgcs_by_designation_ranks_by_match_closeness(
@@ -118,9 +118,8 @@ def test_find_pgcs_by_designation_ranks_by_match_closeness(
         conflict_keys=catalogs.DesignationCatalogObject.layer1_primary_keys(),
     )
 
-    actual = repo.find_pgcs_by_designation("IC 144", 10, 0)
-
-    assert actual == [30, 40, 10, 20, 50]
+    assert repo.find_pgcs_by_designation("IC 144", 10, 0) == [30]
+    assert repo.find_pgcs_by_designation("IC 144%", 10, 0) == [30, 40, 10]
 
 
 def test_several_objects(
