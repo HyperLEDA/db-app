@@ -17,8 +17,8 @@ dependencies = [
 [project.optional-dependencies]
 adminapi = [
     "fastapi~=0.141.0",
-    "starlette~=1.6.0",
-    "uvicorn~=0.52.2",
+    "starlette>=1.6,<1.8",
+    "uvicorn>=0.52.2,<0.54.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
     "pyyaml~=6.0.2",
@@ -28,12 +28,12 @@ adminapi = [
     "opentelemetry-instrumentation-psycopg~=0.65b0",
     "opentelemetry-exporter-otlp~=1.44.0",
     "astroquery~=0.4.10",
-    "regex~=2026.7.0",
+    "regex>=2026.7,<2026.10",
 ]
 dataapi = [
     "fastapi~=0.141.0",
-    "starlette~=1.6.0",
-    "uvicorn~=0.52.2",
+    "starlette>=1.6,<1.8",
+    "uvicorn>=0.52.2,<0.54.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
     "pyyaml~=6.0.2",
@@ -45,8 +45,8 @@ dataapi = [
 ]
 fieldapi = [
     "fastapi~=0.141.0",
-    "starlette~=1.6.0",
-    "uvicorn~=0.52.2",
+    "starlette>=1.6,<1.8",
+    "uvicorn>=0.52.2,<0.54.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
     "pyyaml~=6.0.2",
@@ -82,15 +82,15 @@ dev = [
     "ruff~=0.16.2",
     "pytest~=9.1.0",
     "pytest-xdist~=3.8.0",
-    "basedpyright~=1.39.0",
+    "basedpyright>=1.39,<1.41",
     "types-pyyaml~=6.0.12.20260724",
-    "types-regex~=2026.7.19.20260720",
+    "types-regex>=2026.7.19.20260720,<2026.9.11.0",
     "pandas-stubs~=3.0.0",
-    "httpx2>=2.10,<2.13",
+    "httpx2>=2.10,<2.14",
     "httpx~=0.28.0",
     "requests~=2.34.0",
     "testcontainers-postgres~=0.0.1rc1",
-    "import-linter~=2.13.0",
+    "import-linter>=2.13,<2.16",
 ]
 
 [tool.pytest.ini_options]
