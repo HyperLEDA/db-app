@@ -2,16 +2,11 @@ import datetime
 from typing import final
 
 import structlog
-from astropy import table
 
 from app import catalogs
 from app.lib import containers
 from app.tasks import layer2_common, logging
-
-
-def aggregate_designation(tbl: table.QTable) -> table.QTable:
-    pgcs, designs = layer2_common.majority_vote_by_pgc(tbl, "design")
-    return table.QTable({"pgc": pgcs, "design": designs})
+from app.tasks.designation import aggregation
 
 
 @final
@@ -59,7 +54,7 @@ class Layer2ImportDesignationTask(layer2_common.Layer2CatalogImportTask):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            agg = aggregate_designation(tbl)
+            agg = aggregation.aggregate_designation(tbl)
             if len(agg) > 0:
                 objects_to_save += len(agg)
                 if not self.dry_run:

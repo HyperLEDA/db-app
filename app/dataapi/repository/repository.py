@@ -79,7 +79,7 @@ class Repository(postgres.TransactionalPGRepository):
             ORDER BY match_class, match_pos, design_len, pgc
             LIMIT %s OFFSET %s
             """,
-            params=[name, f"{name}%", name, f"%{name}%", limit, offset],
+            params=[name, f"{name}%", name, name, limit, offset],
         )
         return [int(row["pgc"]) for row in rows]
 
