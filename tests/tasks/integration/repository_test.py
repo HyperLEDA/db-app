@@ -7,7 +7,7 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app import catalogs
+from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
 from app.tasks import repository
 from tests.lib import layer_seed
@@ -26,8 +26,8 @@ def storage(pg_storage: PostgresTestStorage) -> postgres.PgStorage:
     return pg_storage.get_storage()
 
 
-def _save_layer2_data(repo: repository.Repository, objects: list[catalogs.layer2.Layer2Object]) -> None:
-    by_table: dict[str, list[tuple[int, catalogs.layer2.CatalogObject]]] = {}
+def _save_layer2_data(repo: repository.Repository, objects: list[layer2.Layer2Object]) -> None:
+    by_table: dict[str, list[tuple[int, layer2.CatalogObject]]] = {}
     for obj in objects:
         for catalog_obj in obj.data:
             layer2_table = catalog_obj.table()
@@ -63,7 +63,7 @@ def _insert_nature_data(
     columns = ["type_name"]
     layer_seed.save_structured_data(
         storage,
-        catalogs.layer1.NatureCatalogObject.layer1_table(),
+        layer1.NatureCatalogObject.layer1_table(),
         columns,
         record_ids,
         rows,
@@ -71,8 +71,8 @@ def _insert_nature_data(
 
 
 def test_get_last_update_time_returns_stored_dt(repo: repository.Repository) -> None:
-    dt_icrs = repo.get_last_update_time(catalogs.layer2.Catalog.ICRS)
-    dt_nature = repo.get_last_update_time(catalogs.layer2.Catalog.NATURE)
+    dt_icrs = repo.get_last_update_time(layer2.Catalog.ICRS)
+    dt_nature = repo.get_last_update_time(layer2.Catalog.NATURE)
     epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     assert (dt_icrs if dt_icrs.tzinfo else dt_icrs.replace(tzinfo=datetime.UTC)) == epoch
     assert (dt_nature if dt_nature.tzinfo else dt_nature.replace(tzinfo=datetime.UTC)) == epoch
@@ -80,11 +80,11 @@ def test_get_last_update_time_returns_stored_dt(repo: repository.Repository) -> 
 
 def test_update_last_update_time_updates_stored_dt(repo: repository.Repository) -> None:
     new_dt = datetime.datetime(2020, 6, 15, 12, 0, 0, tzinfo=datetime.UTC)
-    repo.update_last_update_time(new_dt, catalogs.layer2.Catalog.ICRS)
+    repo.update_last_update_time(new_dt, layer2.Catalog.ICRS)
 
-    got_icrs = repo.get_last_update_time(catalogs.layer2.Catalog.ICRS)
+    got_icrs = repo.get_last_update_time(layer2.Catalog.ICRS)
     assert got_icrs.replace(tzinfo=None) == new_dt.replace(tzinfo=None)
-    got_nature = repo.get_last_update_time(catalogs.layer2.Catalog.NATURE)
+    got_nature = repo.get_last_update_time(layer2.Catalog.NATURE)
     epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     assert (got_nature if got_nature.tzinfo else got_nature.replace(tzinfo=datetime.UTC)) == epoch
 
@@ -97,12 +97,12 @@ def test_get_orphaned_pgcs_returns_pgcs_without_layer1_data(
     _save_layer2_data(
         repo,
         [
-            catalogs.layer2.Layer2Object(1, [catalogs.layer2.DesignationCatalogObject(design="a")]),
-            catalogs.layer2.Layer2Object(2, [catalogs.layer2.DesignationCatalogObject(design="b")]),
+            layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="a")]),
+            layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="b")]),
         ],
     )
 
-    orphaned = repo.get_orphaned_pgcs([catalogs.layer2.Catalog.DESIGNATION])
+    orphaned = repo.get_orphaned_pgcs([layer2.Catalog.DESIGNATION])
 
     assert orphaned.keys() == {"layer2.designation"}
     assert set(orphaned["layer2.designation"]) == {1, 2}
@@ -122,11 +122,11 @@ def test_get_orphaned_pgcs_returns_empty_when_layer1_present(
         ["design"],
         ["r1"],
         [["x"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
-    _save_layer2_data(repo, [catalogs.layer2.Layer2Object(100, [catalogs.layer2.DesignationCatalogObject(design="x")])])
+    _save_layer2_data(repo, [layer2.Layer2Object(100, [layer2.DesignationCatalogObject(design="x")])])
 
-    orphaned = repo.get_orphaned_pgcs([catalogs.layer2.Catalog.DESIGNATION])
+    orphaned = repo.get_orphaned_pgcs([layer2.Catalog.DESIGNATION])
 
     assert orphaned == {"layer2.designation": []}
 
@@ -145,28 +145,28 @@ def test_get_orphaned_pgcs_returns_only_pgcs_without_layer1_data(
         ["design"],
         ["r1"],
         [["linked"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
     _save_layer2_data(
         repo,
         [
-            catalogs.layer2.Layer2Object(100, [catalogs.layer2.DesignationCatalogObject(design="linked")]),
-            catalogs.layer2.Layer2Object(200, [catalogs.layer2.DesignationCatalogObject(design="orphan")]),
+            layer2.Layer2Object(100, [layer2.DesignationCatalogObject(design="linked")]),
+            layer2.Layer2Object(200, [layer2.DesignationCatalogObject(design="orphan")]),
         ],
     )
 
-    orphaned = repo.get_orphaned_pgcs([catalogs.layer2.Catalog.DESIGNATION])
+    orphaned = repo.get_orphaned_pgcs([layer2.Catalog.DESIGNATION])
 
     assert orphaned.keys() == {"layer2.designation"}
     assert set(orphaned["layer2.designation"]) == {200}
 
 
 @final
-class _DesignationAndNature(catalogs.layer2.CatalogObject):
+class _DesignationAndNature(layer2.CatalogObject):
     @classmethod
     @override
-    def catalog(cls) -> catalogs.layer2.Catalog:
-        return catalogs.layer2.Catalog.DESIGNATION
+    def catalog(cls) -> layer2.Catalog:
+        return layer2.Catalog.DESIGNATION
 
     @classmethod
     @override
@@ -175,8 +175,8 @@ class _DesignationAndNature(catalogs.layer2.CatalogObject):
 
     @classmethod
     @override
-    def sources(cls) -> list[catalogs.layer1.Catalog]:
-        return [catalogs.layer1.Catalog.DESIGNATION, catalogs.layer1.Catalog.NATURE]
+    def sources(cls) -> list[layer1.Catalog]:
+        return [layer1.Catalog.DESIGNATION, layer1.Catalog.NATURE]
 
 
 def test_get_orphaned_pgcs_multi_source_only_when_all_sources_empty(
@@ -191,29 +191,26 @@ def test_get_orphaned_pgcs_multi_source_only_when_all_sources_empty(
     layer_seed.upsert_pgc(storage, {"r2": 2, "r3": 3, "r4d": 4, "r4n": 4})
     layer_seed.save_structured_data(
         storage,
-        catalogs.layer1.DesignationCatalogObject.layer1_table(),
+        layer1.DesignationCatalogObject.layer1_table(),
         ["design"],
         ["r2", "r4d"],
         [["only-designation"], ["both"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
     layer_seed.save_structured_data(
         storage,
-        catalogs.layer1.NatureCatalogObject.layer1_table(),
+        layer1.NatureCatalogObject.layer1_table(),
         ["type_name"],
         ["r3", "r4n"],
         [["G"], ["G"]],
     )
     _save_layer2_data(
         repo,
-        [
-            catalogs.layer2.Layer2Object(pgc, [catalogs.layer2.DesignationCatalogObject(design="row")])
-            for pgc in (1, 2, 3, 4)
-        ],
+        [layer2.Layer2Object(pgc, [layer2.DesignationCatalogObject(design="row")]) for pgc in (1, 2, 3, 4)],
     )
 
-    with mock.patch.object(catalogs.layer2, "get_catalog_object_type", return_value=_DesignationAndNature):
-        orphaned = repo.get_orphaned_pgcs([catalogs.layer2.Catalog.DESIGNATION])
+    with mock.patch.object(layer2, "get_catalog_object_type", return_value=_DesignationAndNature):
+        orphaned = repo.get_orphaned_pgcs([layer2.Catalog.DESIGNATION])
 
     assert set(orphaned["layer2.designation"]) == {1}
 
@@ -226,12 +223,12 @@ def test_remove_pgcs_removes_specified_pgcs(
     _save_layer2_data(
         repo,
         [
-            catalogs.layer2.Layer2Object(1, [catalogs.layer2.DesignationCatalogObject(design="d1")]),
-            catalogs.layer2.Layer2Object(2, [catalogs.layer2.DesignationCatalogObject(design="d2")]),
+            layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="d1")]),
+            layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="d2")]),
         ],
     )
 
-    repo.remove_pgcs([catalogs.layer2.Catalog.DESIGNATION], [1])
+    repo.remove_pgcs([layer2.Catalog.DESIGNATION], [1])
 
     removed = storage.query("SELECT pgc FROM layer2.designation WHERE pgc = %s", params=[1])
     assert removed == []
@@ -348,11 +345,11 @@ def test_get_new_redshift_records_defaults_null_e_cz(
     layer_seed.upsert_pgc(storage, {"r1": 10, "r2": 20})
     layer_seed.save_structured_data(
         storage,
-        catalogs.layer1.RedshiftCatalogObject.layer1_table(),
-        catalogs.layer1.RedshiftCatalogObject.layer1_keys(),
+        layer1.RedshiftCatalogObject.layer1_table(),
+        layer1.RedshiftCatalogObject.layer1_keys(),
         ["r1", "r2"],
         [[1000.0, 10.0], [2000.0, None]],
-        conflict_keys=catalogs.layer1.RedshiftCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.RedshiftCatalogObject.layer1_primary_keys(),
     )
 
     result = repo.get_new_redshift_records(datetime.datetime.fromtimestamp(0, tz=datetime.UTC), limit=10, offset=0)
@@ -379,7 +376,7 @@ def test_save_structured_data_bumps_pgc_modification_time(
 
     layer_seed.save_structured_data(
         storage,
-        catalogs.layer1.NatureCatalogObject.layer1_table(),
+        layer1.NatureCatalogObject.layer1_table(),
         ["type_name"],
         ["rec1"],
         [["QSO"]],

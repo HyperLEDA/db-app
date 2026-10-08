@@ -2,7 +2,7 @@ import abc
 import enum
 from typing import Any, Self
 
-from app.catalogs import layer1
+from app.catalogs.layer1 import Catalog as Layer1Catalog
 
 
 class Catalog(enum.Enum):
@@ -26,7 +26,7 @@ class CatalogObject(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def sources(cls) -> list[layer1.Catalog]: ...
+    def sources(cls) -> list[Layer1Catalog]: ...
 
     @classmethod
     def keys(cls) -> list[str]:

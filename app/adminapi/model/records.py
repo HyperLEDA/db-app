@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app import catalogs
+from app.catalogs import layer1
 from app.lib.storage import enums
 
 
@@ -14,10 +14,13 @@ class CrossmatchRecordRow:
 @dataclass
 class Record:
     id: str
-    data: list[catalogs.layer1.CatalogObject]
+    data: list[layer1.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
-        return catalogs.get_object(self.data, t)
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+        return None
 
 
 @dataclass

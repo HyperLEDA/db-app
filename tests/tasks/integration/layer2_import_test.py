@@ -3,7 +3,8 @@ from collections.abc import Generator
 import pytest
 import structlog
 
-from app import catalogs, tasks
+from app import tasks
+from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
 from app.tasks import layer2_import, repository
 from tests.lib import assert_catalog_object_equal, layer_seed
@@ -35,17 +36,17 @@ def _get_table(storage: postgres.PgStorage, table_name: str) -> int:
     return layer_seed.create_table(storage, table_name, bib_id)
 
 
-def _designation(storage: postgres.PgStorage, pgc: int) -> catalogs.layer2.DesignationCatalogObject | None:
+def _designation(storage: postgres.PgStorage, pgc: int) -> layer2.DesignationCatalogObject | None:
     rows = storage.query(
         "SELECT design FROM layer2.designation WHERE pgc = %s",
         params=[pgc],
     )
     if not rows:
         return None
-    return catalogs.layer2.DesignationCatalogObject(design=rows[0]["design"])
+    return layer2.DesignationCatalogObject(design=rows[0]["design"])
 
 
-def _icrs(storage: postgres.PgStorage, pgc: int) -> catalogs.layer2.ICRSCatalogObject | None:
+def _icrs(storage: postgres.PgStorage, pgc: int) -> layer2.ICRSCatalogObject | None:
     rows = storage.query(
         "SELECT ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = %s",
         params=[pgc],
@@ -53,7 +54,7 @@ def _icrs(storage: postgres.PgStorage, pgc: int) -> catalogs.layer2.ICRSCatalogO
     if not rows:
         return None
     row = rows[0]
-    return catalogs.layer2.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
+    return layer2.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
 
 
 def _import_two_catalogs(
@@ -81,7 +82,7 @@ def _import_two_catalogs(
         ["design"],
         ["123", "124"],
         [["test1"], ["test2"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
 
     layer2_import_task.run()
@@ -97,8 +98,8 @@ def test_import_two_catalogs(
     designation = _designation(storage, 1234)
     assert icrs is not None
     assert designation is not None
-    assert_catalog_object_equal(icrs, catalogs.layer2.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
-    assert_catalog_object_equal(designation, catalogs.layer2.DesignationCatalogObject("test1"))
+    assert_catalog_object_equal(icrs, layer2.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
+    assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("test1"))
 
 
 def test_updated_objects(
@@ -115,7 +116,7 @@ def test_updated_objects(
     )
     layer_seed.upsert_pgc(storage, {"125": 1234, "126": 1234})
 
-    last_update_dt = repo.get_last_update_time(catalogs.layer2.Catalog.DESIGNATION)
+    last_update_dt = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
 
     layer_seed.save_structured_data(
         storage,
@@ -123,17 +124,17 @@ def test_updated_objects(
         ["design"],
         ["125", "126"],
         [["test3"], ["test3"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
 
     layer2_import_task.run()
 
-    new_last_update_dt = repo.get_last_update_time(catalogs.layer2.Catalog.DESIGNATION)
+    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
     assert new_last_update_dt > last_update_dt
 
     designation = _designation(storage, 1234)
     assert designation is not None
-    assert_catalog_object_equal(designation, catalogs.layer2.DesignationCatalogObject("test3"))
+    assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("test3"))
 
 
 def test_layer1_only_update_recalculates_layer2(
@@ -143,7 +144,7 @@ def test_layer1_only_update_recalculates_layer2(
 ) -> None:
     _import_two_catalogs(storage, layer2_import_task)
 
-    last_update_dt = repo.get_last_update_time(catalogs.layer2.Catalog.ICRS)
+    last_update_dt = repo.get_last_update_time(layer2.Catalog.ICRS)
 
     layer_seed.save_structured_data(
         storage,
@@ -155,9 +156,9 @@ def test_layer1_only_update_recalculates_layer2(
 
     layer2_import_task.run()
 
-    new_last_update_dt = repo.get_last_update_time(catalogs.layer2.Catalog.ICRS)
+    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.ICRS)
     assert new_last_update_dt > last_update_dt
 
     icrs = _icrs(storage, 1234)
     assert icrs is not None
-    assert_catalog_object_equal(icrs, catalogs.layer2.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))
+    assert_catalog_object_equal(icrs, layer2.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))

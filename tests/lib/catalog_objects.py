@@ -1,9 +1,9 @@
-from app import catalogs
+from app.catalogs import layer1, layer2
 
 
 def layer1_catalog_objects_equal(
-    actual: catalogs.layer1.CatalogObject,
-    expected: catalogs.layer1.CatalogObject,
+    actual: layer1.CatalogObject,
+    expected: layer1.CatalogObject,
 ) -> bool:
     if type(actual) is not type(expected):
         return False
@@ -11,8 +11,8 @@ def layer1_catalog_objects_equal(
 
 
 def layer2_catalog_objects_equal(
-    actual: catalogs.layer2.CatalogObject,
-    expected: catalogs.layer2.CatalogObject,
+    actual: layer2.CatalogObject,
+    expected: layer2.CatalogObject,
 ) -> bool:
     if type(actual) is not type(expected):
         return False
@@ -20,15 +20,15 @@ def layer2_catalog_objects_equal(
 
 
 def assert_catalog_object_equal(
-    actual: catalogs.layer2.CatalogObject,
-    expected: catalogs.layer2.CatalogObject,
+    actual: layer2.CatalogObject,
+    expected: layer2.CatalogObject,
 ) -> None:
     assert layer2_catalog_objects_equal(actual, expected), f"catalog objects differ: {actual!r} != {expected!r}"
 
 
 def assert_layer2_catalog_objects_equal(
-    actual: list[catalogs.layer2.Layer2Object],
-    expected: list[catalogs.layer2.Layer2Object],
+    actual: list[layer2.Layer2Object],
+    expected: list[layer2.Layer2Object],
 ) -> None:
     assert len(actual) == len(expected)
     for act, exp in zip(actual, expected, strict=True):

@@ -1,6 +1,6 @@
 from typing import Any, Self, final, override
 
-from app.catalogs import layer1
+from app.catalogs.layer1 import Catalog as Layer1Catalog
 from app.catalogs.layer2 import interface
 
 
@@ -24,8 +24,8 @@ class ICRSCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def sources(cls) -> list[layer1.Catalog]:
-        return [layer1.Catalog.ICRS]
+    def sources(cls) -> list[Layer1Catalog]:
+        return [Layer1Catalog.ICRS]
 
     @classmethod
     @override

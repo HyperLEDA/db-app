@@ -3,7 +3,7 @@ from typing import Any
 import structlog
 from psycopg import rows
 
-from app import catalogs
+from app.catalogs import layer2
 from app.lib import containers
 from app.lib.storage import postgres
 
@@ -15,11 +15,11 @@ class Layer2Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs_pgc(
         self,
-        raw_catalogs: list[catalogs.layer2.Catalog],
+        raw_catalogs: list[layer2.Catalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[catalogs.layer2.Layer2Object]:
+    ) -> list[layer2.Layer2Object]:
         if not raw_catalogs:
             return []
 
@@ -28,7 +28,7 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         join_parts = []
 
         for i, catalog in enumerate(raw_catalogs):
-            object_cls = catalogs.layer2.get_catalog_object_type(catalog)
+            object_cls = layer2.get_catalog_object_type(catalog)
             table_name = object_cls.table()
             alias = f"t{i}"
 
@@ -69,12 +69,12 @@ class Layer2Repository(postgres.TransactionalPGRepository):
         return _group_by_pgc(objects)
 
 
-def _group_by_pgc(objects: list[rows.DictRow]) -> list[catalogs.layer2.Layer2Object]:
+def _group_by_pgc(objects: list[rows.DictRow]) -> list[layer2.Layer2Object]:
     objects_by_pgc = containers.group_by(objects, key_func=lambda obj: int(obj["pgc"]))
     result = []
 
     for pgc, pgc_objects in objects_by_pgc.items():
-        layer2_obj = catalogs.layer2.Layer2Object(pgc, [])
+        layer2_obj = layer2.Layer2Object(pgc, [])
 
         obj = pgc_objects[0]
         if "record_id" in obj:
@@ -82,12 +82,12 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[catalogs.layer2.Layer2Obj
         if "pgc" in obj:
             obj.pop("pgc")
 
-        res: dict[catalogs.layer2.Catalog, dict[str, Any]] = {}
-        presence_flags: dict[catalogs.layer2.Catalog, bool] = {}
+        res: dict[layer2.Catalog, dict[str, Any]] = {}
+        presence_flags: dict[layer2.Catalog, bool] = {}
 
         for key, value in obj.items():
             catalog_name, column = key.split("|")
-            catalog = catalogs.layer2.Catalog(catalog_name)
+            catalog = layer2.Catalog(catalog_name)
 
             if column == "_present":
                 presence_flags[catalog] = bool(value)
@@ -97,7 +97,7 @@ def _group_by_pgc(objects: list[rows.DictRow]) -> list[catalogs.layer2.Layer2Obj
                 res[catalog][column] = value
 
         for catalog, data in res.items():
-            object_cls = catalogs.layer2.get_catalog_object_type(catalog)
+            object_cls = layer2.get_catalog_object_type(catalog)
 
             if presence_flags.get(catalog, False):
                 layer2_obj.data.append(object_cls.from_row(data))

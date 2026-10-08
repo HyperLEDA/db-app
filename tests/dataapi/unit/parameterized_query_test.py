@@ -5,15 +5,15 @@ from astropy import coordinates as coords
 from astropy import units as u
 from astropy.time import Time
 
-from app import catalogs
+from app.catalogs import layer2
 from app.dataapi.domain import parameterized_query
 from app.lib.web import errors
 from app.specs import dataapi
 
 DEFAULT = [
-    catalogs.layer2.Catalog.DESIGNATION,
-    catalogs.layer2.Catalog.ICRS,
-    catalogs.layer2.Catalog.REDSHIFT,
+    layer2.Catalog.DESIGNATION,
+    layer2.Catalog.ICRS,
+    layer2.Catalog.REDSHIFT,
 ]
 
 
@@ -25,14 +25,14 @@ def test_subset_preserves_request_order() -> None:
     assert parameterized_query.resolve_query_catalogs(
         ["icrs", "designation"],
         DEFAULT,
-    ) == [catalogs.layer2.Catalog.ICRS, catalogs.layer2.Catalog.DESIGNATION]
+    ) == [layer2.Catalog.ICRS, layer2.Catalog.DESIGNATION]
 
 
 def test_deduplicates() -> None:
     assert parameterized_query.resolve_query_catalogs(
         ["icrs", "icrs"],
         DEFAULT,
-    ) == [catalogs.layer2.Catalog.ICRS]
+    ) == [layer2.Catalog.ICRS]
 
 
 def test_empty_list_raises() -> None:

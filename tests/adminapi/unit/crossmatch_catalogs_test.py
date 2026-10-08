@@ -1,14 +1,14 @@
-from app import catalogs
 from app.adminapi import model
 from app.adminapi.domain import crossmatch
+from app.catalogs import layer1
 
 
 def test_includes_nature_when_present() -> None:
     record = model.Record(
         id="rec1",
         data=[
-            catalogs.layer1.DesignationCatalogObject(design="NGC 1"),
-            catalogs.layer1.NatureCatalogObject(type_name="G"),
+            layer1.DesignationCatalogObject(design="NGC 1"),
+            layer1.NatureCatalogObject(type_name="G"),
         ],
     )
 
@@ -23,7 +23,7 @@ def test_includes_nature_when_present() -> None:
 def test_omits_nature_when_absent() -> None:
     record = model.Record(
         id="rec1",
-        data=[catalogs.layer1.DesignationCatalogObject(design="NGC 1")],
+        data=[layer1.DesignationCatalogObject(design="NGC 1")],
     )
 
     result = crossmatch.catalogs_from_layer1(record)

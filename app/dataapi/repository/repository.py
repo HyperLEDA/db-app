@@ -5,7 +5,7 @@ from typing import Any, final
 import structlog
 from astropy import units as u
 
-from app import catalogs
+from app.catalogs import layer2
 from app.dataapi import model
 from app.dataapi.repository import model as repo_model
 from app.lib import astronomy, concurrency
@@ -13,18 +13,18 @@ from app.lib.storage import postgres
 
 _ONE_TO_ONE_CATALOGS = frozenset(
     {
-        catalogs.layer2.Catalog.DESIGNATION,
-        catalogs.layer2.Catalog.ICRS,
-        catalogs.layer2.Catalog.REDSHIFT,
-        catalogs.layer2.Catalog.NATURE,
+        layer2.Catalog.DESIGNATION,
+        layer2.Catalog.ICRS,
+        layer2.Catalog.REDSHIFT,
+        layer2.Catalog.NATURE,
     }
 )
 
 _ONE_TO_MANY_CATALOGS = frozenset(
     {
-        catalogs.layer2.Catalog.ADDITIONAL_DESIGNATIONS,
-        catalogs.layer2.Catalog.NOTE,
-        catalogs.layer2.Catalog.PHOTOMETRY__TOTAL,
+        layer2.Catalog.ADDITIONAL_DESIGNATIONS,
+        layer2.Catalog.NOTE,
+        layer2.Catalog.PHOTOMETRY__TOTAL,
     }
 )
 
@@ -255,7 +255,7 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs(
         self,
-        raw_catalogs: list[catalogs.layer2.Catalog],
+        raw_catalogs: list[layer2.Catalog],
         pgcs: list[int],
     ) -> list[model.Layer2Object]:
         if not raw_catalogs or not pgcs:
@@ -274,11 +274,11 @@ class Repository(postgres.TransactionalPGRepository):
 
         if one_to_one:
             one_to_one_task = errgr.run(self._query_one_to_one_catalogs, one_to_one, pgcs)
-        if catalogs.layer2.Catalog.ADDITIONAL_DESIGNATIONS in one_to_many:
+        if layer2.Catalog.ADDITIONAL_DESIGNATIONS in one_to_many:
             additional_designations_task = errgr.run(self._query_additional_designations, pgcs)
-        if catalogs.layer2.Catalog.NOTE in one_to_many:
+        if layer2.Catalog.NOTE in one_to_many:
             notes_task = errgr.run(self._query_notes, pgcs)
-        if catalogs.layer2.Catalog.PHOTOMETRY__TOTAL in one_to_many:
+        if layer2.Catalog.PHOTOMETRY__TOTAL in one_to_many:
             photometry_total_task = errgr.run(self._query_photometry_total, pgcs)
 
         errgr.wait()
@@ -307,14 +307,14 @@ class Repository(postgres.TransactionalPGRepository):
 
     def _query_one_to_one_catalogs(
         self,
-        raw_catalogs: list[catalogs.layer2.Catalog],
+        raw_catalogs: list[layer2.Catalog],
         pgcs: list[int],
     ) -> "_OneToOneMaps":
         columns: list[str] = ["t.pgc"]
         join_parts: list[str] = []
 
         for catalog in raw_catalogs:
-            object_cls = catalogs.layer2.get_catalog_object_type(catalog)
+            object_cls = layer2.get_catalog_object_type(catalog)
             table_name = object_cls.table()
             join_parts.append(f"LEFT JOIN {table_name} USING (pgc)")
             for column in object_cls.keys():
@@ -420,7 +420,7 @@ class _OneToOneMaps:
 
 def _parse_one_to_one_rows(
     rows: list[Mapping[str, Any]],
-    raw_catalogs: list[catalogs.layer2.Catalog],
+    raw_catalogs: list[layer2.Catalog],
 ) -> _OneToOneMaps:
     designation: dict[int, model.DesignationCatalog] = {}
     icrs: dict[int, model.ICRSCatalog] = {}
@@ -429,14 +429,14 @@ def _parse_one_to_one_rows(
 
     for row in rows:
         pgc = int(row["pgc"])
-        data_by_catalog: dict[catalogs.layer2.Catalog, dict[str, Any]] = {}
-        presence: dict[catalogs.layer2.Catalog, bool] = {}
+        data_by_catalog: dict[layer2.Catalog, dict[str, Any]] = {}
+        presence: dict[layer2.Catalog, bool] = {}
 
         for key, value in row.items():
             if key == "pgc":
                 continue
             catalog_name, column = key.split("|", 1)
-            catalog = catalogs.layer2.Catalog(catalog_name)
+            catalog = layer2.Catalog(catalog_name)
             if column == "_present":
                 presence[catalog] = bool(value)
             else:
@@ -446,9 +446,9 @@ def _parse_one_to_one_rows(
             if not presence.get(catalog, False):
                 continue
             data = data_by_catalog.get(catalog, {})
-            if catalog == catalogs.layer2.Catalog.DESIGNATION:
+            if catalog == layer2.Catalog.DESIGNATION:
                 designation[pgc] = model.DesignationCatalog(name=str(data["design"]))
-            elif catalog == catalogs.layer2.Catalog.ICRS:
+            elif catalog == layer2.Catalog.ICRS:
                 if all(data.get(k) is not None for k in ("ra", "e_ra", "dec", "e_dec")):
                     icrs[pgc] = model.ICRSCatalog(
                         ra=float(data["ra"]),
@@ -456,10 +456,10 @@ def _parse_one_to_one_rows(
                         dec=float(data["dec"]),
                         e_dec=float(data["e_dec"]),
                     )
-            elif catalog == catalogs.layer2.Catalog.REDSHIFT:
+            elif catalog == layer2.Catalog.REDSHIFT:
                 if data.get("cz") is not None and data.get("e_cz") is not None:
                     redshift[pgc] = model.RedshiftCatalog(cz=float(data["cz"]), e_cz=float(data["e_cz"]))
-            elif catalog == catalogs.layer2.Catalog.NATURE:
+            elif catalog == layer2.Catalog.NATURE:
                 if data.get("type_name") is not None:
                     nature[pgc] = model.NatureCatalog(type_name=str(data["type_name"]))
 
@@ -468,7 +468,7 @@ def _parse_one_to_one_rows(
 
 def _layer2_object_from_maps(
     pgc: int,
-    raw_catalogs: list[catalogs.layer2.Catalog],
+    raw_catalogs: list[layer2.Catalog],
     designation_map: dict[int, model.DesignationCatalog],
     additional_designations_map: dict[int, model.AdditionalDesignationsCatalog],
     icrs_map: dict[int, model.ICRSCatalog],
@@ -477,19 +477,15 @@ def _layer2_object_from_maps(
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
 ) -> model.Layer2Object:
-    designation = designation_map.get(pgc) if catalogs.layer2.Catalog.DESIGNATION in raw_catalogs else None
+    designation = designation_map.get(pgc) if layer2.Catalog.DESIGNATION in raw_catalogs else None
     additional_designations = (
-        additional_designations_map.get(pgc)
-        if catalogs.layer2.Catalog.ADDITIONAL_DESIGNATIONS in raw_catalogs
-        else None
+        additional_designations_map.get(pgc) if layer2.Catalog.ADDITIONAL_DESIGNATIONS in raw_catalogs else None
     )
-    icrs = icrs_map.get(pgc) if catalogs.layer2.Catalog.ICRS in raw_catalogs else None
-    redshift = redshift_map.get(pgc) if catalogs.layer2.Catalog.REDSHIFT in raw_catalogs else None
-    nature = nature_map.get(pgc) if catalogs.layer2.Catalog.NATURE in raw_catalogs else None
-    notes = notes_map.get(pgc) if catalogs.layer2.Catalog.NOTE in raw_catalogs else None
-    photometry_total = (
-        photometry_total_map.get(pgc) if catalogs.layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
-    )
+    icrs = icrs_map.get(pgc) if layer2.Catalog.ICRS in raw_catalogs else None
+    redshift = redshift_map.get(pgc) if layer2.Catalog.REDSHIFT in raw_catalogs else None
+    nature = nature_map.get(pgc) if layer2.Catalog.NATURE in raw_catalogs else None
+    notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
+    photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
 
     return model.Layer2Object(
         pgc=pgc,

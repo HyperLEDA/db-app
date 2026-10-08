@@ -3,8 +3,8 @@ import datetime
 import pytest
 import structlog
 
-from app import catalogs
 from app.adminapi import model, repository
+from app.catalogs import layer1
 from app.lib.storage import enums, postgres
 from tests.lib.postgres import PostgresTestStorage
 
@@ -40,7 +40,7 @@ def _insert_nature_data(
     repo.upsert_pgc(pgcs)
     columns = ["type_name"]
     repo.save_structured_data(
-        catalogs.layer1.NatureCatalogObject.layer1_table(),
+        layer1.NatureCatalogObject.layer1_table(),
         columns,
         record_ids,
         rows,
@@ -66,9 +66,9 @@ def test_icrs(repo: repository.Repository, pg_storage: PostgresTestStorage) -> N
         )
     )
     repo.register_records("test_table", ["111", "112"])
-    columns = catalogs.layer1.ICRSCatalogObject.layer1_keys()
+    columns = layer1.ICRSCatalogObject.layer1_keys()
     repo.save_structured_data(
-        catalogs.layer1.ICRSCatalogObject.layer1_table(),
+        layer1.ICRSCatalogObject.layer1_table(),
         columns,
         ["111", "112"],
         [[12.1, 0.1, 1, 0.3], [11.1, 0.2, 2, 0.4]],
@@ -82,11 +82,11 @@ def test_designation_multiple_names_per_record(repo: repository.Repository, pg_s
     _get_table(repo, "desig_table")
     repo.register_records("desig_table", ["r1"])
     repo.save_structured_data(
-        catalogs.layer1.DesignationCatalogObject.layer1_table(),
-        catalogs.layer1.DesignationCatalogObject.layer1_keys(),
+        layer1.DesignationCatalogObject.layer1_table(),
+        layer1.DesignationCatalogObject.layer1_keys(),
         ["r1", "r1"],
         [["NGC 224"], ["M 31"]],
-        conflict_keys=catalogs.layer1.DesignationCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.DesignationCatalogObject.layer1_primary_keys(),
     )
 
     result = pg_storage.storage.query(
@@ -101,11 +101,11 @@ def test_get_redshift_records_defaults_null_e_cz(repo: repository.Repository) ->
     _get_table(repo, "cz_table")
     repo.register_records("cz_table", ["r1", "r2"])
     repo.save_structured_data(
-        catalogs.layer1.RedshiftCatalogObject.layer1_table(),
-        catalogs.layer1.RedshiftCatalogObject.layer1_keys(),
+        layer1.RedshiftCatalogObject.layer1_table(),
+        layer1.RedshiftCatalogObject.layer1_keys(),
         ["r1", "r2"],
         [[1000.0, 10.0], [2000.0, None]],
-        conflict_keys=catalogs.layer1.RedshiftCatalogObject.layer1_primary_keys(),
+        conflict_keys=layer1.RedshiftCatalogObject.layer1_primary_keys(),
     )
 
     result = repo.get_redshift_records(["r1", "r2", "missing"])
@@ -132,7 +132,7 @@ def test_save_structured_data_bumps_pgc_modification_time(
     )
 
     repo.save_structured_data(
-        catalogs.layer1.NatureCatalogObject.layer1_table(),
+        layer1.NatureCatalogObject.layer1_table(),
         ["type_name"],
         ["rec1"],
         [["QSO"]],

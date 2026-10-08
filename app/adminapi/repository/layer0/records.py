@@ -2,11 +2,11 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from app import catalogs
 from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.common import touch_pgcs
 from app.adminapi.repository.layer0.common import metadata_to_candidates
+from app.catalogs import layer1, layer2
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
 
@@ -25,16 +25,16 @@ def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any
     return "WHERE t.table_name = ANY(%s)", [table_names]
 
 
-_LAYER2_PROGRESS: dict[catalogs.layer1.Catalog, catalogs.layer2.Catalog] = {
-    catalogs.layer1.Catalog.DESIGNATION: catalogs.layer2.Catalog.DESIGNATION,
-    catalogs.layer1.Catalog.ICRS: catalogs.layer2.Catalog.ICRS,
-    catalogs.layer1.Catalog.REDSHIFT: catalogs.layer2.Catalog.REDSHIFT,
-    catalogs.layer1.Catalog.NATURE: catalogs.layer2.Catalog.NATURE,
+_LAYER2_PROGRESS: dict[layer1.Catalog, layer2.Catalog] = {
+    layer1.Catalog.DESIGNATION: layer2.Catalog.DESIGNATION,
+    layer1.Catalog.ICRS: layer2.Catalog.ICRS,
+    layer1.Catalog.REDSHIFT: layer2.Catalog.REDSHIFT,
+    layer1.Catalog.NATURE: layer2.Catalog.NATURE,
 }
 
 
-def _progress_catalogs() -> list[catalogs.layer1.Catalog]:
-    return list(catalogs.layer1.Catalog)
+def _progress_catalogs() -> list[layer1.Catalog]:
+    return list(layer1.Catalog)
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -312,10 +312,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
     def _get_catalog_progress(
         self,
-        catalog: catalogs.layer1.Catalog,
+        catalog: layer1.Catalog,
         table_names: list[str] | None,
     ) -> dict[str, model.CatalogProgress]:
-        object_cls = catalogs.layer1.get_catalog_object_type(catalog)
+        object_cls = layer1.get_catalog_object_type(catalog)
         layer1_table = object_cls.layer1_table()
         where_clause, params = _progress_table_filter(table_names)
 
@@ -344,7 +344,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 for row in rows
             }
 
-        layer2_table = catalogs.layer2.get_catalog_object_type(layer2_catalog).table()
+        layer2_table = layer2.get_catalog_object_type(layer2_catalog).table()
         rows = self._storage.query(
             f"""
             SELECT t.table_name,

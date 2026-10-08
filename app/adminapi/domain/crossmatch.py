@@ -4,8 +4,8 @@ from typing import Any, Protocol, final
 import structlog
 from astropy import units as u
 
-from app import catalogs
 from app.adminapi import model, repository
+from app.catalogs import layer1, layer2
 from app.lib import astronomy
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, NotFoundError
@@ -104,19 +104,19 @@ def _catalogs_from(
 
 def catalogs_from_layer1(obj: model.Record) -> spec.Catalogs:
     return _catalogs_from(
-        obj.get(catalogs.layer1.ICRSCatalogObject),
-        obj.get(catalogs.layer1.DesignationCatalogObject),
-        obj.get(catalogs.layer1.RedshiftCatalogObject),
-        obj.get(catalogs.layer1.NatureCatalogObject),
+        obj.get(layer1.ICRSCatalogObject),
+        obj.get(layer1.DesignationCatalogObject),
+        obj.get(layer1.RedshiftCatalogObject),
+        obj.get(layer1.NatureCatalogObject),
     )
 
 
-def catalogs_from_layer2(obj: catalogs.layer2.Layer2Object) -> spec.Catalogs:
+def catalogs_from_layer2(obj: layer2.Layer2Object) -> spec.Catalogs:
     return _catalogs_from(
-        obj.get(catalogs.layer2.ICRSCatalogObject),
-        obj.get(catalogs.layer2.DesignationCatalogObject),
-        obj.get(catalogs.layer2.RedshiftCatalogObject),
-        obj.get(catalogs.layer2.NatureCatalogObject),
+        obj.get(layer2.ICRSCatalogObject),
+        obj.get(layer2.DesignationCatalogObject),
+        obj.get(layer2.RedshiftCatalogObject),
+        obj.get(layer2.NatureCatalogObject),
     )
 
 
@@ -191,10 +191,10 @@ class CrossmatchManager:
         record_ids = [row.record_id for row in rows]
         layer1_data = self._repo.query_records(
             [
-                catalogs.layer1.Catalog.ICRS,
-                catalogs.layer1.Catalog.DESIGNATION,
-                catalogs.layer1.Catalog.REDSHIFT,
-                catalogs.layer1.Catalog.NATURE,
+                layer1.Catalog.ICRS,
+                layer1.Catalog.DESIGNATION,
+                layer1.Catalog.REDSHIFT,
+                layer1.Catalog.NATURE,
             ],
             record_ids=record_ids,
         )
@@ -267,10 +267,10 @@ class CrossmatchManager:
 
         layer2_objects = self._repo.query_catalogs_pgc(
             raw_catalogs=[
-                catalogs.layer2.Catalog.ICRS,
-                catalogs.layer2.Catalog.DESIGNATION,
-                catalogs.layer2.Catalog.REDSHIFT,
-                catalogs.layer2.Catalog.NATURE,
+                layer2.Catalog.ICRS,
+                layer2.Catalog.DESIGNATION,
+                layer2.Catalog.REDSHIFT,
+                layer2.Catalog.NATURE,
             ],
             pgc_numbers=list(candidate_pgcs),
             limit=len(candidate_pgcs),

@@ -5,7 +5,7 @@ import numpy as np
 import structlog
 from astropy import table
 
-from app import catalogs
+from app.catalogs import layer2
 from app.lib import containers
 from app.tasks import layer2_common, logging
 
@@ -60,7 +60,7 @@ class Layer2ImportICRSTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(catalogs.layer2.Catalog.ICRS)
+            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.ICRS)
         self.log.info(
             "Starting Layer 2 ICRS import",
             last_update=last_update_dt.ctime(),
@@ -91,7 +91,7 @@ class Layer2ImportICRSTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(catalogs.layer2.Catalog.ICRS)
+        orphans_to_delete = self.finalize_catalog(layer2.Catalog.ICRS)
         self.log.info("Layer 2 ICRS import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

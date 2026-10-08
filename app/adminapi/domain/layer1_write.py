@@ -1,9 +1,8 @@
 import psycopg
 from astropy import units as u
 
-from app import catalogs
 from app.adminapi import repository
-from app.catalogs import designation_normalization
+from app.catalogs import designation_normalization, layer1
 from app.lib.web.errors import RuleValidationError
 from app.specs import adminapi as spec
 
@@ -13,8 +12,8 @@ class Layer1Writer:
         self._repo = repo
 
     def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
-        catalog = catalogs.layer1.Catalog(request.catalog)
-        object_cls = catalogs.layer1.get_catalog_object_type(catalog)
+        catalog = layer1.Catalog(request.catalog)
+        object_cls = layer1.get_catalog_object_type(catalog)
         table = object_cls.layer1_table()
 
         internal_units = self._repo.get_column_units(catalog)
@@ -39,7 +38,7 @@ class Layer1Writer:
                     new_row.append(value)
             converted.append(new_row)
 
-        if catalog == catalogs.layer1.Catalog.DESIGNATION and "design" in request.columns:
+        if catalog == layer1.Catalog.DESIGNATION and "design" in request.columns:
             design_idx = request.columns.index("design")
             for row in converted:
                 row[design_idx] = designation_normalization.normalize_designation(str(row[design_idx]))

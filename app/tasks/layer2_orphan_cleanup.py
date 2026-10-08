@@ -2,14 +2,14 @@ from typing import final
 
 import structlog
 
-from app import catalogs
+from app.catalogs import layer2
 from app.tasks import layer2_common
 
 RAW_CATALOGS = [
-    catalogs.layer2.Catalog.ICRS,
-    catalogs.layer2.Catalog.DESIGNATION,
-    catalogs.layer2.Catalog.REDSHIFT,
-    catalogs.layer2.Catalog.NATURE,
+    layer2.Catalog.ICRS,
+    layer2.Catalog.DESIGNATION,
+    layer2.Catalog.REDSHIFT,
+    layer2.Catalog.NATURE,
 ]
 
 

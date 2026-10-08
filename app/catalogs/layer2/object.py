@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from app.catalogs import interface as catalogs_interface
 from app.catalogs.layer2 import interface
 
 
@@ -10,4 +9,7 @@ class Layer2Object:
     data: list[interface.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
-        return catalogs_interface.get_object(self.data, t)
+        for obj in self.data:
+            if isinstance(obj, t):
+                return obj
+        return None
