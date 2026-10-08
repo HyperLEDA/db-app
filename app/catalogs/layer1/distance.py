@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -22,8 +22,8 @@ class DistanceCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.DISTANCE
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.DISTANCE
 
     @classmethod
     def title(cls) -> str:

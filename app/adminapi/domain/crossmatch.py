@@ -33,11 +33,27 @@ DATA_SCHEMA = spec.Schema(
 )
 
 
-class _CatalogBearing(Protocol):
-    def get[T](self, t: type[T]) -> T | None: ...
+class _Equatorial(Protocol):
+    ra: float
+    dec: float
+    e_ra: float
+    e_dec: float
 
 
-def icrs_to_response(obj: catalogs.ICRSCatalogObject) -> spec.Coordinates:
+class _Velocity(Protocol):
+    cz: float
+    e_cz: float
+
+
+class _Designation(Protocol):
+    designation: str
+
+
+class _Nature(Protocol):
+    type_name: str
+
+
+def icrs_to_response(obj: _Equatorial) -> spec.Coordinates:
     lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(obj.ra, obj.dec, obj.e_ra, obj.e_dec, "galactic")
 
     return spec.Coordinates(
@@ -56,7 +72,7 @@ def icrs_to_response(obj: catalogs.ICRSCatalogObject) -> spec.Coordinates:
     )
 
 
-def redshift_to_response(obj: catalogs.RedshiftCatalogObject) -> tuple[spec.Redshift, spec.Velocity]:
+def redshift_to_response(obj: _Velocity) -> tuple[spec.Redshift, spec.Velocity]:
     z = astronomy.heliocentric_cz_to_z(obj.cz * u.Unit("km/s"))
     e_z = astronomy.heliocentric_cz_to_z(obj.e_cz * u.Unit("km/s"))
 
@@ -68,22 +84,40 @@ def redshift_to_response(obj: catalogs.RedshiftCatalogObject) -> tuple[spec.Reds
     )
 
 
-def catalogs_from_object(obj: _CatalogBearing) -> spec.Catalogs:
+def _catalogs_from(
+    icrs: _Equatorial | None,
+    designation: _Designation | None,
+    redshift: _Velocity | None,
+    nature: _Nature | None,
+) -> spec.Catalogs:
     result = spec.Catalogs()
-
-    if (icrs := obj.get(catalogs.ICRSCatalogObject)) is not None:
+    if icrs is not None:
         result.coordinates = icrs_to_response(icrs)
-
-    if (designation := obj.get(catalogs.DesignationCatalogObject)) is not None:
+    if designation is not None:
         result.designation = spec.Designation(name=designation.designation)
-
-    if (redshift := obj.get(catalogs.RedshiftCatalogObject)) is not None:
+    if redshift is not None:
         result.redshift, result.velocity = redshift_to_response(redshift)
-
-    if (nature := obj.get(catalogs.NatureCatalogObject)) is not None:
+    if nature is not None:
         result.nature = spec.Nature(type_name=nature.type_name)
-
     return result
+
+
+def catalogs_from_layer1(obj: model.Record) -> spec.Catalogs:
+    return _catalogs_from(
+        obj.get(catalogs.layer1.ICRSCatalogObject),
+        obj.get(catalogs.layer1.DesignationCatalogObject),
+        obj.get(catalogs.layer1.RedshiftCatalogObject),
+        obj.get(catalogs.layer1.NatureCatalogObject),
+    )
+
+
+def catalogs_from_layer2(obj: catalogs.layer2.Layer2Object) -> spec.Catalogs:
+    return _catalogs_from(
+        obj.get(catalogs.layer2.ICRSCatalogObject),
+        obj.get(catalogs.layer2.DesignationCatalogObject),
+        obj.get(catalogs.layer2.RedshiftCatalogObject),
+        obj.get(catalogs.layer2.NatureCatalogObject),
+    )
 
 
 def _append_crossmatch_rows(
@@ -157,10 +191,10 @@ class CrossmatchManager:
         record_ids = [row.record_id for row in rows]
         layer1_data = self._repo.query_records(
             [
-                catalogs.RawCatalog.ICRS,
-                catalogs.RawCatalog.DESIGNATION,
-                catalogs.RawCatalog.REDSHIFT,
-                catalogs.RawCatalog.NATURE,
+                catalogs.layer1.Catalog.ICRS,
+                catalogs.layer1.Catalog.DESIGNATION,
+                catalogs.layer1.Catalog.REDSHIFT,
+                catalogs.layer1.Catalog.NATURE,
             ],
             record_ids=record_ids,
         )
@@ -186,7 +220,7 @@ class CrossmatchManager:
                     status=status,
                     triage_status=row.triage_status,
                     metadata=metadata,
-                    catalogs=catalogs_from_object(record),
+                    catalogs=catalogs_from_layer1(record),
                 )
             )
 
@@ -233,10 +267,10 @@ class CrossmatchManager:
 
         layer2_objects = self._repo.query_catalogs_pgc(
             raw_catalogs=[
-                catalogs.RawCatalog.ICRS,
-                catalogs.RawCatalog.DESIGNATION,
-                catalogs.RawCatalog.REDSHIFT,
-                catalogs.RawCatalog.NATURE,
+                catalogs.layer2.Catalog.ICRS,
+                catalogs.layer2.Catalog.DESIGNATION,
+                catalogs.layer2.Catalog.REDSHIFT,
+                catalogs.layer2.Catalog.NATURE,
             ],
             pgc_numbers=list(candidate_pgcs),
             limit=len(candidate_pgcs),
@@ -247,7 +281,7 @@ class CrossmatchManager:
             response.candidates.append(
                 spec.PGCCandidate(
                     pgc=layer2_obj.pgc,
-                    catalogs=catalogs_from_object(layer2_obj),
+                    catalogs=catalogs_from_layer2(layer2_obj),
                 )
             )
 

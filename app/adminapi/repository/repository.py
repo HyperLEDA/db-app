@@ -165,7 +165,7 @@ class Repository(postgres.TransactionalPGRepository):
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)
 
-    def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
+    def get_column_units(self, catalog: catalogs.layer1.Catalog) -> dict[str, str]:
         return self._layer1.get_column_units(catalog)
 
     def save_structured_data(
@@ -192,7 +192,7 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_records(
         self,
-        raw_catalogs: list[catalogs.RawCatalog],
+        raw_catalogs: list[catalogs.layer1.Catalog],
         record_ids: list[str] | None = None,
         table_name: str | None = None,
         offset: str | None = None,
@@ -202,11 +202,11 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs_pgc(
         self,
-        raw_catalogs: list[catalogs.RawCatalog],
+        raw_catalogs: list[catalogs.layer2.Catalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[catalogs.Layer2CatalogObject]:
+    ) -> list[catalogs.layer2.Layer2Object]:
         return self._layer2.query_catalogs_pgc(raw_catalogs, pgc_numbers, limit, offset)
 
     def query_with_metadata(

@@ -18,43 +18,48 @@ class Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def get_last_update_time(self, catalog: catalogs.RawCatalog) -> datetime.datetime:
+    def get_last_update_time(self, catalog: catalogs.layer2.Catalog) -> datetime.datetime:
         return self._storage.query_one("SELECT dt FROM layer2.last_update WHERE catalog = %s", params=[catalog.value])[
             "dt"
         ]
 
-    def update_last_update_time(self, dt: datetime.datetime, catalog: catalogs.RawCatalog) -> None:
+    def update_last_update_time(self, dt: datetime.datetime, catalog: catalogs.layer2.Catalog) -> None:
         self._storage.exec(
             "UPDATE layer2.last_update SET dt = %s WHERE catalog = %s",
             params=[dt, catalog.value],
         )
 
-    def get_orphaned_pgcs(self, raw_catalogs: list[catalogs.RawCatalog]) -> dict[str, list[int]]:
+    def get_orphaned_pgcs(self, raw_catalogs: list[catalogs.layer2.Catalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
         for catalog in raw_catalogs:
-            object_cls = catalogs.get_catalog_object_type(catalog)
-            layer2_table = object_cls.layer2_table()
-            layer1_table = object_cls.layer1_table()
+            object_cls = catalogs.layer2.get_catalog_object_type(catalog)
+            layer2_table = object_cls.table()
+            missing_sources = []
+            for source in object_cls.sources():
+                layer1_table = catalogs.layer1.get_catalog_object_type(source).layer1_table()
+                missing_sources.append(f"""
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM layer0.records r
+                        INNER JOIN {layer1_table} l1 ON l1.record_id = r.id
+                        WHERE r.pgc = l2.pgc
+                    )
+                """)
             query = f"""
                 SELECT l2.pgc FROM {layer2_table} l2
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM layer0.records r
-                    INNER JOIN {layer1_table} l1 ON l1.record_id = r.id
-                    WHERE r.pgc = l2.pgc
-                )
+                WHERE {" AND ".join(missing_sources)}
             """
             rows_result = self._storage.query(query)
             result[layer2_table] = [int(row["pgc"]) for row in rows_result]
         return result
 
-    def remove_pgcs(self, raw_catalogs: list[catalogs.RawCatalog], pgcs: list[int]) -> None:
+    def remove_pgcs(self, raw_catalogs: list[catalogs.layer2.Catalog], pgcs: list[int]) -> None:
         if not pgcs:
             return
 
         for catalog in raw_catalogs:
-            object_cls = catalogs.get_catalog_object_type(catalog)
-            layer2_table = object_cls.layer2_table()
+            object_cls = catalogs.layer2.get_catalog_object_type(catalog)
+            layer2_table = object_cls.table()
             query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
             self._storage.exec(query, params=[pgcs])
 
@@ -117,7 +122,7 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        icrs_table = catalogs.get_catalog_object_type(catalogs.RawCatalog.ICRS).layer1_table()
+        icrs_table = catalogs.layer1.get_catalog_object_type(catalogs.layer1.Catalog.ICRS).layer1_table()
         icrs_schema, icrs_name = icrs_table.split(".", maxsplit=1)
         icrs_info = self.get_table_metadata(icrs_schema, icrs_name)
         units = {name: col.unit for name, col in icrs_info.columns.items() if col.unit}
@@ -141,7 +146,7 @@ class Repository(postgres.TransactionalPGRepository):
             offset,
             extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
         )
-        redshift_table = catalogs.get_catalog_object_type(catalogs.RawCatalog.REDSHIFT).layer1_table()
+        redshift_table = catalogs.layer1.get_catalog_object_type(catalogs.layer1.Catalog.REDSHIFT).layer1_table()
         redshift_schema, redshift_name = redshift_table.split(".", maxsplit=1)
         redshift_info = self.get_table_metadata(redshift_schema, redshift_name)
         units = {name: col.unit for name, col in redshift_info.columns.items() if col.unit}

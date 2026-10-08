@@ -7,12 +7,12 @@ def test_includes_nature_when_present() -> None:
     record = model.Record(
         id="rec1",
         data=[
-            catalogs.DesignationCatalogObject(design="NGC 1"),
-            catalogs.NatureCatalogObject(type_name="G"),
+            catalogs.layer1.DesignationCatalogObject(design="NGC 1"),
+            catalogs.layer1.NatureCatalogObject(type_name="G"),
         ],
     )
 
-    result = crossmatch.catalogs_from_object(record)
+    result = crossmatch.catalogs_from_layer1(record)
 
     assert result.designation is not None
     assert result.designation.name == "NGC 1"
@@ -23,9 +23,9 @@ def test_includes_nature_when_present() -> None:
 def test_omits_nature_when_absent() -> None:
     record = model.Record(
         id="rec1",
-        data=[catalogs.DesignationCatalogObject(design="NGC 1")],
+        data=[catalogs.layer1.DesignationCatalogObject(design="NGC 1")],
     )
 
-    result = crossmatch.catalogs_from_object(record)
+    result = crossmatch.catalogs_from_layer1(record)
 
     assert result.nature is None

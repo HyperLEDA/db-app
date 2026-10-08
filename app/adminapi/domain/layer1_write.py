@@ -13,8 +13,8 @@ class Layer1Writer:
         self._repo = repo
 
     def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
-        catalog = catalogs.RawCatalog(request.catalog)
-        object_cls = catalogs.get_catalog_object_type(catalog)
+        catalog = catalogs.layer1.Catalog(request.catalog)
+        object_cls = catalogs.layer1.get_catalog_object_type(catalog)
         table = object_cls.layer1_table()
 
         internal_units = self._repo.get_column_units(catalog)
@@ -39,7 +39,7 @@ class Layer1Writer:
                     new_row.append(value)
             converted.append(new_row)
 
-        if catalog == catalogs.RawCatalog.DESIGNATION and "design" in request.columns:
+        if catalog == catalogs.layer1.Catalog.DESIGNATION and "design" in request.columns:
             design_idx = request.columns.index("design")
             for row in converted:
                 row[design_idx] = designation_normalization.normalize_designation(str(row[design_idx]))

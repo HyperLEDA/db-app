@@ -1,7 +1,7 @@
 from unittest import mock
 
 from app.adminapi.domain.layer1_write import Layer1Writer
-from app.catalogs import DesignationCatalogObject, ICRSCatalogObject
+from app.catalogs.layer1 import DesignationCatalogObject, ICRSCatalogObject
 from app.specs import adminapi
 
 

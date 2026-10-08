@@ -14,7 +14,7 @@ class CrossmatchRecordRow:
 @dataclass
 class Record:
     id: str
-    data: list[catalogs.CatalogObject]
+    data: list[catalogs.layer1.CatalogObject]
 
     def get[T](self, t: type[T]) -> T | None:
         return catalogs.get_object(self.data, t)

@@ -9,10 +9,10 @@ from app.lib.web import errors
 from app.specs import dataapi as spec
 
 ENABLED_CATALOGS = [
-    catalogs.RawCatalog.DESIGNATION,
-    catalogs.RawCatalog.ICRS,
-    catalogs.RawCatalog.REDSHIFT,
-    catalogs.RawCatalog.NATURE,
+    catalogs.layer2.Catalog.DESIGNATION,
+    catalogs.layer2.Catalog.ICRS,
+    catalogs.layer2.Catalog.REDSHIFT,
+    catalogs.layer2.Catalog.NATURE,
 ]
 
 METADATA_ALLOWED_SCHEMAS = frozenset(

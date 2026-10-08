@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -20,8 +20,8 @@ class MorphologyTCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.MORPHOLOGY__T
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.MORPHOLOGY__T
 
     @classmethod
     def title(cls) -> str:
@@ -59,8 +59,8 @@ class MorphologyFeaturesCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.MORPHOLOGY__FEATURES
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.MORPHOLOGY__FEATURES
 
     @classmethod
     def title(cls) -> str:
@@ -86,8 +86,8 @@ class MorphologyExtraCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.MORPHOLOGY__EXTRA
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.MORPHOLOGY__EXTRA
 
     @classmethod
     def title(cls) -> str:
@@ -123,8 +123,8 @@ class MorphologySpiralWindingCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.MORPHOLOGY__SPIRAL_WINDING
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.MORPHOLOGY__SPIRAL_WINDING
 
     @classmethod
     def title(cls) -> str:

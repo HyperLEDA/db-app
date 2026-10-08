@@ -11,9 +11,9 @@ from app.lib.web import errors
 from app.specs import dataapi
 
 DEFAULT = [
-    catalogs.RawCatalog.DESIGNATION,
-    catalogs.RawCatalog.ICRS,
-    catalogs.RawCatalog.REDSHIFT,
+    catalogs.layer2.Catalog.DESIGNATION,
+    catalogs.layer2.Catalog.ICRS,
+    catalogs.layer2.Catalog.REDSHIFT,
 ]
 
 
@@ -25,14 +25,14 @@ def test_subset_preserves_request_order() -> None:
     assert parameterized_query.resolve_query_catalogs(
         ["icrs", "designation"],
         DEFAULT,
-    ) == [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.DESIGNATION]
+    ) == [catalogs.layer2.Catalog.ICRS, catalogs.layer2.Catalog.DESIGNATION]
 
 
 def test_deduplicates() -> None:
     assert parameterized_query.resolve_query_catalogs(
         ["icrs", "icrs"],
         DEFAULT,
-    ) == [catalogs.RawCatalog.ICRS]
+    ) == [catalogs.layer2.Catalog.ICRS]
 
 
 def test_empty_list_raises() -> None:

@@ -1,6 +1,6 @@
 from typing import Any, Self, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -10,8 +10,8 @@ class NatureCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.NATURE
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.NATURE
 
     @classmethod
     def title(cls) -> str:
@@ -27,19 +27,4 @@ class NatureCatalogObject(interface.CatalogObject):
 
     @classmethod
     def from_layer1(cls, data: dict[str, Any]) -> Self:
-        return cls(type_name=data["type_name"])
-
-    @classmethod
-    def layer2_table(cls) -> str:
-        return "layer2.nature"
-
-    @classmethod
-    def layer2_keys(cls) -> list[str]:
-        return ["type_name"]
-
-    def layer2_data(self) -> dict[str, Any]:
-        return {"type_name": self.type_name}
-
-    @classmethod
-    def from_layer2(cls, data: dict[str, Any]) -> Self:
         return cls(type_name=data["type_name"])

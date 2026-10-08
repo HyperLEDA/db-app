@@ -42,7 +42,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         if self.since is not None:
             last_update_dt = self.since
         else:
-            last_update_dt = self.repository.get_last_update_time(catalogs.RawCatalog.NATURE)
+            last_update_dt = self.repository.get_last_update_time(catalogs.layer2.Catalog.NATURE)
         self.log.info(
             "Starting Layer 2 nature import",
             last_update=last_update_dt.ctime(),
@@ -78,7 +78,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
                 total_processed=objects_to_save,
             )
 
-        orphans_to_delete = self.finalize_catalog(catalogs.RawCatalog.NATURE)
+        orphans_to_delete = self.finalize_catalog(catalogs.layer2.Catalog.NATURE)
         self.log.info("Layer 2 nature import completed", last_update=last_update_dt.ctime())
 
         if not self.silent:

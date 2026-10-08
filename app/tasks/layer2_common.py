@@ -76,7 +76,7 @@ class Layer2CatalogImportTask(Layer2StorageTask, abc.ABC):
         self.since = interface.parse_since(since)
         self.cleanup_orphans = cleanup_orphans
 
-    def finalize_catalog(self, catalog: catalogs.RawCatalog) -> int:
+    def finalize_catalog(self, catalog: catalogs.layer2.Catalog) -> int:
         orphans_to_delete = 0
         if self.cleanup_orphans:
             orphaned = self.repository.get_orphaned_pgcs([catalog])
