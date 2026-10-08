@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -34,8 +34,8 @@ class GeometryCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.GEOMETRY
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.GEOMETRY
 
     @classmethod
     def title(cls) -> str:

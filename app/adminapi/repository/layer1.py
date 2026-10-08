@@ -4,10 +4,10 @@ import structlog
 from astropy import units as u
 from psycopg import sql
 
-from app import catalogs
 from app.adminapi import model
 from app.adminapi.repository.common import get_column_units as query_column_units
 from app.adminapi.repository.common import touch_pgcs
+from app.catalogs import layer1
 from app.lib.storage import postgres
 
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -18,8 +18,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         self._logger = logger
         super().__init__(storage)
 
-    def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
-        object_cls = catalogs.get_catalog_object_type(catalog)
+    def get_column_units(self, catalog: layer1.Catalog) -> dict[str, str]:
+        object_cls = layer1.get_catalog_object_type(catalog)
         schema, table_name = object_cls.layer1_table().split(".")
         return query_column_units(self._storage, schema, table_name)
 
@@ -95,7 +95,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             "SELECT record_id, cz, e_cz FROM cz.data WHERE record_id = ANY(%s)",
             params=[record_ids],
         )
-        units = self.get_column_units(catalogs.RawCatalog.REDSHIFT)
+        units = self.get_column_units(layer1.Catalog.REDSHIFT)
         default_e_cz = float(DEFAULT_E_CZ.to_value(u.Unit(units["e_cz"])))
         by_id = {
             r["record_id"]: model.RedshiftRecord(
@@ -118,7 +118,7 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
     def query_records(
         self,
-        raw_catalogs: list[catalogs.RawCatalog],
+        raw_catalogs: list[layer1.Catalog],
         record_ids: list[str] | None = None,
         table_name: str | None = None,
         offset: str | None = None,
@@ -127,9 +127,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         if not raw_catalogs:
             return []
 
-        readable: list[tuple[catalogs.RawCatalog, type[catalogs.CatalogObject], list[str]]] = []
+        readable: list[tuple[layer1.Catalog, type[layer1.CatalogObject], list[str]]] = []
         for catalog in raw_catalogs:
-            object_cls = catalogs.get_catalog_object_type(catalog)
+            object_cls = layer1.get_catalog_object_type(catalog)
             try:
                 keys = object_cls.layer1_keys()
             except NotImplementedError:
@@ -220,9 +220,9 @@ class Layer1Repository(postgres.TransactionalPGRepository):
 
 def _group_by_record_id(
     records: list[dict],
-    readable: list[tuple[catalogs.RawCatalog, type[catalogs.CatalogObject], list[str]]],
+    readable: list[tuple[layer1.Catalog, type[layer1.CatalogObject], list[str]]],
 ) -> list[model.Record]:
-    record_data: dict[str, list[catalogs.CatalogObject]] = {}
+    record_data: dict[str, list[layer1.CatalogObject]] = {}
 
     for row in records:
         record_id = row["record_id"]

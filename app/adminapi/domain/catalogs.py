@@ -1,7 +1,7 @@
 from typing import final
 
-from app import catalogs
 from app.adminapi import repository
+from app.catalogs import layer1
 from app.lib.storage import postgres
 from app.specs import adminapi as spec
 
@@ -26,10 +26,8 @@ class CatalogManager:
 
     def get_catalogs(self) -> spec.GetCatalogsResponse:
         catalog_schemas: list[spec.CatalogSchema] = []
-        for catalog in catalogs.RawCatalog:
-            if catalog in catalogs.RUNTIME_RAW_CATALOGS:
-                continue
-            object_cls = catalogs.get_catalog_object_type(catalog)
+        for catalog in layer1.Catalog:
+            object_cls = layer1.get_catalog_object_type(catalog)
             layer1_table = object_cls.layer1_table()
             schema, table = layer1_table.split(".", maxsplit=1)
             table_info = self._repo.get_table_metadata(schema, table)

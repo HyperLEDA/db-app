@@ -1,7 +1,6 @@
 from astropy import coordinates as coords
 
-from app import catalogs
-from app.catalogs import designation_normalization
+from app.catalogs import designation_normalization, layer2
 from app.dataapi import repository, responders
 from app.dataapi.domain import reddening
 from app.lib import astronomy
@@ -9,33 +8,33 @@ from app.lib.web.errors import RuleValidationError
 from app.specs import dataapi as spec
 
 CATALOGS_FOR_PGC_QUERY = [
-    catalogs.RawCatalog.DESIGNATION,
-    catalogs.RawCatalog.ADDITIONAL_DESIGNATIONS,
-    catalogs.RawCatalog.ICRS,
-    catalogs.RawCatalog.REDSHIFT,
-    catalogs.RawCatalog.NATURE,
-    catalogs.RawCatalog.NOTE,
-    catalogs.RawCatalog.PHOTOMETRY__TOTAL,
+    layer2.Catalog.DESIGNATION,
+    layer2.Catalog.ADDITIONAL_DESIGNATIONS,
+    layer2.Catalog.ICRS,
+    layer2.Catalog.REDSHIFT,
+    layer2.Catalog.NATURE,
+    layer2.Catalog.NOTE,
+    layer2.Catalog.PHOTOMETRY__TOTAL,
 ]
 
 
 def resolve_query_catalogs(
     catalog_names: list[str] | None,
-    default_catalogs: list[catalogs.RawCatalog],
-) -> list[catalogs.RawCatalog]:
+    default_catalogs: list[layer2.Catalog],
+) -> list[layer2.Catalog]:
     if catalog_names is None:
         return default_catalogs
     if not catalog_names:
         raise RuleValidationError("catalogs must not be empty")
 
     allowed = set(default_catalogs)
-    result: list[catalogs.RawCatalog] = []
-    seen: set[catalogs.RawCatalog] = set()
+    result: list[layer2.Catalog] = []
+    seen: set[layer2.Catalog] = set()
     for name in catalog_names:
         try:
-            catalog = catalogs.RawCatalog(name)
+            catalog = layer2.Catalog(name)
         except ValueError as exc:
-            valid = ", ".join(c.value for c in catalogs.RawCatalog)
+            valid = ", ".join(c.value for c in layer2.Catalog)
             raise RuleValidationError(f"Unknown catalog {name!r}; valid values are: {valid}") from exc
         if catalog not in allowed:
             allowed_names = ", ".join(c.value for c in default_catalogs)
@@ -138,7 +137,7 @@ class ParameterizedQueryManager:
     def __init__(
         self,
         repo: repository.Repository,
-        enabled_catalogs: list[catalogs.RawCatalog],
+        enabled_catalogs: list[layer2.Catalog],
         catalog_cfg: responders.CatalogConfig,
         reddening_service: reddening.Reddening,
     ) -> None:

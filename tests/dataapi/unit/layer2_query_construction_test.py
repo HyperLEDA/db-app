@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from app import catalogs
+from app.catalogs import layer2
 from app.dataapi import repository
 
 
@@ -16,7 +16,7 @@ def repo() -> tuple[mock.Mock, repository.Repository]:
 
 def _one_to_one_query_for(
     repo_fixture: tuple[mock.Mock, repository.Repository],
-    raw_catalogs: list[catalogs.RawCatalog],
+    raw_catalogs: list[layer2.Catalog],
 ) -> str:
     storage, repo = repo_fixture
     repo.query_catalogs(raw_catalogs, [1, 2])
@@ -29,7 +29,7 @@ def _one_to_one_query_for(
 def test_one_to_one_uses_unnest_left_join(repo: tuple[mock.Mock, repository.Repository]) -> None:
     query = _one_to_one_query_for(
         repo,
-        [catalogs.RawCatalog.DESIGNATION, catalogs.RawCatalog.ICRS, catalogs.RawCatalog.REDSHIFT],
+        [layer2.Catalog.DESIGNATION, layer2.Catalog.ICRS, layer2.Catalog.REDSHIFT],
     )
 
     assert "unnest(%s::int[]) WITH ORDINALITY" in query
@@ -43,7 +43,7 @@ def test_one_to_one_uses_unnest_left_join(repo: tuple[mock.Mock, repository.Repo
 def test_one_to_many_catalogs_use_separate_queries(repo: tuple[mock.Mock, repository.Repository]) -> None:
     _, repo_instance = repo
     repo_instance.query_catalogs(
-        [catalogs.RawCatalog.PHOTOMETRY__TOTAL, catalogs.RawCatalog.NOTE],
+        [layer2.Catalog.PHOTOMETRY__TOTAL, layer2.Catalog.NOTE],
         [1],
     )
     storage, _ = repo
@@ -56,7 +56,7 @@ def test_one_to_many_catalogs_use_separate_queries(repo: tuple[mock.Mock, reposi
 def test_mixed_catalogs_join_only_one_to_one(repo: tuple[mock.Mock, repository.Repository]) -> None:
     storage, repo_instance = repo
     repo_instance.query_catalogs(
-        [catalogs.RawCatalog.ICRS, catalogs.RawCatalog.PHOTOMETRY__TOTAL],
+        [layer2.Catalog.ICRS, layer2.Catalog.PHOTOMETRY__TOTAL],
         [1],
     )
     queries = [call.args[0] for call in storage.query.call_args_list]

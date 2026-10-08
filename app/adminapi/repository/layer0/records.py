@@ -2,11 +2,11 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from app import catalogs
 from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.common import touch_pgcs
 from app.adminapi.repository.layer0.common import metadata_to_candidates
+from app.catalogs import layer1, layer2
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
 
@@ -25,17 +25,16 @@ def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any
     return "WHERE t.table_name = ANY(%s)", [table_names]
 
 
-def _progress_catalogs() -> list[catalogs.RawCatalog]:
-    raw_catalogs: list[catalogs.RawCatalog] = []
-    for catalog in catalogs.RawCatalog:
-        if catalog in catalogs.RUNTIME_RAW_CATALOGS:
-            continue
-        try:
-            catalogs.get_catalog_object_type(catalog)
-        except ValueError:
-            continue
-        raw_catalogs.append(catalog)
-    return raw_catalogs
+_LAYER2_PROGRESS: dict[layer1.Catalog, layer2.Catalog] = {
+    layer1.Catalog.DESIGNATION: layer2.Catalog.DESIGNATION,
+    layer1.Catalog.ICRS: layer2.Catalog.ICRS,
+    layer1.Catalog.REDSHIFT: layer2.Catalog.REDSHIFT,
+    layer1.Catalog.NATURE: layer2.Catalog.NATURE,
+}
+
+
+def _progress_catalogs() -> list[layer1.Catalog]:
+    return list(layer1.Catalog)
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -313,16 +312,15 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
     def _get_catalog_progress(
         self,
-        catalog: catalogs.RawCatalog,
+        catalog: layer1.Catalog,
         table_names: list[str] | None,
     ) -> dict[str, model.CatalogProgress]:
-        object_cls = catalogs.get_catalog_object_type(catalog)
+        object_cls = layer1.get_catalog_object_type(catalog)
         layer1_table = object_cls.layer1_table()
         where_clause, params = _progress_table_filter(table_names)
 
-        try:
-            layer2_table = object_cls.layer2_table()
-        except NotImplementedError:
+        layer2_catalog = _LAYER2_PROGRESS.get(catalog)
+        if layer2_catalog is None:
             rows = self._storage.query(
                 f"""
                 SELECT t.table_name, COUNT(*) AS structured
@@ -346,6 +344,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 for row in rows
             }
 
+        layer2_table = layer2.get_catalog_object_type(layer2_catalog).table()
         rows = self._storage.query(
             f"""
             SELECT t.table_name,
@@ -373,7 +372,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             {where_clause}
             GROUP BY t.table_name, t.id
             """,
-            params=[catalog.value, *params],
+            params=[layer2_catalog.value, *params],
         )
         return {
             row["table_name"]: model.CatalogProgress(

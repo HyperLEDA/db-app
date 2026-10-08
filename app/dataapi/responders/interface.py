@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from app import catalogs
+from app.catalogs import layer2
 
 
 class ObjectResponder(ABC):
@@ -10,5 +10,5 @@ class ObjectResponder(ABC):
     """
 
     @abstractmethod
-    def build_response_from_catalog(self, objects: list[catalogs.Layer2CatalogObject]) -> Any:
+    def build_response_from_catalog(self, objects: list[layer2.Layer2Object]) -> Any:
         pass

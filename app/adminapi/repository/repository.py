@@ -4,11 +4,12 @@ from typing import Any, final
 import structlog
 from astropy import table
 
-from app import catalogs
 from app.adminapi import model
 from app.adminapi.repository import common, layer1, layer2, metadata, references
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository.layer0 import records, tables
+from app.catalogs import layer1 as layer1_catalogs
+from app.catalogs import layer2 as layer2_catalogs
 from app.lib.storage import enums, postgres
 
 
@@ -165,7 +166,7 @@ class Repository(postgres.TransactionalPGRepository):
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)
 
-    def get_column_units(self, catalog: catalogs.RawCatalog) -> dict[str, str]:
+    def get_column_units(self, catalog: layer1_catalogs.Catalog) -> dict[str, str]:
         return self._layer1.get_column_units(catalog)
 
     def save_structured_data(
@@ -192,7 +193,7 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_records(
         self,
-        raw_catalogs: list[catalogs.RawCatalog],
+        raw_catalogs: list[layer1_catalogs.Catalog],
         record_ids: list[str] | None = None,
         table_name: str | None = None,
         offset: str | None = None,
@@ -202,11 +203,11 @@ class Repository(postgres.TransactionalPGRepository):
 
     def query_catalogs_pgc(
         self,
-        raw_catalogs: list[catalogs.RawCatalog],
+        raw_catalogs: list[layer2_catalogs.Catalog],
         pgc_numbers: list[int],
         limit: int,
         offset: int = 0,
-    ) -> list[catalogs.Layer2CatalogObject]:
+    ) -> list[layer2_catalogs.Layer2Object]:
         return self._layer2.query_catalogs_pgc(raw_catalogs, pgc_numbers, limit, offset)
 
     def query_with_metadata(

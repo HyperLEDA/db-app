@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -26,8 +26,8 @@ class KinematicsLineWidthCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.KINEMATICS__LINE_WIDTH
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.KINEMATICS__LINE_WIDTH
 
     @classmethod
     def title(cls) -> str:

@@ -1,6 +1,6 @@
 from typing import Any, final, override
 
-from app.catalogs import interface
+from app.catalogs.layer1 import interface
 
 
 @final
@@ -22,8 +22,8 @@ class SpectroscopyIntegratedFluxDensityCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.SPECTROSCOPY__INTEGRATED_FLUX_DENSITY
 
     @classmethod
     def title(cls) -> str:
@@ -59,8 +59,8 @@ class SpectroscopyEnergyFluxCatalogObject(interface.CatalogObject):
 
     @classmethod
     @override
-    def catalog(cls) -> interface.RawCatalog:
-        return interface.RawCatalog.SPECTROSCOPY__ENERGY_FLUX
+    def catalog(cls) -> interface.Catalog:
+        return interface.Catalog.SPECTROSCOPY__ENERGY_FLUX
 
     @classmethod
     def title(cls) -> str:

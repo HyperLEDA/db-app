@@ -3,7 +3,7 @@ from typing import Any
 import structlog
 from astropy import units as u
 
-from app import catalogs
+from app.catalogs import layer2
 from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
@@ -193,25 +193,25 @@ class StructuredResponder(interface.ObjectResponder):
                 corrected_by_pgc[pgc] = corrected
         return corrected_by_pgc
 
-    def build_response_from_catalog(self, objects: list[catalogs.Layer2CatalogObject]) -> Any:
+    def build_response_from_catalog(self, objects: list[layer2.Layer2Object]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
 
         for obj in objects:
             result = spec.Catalogs()
 
-            if (designation := obj.get(catalogs.DesignationCatalogObject)) is not None:
+            if (designation := obj.get(layer2.DesignationCatalogObject)) is not None:
                 result.designation = spec.Designation(name=designation.designation)
 
-            icrs = obj.get(catalogs.ICRSCatalogObject)
+            icrs = obj.get(layer2.ICRSCatalogObject)
             if icrs is not None:
                 result.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
 
-            redshift = obj.get(catalogs.RedshiftCatalogObject)
+            redshift = obj.get(layer2.RedshiftCatalogObject)
             if redshift is not None:
                 result.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
 
-            if (nature := obj.get(catalogs.NatureCatalogObject)) is not None:
+            if (nature := obj.get(layer2.NatureCatalogObject)) is not None:
                 result.nature = spec.Nature(type_name=nature.type_name)
 
             if icrs is not None and redshift is not None and result.coordinates is not None:
