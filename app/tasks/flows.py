@@ -20,6 +20,7 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import-icrs",
     "layer2-import-redshift",
     "layer2-import-nature",
+    "layer2-import-data",
     "layer2-orphan-cleanup",
 )
 
@@ -35,7 +36,7 @@ CLEANUP_ORPHANS_DESCRIPTION = (
     "Remove PGC objects that were left without corresponding records. "
     "Useful if any records were deleted or changed PGC numbers since the last update."
 )
-CATALOGS_DESCRIPTION = "Catalogs to import: designation, icrs, redshift, nature. If not set, imports all."
+CATALOGS_DESCRIPTION = "Catalogs to import: designation, icrs, redshift, nature, data. If not set, imports all."
 WRITE_ORPHANS_DESCRIPTION = (
     "If true, remove orphaned PGC objects from layer 2 tables. If false, only report how many orphans would be removed."
 )
@@ -119,7 +120,7 @@ def run_task(
 @flow(
     log_prints=False,
     name="Layer 2 import (all catalogs)",
-    description="Aggregates designation, ICRS, redshift, and nature from layer 1 into layer 2.",
+    description="Aggregates designation, ICRS, redshift, nature, and the Cone Search summary into layer 2.",
 )
 def layer2_import(params: Layer2ImportParams = DEFAULT_LAYER2_IMPORT_PARAMS) -> None:
     run_task(
@@ -198,6 +199,21 @@ def layer2_import_nature(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALO
 
 @flow(
     log_prints=False,
+    name="Layer 2 import — data",
+    description="Builds the one-row-per-PGC summary used by Cone Search and Aladin.",
+)
+def layer2_import_data(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
+    run_task(
+        "layer2-import-data",
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
+    )
+
+
+@flow(
+    log_prints=False,
     name="Layer 2 orphan cleanup",
     description="Find and optionally remove PGC objects left without corresponding layer 1 records.",
 )
@@ -220,6 +236,7 @@ FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import-icrs": layer2_import_icrs,
     "layer2-import-redshift": layer2_import_redshift,
     "layer2-import-nature": layer2_import_nature,
+    "layer2-import-data": layer2_import_data,
     "layer2-orphan-cleanup": layer2_orphan_cleanup,
 }
 

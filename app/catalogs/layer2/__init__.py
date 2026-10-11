@@ -1,4 +1,5 @@
 from app.catalogs.layer2.additional_designations import AdditionalDesignationsCatalogObject
+from app.catalogs.layer2.data import DataCatalogObject
 from app.catalogs.layer2.designation import DesignationCatalogObject
 from app.catalogs.layer2.helpers import get_catalog_object_type
 from app.catalogs.layer2.icrs import ICRSCatalogObject
@@ -13,6 +14,7 @@ __all__ = [
     "AdditionalDesignationsCatalogObject",
     "Catalog",
     "CatalogObject",
+    "DataCatalogObject",
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "Layer2Object",

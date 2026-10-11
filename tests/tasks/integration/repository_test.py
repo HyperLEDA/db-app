@@ -2,6 +2,7 @@ import datetime
 from typing import final, override
 from unittest import mock
 
+import numpy as np
 import pytest
 import structlog
 from astropy import table
@@ -394,3 +395,136 @@ def test_save_structured_data_bumps_pgc_modification_time(
 
     future = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
     assert len(repo.get_new_nature_records(future, 10, 0)) == 0
+
+
+def test_save_writes_masked_and_nan_as_null(repo: repository.Repository, storage: postgres.PgStorage) -> None:
+    layer_seed.register_pgcs(storage, [1])
+    repo.save(
+        "layer2.data",
+        table.QTable(
+            {
+                "pgc": [1],
+                "design": table.MaskedColumn(["kept"], mask=[False]),
+                "ra": np.array([np.nan]),
+                "e_ra": table.MaskedColumn([1.0], mask=[True], dtype=float),
+                "dec": np.array([20.0]),
+                "e_dec": np.array([0.1]),
+                "type_name": table.MaskedColumn(["G"], mask=[True]),
+                "bt": np.array([12.0]),
+                "e_bt": np.array([0.2]),
+                "d25": np.array([np.nan]),
+                "ba": np.array([0.4]),
+            }
+        ),
+    )
+    repo.save(
+        "layer2.data",
+        table.QTable(
+            {
+                "pgc": [1],
+                "design": table.MaskedColumn(["kept"], mask=[True]),
+                "ra": np.array([np.nan]),
+                "e_ra": np.array([np.nan]),
+                "dec": np.array([np.nan]),
+                "e_dec": np.array([np.nan]),
+                "type_name": table.MaskedColumn(["G"], mask=[True]),
+                "bt": np.array([np.nan]),
+                "e_bt": np.array([np.nan]),
+                "d25": np.array([np.nan]),
+                "ba": np.array([np.nan]),
+            }
+        ),
+    )
+
+    row = storage.query_one("SELECT * FROM layer2.data WHERE pgc = %s", params=[1])
+    assert row["design"] is None
+    assert row["ra"] is None
+    assert row["e_ra"] is None
+    assert row["dec"] is None
+    assert row["type_name"] is None
+    assert row["bt"] is None
+    assert row["ba"] is None
+
+
+def test_get_changed_pgcs_respects_watermark_limit_and_offset(
+    repo: repository.Repository,
+    storage: postgres.PgStorage,
+) -> None:
+    layer_seed.register_pgcs(storage, [10, 20, 30])
+    storage.exec(
+        "UPDATE common.pgc SET modification_time = %s WHERE id <> ALL(%s)",
+        params=[datetime.datetime(1990, 1, 1, tzinfo=datetime.UTC), [10, 20, 30]],
+    )
+    for pgc, year in ((10, 2000), (20, 2020), (30, 2021)):
+        storage.exec(
+            "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
+            params=[datetime.datetime(year, 1, 1, tzinfo=datetime.UTC), pgc],
+        )
+    since = datetime.datetime(2010, 1, 1, tzinfo=datetime.UTC)
+
+    assert repo.get_changed_pgcs(since, limit=1, offset=0) == [20]
+    assert repo.get_changed_pgcs(since, limit=10, offset=20) == [30]
+    assert repo.get_changed_pgcs(datetime.datetime(2030, 1, 1, tzinfo=datetime.UTC), 10, 0) == []
+
+
+def test_get_summary_base_rows_keeps_missing_catalogs(
+    repo: repository.Repository,
+    storage: postgres.PgStorage,
+) -> None:
+    layer_seed.register_pgcs(storage, [1, 2])
+    repo.save("layer2.designation", table.QTable({"pgc": [1], "design": ["Alpha"]}))
+    repo.save(
+        "layer2.icrs",
+        table.QTable({"pgc": [1], "ra": [10.0], "e_ra": [0.1], "dec": [20.0], "e_dec": [0.2]}),
+    )
+    repo.save("layer2.nature", table.QTable({"pgc": [1], "type_name": ["G"]}))
+
+    rows = repo.get_summary_base_rows([1, 2])
+    by_pgc = {int(pgc): index for index, pgc in enumerate(rows["pgc"])}
+    assert set(by_pgc) == {1, 2}
+    assert str(rows["design"][by_pgc[1]]) == "Alpha"
+    assert float(rows["ra"][by_pgc[1]]) == pytest.approx(10.0)
+    assert str(rows["type_name"][by_pgc[1]]) == "G"
+    assert rows["design"].mask[by_pgc[2]]
+    assert np.isnan(float(rows["ra"][by_pgc[2]]))
+    assert rows["type_name"].mask[by_pgc[2]]
+
+
+def test_get_b_photometry_applies_selection(repo: repository.Repository, storage: postgres.PgStorage) -> None:
+    layer_seed.seed_layer1_table(
+        storage,
+        "phot_select",
+        ["keep", "bessell", "model", "lowsnr", "ab"],
+        {"keep": 100, "bessell": 100, "model": 100, "lowsnr": 100, "ab": 200},
+        layer1.PhotometryTotalCatalogObject.layer1_table(),
+        ["band", "mag", "e_mag", "method", "quality"],
+        [
+            ["B", 11.0, 0.1, "asymptotic", "regular"],
+            ["B_Bessell", 12.0, 0.1, "asymptotic", "regular"],
+            ["B", 13.0, 0.1, "model", "regular"],
+            ["B", 14.0, 0.1, "asymptotic", "low_snr"],
+            ["B_AB", 15.0, 0.1, "asymptotic", "regular"],
+        ],
+        conflict_keys=layer1.PhotometryTotalCatalogObject.layer1_primary_keys(),
+    )
+    bib_id = layer_seed.create_bibliography(storage, "comp-phot", 2000, ["test"], "test")
+    layer_seed.create_table(storage, "phot_comp", bib_id, datatype="compilation")
+    layer_seed.register_records(storage, "phot_comp", ["comp"])
+    layer_seed.register_pgcs(storage, [300])
+    layer_seed.upsert_pgc(storage, {"comp": 300})
+    layer_seed.save_structured_data(
+        storage,
+        layer1.PhotometryTotalCatalogObject.layer1_table(),
+        ["band", "mag", "e_mag", "method", "quality"],
+        ["comp"],
+        [["B", 9.0, 0.1, "asymptotic", "regular"]],
+        conflict_keys=layer1.PhotometryTotalCatalogObject.layer1_primary_keys(),
+    )
+
+    result = repo.get_b_photometry([100, 200, 300])
+    got = {
+        (int(pgc), float(mag), str(datatype))
+        for pgc, mag, datatype in zip(result["pgc"], result["mag"], result["datatype"], strict=True)
+    }
+    assert got == {(100, 11.0, "regular"), (300, 9.0, "compilation")}
+

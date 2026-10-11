@@ -1,5 +1,6 @@
 from app.catalogs.layer2 import (
     additional_designations,
+    data,
     designation,
     icrs,
     interface,
@@ -17,6 +18,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.Catalog, type[interface.CatalogObject]] = 
     interface.Catalog.NATURE: nature.NatureCatalogObject,
     interface.Catalog.NOTE: note.NoteCatalogObject,
     interface.Catalog.PHOTOMETRY__TOTAL: photometry_total.PhotometryTotalCatalogObject,
+    interface.Catalog.DATA: data.DataCatalogObject,
 }
 
 

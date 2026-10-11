@@ -11,15 +11,17 @@ from app.tasks import (
     layer2_import_nature,
     layer2_import_redshift,
 )
+from app.tasks.layer2_data.task import Layer2ImportDataTask
 
 CATALOG_TASKS = {
     "designation": designation.Layer2ImportDesignationTask,
     "icrs": layer2_import_icrs.Layer2ImportICRSTask,
     "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
     "nature": layer2_import_nature.Layer2ImportNatureTask,
+    "data": Layer2ImportDataTask,
 }
 
-DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature")
+DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature", "data")
 
 
 @final

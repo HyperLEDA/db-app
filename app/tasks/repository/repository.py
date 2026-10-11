@@ -1,6 +1,8 @@
 import datetime
+import math
 from typing import Any, final
 
+import numpy as np
 import structlog
 from astropy import table
 from astropy import units as u
@@ -8,6 +10,7 @@ from psycopg import sql
 
 from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
+from app.tasks.layer2_data.aggregation import B_BAND, BT_METHOD, GEOMETRY_METHODS, ISOPHOTE_LEVEL, QUALITY
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
 
@@ -103,6 +106,105 @@ class Repository(postgres.TransactionalPGRepository):
                         "INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}"
                     ).format(table_ident, column_idents, column_idents, on_conflict)
                 )
+
+    def get_changed_pgcs(self, dt: datetime.datetime, limit: int, offset: int) -> list[int]:
+        rows = self._storage.query(
+            """
+            SELECT id
+            FROM common.pgc
+            WHERE modification_time > %s AND id > %s
+            ORDER BY id
+            LIMIT %s
+            """,
+            params=[dt, offset, limit],
+        )
+        return [int(row["id"]) for row in rows]
+
+    def get_summary_base_rows(self, pgcs: list[int]) -> table.QTable:
+        if not pgcs:
+            return table.QTable(
+                {
+                    "pgc": [],
+                    "design": [],
+                    "ra": [],
+                    "e_ra": [],
+                    "dec": [],
+                    "e_dec": [],
+                    "type_name": [],
+                }
+            )
+        rows = self._storage.query(
+            """
+            SELECT p.id AS pgc, d.design, i.ra, i.e_ra, i.dec, i.e_dec, n.type_name
+            FROM unnest(%s::integer[]) AS p(id)
+            LEFT JOIN layer2.designation AS d ON d.pgc = p.id
+            LEFT JOIN layer2.icrs AS i ON i.pgc = p.id
+            LEFT JOIN layer2.nature AS n ON n.pgc = p.id
+            """,
+            params=[pgcs],
+        )
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "design": _masked_text([row["design"] for row in rows]),
+                "ra": [_optional_float(row["ra"]) for row in rows],
+                "e_ra": [_optional_float(row["e_ra"]) for row in rows],
+                "dec": [_optional_float(row["dec"]) for row in rows],
+                "e_dec": [_optional_float(row["e_dec"]) for row in rows],
+                "type_name": _masked_text([row["type_name"] for row in rows]),
+            }
+        )
+
+    def get_b_photometry(self, pgcs: list[int]) -> table.QTable:
+        if not pgcs:
+            return table.QTable({"pgc": [], "mag": [], "e_mag": [], "datatype": []})
+        rows = self._storage.query(
+            """
+            SELECT r.pgc, pt.mag, pt.e_mag, t.datatype
+            FROM photometry.total AS pt
+            JOIN layer0.records AS r ON pt.record_id = r.id
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            WHERE r.pgc = ANY(%s)
+              AND pt.band = %s
+              AND pt.method::text = %s
+              AND pt.quality::text = %s
+            """,
+            params=[pgcs, B_BAND, BT_METHOD, QUALITY],
+        )
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "mag": [float(row["mag"]) for row in rows],
+                "e_mag": [_optional_float(row["e_mag"]) for row in rows],
+                "datatype": [_enum_value(row["datatype"]) for row in rows],
+            }
+        )
+
+    def get_b_geometry(self, pgcs: list[int]) -> table.QTable:
+        if not pgcs:
+            return table.QTable({"pgc": [], "a": [], "b": [], "datatype": []})
+        rows = self._storage.query(
+            """
+            SELECT r.pgc, e.a, e.b, t.datatype
+            FROM photometry.ellipse AS e
+            JOIN layer0.records AS r ON e.record_id = r.id
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            WHERE r.pgc = ANY(%s)
+              AND e.band = %s
+              AND e.method::text = ANY(%s)
+              AND e.isophote = %s
+              AND e.quality::text = %s
+            """,
+            params=[pgcs, B_BAND, list(GEOMETRY_METHODS), ISOPHOTE_LEVEL, QUALITY],
+        )
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "a": [_optional_float(row["a"]) for row in rows],
+                "b": [_optional_float(row["b"]) for row in rows],
+                "datatype": [_enum_value(row["datatype"]) for row in rows],
+            }
+        )
 
     def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._query_new_pgc_records("nature.data", "l1.type_name", dt, limit, offset)
@@ -203,6 +305,42 @@ class Repository(postgres.TransactionalPGRepository):
 
 
 def _column_as_list(col: Any) -> list[Any]:
-    if getattr(col, "unit", None) is not None:
-        return col.value.tolist()
-    return [v.item() if hasattr(v, "item") else v for v in col]
+    values = col.value if getattr(col, "unit", None) is not None else col
+    mask = getattr(values, "mask", None)
+    if mask is None or np.ndim(mask) == 0:
+        mask = getattr(col, "mask", None)
+    data = np.ma.getdata(values) if np.ma.isMaskedArray(values) else np.asarray(values)
+    mask_array = np.asarray(mask, dtype=bool) if mask is not None and np.ndim(mask) > 0 else None
+    result: list[Any] = []
+    for index, raw in enumerate(data):
+        if mask_array is not None and bool(mask_array[index]):
+            result.append(None)
+            continue
+        if raw is None or raw is np.ma.masked:
+            result.append(None)
+            continue
+        if isinstance(raw, np.generic):
+            raw = raw.item()
+        if isinstance(raw, float) and math.isnan(raw):
+            result.append(None)
+            continue
+        result.append(raw)
+    return result
+
+
+def _optional_float(value: Any) -> float:
+    if value is None:
+        return float(np.nan)
+    return float(value)
+
+
+def _enum_value(value: Any) -> str:
+    return str(value.value if hasattr(value, "value") else value)
+
+
+def _masked_text(values: list[str | None]) -> table.MaskedColumn:
+    return table.MaskedColumn(
+        data=["" if value is None else value for value in values],
+        mask=[value is None for value in values],
+        dtype=str,
+    )

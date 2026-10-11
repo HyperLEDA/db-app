@@ -13,6 +13,7 @@ class Catalog(enum.Enum):
     NATURE = "nature"
     PHOTOMETRY__TOTAL = "photometry_total"
     NOTE = "note"
+    DATA = "data"
 
 
 class CatalogObject(abc.ABC):
