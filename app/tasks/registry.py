@@ -3,6 +3,7 @@ from typing import Any
 import structlog
 
 from app.tasks import (
+    data,
     designation,
     interface,
     layer2_import,
@@ -18,6 +19,7 @@ tasks: list[type[interface.Task]] = [
     layer2_import_icrs.Layer2ImportICRSTask,
     layer2_import_nature.Layer2ImportNatureTask,
     layer2_import_redshift.Layer2ImportRedshiftTask,
+    data.Layer2ImportDataTask,
     layer2_orphan_cleanup.Layer2OrphanCleanupTask,
 ]
 

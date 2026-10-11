@@ -5,6 +5,7 @@ from typing import final
 import structlog
 
 from app.tasks import (
+    data,
     designation,
     layer2_common,
     layer2_import_icrs,
@@ -17,9 +18,10 @@ CATALOG_TASKS = {
     "icrs": layer2_import_icrs.Layer2ImportICRSTask,
     "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
     "nature": layer2_import_nature.Layer2ImportNatureTask,
+    "data": data.Layer2ImportDataTask,
 }
 
-DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature")
+DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature", "data")
 
 
 @final
