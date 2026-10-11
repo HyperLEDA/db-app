@@ -490,7 +490,7 @@ def test_get_summary_base_rows_keeps_missing_catalogs(
     assert rows["type_name"].mask[by_pgc[2]]
 
 
-def test_get_b_photometry_applies_selection(repo: repository.Repository, storage: postgres.PgStorage) -> None:
+def test_get_total_photometry_applies_selection(repo: repository.Repository, storage: postgres.PgStorage) -> None:
     layer_seed.seed_layer1_table(
         storage,
         "phot_select",
@@ -521,10 +521,9 @@ def test_get_b_photometry_applies_selection(repo: repository.Repository, storage
         conflict_keys=layer1.PhotometryTotalCatalogObject.layer1_primary_keys(),
     )
 
-    result = repo.get_b_photometry([100, 200, 300])
+    result = repo.get_total_photometry([100, 200, 300], "B", ["asymptotic"], "regular")
     got = {
         (int(pgc), float(mag), str(datatype))
         for pgc, mag, datatype in zip(result["pgc"], result["mag"], result["datatype"], strict=True)
     }
     assert got == {(100, 11.0, "regular"), (300, 9.0, "compilation")}
-

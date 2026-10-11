@@ -6,7 +6,13 @@ import structlog
 from app.catalogs import layer2
 from app.lib import containers
 from app.tasks import layer2_common, logging
-from app.tasks.layer2_data import aggregation
+from app.tasks.data import aggregation
+
+_B_BAND = "B"
+_BT_METHOD = "asymptotic"
+_GEOMETRY_METHODS = ("isophotal", "visual")
+_ISOPHOTE_LEVEL = 25.0
+_QUALITY = "regular"
 
 
 @final
@@ -56,8 +62,18 @@ class Layer2ImportDataTask(layer2_common.Layer2CatalogImportTask):
             batch_size=self.batch_size,
         ):
             base = self.repository.get_summary_base_rows(pgcs)
-            photometry = aggregation.aggregate_bt(self.repository.get_b_photometry(pgcs))
-            geometry = aggregation.aggregate_geometry(self.repository.get_b_geometry(pgcs))
+            photometry = aggregation.aggregate_bt(
+                self.repository.get_total_photometry(pgcs, _B_BAND, [_BT_METHOD], _QUALITY)
+            )
+            geometry = aggregation.aggregate_geometry(
+                self.repository.get_ellipse_geometry(
+                    pgcs,
+                    _B_BAND,
+                    _GEOMETRY_METHODS,
+                    _ISOPHOTE_LEVEL,
+                    _QUALITY,
+                )
+            )
             rows = aggregation.assemble_summary(base, photometry, geometry)
             to_save, to_remove = aggregation.partition_rows(rows)
             objects_to_save += len(to_save)

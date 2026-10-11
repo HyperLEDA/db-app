@@ -1,5 +1,6 @@
 import datetime
 import math
+from collections.abc import Sequence
 from typing import Any, final
 
 import numpy as np
@@ -10,7 +11,6 @@ from psycopg import sql
 
 from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
-from app.tasks.layer2_data.aggregation import B_BAND, BT_METHOD, GEOMETRY_METHODS, ISOPHOTE_LEVEL, QUALITY
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
 
@@ -155,7 +155,13 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
-    def get_b_photometry(self, pgcs: list[int]) -> table.QTable:
+    def get_total_photometry(
+        self,
+        pgcs: list[int],
+        band: str,
+        methods: Sequence[str],
+        quality: str,
+    ) -> table.QTable:
         if not pgcs:
             return table.QTable({"pgc": [], "mag": [], "e_mag": [], "datatype": []})
         rows = self._storage.query(
@@ -166,10 +172,10 @@ class Repository(postgres.TransactionalPGRepository):
             JOIN layer0.tables AS t ON r.table_id = t.id
             WHERE r.pgc = ANY(%s)
               AND pt.band = %s
-              AND pt.method::text = %s
+              AND pt.method::text = ANY(%s)
               AND pt.quality::text = %s
             """,
-            params=[pgcs, B_BAND, BT_METHOD, QUALITY],
+            params=[pgcs, band, list(methods), quality],
         )
         return table.QTable(
             {
@@ -180,7 +186,14 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
-    def get_b_geometry(self, pgcs: list[int]) -> table.QTable:
+    def get_ellipse_geometry(
+        self,
+        pgcs: list[int],
+        band: str,
+        methods: Sequence[str],
+        isophote: float,
+        quality: str,
+    ) -> table.QTable:
         if not pgcs:
             return table.QTable({"pgc": [], "a": [], "b": [], "datatype": []})
         rows = self._storage.query(
@@ -195,7 +208,7 @@ class Repository(postgres.TransactionalPGRepository):
               AND e.isophote = %s
               AND e.quality::text = %s
             """,
-            params=[pgcs, B_BAND, list(GEOMETRY_METHODS), ISOPHOTE_LEVEL, QUALITY],
+            params=[pgcs, band, list(methods), isophote, quality],
         )
         return table.QTable(
             {

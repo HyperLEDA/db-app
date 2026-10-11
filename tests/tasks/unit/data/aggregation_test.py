@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy import table
 
-from app.tasks.layer2_data import aggregation
+from app.tasks.data import aggregation
 
 
 def _bt_table(

@@ -5,11 +5,6 @@ from astropy import table
 
 from app.tasks import layer2_common
 
-B_BAND = "B"
-BT_METHOD = "asymptotic"
-GEOMETRY_METHODS = ("isophotal", "visual")
-ISOPHOTE_LEVEL = 25.0
-QUALITY = "regular"
 DEFAULT_E_MAG = 0.3
 
 _SUMMARY_COLUMNS = ["design", "ra", "e_ra", "dec", "e_dec", "type_name", "bt", "e_bt", "d25", "ba"]
