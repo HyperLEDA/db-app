@@ -8,16 +8,16 @@ dependencies = [
     "click>=8.4,<8.6",
     "pandas~=3.0.0",
     "psycopg[binary,pool]~=3.3.4",
-    "pydantic~=2.13.0",
-    "pydantic-settings~=2.15.0",
+    "pydantic>=2.13,<2.15",
+    "pydantic-settings>=2.15,<2.17",
     "structlog~=26.1.0",
     "uncertainties~=3.2.0",
 ]
 
 [project.optional-dependencies]
 adminapi = [
-    "fastapi>=0.141,<0.143",
-    "starlette>=1.6,<1.8",
+    "fastapi>=0.141,<0.160",
+    "starlette>=1.6,<1.10",
     "uvicorn>=0.52.2,<0.55.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
@@ -31,8 +31,8 @@ adminapi = [
     "regex>=2026.7,<2026.10",
 ]
 dataapi = [
-    "fastapi>=0.141,<0.143",
-    "starlette>=1.6,<1.8",
+    "fastapi>=0.141,<0.160",
+    "starlette>=1.6,<1.10",
     "uvicorn>=0.52.2,<0.55.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
@@ -44,8 +44,8 @@ dataapi = [
     "opentelemetry-exporter-otlp~=1.44.0",
 ]
 fieldapi = [
-    "fastapi>=0.141,<0.143",
-    "starlette>=1.6,<1.8",
+    "fastapi>=0.141,<0.160",
+    "starlette>=1.6,<1.10",
     "uvicorn>=0.52.2,<0.55.0",
     "slowapi~=0.1.9",
     "bcrypt~=5.0.0",
@@ -58,7 +58,7 @@ fieldapi = [
     "dustmaps~=1.0.14",
 ]
 tasks = [
-    "prefect~=3.8.2",
+    "prefect>=3.8.2,<3.10.0",
 ]
 
 [project.scripts]
@@ -79,14 +79,14 @@ packages = ["app"]
 dev = [
     # fixed version so no new linter/formatter errors are introduced over time
     # probably should not update outside the template
-    "ruff~=0.16.2",
+    "ruff>=0.16.2,<0.18.0",
     "pytest~=9.1.0",
     "pytest-xdist~=3.8.0",
     "basedpyright>=1.39,<1.41",
     "types-pyyaml~=6.0.12.20260724",
-    "types-regex>=2026.7.19.20260720,<2026.9.11.0",
+    "types-regex>=2026.7.19.20260720,<2026.9.30.0",
     "pandas-stubs~=3.0.0",
-    "httpx2>=2.10,<2.14",
+    "httpx2>=2.10,<2.17",
     "httpx~=0.28.0",
     "requests~=2.34.0",
     "testcontainers-postgres~=0.0.1rc1",
