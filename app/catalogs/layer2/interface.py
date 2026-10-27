@@ -11,6 +11,7 @@ class Catalog(enum.Enum):
     ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
     NATURE = "nature"
+    MORPHOLOGY = "morphology"
     PHOTOMETRY__TOTAL = "photometry_total"
     NOTE = "note"
 

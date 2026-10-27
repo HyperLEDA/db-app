@@ -214,6 +214,9 @@ class StructuredResponder(interface.ObjectResponder):
             if (nature := obj.get(layer2.NatureCatalogObject)) is not None:
                 result.nature = spec.Nature(type_name=nature.type_name)
 
+            if (morphology := obj.get(layer2.MorphologyCatalogObject)) is not None:
+                result.morphology = spec.Morphology(t=morphology.t, em=morphology.em, ep=morphology.ep)
+
             if icrs is not None and redshift is not None and result.coordinates is not None:
                 gal = result.coordinates.galactic
                 result.velocity = self._velocities_from_apexes(
@@ -265,6 +268,13 @@ class StructuredResponder(interface.ObjectResponder):
 
             if obj.catalogs.nature is not None:
                 catalogs.nature = spec.Nature(type_name=obj.catalogs.nature.type_name)
+
+            if obj.catalogs.morphology is not None:
+                catalogs.morphology = spec.Morphology(
+                    t=obj.catalogs.morphology.t,
+                    em=obj.catalogs.morphology.em,
+                    ep=obj.catalogs.morphology.ep,
+                )
 
             if obj.catalogs.notes is not None:
                 catalogs.notes = [

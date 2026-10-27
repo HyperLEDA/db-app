@@ -1,0 +1,118 @@
+import datetime
+import math
+from typing import Any, final
+
+import numpy as np
+import structlog
+from astropy import table
+
+from app.catalogs import layer2
+from app.lib import containers
+from app.tasks import layer2_common, logging
+
+
+def _mean_optional(column: Any) -> float | None:
+    numbers: list[float] = []
+    for value in np.asarray(column, dtype=object):
+        if value is None or value is np.ma.masked:
+            continue
+        number = float(value)
+        if math.isnan(number):
+            continue
+        numbers.append(number)
+    if not numbers:
+        return None
+    return float(np.mean(numbers))
+
+
+def aggregate_morphology(tbl: table.QTable) -> table.QTable:
+    work = layer2_common.exclude_compilations_with_primary(tbl)
+    if len(work) == 0:
+        return table.QTable({"pgc": [], "t": [], "em": [], "ep": []})
+
+    grouped = work.group_by("pgc")
+    pgcs: list[int] = []
+    ts: list[float] = []
+    ems: list[float | None] = []
+    eps: list[float | None] = []
+    for group in grouped.groups:
+        pgcs.append(int(group["pgc"][0]))
+        ts.append(float(np.mean(np.asarray(group["t"], dtype=float))))
+        ems.append(_mean_optional(group["em"]))
+        eps.append(_mean_optional(group["ep"]))
+
+    result = table.QTable()
+    result["pgc"] = pgcs
+    result["t"] = ts
+    result["em"] = np.array(ems, dtype=object)
+    result["ep"] = np.array(eps, dtype=object)
+    return result
+
+
+@final
+class Layer2ImportMorphologyTask(layer2_common.Layer2CatalogImportTask):
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        batch_size: int = 100000,
+        dry_run: bool = False,
+        silent: bool = False,
+        since: datetime.datetime | str | None = None,
+        cleanup_orphans: bool = True,
+    ) -> None:
+        super().__init__(
+            logger,
+            batch_size=batch_size,
+            dry_run=dry_run,
+            silent=silent,
+            since=since,
+            cleanup_orphans=cleanup_orphans,
+        )
+
+    @classmethod
+    def name(cls) -> str:
+        return "layer2-import-morphology"
+
+    def run(self) -> None:
+        if self.since is not None:
+            last_update_dt = self.since
+        else:
+            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.MORPHOLOGY)
+
+        self.log.info(
+            "Starting Layer 2 morphology import",
+            last_update=last_update_dt.ctime(),
+            dry_run=self.dry_run,
+            cleanup_orphans=self.cleanup_orphans,
+        )
+
+        objects_to_save = 0
+        for offset, tbl in containers.read_batches(
+            self.repository.get_new_morphology_records,
+            lambda data: len(data) == 0,
+            0,
+            lambda d, _: int(d["pgc"][-1]),
+            last_update_dt,
+            batch_size=self.batch_size,
+        ):
+            agg = aggregate_morphology(tbl)
+
+            if len(agg) > 0:
+                objects_to_save += len(agg)
+                if not self.dry_run:
+                    self.repository.save("layer2.morphology", agg)
+            self.log.info(
+                "Processed batch",
+                last_pgc=offset,
+                batch_size=len(tbl),
+                total_processed=objects_to_save,
+            )
+
+        orphans_to_delete = self.finalize_catalog(layer2.Catalog.MORPHOLOGY)
+        self.log.info("Layer 2 morphology import completed", last_update=last_update_dt.ctime())
+
+        if not self.silent:
+            logging.print_table(
+                ("Description", "Count"),
+                layer2_common.import_summary_rows(objects_to_save, orphans_to_delete, dry_run=self.dry_run),
+            )
