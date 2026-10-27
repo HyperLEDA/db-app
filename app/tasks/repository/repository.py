@@ -164,6 +164,26 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
+    def get_new_morphology_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        morphology_table = layer1.get_catalog_object_type(layer1.Catalog.MORPHOLOGY__T).layer1_table()
+        rows = self._query_new_pgc_records(
+            morphology_table,
+            "l1.value AS t, l1.em_value AS em, l1.ep_value AS ep, t.datatype",
+            dt,
+            limit,
+            offset,
+            extra_joins="JOIN layer0.tables AS t ON o.table_id = t.id",
+        )
+        return table.QTable(
+            {
+                "pgc": [int(r["pgc"]) for r in rows],
+                "t": [float(r["t"]) for r in rows],
+                "em": [None if r["em"] is None else float(r["em"]) for r in rows],
+                "ep": [None if r["ep"] is None else float(r["ep"]) for r in rows],
+                "datatype": [r["datatype"].value for r in rows],
+            }
+        )
+
     def get_new_designation_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._query_new_pgc_records("designation.data", "l1.design", dt, limit, offset)
         return table.QTable(

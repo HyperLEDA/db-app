@@ -3,6 +3,7 @@ from app.catalogs.layer2.designation import DesignationCatalogObject
 from app.catalogs.layer2.helpers import get_catalog_object_type
 from app.catalogs.layer2.icrs import ICRSCatalogObject
 from app.catalogs.layer2.interface import Catalog, CatalogObject
+from app.catalogs.layer2.morphology import MorphologyCatalogObject
 from app.catalogs.layer2.nature import NatureCatalogObject
 from app.catalogs.layer2.note import NoteCatalogObject
 from app.catalogs.layer2.object import Layer2Object
@@ -16,6 +17,7 @@ __all__ = [
     "DesignationCatalogObject",
     "ICRSCatalogObject",
     "Layer2Object",
+    "MorphologyCatalogObject",
     "NatureCatalogObject",
     "NoteCatalogObject",
     "PhotometryTotalCatalogObject",

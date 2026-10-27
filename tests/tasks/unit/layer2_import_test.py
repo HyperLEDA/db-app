@@ -10,6 +10,7 @@ from app.tasks import (
     interface,
     layer2_import,
     layer2_import_icrs,
+    layer2_import_morphology,
     layer2_import_nature,
     layer2_import_redshift,
 )
@@ -149,6 +150,96 @@ def test_redshift_per_pgc_compilation_filtering() -> None:
     by_pgc = {int(pgc): i for i, pgc in enumerate(agg["pgc"])}
     assert float(agg["cz"][by_pgc[1]].to_value(kms)) == pytest.approx(1000.0)
     assert float(agg["cz"][by_pgc[2]].to_value(kms)) == pytest.approx(1200.0)
+
+
+def test_mean_morphology() -> None:
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1],
+            "t": [1.0, 3.0],
+            "em": [0.2, 0.4],
+            "ep": [0.6, 0.8],
+            "datatype": ["regular", "regular"],
+        }
+    )
+    agg = layer2_import_morphology.aggregate_morphology(tbl)
+    assert float(agg["t"][0]) == pytest.approx(2.0)
+    assert float(agg["em"][0]) == pytest.approx(0.3)
+    assert float(agg["ep"][0]) == pytest.approx(0.7)
+
+
+def test_morphology_ignores_compilations_when_primary_data_exists() -> None:
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1, 1],
+            "t": [1.0, 3.0, 9.0],
+            "em": [0.2, 0.4, 0.1],
+            "ep": [0.2, 0.4, 0.1],
+            "datatype": ["regular", "preliminary", "compilation"],
+        }
+    )
+    agg = layer2_import_morphology.aggregate_morphology(tbl)
+    assert len(agg) == 1
+    assert float(agg["t"][0]) == pytest.approx(2.0)
+
+
+def test_morphology_aggregates_compilations_when_only_compilations() -> None:
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1],
+            "t": [1.0, 3.0],
+            "em": [0.2, 0.4],
+            "ep": [0.2, 0.4],
+            "datatype": ["compilation", "compilation"],
+        }
+    )
+    agg = layer2_import_morphology.aggregate_morphology(tbl)
+    assert len(agg) == 1
+    assert float(agg["t"][0]) == pytest.approx(2.0)
+
+
+def test_morphology_per_pgc_compilation_filtering() -> None:
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1, 2, 2],
+            "t": [1.0, 9.0, 1.0, 3.0],
+            "em": [0.2, 0.1, 0.2, 0.4],
+            "ep": [0.2, 0.1, 0.2, 0.4],
+            "datatype": ["regular", "compilation", "compilation", "compilation"],
+        }
+    )
+    agg = layer2_import_morphology.aggregate_morphology(tbl)
+    by_pgc = {int(pgc): i for i, pgc in enumerate(agg["pgc"])}
+    assert float(agg["t"][by_pgc[1]]) == pytest.approx(1.0)
+    assert float(agg["t"][by_pgc[2]]) == pytest.approx(2.0)
+
+
+def test_morphology_null_uncertainties() -> None:
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1, 2, 2],
+            "t": [1.0, 3.0, 4.0, 6.0],
+            "em": [0.2, None, None, None],
+            "ep": [0.4, None, None, None],
+            "datatype": ["regular", "regular", "regular", "regular"],
+        }
+    )
+    agg = layer2_import_morphology.aggregate_morphology(tbl)
+    by_pgc = {int(pgc): i for i, pgc in enumerate(agg["pgc"])}
+    assert float(agg["em"][by_pgc[1]]) == pytest.approx(0.2)
+    assert float(agg["ep"][by_pgc[1]]) == pytest.approx(0.4)
+    assert agg["em"][by_pgc[2]] is None
+    assert agg["ep"][by_pgc[2]] is None
+
+
+def test_default_catalogs_include_morphology() -> None:
+    task = layer2_import.Layer2ImportTask(structlog.get_logger())
+    assert "morphology" in task.catalogs
+
+
+def test_custom_catalogs_can_select_morphology() -> None:
+    task = layer2_import.Layer2ImportTask(structlog.get_logger(), catalogs=["morphology"])
+    assert task.catalogs == ["morphology"]
 
 
 def test_majority_type_name() -> None:

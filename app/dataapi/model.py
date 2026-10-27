@@ -26,6 +26,13 @@ class NatureCatalog:
 
 
 @dataclass
+class MorphologyCatalog:
+    t: float
+    em: float | None
+    ep: float | None
+
+
+@dataclass
 class Source:
     bibcode: str
     title: str
@@ -79,6 +86,7 @@ class Catalogs:
     icrs: ICRSCatalog | None = None
     redshift: RedshiftCatalog | None = None
     nature: NatureCatalog | None = None
+    morphology: MorphologyCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
 
@@ -96,6 +104,7 @@ __all__ = [
     "DesignationCatalog",
     "ICRSCatalog",
     "Layer2Object",
+    "MorphologyCatalog",
     "NatureCatalog",
     "NoteEntry",
     "NotesCatalog",

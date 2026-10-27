@@ -18,7 +18,7 @@ def test_cron_from_env_reads_expression() -> None:
 
 def test_build_deployments_without_schedules() -> None:
     deployments = flows.build_deployments({})
-    assert len(deployments) == 6
+    assert len(deployments) == 7
     assert [d.name for d in deployments] == list(flows.LAYER2_TASK_NAMES)
     assert "layer2-orphan-cleanup" in [d.name for d in deployments]
     for deployment in deployments:

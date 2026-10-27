@@ -23,6 +23,7 @@ __all__ = [
     "GalacticCoordinatesUnits",
     "J2000Coordinate",
     "ListReddeningReferencesResponse",
+    "Morphology",
     "Nature",
     "NoteEntry",
     "PGCObject",
@@ -135,6 +136,12 @@ class Nature(pydantic.BaseModel):
     type_name: str
 
 
+class Morphology(pydantic.BaseModel):
+    t: float
+    em: float | None = None
+    ep: float | None = None
+
+
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
     additional_designations: list[AdditionalDesignation] | None = None
@@ -142,6 +149,7 @@ class Catalogs(pydantic.BaseModel):
     velocity: dict[str, AbsoluteVelocity] | None = None
     redshift: Redshift | None = None
     nature: Nature | None = None
+    morphology: Morphology | None = None
     notes: list[NoteEntry] | None = None
     photometry_total: list[PhotometryTotalMeasurement] | None = None
     photometry_total_corrected: list[PhotometryTotalMeasurement] | None = None
@@ -303,7 +311,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
     catalogs: list[str] | None = pydantic.Field(
         default=None,
         description=(
-            "Catalogs to include in the response (e.g. designation, icrs, redshift, nature). "
+            "Catalogs to include in the response (e.g. designation, icrs, redshift, nature, morphology). "
             "If omitted, default set of catalogs is returned."
         ),
     )

@@ -17,6 +17,7 @@ _ONE_TO_ONE_CATALOGS = frozenset(
         layer2.Catalog.ICRS,
         layer2.Catalog.REDSHIFT,
         layer2.Catalog.NATURE,
+        layer2.Catalog.MORPHOLOGY,
     }
 )
 
@@ -299,6 +300,7 @@ class Repository(postgres.TransactionalPGRepository):
                 one_to_one_maps.icrs,
                 one_to_one_maps.redshift,
                 one_to_one_maps.nature,
+                one_to_one_maps.morphology,
                 notes_map,
                 photometry_total_map,
             )
@@ -407,15 +409,17 @@ class _OneToOneMaps:
         icrs: dict[int, model.ICRSCatalog],
         redshift: dict[int, model.RedshiftCatalog],
         nature: dict[int, model.NatureCatalog],
+        morphology: dict[int, model.MorphologyCatalog],
     ) -> None:
         self.designation = designation
         self.icrs = icrs
         self.redshift = redshift
         self.nature = nature
+        self.morphology = morphology
 
     @classmethod
     def empty(cls) -> "_OneToOneMaps":
-        return cls({}, {}, {}, {})
+        return cls({}, {}, {}, {}, {})
 
 
 def _parse_one_to_one_rows(
@@ -426,6 +430,7 @@ def _parse_one_to_one_rows(
     icrs: dict[int, model.ICRSCatalog] = {}
     redshift: dict[int, model.RedshiftCatalog] = {}
     nature: dict[int, model.NatureCatalog] = {}
+    morphology: dict[int, model.MorphologyCatalog] = {}
 
     for row in rows:
         pgc = int(row["pgc"])
@@ -462,8 +467,17 @@ def _parse_one_to_one_rows(
             elif catalog == layer2.Catalog.NATURE:
                 if data.get("type_name") is not None:
                     nature[pgc] = model.NatureCatalog(type_name=str(data["type_name"]))
+            elif catalog == layer2.Catalog.MORPHOLOGY:
+                if data.get("t") is not None:
+                    em = data.get("em")
+                    ep = data.get("ep")
+                    morphology[pgc] = model.MorphologyCatalog(
+                        t=float(data["t"]),
+                        em=None if em is None else float(em),
+                        ep=None if ep is None else float(ep),
+                    )
 
-    return _OneToOneMaps(designation, icrs, redshift, nature)
+    return _OneToOneMaps(designation, icrs, redshift, nature, morphology)
 
 
 def _layer2_object_from_maps(
@@ -474,6 +488,7 @@ def _layer2_object_from_maps(
     icrs_map: dict[int, model.ICRSCatalog],
     redshift_map: dict[int, model.RedshiftCatalog],
     nature_map: dict[int, model.NatureCatalog],
+    morphology_map: dict[int, model.MorphologyCatalog],
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
 ) -> model.Layer2Object:
@@ -484,6 +499,7 @@ def _layer2_object_from_maps(
     icrs = icrs_map.get(pgc) if layer2.Catalog.ICRS in raw_catalogs else None
     redshift = redshift_map.get(pgc) if layer2.Catalog.REDSHIFT in raw_catalogs else None
     nature = nature_map.get(pgc) if layer2.Catalog.NATURE in raw_catalogs else None
+    morphology = morphology_map.get(pgc) if layer2.Catalog.MORPHOLOGY in raw_catalogs else None
     notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
 
@@ -495,6 +511,7 @@ def _layer2_object_from_maps(
             icrs=icrs,
             redshift=redshift,
             nature=nature,
+            morphology=morphology,
             notes=notes,
             photometry_total=photometry_total,
         ),
