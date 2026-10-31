@@ -7,6 +7,7 @@ from app.catalogs.layer2.morphology import MorphologyCatalogObject
 from app.catalogs.layer2.nature import NatureCatalogObject
 from app.catalogs.layer2.note import NoteCatalogObject
 from app.catalogs.layer2.object import Layer2Object
+from app.catalogs.layer2.objects import ObjectsCatalogObject
 from app.catalogs.layer2.photometry_total import PhotometryTotalCatalogObject
 from app.catalogs.layer2.redshift import RedshiftCatalogObject
 
@@ -20,6 +21,7 @@ __all__ = [
     "MorphologyCatalogObject",
     "NatureCatalogObject",
     "NoteCatalogObject",
+    "ObjectsCatalogObject",
     "PhotometryTotalCatalogObject",
     "RedshiftCatalogObject",
     "get_catalog_object_type",

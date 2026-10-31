@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import final
 
-from app.dataapi import clients, repository
+from app.dataapi import repository
 from app.specs import dataapi as spec
 from app.specs import fieldapi as fieldapi_spec
 
@@ -17,7 +17,7 @@ class Reddening:
     def __init__(
         self,
         repo: repository.Repository,
-        fieldapi_client: clients.FieldAPIClient,
+        fieldapi_client: fieldapi_spec.FieldAPIClient,
         r_v: str = "3.1",
     ) -> None:
         self._repo = repo

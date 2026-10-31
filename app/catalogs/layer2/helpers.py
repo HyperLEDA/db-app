@@ -6,6 +6,7 @@ from app.catalogs.layer2 import (
     morphology,
     nature,
     note,
+    objects,
     photometry_total,
     redshift,
 )
@@ -17,6 +18,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.Catalog, type[interface.CatalogObject]] = 
     interface.Catalog.REDSHIFT: redshift.RedshiftCatalogObject,
     interface.Catalog.MORPHOLOGY: morphology.MorphologyCatalogObject,
     interface.Catalog.NATURE: nature.NatureCatalogObject,
+    interface.Catalog.OBJECTS: objects.ObjectsCatalogObject,
     interface.Catalog.NOTE: note.NoteCatalogObject,
     interface.Catalog.PHOTOMETRY__TOTAL: photometry_total.PhotometryTotalCatalogObject,
 }

@@ -302,6 +302,7 @@ def test_run_passes_params_to_selected_catalogs() -> None:
     )
     task.pg_storage = mock.Mock()
     task.repository = mock.Mock()
+    task.fieldapi_client = mock.Mock()
 
     designation_cls = mock.Mock()
     child = mock.Mock()
@@ -318,3 +319,4 @@ def test_run_passes_params_to_selected_catalogs() -> None:
         cleanup_orphans=False,
     )
     child.run.assert_called_once_with()
+    assert child.fieldapi_client is task.fieldapi_client
