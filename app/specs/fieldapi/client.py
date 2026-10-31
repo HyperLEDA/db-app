@@ -3,7 +3,7 @@ import abc
 import requests
 
 from app.lib.web import errors
-from app.specs import fieldapi as fieldapi_spec
+from app.specs.fieldapi import interface as fieldapi_spec
 
 
 class FieldAPIClient(abc.ABC):

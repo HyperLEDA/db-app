@@ -12,6 +12,7 @@ class Catalog(enum.Enum):
     REDSHIFT = "redshift"
     NATURE = "nature"
     MORPHOLOGY = "morphology"
+    OBJECTS = "objects"
     PHOTOMETRY__TOTAL = "photometry_total"
     NOTE = "note"
 

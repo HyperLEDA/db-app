@@ -8,10 +8,11 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
-from app.dataapi import clients, domain, repository
+from app.dataapi import domain, repository
 from app.dataapi.domain import actions as dataapi_actions
 from app.dataapi.presentation.server import Server
 from app.lib.storage import enums, postgres
+from app.specs import fieldapi as fieldapi_spec
 from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
@@ -52,7 +53,7 @@ def client(
     actions = domain.Actions(
         repo=repository.Repository(reader_storage, log),
         catalog_cfg=dataapi_config.catalogs,
-        fieldapi_client=mock.create_autospec(clients.FieldAPIClient),
+        fieldapi_client=mock.create_autospec(fieldapi_spec.FieldAPIClient),
     )
     return testclient.TestClient(Server(actions, dataapi_config.server, log).app)
 

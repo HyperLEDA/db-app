@@ -1,12 +1,13 @@
 from typing import final
 
 from app.catalogs import layer2
-from app.dataapi import clients, repository, responders
+from app.dataapi import repository, responders
 from app.dataapi.domain import parameterized_query, reddening
 from app.dataapi.presentation import interface
 from app.lib.tap import types as tap_types
 from app.lib.web import errors
 from app.specs import dataapi as spec
+from app.specs import fieldapi
 
 ENABLED_CATALOGS = [
     layer2.Catalog.DESIGNATION,
@@ -46,7 +47,7 @@ class Actions(interface.Actions):
         self,
         repo: repository.Repository,
         catalog_cfg: responders.CatalogConfig,
-        fieldapi_client: clients.FieldAPIClient,
+        fieldapi_client: fieldapi.FieldAPIClient,
     ) -> None:
         self.repo = repo
         self.catalog_cfg = catalog_cfg

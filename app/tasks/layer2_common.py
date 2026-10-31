@@ -7,6 +7,7 @@ from astropy import table
 
 from app.catalogs import layer2
 from app.lib.storage import enums, postgres
+from app.specs import fieldapi as fieldapi_client
 from app.tasks import interface, repository
 
 
@@ -54,6 +55,10 @@ class Layer2StorageTask(interface.Task, abc.ABC):
         self.pg_storage = postgres.PgStorage(config.storage, self.log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
         self.repository = repository.Repository(self.pg_storage, self.log)
+        self.fieldapi_client = fieldapi_client.RequestsFieldAPIClient(
+            config.fieldapi.base_url,
+            timeout_seconds=config.fieldapi.timeout_seconds,
+        )
 
     def cleanup(self) -> None:
         self.pg_storage.disconnect()

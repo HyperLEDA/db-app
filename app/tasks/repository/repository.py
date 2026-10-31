@@ -184,6 +184,102 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
+    def get_error_object_types(self) -> set[str]:
+        rows = self._storage.query("SELECT type_name FROM nature.object_type WHERE objclass = 'err'")
+        return {str(row["type_name"]) for row in rows}
+
+    def get_modified_object_pgcs(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        rows = self._storage.query(
+            """
+            SELECT DISTINCT o.pgc
+            FROM layer0.records AS o
+            JOIN common.pgc AS p ON p.id = o.pgc
+            WHERE p.modification_time > %s
+              AND o.pgc > %s
+              AND (
+                EXISTS (SELECT 1 FROM designation.data AS d WHERE d.record_id = o.id)
+                OR EXISTS (SELECT 1 FROM nature.data AS n WHERE n.record_id = o.id)
+                OR EXISTS (SELECT 1 FROM icrs.data AS i WHERE i.record_id = o.id)
+              )
+            ORDER BY o.pgc
+            LIMIT %s
+            """,
+            params=[dt, offset, limit],
+        )
+        return table.QTable({"pgc": [int(row["pgc"]) for row in rows]})
+
+    def get_designation_records_for_pgcs(self, pgcs: list[int]) -> table.QTable:
+        if not pgcs:
+            return table.QTable({"pgc": [], "design": []})
+        rows = self._storage.query(
+            """
+            SELECT o.pgc, l1.design
+            FROM designation.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.pgc = ANY(%s)
+            ORDER BY o.pgc
+            """,
+            params=[pgcs],
+        )
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "design": [row["design"] for row in rows],
+            }
+        )
+
+    def get_nature_records_for_pgcs(self, pgcs: list[int]) -> table.QTable:
+        if not pgcs:
+            return table.QTable({"pgc": [], "type_name": []})
+        rows = self._storage.query(
+            """
+            SELECT o.pgc, l1.type_name
+            FROM nature.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            WHERE o.pgc = ANY(%s)
+            ORDER BY o.pgc
+            """,
+            params=[pgcs],
+        )
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "type_name": [row["type_name"] for row in rows],
+            }
+        )
+
+    def get_icrs_records_for_pgcs(self, pgcs: list[int]) -> table.QTable:
+        empty = table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": [], "datatype": []})
+        if not pgcs:
+            return empty
+        rows = self._storage.query(
+            """
+            SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype
+            FROM icrs.data AS l1
+            JOIN layer0.records AS o ON l1.record_id = o.id
+            JOIN layer0.tables AS t ON o.table_id = t.id
+            WHERE o.pgc = ANY(%s)
+            ORDER BY o.pgc
+            """,
+            params=[pgcs],
+        )
+        if not rows:
+            return empty
+        icrs_table = layer1.get_catalog_object_type(layer1.Catalog.ICRS).layer1_table()
+        icrs_schema, icrs_name = icrs_table.split(".", maxsplit=1)
+        icrs_info = self.get_table_metadata(icrs_schema, icrs_name)
+        units = {name: col.unit for name, col in icrs_info.columns.items() if col.unit}
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "ra": u.Quantity([float(row["ra"]) for row in rows], u.Unit(units["ra"])),
+                "e_ra": u.Quantity([float(row["e_ra"]) for row in rows], u.Unit(units["e_ra"])),
+                "dec": u.Quantity([float(row["dec"]) for row in rows], u.Unit(units["dec"])),
+                "e_dec": u.Quantity([float(row["e_dec"]) for row in rows], u.Unit(units["e_dec"])),
+                "datatype": [row["datatype"].value for row in rows],
+            }
+        )
+
     def get_new_designation_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._query_new_pgc_records("designation.data", "l1.design", dt, limit, offset)
         return table.QTable(
