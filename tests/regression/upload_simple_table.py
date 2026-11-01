@@ -570,6 +570,11 @@ def assign_record_pgcs(session: requests.Session, table_name: str):
     response.raise_for_status()
 
 
+class _ConstantEbv:
+    def sample_sfd_ebv(self, coordinates: list[object]) -> list[float]:
+        return [0.01 for _ in coordinates]
+
+
 @lib.test_logging_decorator
 def layer2_import():
     log = structlog.get_logger()
@@ -580,6 +585,7 @@ def layer2_import():
     )
     cfg = tasks.Config()
     task.prepare(cfg)
+    task.fieldapi_client = _ConstantEbv()
     try:
         task.run()
     finally:
