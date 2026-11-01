@@ -1,6 +1,6 @@
 import pytest
 
-from app.dataapi import clients, domain, model, repository, responders
+from app.dataapi import domain, model, repository, responders
 from app.dataapi.domain import reddening
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
@@ -8,7 +8,7 @@ from app.specs import dataapi as spec
 from app.specs import fieldapi as fieldapi_spec
 
 
-class _FakeFieldAPIClient(clients.FieldAPIClient):
+class _FakeFieldAPIClient(fieldapi_spec.FieldAPIClient):
     def __init__(self) -> None:
         self.sampled_coordinates: list[fieldapi_spec.SkyCoordinate] = []
 
@@ -17,7 +17,7 @@ class _FakeFieldAPIClient(clients.FieldAPIClient):
         return [0.03 + index * 0.01 for index in range(len(coordinates))]
 
 
-class _FailingFieldAPIClient(clients.FieldAPIClient):
+class _FailingFieldAPIClient(fieldapi_spec.FieldAPIClient):
     def sample_sfd_ebv(self, coordinates: list[fieldapi_spec.SkyCoordinate]) -> list[float]:
         raise errors.InternalError("fieldapi unavailable")
 

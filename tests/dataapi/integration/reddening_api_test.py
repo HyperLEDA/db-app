@@ -7,7 +7,7 @@ import structlog
 from starlette import testclient
 
 import app.dataapi.command as dataapi_command
-from app.dataapi import clients, domain, repository
+from app.dataapi import domain, repository
 from app.dataapi.presentation.server import Server
 from app.lib.storage import enums, postgres
 from app.specs import fieldapi as fieldapi_spec
@@ -16,7 +16,7 @@ from tests.lib.postgres import PostgresTestStorage
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
 
 
-class _MockFieldAPIClient(clients.FieldAPIClient):
+class _MockFieldAPIClient(fieldapi_spec.FieldAPIClient):
     def sample_sfd_ebv(self, coordinates: list[fieldapi_spec.SkyCoordinate]) -> list[float]:
         return [0.03, 0.12][: len(coordinates)]
 
@@ -133,7 +133,7 @@ def test_fieldapi_client_uses_fieldapi_specs() -> None:
     response = mock.MagicMock()
     response.json.return_value = {"data": {"values": [0.05]}}
     with mock.patch("requests.post", return_value=response) as post:
-        client = clients.RequestsFieldAPIClient("http://fieldapi:8082")
+        client = fieldapi_spec.RequestsFieldAPIClient("http://fieldapi:8082")
         values = client.sample_sfd_ebv([fieldapi_spec.SkyCoordinate(ra_deg=187.6, dec_deg=15.26)])
 
         assert values == [0.05]

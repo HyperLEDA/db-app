@@ -10,6 +10,7 @@ from app.tasks import (
     layer2_import_icrs,
     layer2_import_morphology,
     layer2_import_nature,
+    layer2_import_objects,
     layer2_import_redshift,
 )
 
@@ -19,9 +20,10 @@ CATALOG_TASKS = {
     "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
     "nature": layer2_import_nature.Layer2ImportNatureTask,
     "morphology": layer2_import_morphology.Layer2ImportMorphologyTask,
+    "objects": layer2_import_objects.Layer2ImportObjectsTask,
 }
 
-DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature", "morphology")
+DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature", "morphology", "objects")
 
 
 @final
@@ -69,6 +71,7 @@ class Layer2ImportTask(layer2_common.Layer2CatalogImportTask):
             )
             task.pg_storage = self.pg_storage
             task.repository = self.repository
+            task.fieldapi_client = self.fieldapi_client
             task.run()
 
         self.log.info("Layer 2 import completed", catalogs=self.catalogs)
