@@ -4,9 +4,6 @@ server:
   allowed_origins:
     - "*"
 
-fieldapi:
-  base_url: http://127.0.0.1:8082
-
 storage:
   endpoint: localhost
   port: 6432

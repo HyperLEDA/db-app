@@ -7,7 +7,6 @@ from app import tasks
 from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
 from app.tasks import layer2_import, repository
-from app.tasks.interface import FieldAPIConfig
 from tests.lib import assert_catalog_object_equal, layer_seed
 from tests.lib.postgres import PostgresTestStorage
 
@@ -27,7 +26,7 @@ def repo(storage: postgres.PgStorage) -> repository.Repository:
 @pytest.fixture(scope="module")
 def layer2_import_task(pg_storage: PostgresTestStorage) -> Generator[layer2_import.Layer2ImportTask]:
     task = layer2_import.Layer2ImportTask(structlog.get_logger())
-    task.prepare(tasks.Config(storage=pg_storage.config, fieldapi=FieldAPIConfig(base_url="unused")))
+    task.prepare(tasks.Config(storage=pg_storage.config))
     task.fieldapi_client = _ConstantEbv()
     yield task
     task.cleanup()
