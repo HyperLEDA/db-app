@@ -6,7 +6,6 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app.lib import velocity_config
 from app.tasks import (
     interface,
     layer2_import,
@@ -15,6 +14,7 @@ from app.tasks import (
     layer2_import_nature,
     layer2_import_redshift,
 )
+from app.tasks.velocity_config import ApexConfig, ValueWithUncertainty
 
 
 def test_weighted_mean_ra_dec() -> None:
@@ -333,9 +333,9 @@ def _velocity_inputs() -> tuple[table.QTable, table.QTable]:
     return agg, icrs
 
 
-def _zero_apexes(*names: str) -> dict[str, velocity_config.ApexConfig]:
-    zero = velocity_config.ValueWithUncertainty(value=0.0, error=0.0)
-    apex = velocity_config.ApexConfig(lon=zero, lat=zero, vel=zero)
+def _zero_apexes(*names: str) -> dict[str, ApexConfig]:
+    zero = ValueWithUncertainty(value=0.0, error=0.0)
+    apex = ApexConfig(lon=zero, lat=zero, vel=zero)
     return dict.fromkeys(names, apex)
 
 

@@ -5,7 +5,7 @@ import pydantic
 import structlog
 import yaml
 
-from app.dataapi import domain, presentation, repository, responders
+from app.dataapi import domain, presentation, repository
 from app.lib import commands, config, tracing
 from app.lib.storage import enums, postgres
 from app.lib.tracing import TracingConfig
@@ -37,7 +37,6 @@ class DataAPICommand(commands.Command):
 
         actions = domain.Actions(
             repo=repository.Repository(self.pg_storage, log),
-            catalog_cfg=self.config.catalogs,
             fieldapi_client=fieldapi_spec.RequestsFieldAPIClient(
                 self.config.fieldapi.base_url,
                 timeout_seconds=self.config.fieldapi.timeout_seconds,
@@ -59,7 +58,6 @@ class DataAPICommand(commands.Command):
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
-    catalogs: responders.CatalogConfig
     fieldapi: fieldapi_spec.FieldAPIConfig = pydantic.Field(default_factory=fieldapi_spec.FieldAPIConfig)
     tracing: TracingConfig = pydantic.Field(
         default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)

@@ -1,6 +1,6 @@
 import pytest
 
-from app.dataapi import domain, model, repository, responders
+from app.dataapi import domain, model, repository
 from app.dataapi.domain import reddening
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
@@ -40,22 +40,6 @@ class _FakeRepository:
             repository.ReddeningPhotometricSystem(id="Landolt", description="Landolt photometric system"),
             repository.ReddeningPhotometricSystem(id="SDSS", description="Sloan Digital Sky Survey"),
         ]
-
-
-def _catalog_config() -> responders.CatalogConfig:
-    return responders.CatalogConfig.model_validate(
-        {
-            "velocity": {
-                "apexes": {
-                    "heliocentric": {
-                        "lon": {"value": 0, "error": 0},
-                        "lat": {"value": 0, "error": 0},
-                        "vel": {"value": 0, "error": 0},
-                    }
-                }
-            }
-        }
-    )
 
 
 @pytest.fixture
@@ -106,7 +90,6 @@ def test_list_references(reddening_service: tuple[_FakeFieldAPIClient, reddening
 def actions() -> domain.Actions:
     return domain.Actions(
         repo=_FakeRepository(),
-        catalog_cfg=_catalog_config(),
         fieldapi_client=_FakeFieldAPIClient(),
     )
 

@@ -7,8 +7,9 @@ from astropy import table
 from astropy import units as u
 
 from app.catalogs import layer2
-from app.lib import astronomy, containers, velocity_config
+from app.lib import astronomy, containers
 from app.tasks import interface, layer2_common, logging
+from app.tasks.velocity_config import ApexConfig
 
 
 def aggregate_redshift(tbl: table.QTable) -> table.QTable:
@@ -32,7 +33,7 @@ def aggregate_redshift(tbl: table.QTable) -> table.QTable:
 def build_velocity_rows(
     agg: table.QTable,
     icrs: table.QTable,
-    apexes: dict[str, velocity_config.ApexConfig],
+    apexes: dict[str, ApexConfig],
 ) -> table.QTable:
     empty = _empty_velocity_rows()
     if len(agg) == 0 or len(icrs) == 0 or len(apexes) == 0:
