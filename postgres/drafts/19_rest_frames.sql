@@ -1,8 +1,7 @@
 BEGIN;
 
 CREATE TYPE common.velocity_reference_frame_type AS ENUM (
-  'Heliocentric'
-, 'Barycentric'
+  'Solar'
 , 'LSR'
 , 'GSR'
 , 'LG'
@@ -14,7 +13,7 @@ COMMENT ON TYPE common.velocity_reference_frame_type IS
 '{
 "description": "Radial velocity reference frame",
 "values": {
-  "Heliocentric": "Heliocentric reference frame, with origin at the centre of the Sun",
+  "Solar": "Reference frames associated with the Solar System",
   "Barycentric": "Barycentric reference frame, with origin at the Solar System barycentre",
   "LSR": "Local Standard of Rest",
   "GSR": "Galactic Standard of Rest",
@@ -53,8 +52,8 @@ SELECT meta.setparams( 'common' , 'velocity_reference_frames' , 'description' , 
 SELECT meta.setparams( 'common' , 'velocity_reference_frames' , 'bib' , '{"description": "Bibliographic reference for the adopted reference frame definition", "ucd": "meta.ref"}'::json );
 
 INSERT INTO common.velocity_reference_frames (id, frame_type, description ) VALUES 
-  ( 'Helio', 'Heliocentric', 'Heliocentric reference frame' )
-, ( 'Bary' , 'Barycentric', 'Barycentric reference frame' )
+  ( 'Helio', 'Solar', 'Heliocentric reference frame' )
+, ( 'Bary' , 'Solar', 'Barycentric reference frame' )
 ;
 
 
