@@ -59,9 +59,7 @@ class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
     fieldapi: fieldapi_spec.FieldAPIConfig = pydantic.Field(default_factory=fieldapi_spec.FieldAPIConfig)
-    tracing: TracingConfig = pydantic.Field(
-        default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
-    )
+    tracing: TracingConfig = pydantic.Field(default_factory=TracingConfig)
 
 
 def parse_config(path: str) -> Config:

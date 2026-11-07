@@ -5,12 +5,14 @@ import pydantic
 
 from app.lib import config
 from app.lib.storage import postgres
+from app.lib.tracing import TracingConfig
 from app.specs.fieldapi import FieldAPIConfig
 
 
 class Config(config.ConfigSettings):
     storage: postgres.PgStorageConfig = postgres.PgStorageConfig()
     fieldapi: FieldAPIConfig = pydantic.Field(default_factory=FieldAPIConfig)
+    tracing: TracingConfig = pydantic.Field(default_factory=TracingConfig)
 
 
 def parse_since(since: datetime.datetime | str | None) -> datetime.datetime | None:

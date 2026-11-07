@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import structlog
+from opentelemetry import trace
 from prefect import flow
 from prefect.deployments.runner import RunnerDeployment
 from prefect.flows import Flow
@@ -12,7 +13,9 @@ from prefect.logging import get_run_logger
 from pydantic import BaseModel, Field
 
 from app import tasks
-from app.lib import structlog_config
+from app.lib import structlog_config, tracing
+
+_tracer = trace.get_tracer("tasks")
 
 LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import",
@@ -113,11 +116,22 @@ def run_task(
         params["catalogs"] = list(catalogs)
     task = tasks.get_task(task_name, log, params)
     cfg = tasks.Config()
+    tracing.setup_tracing("tasks", cfg.tracing)
     task.prepare(cfg)
     try:
-        task.run()
+        with _tracer.start_as_current_span(task_name) as span:
+            span.set_attribute("task.name", task_name)
+            span.set_attribute("task.batch_size", int(batch_size))
+            span.set_attribute("task.dry_run", bool(dry_run))
+            span.set_attribute("task.cleanup_orphans", bool(cleanup_orphans))
+            if since is not None:
+                span.set_attribute("task.since", since.isoformat())
+            if catalogs is not None:
+                span.set_attribute("task.catalogs", ",".join(catalogs))
+            task.run()
     finally:
         task.cleanup()
+        tracing.flush_tracing()
 
 
 @flow(
@@ -243,11 +257,16 @@ def layer2_orphan_cleanup(
     log = _flow_logger()
     task = tasks.get_task("layer2-orphan-cleanup", log, {"write": bool(params.write)})
     cfg = tasks.Config()
+    tracing.setup_tracing("tasks", cfg.tracing)
     task.prepare(cfg)
     try:
-        task.run()
+        with _tracer.start_as_current_span("layer2-orphan-cleanup") as span:
+            span.set_attribute("task.name", "layer2-orphan-cleanup")
+            span.set_attribute("task.write", bool(params.write))
+            task.run()
     finally:
         task.cleanup()
+        tracing.flush_tracing()
 
 
 FLOWS_BY_NAME: dict[str, Flow] = {

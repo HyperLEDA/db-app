@@ -9,7 +9,7 @@ from astropy import units as u
 from app.catalogs import layer2
 from app.lib import astronomy, containers
 from app.specs import fieldapi as fieldapi_spec
-from app.tasks import layer2_common, layer2_import_icrs, layer2_import_nature, logging
+from app.tasks import layer2_common, logging
 from app.tasks.designation import aggregation
 
 EBV_CHUNK_SIZE = 10_000
@@ -80,6 +80,9 @@ def build_object_rows(
     sgls: list[float | None] = []
     sgbs: list[float | None] = []
     to_delete: list[int] = []
+    coord_indexes: list[int] = []
+    coord_ras: list[float] = []
+    coord_decs: list[float] = []
 
     for pgc in pgcs:
         name = designation_by_pgc.get(pgc)
@@ -107,16 +110,28 @@ def build_object_rows(
         e_ra = _degrees(icrs_row["e_ra"])
         dec = _degrees(icrs_row["dec"])
         e_dec = _degrees(icrs_row["e_dec"])
-        lon, lat, _, _ = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
-        sgl, sgb, _, _ = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
         ras.append(ra)
         e_ras.append(e_ra)
         decs.append(dec)
         e_decs.append(e_dec)
-        longs.append(lon)
-        lats.append(lat)
-        sgls.append(sgl)
-        sgbs.append(sgb)
+        longs.append(None)
+        lats.append(None)
+        sgls.append(None)
+        sgbs.append(None)
+        coord_indexes.append(len(keep_pgcs) - 1)
+        coord_ras.append(ra)
+        coord_decs.append(dec)
+
+    if coord_indexes:
+        ra_arr = np.asarray(coord_ras, dtype=float)
+        dec_arr = np.asarray(coord_decs, dtype=float)
+        gal_lon, gal_lat = astronomy.equatorial_to_lonlat_deg(ra_arr, dec_arr, "galactic")
+        sg_lon, sg_lat = astronomy.equatorial_to_lonlat_deg(ra_arr, dec_arr, "supergalactic")
+        for i, idx in enumerate(coord_indexes):
+            longs[idx] = float(gal_lon[i])
+            lats[idx] = float(gal_lat[i])
+            sgls[idx] = float(sg_lon[i])
+            sgbs[idx] = float(sg_lat[i])
 
     rows = table.QTable(
         {
@@ -138,31 +153,22 @@ def build_object_rows(
 
 
 def _designation_by_pgc(tbl: table.QTable) -> dict[int, str]:
-    if len(tbl) == 0:
-        return {}
-    agg = aggregation.aggregate_designation(tbl)
-    return {int(pgc): str(name) for pgc, name in zip(agg["pgc"], agg["design"], strict=True)}
+    return {int(pgc): str(name) for pgc, name in zip(tbl["pgc"], tbl["design"], strict=True)}
 
 
 def _nature_by_pgc(tbl: table.QTable) -> dict[int, str]:
-    if len(tbl) == 0:
-        return {}
-    agg = layer2_import_nature.aggregate_nature(tbl)
-    return {int(pgc): str(type_name) for pgc, type_name in zip(agg["pgc"], agg["type_name"], strict=True)}
+    return {int(pgc): str(type_name) for pgc, type_name in zip(tbl["pgc"], tbl["type_name"], strict=True)}
 
 
 def _icrs_by_pgc(tbl: table.QTable) -> dict[int, dict[str, Any]]:
-    if len(tbl) == 0:
-        return {}
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
     return {
-        int(agg["pgc"][i]): {
-            "ra": agg["ra"][i],
-            "e_ra": agg["e_ra"][i],
-            "dec": agg["dec"][i],
-            "e_dec": agg["e_dec"][i],
+        int(tbl["pgc"][i]): {
+            "ra": tbl["ra"][i],
+            "e_ra": tbl["e_ra"][i],
+            "dec": tbl["dec"][i],
+            "e_dec": tbl["e_dec"][i],
         }
-        for i in range(len(agg))
+        for i in range(len(tbl))
     }
 
 
@@ -220,21 +226,26 @@ class Layer2ImportObjectsTask(layer2_common.Layer2CatalogImportTask):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            pgcs = [int(pgc) for pgc in pgcs_tbl["pgc"]]
-            rows, to_delete = build_object_rows(
-                pgcs,
-                self.repository.get_designation_records_for_pgcs(pgcs),
-                self.repository.get_nature_records_for_pgcs(pgcs),
-                self.repository.get_icrs_records_for_pgcs(pgcs),
-                err_types,
-            )
-            if len(rows) > 0:
-                assign_ebv(rows, self.fieldapi_client)
-                objects_to_save += len(rows)
-                if not self.dry_run:
-                    self.repository.save("layer2.objects", rows)
-            if to_delete and not self.dry_run:
-                self.repository.remove_pgcs([layer2.Catalog.OBJECTS], to_delete)
+            with layer2_common.trace_batch(self.name(), offset=offset, input_size=len(pgcs_tbl)) as span:
+                pgcs = [int(pgc) for pgc in pgcs_tbl["pgc"]]
+                rows, to_delete = build_object_rows(
+                    pgcs,
+                    self.repository.get_designation_records_for_pgcs(pgcs, aggregation.PRIORITY_MASKS),
+                    self.repository.get_nature_records_for_pgcs(pgcs),
+                    self.repository.get_icrs_records_for_pgcs(pgcs),
+                    err_types,
+                )
+                saved = len(rows)
+                if saved > 0:
+                    assign_ebv(rows, self.fieldapi_client)
+                    objects_to_save += saved
+                    if not self.dry_run:
+                        self.repository.save("layer2.objects", rows)
+                if to_delete and not self.dry_run:
+                    self.repository.remove_pgcs([layer2.Catalog.OBJECTS], to_delete)
+                span.set_attribute("batch.objects_saved", saved)
+                span.set_attribute("batch.objects_deleted", len(to_delete))
+                span.set_attribute("batch.total_processed", objects_to_save)
 
             self.log.info(
                 "Processed batch",

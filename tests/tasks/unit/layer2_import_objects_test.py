@@ -28,7 +28,6 @@ def _icrs(*rows: tuple[int, float, float, float, float]) -> table.QTable:
             "e_ra": [row[2] for row in rows] * deg,
             "dec": [row[3] for row in rows] * deg,
             "e_dec": [row[4] for row in rows] * deg,
-            "datatype": ["regular"] * len(rows),
         }
     )
 
@@ -101,7 +100,7 @@ def test_missing_coordinates_stay_null() -> None:
         [1],
         _designations((1, "NGC 1")),
         _natures((1, "G")),
-        table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": [], "datatype": []}),
+        table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": []}),
         ERR_TYPES,
     )
     assert to_delete == []

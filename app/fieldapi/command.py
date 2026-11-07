@@ -18,9 +18,7 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     datasets: fieldapi_config.DatasetsConfig
-    tracing: TracingConfig = pydantic.Field(
-        default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
-    )
+    tracing: TracingConfig = pydantic.Field(default_factory=TracingConfig)
 
 
 def parse_config(path: str) -> Config:
