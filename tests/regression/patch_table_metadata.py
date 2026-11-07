@@ -2,7 +2,9 @@ import os
 import uuid
 
 import requests
+import structlog
 
+from app import tasks
 from app.lib.storage import enums
 from app.specs import adminapi
 from tests import lib
@@ -65,6 +67,13 @@ def patch_metadata_and_verify(session: requests.Session, table_name: str) -> Non
     )
     patch_resp = session.patch("/v1/table", json=patch_body.model_dump(mode="json"))
     patch_resp.raise_for_status()
+
+    task = tasks.get_task("refresh-table-stats", structlog.get_logger(), {})
+    task.prepare(tasks.Config())
+    try:
+        task.run()
+    finally:
+        task.cleanup()
 
     get_req = adminapi.GetTableRequest(table_name=new_table_name)
     get_resp = session.get("/v1/table", params=get_req.model_dump(mode="json"))
