@@ -26,6 +26,7 @@ _ONE_TO_MANY_CATALOGS = frozenset(
         layer2.Catalog.ADDITIONAL_DESIGNATIONS,
         layer2.Catalog.NOTE,
         layer2.Catalog.PHOTOMETRY__TOTAL,
+        layer2.Catalog.VELOCITY,
     }
 )
 
@@ -282,7 +283,7 @@ class Repository(postgres.TransactionalPGRepository):
         if layer2.Catalog.PHOTOMETRY__TOTAL in one_to_many:
             photometry_total_task = errgr.run(self._query_photometry_total, pgcs)
         velocity_task: concurrency.TaskResult[dict[int, dict[str, model.Velocity]]] | None = None
-        if layer2.Catalog.REDSHIFT in raw_catalogs:
+        if layer2.Catalog.VELOCITY in one_to_many:
             velocity_task = errgr.run(self._query_velocity, pgcs)
 
         errgr.wait()
@@ -521,7 +522,7 @@ def _layer2_object_from_maps(
     morphology = morphology_map.get(pgc) if layer2.Catalog.MORPHOLOGY in raw_catalogs else None
     notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
-    velocity = velocity_map.get(pgc) if layer2.Catalog.REDSHIFT in raw_catalogs else None
+    velocity = velocity_map.get(pgc) if layer2.Catalog.VELOCITY in raw_catalogs else None
 
     return model.Layer2Object(
         pgc=pgc,
