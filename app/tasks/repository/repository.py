@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Sequence
 from typing import Any, final
 
 import structlog
@@ -208,33 +209,88 @@ class Repository(postgres.TransactionalPGRepository):
     def get_modified_object_pgcs(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._storage.query(
             """
-            SELECT DISTINCT o.pgc
-            FROM layer0.records AS o
-            JOIN common.pgc AS p ON p.id = o.pgc
+            SELECT p.id AS pgc
+            FROM common.pgc AS p
             WHERE p.modification_time > %s
-              AND o.pgc > %s
+              AND p.id > %s
               AND (
-                EXISTS (SELECT 1 FROM designation.data AS d WHERE d.record_id = o.id)
-                OR EXISTS (SELECT 1 FROM nature.data AS n WHERE n.record_id = o.id)
-                OR EXISTS (SELECT 1 FROM icrs.data AS i WHERE i.record_id = o.id)
+                EXISTS (
+                  SELECT 1
+                  FROM layer0.records AS o
+                  JOIN designation.data AS d ON d.record_id = o.id
+                  WHERE o.pgc = p.id
+                )
+                OR EXISTS (
+                  SELECT 1
+                  FROM layer0.records AS o
+                  JOIN nature.data AS n ON n.record_id = o.id
+                  WHERE o.pgc = p.id
+                )
+                OR EXISTS (
+                  SELECT 1
+                  FROM layer0.records AS o
+                  JOIN icrs.data AS i ON i.record_id = o.id
+                  WHERE o.pgc = p.id
+                )
               )
-            ORDER BY o.pgc
+            ORDER BY p.id
             LIMIT %s
             """,
             params=[dt, offset, limit],
         )
         return table.QTable({"pgc": [int(row["pgc"]) for row in rows]})
 
-    def get_designation_records_for_pgcs(self, pgcs: list[int]) -> table.QTable:
+    def get_designation_records_for_pgcs(
+        self,
+        pgcs: list[int],
+        priority_masks: Sequence[str],
+    ) -> table.QTable:
         if not pgcs:
             return table.QTable({"pgc": [], "design": []})
+        priority_case = "\n".join(
+            [
+                "CASE",
+                *[f"  WHEN l1.design ~ '^{mask}$' THEN {i}" for i, mask in enumerate(priority_masks)],
+                f"  ELSE {len(priority_masks)}",
+                "END",
+            ]
+        )
         rows = self._storage.query(
-            """
-            SELECT o.pgc, l1.design
-            FROM designation.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.pgc = ANY(%s)
-            ORDER BY o.pgc
+            f"""
+            WITH ranked AS (
+              SELECT
+                o.pgc,
+                l1.design,
+                {priority_case} AS prio
+              FROM designation.data AS l1
+              JOIN layer0.records AS o ON l1.record_id = o.id
+              WHERE o.pgc = ANY(%s)
+            ),
+            best AS (
+              SELECT pgc, MIN(prio) AS prio
+              FROM ranked
+              GROUP BY pgc
+            ),
+            filtered AS (
+              SELECT r.pgc, r.design
+              FROM ranked AS r
+              JOIN best AS b ON b.pgc = r.pgc AND b.prio = r.prio
+            ),
+            counted AS (
+              SELECT
+                pgc,
+                design,
+                ROW_NUMBER() OVER (
+                  PARTITION BY pgc
+                  ORDER BY COUNT(*) DESC, design
+                ) AS rn
+              FROM filtered
+              GROUP BY pgc, design
+            )
+            SELECT pgc, design
+            FROM counted
+            WHERE rn = 1
+            ORDER BY pgc
             """,
             params=[pgcs],
         )
@@ -250,11 +306,23 @@ class Repository(postgres.TransactionalPGRepository):
             return table.QTable({"pgc": [], "type_name": []})
         rows = self._storage.query(
             """
-            SELECT o.pgc, l1.type_name
-            FROM nature.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            WHERE o.pgc = ANY(%s)
-            ORDER BY o.pgc
+            WITH counted AS (
+              SELECT
+                o.pgc,
+                l1.type_name,
+                ROW_NUMBER() OVER (
+                  PARTITION BY o.pgc
+                  ORDER BY COUNT(*) DESC, l1.type_name
+                ) AS rn
+              FROM nature.data AS l1
+              JOIN layer0.records AS o ON l1.record_id = o.id
+              WHERE o.pgc = ANY(%s)
+              GROUP BY o.pgc, l1.type_name
+            )
+            SELECT pgc, type_name
+            FROM counted
+            WHERE rn = 1
+            ORDER BY pgc
             """,
             params=[pgcs],
         )
@@ -293,17 +361,37 @@ class Repository(postgres.TransactionalPGRepository):
         )
 
     def get_icrs_records_for_pgcs(self, pgcs: list[int]) -> table.QTable:
-        empty = table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": [], "datatype": []})
+        empty = table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": []})
         if not pgcs:
             return empty
         rows = self._storage.query(
             """
-            SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype
-            FROM icrs.data AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            JOIN layer0.tables AS t ON o.table_id = t.id
-            WHERE o.pgc = ANY(%s)
-            ORDER BY o.pgc
+            WITH src AS (
+              SELECT o.pgc, l1.ra, l1.e_ra, l1.dec, l1.e_dec, t.datatype
+              FROM icrs.data AS l1
+              JOIN layer0.records AS o ON l1.record_id = o.id
+              JOIN layer0.tables AS t ON o.table_id = t.id
+              WHERE o.pgc = ANY(%s)
+            ),
+            filtered AS (
+              SELECT s.pgc, s.ra, s.e_ra, s.dec, s.e_dec
+              FROM src AS s
+              WHERE s.datatype <> 'compilation'
+                 OR NOT EXISTS (
+                   SELECT 1
+                   FROM src AS s2
+                   WHERE s2.pgc = s.pgc AND s2.datatype <> 'compilation'
+                 )
+            )
+            SELECT
+              pgc,
+              SUM(ra / (e_ra * e_ra)) / SUM(1.0 / (e_ra * e_ra)) AS ra,
+              1.0 / SQRT(SUM(1.0 / (e_ra * e_ra))) AS e_ra,
+              SUM(dec / (e_dec * e_dec)) / SUM(1.0 / (e_dec * e_dec)) AS dec,
+              1.0 / SQRT(SUM(1.0 / (e_dec * e_dec))) AS e_dec
+            FROM filtered
+            GROUP BY pgc
+            ORDER BY pgc
             """,
             params=[pgcs],
         )
@@ -320,7 +408,6 @@ class Repository(postgres.TransactionalPGRepository):
                 "e_ra": u.Quantity([float(row["e_ra"]) for row in rows], u.Unit(units["e_ra"])),
                 "dec": u.Quantity([float(row["dec"]) for row in rows], u.Unit(units["dec"])),
                 "e_dec": u.Quantity([float(row["e_dec"]) for row in rows], u.Unit(units["e_dec"])),
-                "datatype": [row["datatype"].value for row in rows],
             }
         )
 

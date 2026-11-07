@@ -7,13 +7,14 @@ from astropy import table
 
 from app.tasks import layer2_common
 
+# Patterns must be valid for both Python re.fullmatch and PostgreSQL POSIX regex (~).
 PRIORITY_MASKS = [
-    r"(?:And|Cas|Tri) \d+",
-    r"M \d+",
-    r"IC \d+[A-Z]?",
-    r"NGC \d+[A-Z]?",
-    r"UGC \d+[A-Z]?",
-    r"PGC \d+",
+    r"(And|Cas|Tri) [0-9]+",
+    r"M [0-9]+",
+    r"IC [0-9]+[A-Z]?",
+    r"NGC [0-9]+[A-Z]?",
+    r"UGC [0-9]+[A-Z]?",
+    r"PGC [0-9]+",
 ]
 
 

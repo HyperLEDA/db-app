@@ -9,7 +9,7 @@ from astropy import units as u
 from app.catalogs import layer2
 from app.lib import astronomy, containers
 from app.specs import fieldapi as fieldapi_spec
-from app.tasks import layer2_common, layer2_import_icrs, layer2_import_nature, logging
+from app.tasks import layer2_common, logging
 from app.tasks.designation import aggregation
 
 EBV_CHUNK_SIZE = 10_000
@@ -153,31 +153,22 @@ def build_object_rows(
 
 
 def _designation_by_pgc(tbl: table.QTable) -> dict[int, str]:
-    if len(tbl) == 0:
-        return {}
-    agg = aggregation.aggregate_designation(tbl)
-    return {int(pgc): str(name) for pgc, name in zip(agg["pgc"], agg["design"], strict=True)}
+    return {int(pgc): str(name) for pgc, name in zip(tbl["pgc"], tbl["design"], strict=True)}
 
 
 def _nature_by_pgc(tbl: table.QTable) -> dict[int, str]:
-    if len(tbl) == 0:
-        return {}
-    agg = layer2_import_nature.aggregate_nature(tbl)
-    return {int(pgc): str(type_name) for pgc, type_name in zip(agg["pgc"], agg["type_name"], strict=True)}
+    return {int(pgc): str(type_name) for pgc, type_name in zip(tbl["pgc"], tbl["type_name"], strict=True)}
 
 
 def _icrs_by_pgc(tbl: table.QTable) -> dict[int, dict[str, Any]]:
-    if len(tbl) == 0:
-        return {}
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
     return {
-        int(agg["pgc"][i]): {
-            "ra": agg["ra"][i],
-            "e_ra": agg["e_ra"][i],
-            "dec": agg["dec"][i],
-            "e_dec": agg["e_dec"][i],
+        int(tbl["pgc"][i]): {
+            "ra": tbl["ra"][i],
+            "e_ra": tbl["e_ra"][i],
+            "dec": tbl["dec"][i],
+            "e_dec": tbl["e_dec"][i],
         }
-        for i in range(len(agg))
+        for i in range(len(tbl))
     }
 
 
@@ -239,7 +230,7 @@ class Layer2ImportObjectsTask(layer2_common.Layer2CatalogImportTask):
                 pgcs = [int(pgc) for pgc in pgcs_tbl["pgc"]]
                 rows, to_delete = build_object_rows(
                     pgcs,
-                    self.repository.get_designation_records_for_pgcs(pgcs),
+                    self.repository.get_designation_records_for_pgcs(pgcs, aggregation.PRIORITY_MASKS),
                     self.repository.get_nature_records_for_pgcs(pgcs),
                     self.repository.get_icrs_records_for_pgcs(pgcs),
                     err_types,
