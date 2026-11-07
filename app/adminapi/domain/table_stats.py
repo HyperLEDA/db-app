@@ -13,12 +13,7 @@ def table_progress_to_presentation(progress: model.TableProgress) -> spec.TableP
         resolved_unsubmitted=progress.resolved_unsubmitted,
         submitted=progress.submitted,
         catalogs={
-            name: spec.CatalogProgress(
-                structured=catalog.structured,
-                in_layer2=catalog.in_layer2,
-                layer2_pending=catalog.layer2_pending,
-            )
-            for name, catalog in progress.catalogs.items()
+            name: spec.CatalogProgress(structured=catalog.structured) for name, catalog in progress.catalogs.items()
         },
     )
 

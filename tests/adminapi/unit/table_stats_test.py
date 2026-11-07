@@ -12,7 +12,7 @@ def test_table_progress_to_presentation() -> None:
         resolved_unsubmitted=3,
         submitted=4,
         catalogs={
-            "icrs": model.CatalogProgress(structured=5, in_layer2=3, layer2_pending=1),
+            "icrs": model.CatalogProgress(structured=5),
         },
     )
 
@@ -20,8 +20,6 @@ def test_table_progress_to_presentation() -> None:
 
     assert result.total_records == 10
     assert result.catalogs["icrs"].structured == 5
-    assert result.catalogs["icrs"].in_layer2 == 3
-    assert result.catalogs["icrs"].layer2_pending == 1
 
 
 def test_make_table_stats_refresh() -> None:

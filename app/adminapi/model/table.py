@@ -51,8 +51,6 @@ class Layer0CreationResponse:
 @dataclass
 class CatalogProgress:
     structured: int
-    in_layer2: int
-    layer2_pending: int
 
 
 @dataclass

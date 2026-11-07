@@ -89,6 +89,10 @@ def test_merge_multiple_sources_onto_target(
         "UPDATE common.pgc SET modification_time = %s WHERE id = ANY(%s)",
         params=[old_dt, [target_pgc, source_a, source_b]],
     )
+    pg_storage.storage.exec(
+        "UPDATE layer0.tables SET modification_dt = %s WHERE table_name = %s",
+        params=[old_dt, "merge_multi"],
+    )
 
     response = manager.merge_pgcs(
         adminapi.MergePgcsRequest(target_pgc=target_pgc, source_pgcs=[source_a, source_b]),
@@ -103,6 +107,11 @@ def test_merge_multiple_sources_onto_target(
     assert _modification_time(pg_storage, target_pgc).replace(tzinfo=datetime.UTC) > old_dt
     assert _modification_time(pg_storage, source_a).replace(tzinfo=datetime.UTC) > old_dt
     assert _modification_time(pg_storage, source_b).replace(tzinfo=datetime.UTC) > old_dt
+    table_mt = pg_storage.storage.query_one(
+        "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
+        params=["merge_multi"],
+    )["modification_dt"]
+    assert table_mt.replace(tzinfo=datetime.UTC) > old_dt
 
 
 def test_reject_target_in_sources() -> None:
