@@ -60,7 +60,7 @@ def _quantity_values(value: u.Quantity, unit: str) -> np.ndarray:
     return np.asarray(value.to(u.Unit(unit)).value, dtype=float)
 
 
-def velocity_wr_apex_batch(
+def velocity_wr_apex(
     vel: np.ndarray,
     lon: np.ndarray,
     lat: np.ndarray,

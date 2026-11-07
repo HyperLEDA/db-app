@@ -85,7 +85,7 @@ def build_velocity_rows(
     errors = np.empty((len(cz), len(keys)))
     for index, key in enumerate(keys):
         apex = apexes[key]
-        velocities[:, index], errors[:, index] = astronomy.velocity_wr_apex_batch(
+        velocities[:, index], errors[:, index] = astronomy.velocity_wr_apex(
             cz,
             lon,
             lat,

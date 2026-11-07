@@ -1,9 +1,6 @@
-from typing import Any
-
 import numpy as np
 import pytest
 from astropy import units as u
-from uncertainties import ufloat
 
 from app.lib import astronomy
 
@@ -45,7 +42,7 @@ def test_apex_velocity(
     lat_apex: float,
     expected_vel: float,
 ) -> None:
-    velocity, velocity_err = astronomy.velocity_wr_apex_batch(
+    velocity, velocity_err = astronomy.velocity_wr_apex(
         np.array([vel]),
         np.deg2rad(np.array([lon])),
         np.deg2rad(np.array([lat])),
@@ -65,56 +62,61 @@ def test_apex_velocity(
 
 
 @pytest.mark.parametrize(
-    "vel,lon,lat,vel_apex,lon_apex,lat_apex,expected",
+    "vel,e_vel,lon,e_lon,lat,e_lat,vel_apex,e_vel_apex,lon_apex,e_lon_apex,lat_apex,e_lat_apex,expected_vel,expected_err",
     [
+        pytest.param(100, 5, 147, 0, 50, 0, 40, 0, 147, 0, 50, 0, 140, 5, id="with velocity uncertainty only"),
         pytest.param(
-            ufloat(100, 5),
-            ufloat(147, 0),
-            ufloat(50, 0),
-            ufloat(40, 0),
-            ufloat(147, 0),
-            ufloat(50, 0),
-            ufloat(140, 5),
-            id="with velocity uncertainty only",
-        ),
-        pytest.param(
-            ufloat(100, 5),
-            ufloat(147, 1),
-            ufloat(50, 1),
-            ufloat(40, 3),
-            ufloat(147, 1),
-            ufloat(50, 1),
-            ufloat(140, 5.8309518),
+            100,
+            5,
+            147,
+            1,
+            50,
+            1,
+            40,
+            3,
+            147,
+            1,
+            50,
+            1,
+            140,
+            5.8309518,
             id="with all uncertainties",
         ),
     ],
 )
 def test_apex_velocity_with_uncertainties(
-    vel: Any,
-    lon: Any,
-    lat: Any,
-    vel_apex: Any,
-    lon_apex: Any,
-    lat_apex: Any,
-    expected: Any,
+    vel: float,
+    e_vel: float,
+    lon: float,
+    e_lon: float,
+    lat: float,
+    e_lat: float,
+    vel_apex: float,
+    e_vel_apex: float,
+    lon_apex: float,
+    e_lon_apex: float,
+    lat_apex: float,
+    e_lat_apex: float,
+    expected_vel: float,
+    expected_err: float,
 ) -> None:
-    velocity, velocity_err = astronomy.velocity_wr_apex_batch(
-        np.array([vel.nominal_value]),
-        np.deg2rad(np.array([lon.nominal_value])),
-        np.deg2rad(np.array([lat.nominal_value])),
-        vel_apex.nominal_value,
-        float(np.deg2rad(lon_apex.nominal_value)),
-        float(np.deg2rad(lat_apex.nominal_value)),
-        np.array([vel.std_dev]),
-        np.deg2rad(np.array([lon.std_dev])),
-        np.deg2rad(np.array([lat.std_dev])),
-        vel_apex.std_dev,
-        float(np.deg2rad(lon_apex.std_dev)),
-        float(np.deg2rad(lat_apex.std_dev)),
+    velocity, velocity_err = astronomy.velocity_wr_apex(
+        np.array([vel]),
+        np.deg2rad(np.array([lon])),
+        np.deg2rad(np.array([lat])),
+        vel_apex,
+        float(np.deg2rad(lon_apex)),
+        float(np.deg2rad(lat_apex)),
+        np.array([e_vel]),
+        np.deg2rad(np.array([e_lon])),
+        np.deg2rad(np.array([e_lat])),
+        e_vel_apex,
+        float(np.deg2rad(e_lon_apex)),
+        float(np.deg2rad(e_lat_apex)),
     )
 
-    assert velocity[0] == pytest.approx(expected.nominal_value, abs=1e-5)
-    assert velocity_err[0] == pytest.approx(expected.std_dev, abs=1e-5)
+    assert velocity[0] == pytest.approx(expected_vel, abs=1e-5)
+    assert velocity_err[0] == pytest.approx(expected_err, abs=1e-5)
 
 
 def test_to_dimensionless_quantity() -> None:
