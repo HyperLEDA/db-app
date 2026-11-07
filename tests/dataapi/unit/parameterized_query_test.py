@@ -63,7 +63,6 @@ def manager() -> tuple[mock.Mock, parameterized_query.ParameterizedQueryManager]
     return repo, parameterized_query.ParameterizedQueryManager(
         repo=repo,
         enabled_catalogs=DEFAULT,
-        catalog_cfg=mock.Mock(),
         reddening_service=mock.Mock(),
     )
 

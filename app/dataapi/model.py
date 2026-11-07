@@ -21,6 +21,12 @@ class RedshiftCatalog:
 
 
 @dataclass
+class Velocity:
+    v: float
+    e_v: float
+
+
+@dataclass
 class NatureCatalog:
     type_name: str
 
@@ -89,6 +95,7 @@ class Catalogs:
     morphology: MorphologyCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
+    velocity: dict[str, Velocity] | None = None
 
 
 @dataclass
@@ -112,4 +119,5 @@ __all__ = [
     "PhotometryTotalMeasurement",
     "RedshiftCatalog",
     "Source",
+    "Velocity",
 ]

@@ -1,4 +1,3 @@
-import warnings
 from typing import Any
 
 import numpy as np
@@ -7,11 +6,6 @@ from astropy import units as u
 from uncertainties import ufloat
 
 from app.lib import astronomy
-
-
-@pytest.fixture(autouse=True)
-def ignore_ufloat_zero_std_dev_warning() -> None:
-    warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0 may give unexpected results")
 
 
 @pytest.mark.parametrize(
@@ -51,23 +45,23 @@ def test_apex_velocity(
     lat_apex: float,
     expected_vel: float,
 ) -> None:
-    result = astronomy.velocity_wr_apex(
-        vel=vel * u.Unit("km/s"),
-        lon=lon * u.Unit("deg"),
-        lat=lat * u.Unit("deg"),
-        vel_apex=vel_apex * u.Unit("km/s"),
-        lon_apex=lon_apex * u.Unit("deg"),
-        lat_apex=lat_apex * u.Unit("deg"),
+    velocity, velocity_err = astronomy.velocity_wr_apex_batch(
+        np.array([vel]),
+        np.deg2rad(np.array([lon])),
+        np.deg2rad(np.array([lat])),
+        vel_apex,
+        float(np.deg2rad(lon_apex)),
+        float(np.deg2rad(lat_apex)),
+        np.array([0.0]),
+        np.array([0.0]),
+        np.array([0.0]),
+        0.0,
+        0.0,
+        0.0,
     )
 
-    assert isinstance(result, tuple)
-    assert len(result) == 2
-    velocity, velocity_err = result
-
-    assert velocity.value == pytest.approx(expected_vel, abs=1e-5)
-    assert velocity_err.value == 0.0
-    assert velocity.unit == u.Unit("km/s")
-    assert velocity_err.unit == u.Unit("km/s")
+    assert velocity[0] == pytest.approx(expected_vel, abs=1e-5)
+    assert velocity_err[0] == 0.0
 
 
 @pytest.mark.parametrize(
@@ -104,29 +98,23 @@ def test_apex_velocity_with_uncertainties(
     lat_apex: Any,
     expected: Any,
 ) -> None:
-    result = astronomy.velocity_wr_apex(
-        vel=vel.nominal_value * u.Unit("km/s"),
-        vel_err=vel.std_dev * u.Unit("km/s"),
-        lon=lon.nominal_value * u.Unit("deg"),
-        lon_err=lon.std_dev * u.Unit("deg"),
-        lat=lat.nominal_value * u.Unit("deg"),
-        lat_err=lat.std_dev * u.Unit("deg"),
-        vel_apex=vel_apex.nominal_value * u.Unit("km/s"),
-        vel_apex_err=vel_apex.std_dev * u.Unit("km/s"),
-        lon_apex=lon_apex.nominal_value * u.Unit("deg"),
-        lon_apex_err=lon_apex.std_dev * u.Unit("deg"),
-        lat_apex=lat_apex.nominal_value * u.Unit("deg"),
-        lat_apex_err=lat_apex.std_dev * u.Unit("deg"),
+    velocity, velocity_err = astronomy.velocity_wr_apex_batch(
+        np.array([vel.nominal_value]),
+        np.deg2rad(np.array([lon.nominal_value])),
+        np.deg2rad(np.array([lat.nominal_value])),
+        vel_apex.nominal_value,
+        float(np.deg2rad(lon_apex.nominal_value)),
+        float(np.deg2rad(lat_apex.nominal_value)),
+        np.array([vel.std_dev]),
+        np.deg2rad(np.array([lon.std_dev])),
+        np.deg2rad(np.array([lat.std_dev])),
+        vel_apex.std_dev,
+        float(np.deg2rad(lon_apex.std_dev)),
+        float(np.deg2rad(lat_apex.std_dev)),
     )
 
-    assert isinstance(result, tuple)
-    assert len(result) == 2
-    velocity, velocity_err = result
-
-    assert velocity.value == pytest.approx(expected.nominal_value, abs=1e-5)
-    assert velocity_err.value == pytest.approx(expected.std_dev, abs=1e-5)
-    assert velocity.unit == u.Unit("km/s")
-    assert velocity_err.unit == u.Unit("km/s")
+    assert velocity[0] == pytest.approx(expected.nominal_value, abs=1e-5)
+    assert velocity_err[0] == pytest.approx(expected.std_dev, abs=1e-5)
 
 
 def test_to_dimensionless_quantity() -> None:

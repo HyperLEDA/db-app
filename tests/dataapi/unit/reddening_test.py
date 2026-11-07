@@ -154,7 +154,7 @@ def test_list_reddening_references_returns_systems(actions: domain.Actions) -> N
 def structured_responder() -> tuple[_FakeFieldAPIClient, StructuredResponder]:
     fieldapi_client = _FakeFieldAPIClient()
     reddening_instance = reddening.Reddening(_FakeRepository(), fieldapi_client)
-    return fieldapi_client, StructuredResponder(_catalog_config(), reddening_instance)
+    return fieldapi_client, StructuredResponder(reddening_instance)
 
 
 def test_build_response_returns_observed_and_corrected_photometry(
@@ -212,7 +212,7 @@ def test_build_response_returns_observed_and_corrected_photometry(
 
 def test_build_response_degrades_when_fieldapi_unavailable() -> None:
     reddening_instance = reddening.Reddening(_FakeRepository(), _FailingFieldAPIClient())
-    responder = StructuredResponder(_catalog_config(), reddening_instance)
+    responder = StructuredResponder(reddening_instance)
     icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
     objects = [
         model.Layer2Object(

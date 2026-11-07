@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, override
 
 import structlog
 from astropy import units as u
@@ -7,7 +7,7 @@ from app.catalogs import layer2
 from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
-from app.lib import astronomy, velocity_config
+from app.lib import astronomy
 from app.lib.web import errors
 from app.specs import dataapi as spec
 
@@ -75,45 +75,20 @@ def _photometry_total_measurement(measurement: model.PhotometryTotalMeasurement)
     )
 
 
+def _velocities_from_stored(
+    velocities: dict[str, model.Velocity],
+    catalog_schema: spec.Schema,
+) -> dict[str, spec.AbsoluteVelocity]:
+    result: dict[str, spec.AbsoluteVelocity] = {}
+    for key, measurement in velocities.items():
+        catalog_schema.units.velocity[key] = VELOCITY_SCHEMA
+        result[key] = spec.AbsoluteVelocity(v=measurement.v, e_v=measurement.e_v)
+    return result
+
+
 class StructuredResponder(interface.ObjectResponder):
-    def __init__(self, cfg: velocity_config.CatalogConfig, reddening_service: reddening.Reddening) -> None:
-        self.config = cfg
+    def __init__(self, reddening_service: reddening.Reddening) -> None:
         self.reddening_service = reddening_service
-
-    def _velocities_from_apexes(
-        self,
-        lon: float,
-        lat: float,
-        e_lon: float,
-        e_lat: float,
-        cz: float,
-        e_cz: float,
-        catalog_schema: spec.Schema,
-    ) -> dict[str, spec.AbsoluteVelocity]:
-        velocities: dict[str, spec.AbsoluteVelocity] = {}
-        for key, apex in self.config.velocity.apexes.items():
-            vel_wr_apex, vel_wr_apex_err = astronomy.velocity_wr_apex(
-                vel=cz * u.Unit("km/s"),
-                lon=lon * u.Unit("deg"),
-                lat=lat * u.Unit("deg"),
-                vel_apex=apex.vel.value * u.Unit("km/s"),
-                lon_apex=apex.lon.value * u.Unit("deg"),
-                lat_apex=apex.lat.value * u.Unit("deg"),
-                vel_err=e_cz * u.Unit("km/s"),
-                lon_err=e_lon * u.Unit("arcsec"),
-                lat_err=e_lat * u.Unit("arcsec"),
-                vel_apex_err=apex.vel.error * u.Unit("km/s"),
-                lon_apex_err=apex.lon.error * u.Unit("deg"),
-                lat_apex_err=apex.lat.error * u.Unit("deg"),
-            )
-
-            schema = VELOCITY_SCHEMA
-            catalog_schema.units.velocity[key] = schema
-            velocities[key] = spec.AbsoluteVelocity(
-                v=vel_wr_apex.to(u.Unit(schema.v)).value,
-                e_v=vel_wr_apex_err.to(u.Unit(schema.e_v)).value,
-            )
-        return velocities
 
     def _fetch_corrected_photometry(
         self,
@@ -174,6 +149,7 @@ class StructuredResponder(interface.ObjectResponder):
                 corrected_by_pgc[pgc] = corrected
         return corrected_by_pgc
 
+    @override
     def build_response_from_catalog(self, objects: list[layer2.Layer2Object]) -> Any:
         catalog_schema = DATA_SCHEMA
         pgc_objects = []
@@ -197,18 +173,6 @@ class StructuredResponder(interface.ObjectResponder):
 
             if (morphology := obj.get(layer2.MorphologyCatalogObject)) is not None:
                 result.morphology = spec.Morphology(t=morphology.t, em=morphology.em, ep=morphology.ep)
-
-            if icrs is not None and redshift is not None and result.coordinates is not None:
-                gal = result.coordinates.galactic
-                result.velocity = self._velocities_from_apexes(
-                    gal.lon,
-                    gal.lat,
-                    gal.e_lon,
-                    gal.e_lat,
-                    redshift.cz,
-                    redshift.e_cz,
-                    catalog_schema,
-                )
 
             pgc_objects.append(spec.PGCObject(pgc=obj.pgc, catalogs=result))
 
@@ -280,18 +244,8 @@ class StructuredResponder(interface.ObjectResponder):
             if corrected_photometry := corrected_photometry_by_pgc.get(obj.pgc):
                 catalogs.photometry_total_corrected = corrected_photometry
 
-            if icrs is not None and obj.catalogs.redshift is not None and catalogs.coordinates is not None:
-                redshift = obj.catalogs.redshift
-                gal = catalogs.coordinates.galactic
-                catalogs.velocity = self._velocities_from_apexes(
-                    gal.lon,
-                    gal.lat,
-                    gal.e_lon,
-                    gal.e_lat,
-                    redshift.cz,
-                    redshift.e_cz,
-                    catalog_schema,
-                )
+            if obj.catalogs.velocity:
+                catalogs.velocity = _velocities_from_stored(obj.catalogs.velocity, catalog_schema)
 
             pgc_objects.append(spec.PGCObject(pgc=obj.pgc, catalogs=catalogs))
 

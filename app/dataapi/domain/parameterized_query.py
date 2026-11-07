@@ -139,16 +139,14 @@ class ParameterizedQueryManager:
         self,
         repo: repository.Repository,
         enabled_catalogs: list[layer2.Catalog],
-        catalog_cfg: responders.CatalogConfig,
         reddening_service: reddening.Reddening,
     ) -> None:
         self.repo = repo
         self.enabled_catalogs = enabled_catalogs
-        self.catalog_config = catalog_cfg
         self.reddening_service = reddening_service
 
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:
-        responder = responders.StructuredResponder(self.catalog_config, self.reddening_service)
+        responder = responders.StructuredResponder(self.reddening_service)
         offset = query.page * query.page_size
 
         default_catalogs = CATALOGS_FOR_PGC_QUERY if query.pgcs is not None else self.enabled_catalogs

@@ -53,7 +53,7 @@ class Actions(interface.Actions):
         self.catalog_cfg = catalog_cfg
         self.reddening = reddening.Reddening(repo, fieldapi_client)
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
-            repo, ENABLED_CATALOGS, catalog_cfg, self.reddening
+            repo, ENABLED_CATALOGS, self.reddening
         )
 
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:

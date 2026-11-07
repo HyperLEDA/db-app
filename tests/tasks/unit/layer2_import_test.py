@@ -6,7 +6,7 @@ import structlog
 from astropy import table
 from astropy import units as u
 
-from app.lib import astronomy, velocity_config
+from app.lib import velocity_config
 from app.tasks import (
     interface,
     layer2_import,
@@ -357,35 +357,3 @@ def test_velocity_heliocentric_matches_cz() -> None:
     rows = layer2_import_redshift.build_velocity_rows(agg, icrs, _zero_apexes("heliocentric"))
     assert float(rows["v"][0].to_value(u.Unit("km/s"))) == pytest.approx(2000.0)
     assert float(rows["e_v"][0].to_value(u.Unit("km/s"))) == pytest.approx(20.0)
-
-
-def test_velocity_matches_scalar_apex() -> None:
-    kms = u.Unit("km/s")
-    deg = u.Unit("deg")
-    agg = table.QTable({"pgc": [1], "cz": [1000.0] * kms, "e_cz": [10.0] * kms})
-    icrs = table.QTable(
-        {"pgc": [1], "ra": [10.0] * deg, "e_ra": [0.01] * deg, "dec": [20.0] * deg, "e_dec": [0.02] * deg}
-    )
-    apex = velocity_config.ApexConfig(
-        lon=velocity_config.ValueWithUncertainty(value=94.0, error=0.7),
-        lat=velocity_config.ValueWithUncertainty(value=-2.7, error=0.3),
-        vel=velocity_config.ValueWithUncertainty(value=301.0, error=3.0),
-    )
-    rows = layer2_import_redshift.build_velocity_rows(agg, icrs, {"local_group": apex})
-    lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(10.0, 20.0, 0.01, 0.02, "galactic")
-    velocity, error = astronomy.velocity_wr_apex(
-        vel=1000.0 * kms,
-        lon=lon * deg,
-        lat=lat * deg,
-        vel_apex=301.0 * kms,
-        lon_apex=94.0 * deg,
-        lat_apex=-2.7 * deg,
-        vel_err=10.0 * kms,
-        lon_err=e_lon * u.Unit("arcsec"),
-        lat_err=e_lat * u.Unit("arcsec"),
-        vel_apex_err=3.0 * kms,
-        lon_apex_err=0.7 * deg,
-        lat_apex_err=0.3 * deg,
-    )
-    assert float(rows["v"][0].to_value(kms)) == pytest.approx(float(velocity.value), abs=1e-6)
-    assert float(rows["e_v"][0].to_value(kms)) == pytest.approx(float(error.value), abs=1e-4)
