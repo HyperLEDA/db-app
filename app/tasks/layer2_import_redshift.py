@@ -1,4 +1,5 @@
 import datetime
+from dataclasses import dataclass
 from typing import Any, final
 
 import numpy as np
@@ -8,8 +9,26 @@ from astropy import units as u
 
 from app.catalogs import layer2
 from app.lib import astronomy, containers
-from app.tasks import interface, layer2_common, logging
-from app.tasks.velocity_config import ApexConfig
+from app.tasks import layer2_common, logging
+
+
+@dataclass(frozen=True)
+class Apex:
+    lon: float
+    e_lon: float
+    lat: float
+    e_lat: float
+    vel: float
+    e_vel: float
+
+
+APEXES: dict[str, Apex] = {
+    "heliocentric": Apex(lon=0.0, e_lon=0.0, lat=0.0, e_lat=0.0, vel=0.0, e_vel=0.0),
+    # https://ui.adsabs.harvard.edu/abs/2025A%26A...698A.178M/abstract
+    "local_group": Apex(lon=94.0, e_lon=0.7, lat=-2.7, e_lat=0.3, vel=301.0, e_vel=3.0),
+    # https://ui.adsabs.harvard.edu/abs/2016A%26A...594A...8P/abstract
+    "cmb": Apex(lon=263.99, e_lon=0.14, lat=48.26, e_lat=0.03, vel=370.06, e_vel=0.09),
+}
 
 
 def aggregate_redshift(tbl: table.QTable) -> table.QTable:
@@ -33,7 +52,7 @@ def aggregate_redshift(tbl: table.QTable) -> table.QTable:
 def build_velocity_rows(
     agg: table.QTable,
     icrs: table.QTable,
-    apexes: dict[str, ApexConfig],
+    apexes: dict[str, Apex],
 ) -> table.QTable:
     empty = _empty_velocity_rows()
     if len(agg) == 0 or len(icrs) == 0 or len(apexes) == 0:
@@ -70,15 +89,15 @@ def build_velocity_rows(
             cz,
             lon,
             lat,
-            apex.vel.value,
-            np.deg2rad(apex.lon.value),
-            np.deg2rad(apex.lat.value),
+            apex.vel,
+            np.deg2rad(apex.lon),
+            np.deg2rad(apex.lat),
             e_cz,
             e_lon,
             e_lat,
-            apex.vel.error,
-            np.deg2rad(apex.lon.error),
-            np.deg2rad(apex.lat.error),
+            apex.e_vel,
+            np.deg2rad(apex.e_lon),
+            np.deg2rad(apex.e_lat),
         )
 
     kms = u.Unit("km/s")
@@ -130,10 +149,6 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
             cleanup_orphans=cleanup_orphans,
         )
 
-    def prepare(self, config: interface.Config) -> None:
-        super().prepare(config)
-        self.apexes = config.catalogs.velocity.apexes
-
     @classmethod
     def name(cls) -> str:
         return "layer2-import-redshift"
@@ -141,7 +156,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
     def _save_velocities(self, agg: table.QTable) -> None:
         pgcs = [int(pgc) for pgc in agg["pgc"]]
         icrs = self.repository.get_layer2_icrs(pgcs)
-        velocities = build_velocity_rows(agg, icrs, self.apexes)
+        velocities = build_velocity_rows(agg, icrs, APEXES)
         self.repository.save("layer2.velocity", velocities, delete_pgcs=pgcs)
 
     def run(self) -> None:
