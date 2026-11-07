@@ -7,6 +7,7 @@ from psycopg import sql
 from app.adminapi import model
 from app.adminapi.repository.common import get_column_units as query_column_units
 from app.adminapi.repository.common import touch_pgcs
+from app.adminapi.repository.layer0.common import rawdata_table
 from app.catalogs import layer1
 from app.lib.storage import postgres
 
@@ -53,12 +54,13 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         query_str = self._storage.query_str(query)
         rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            self._storage.execute_batch(query_str, rows)
-            pgc_rows = self._storage.query(
-                "SELECT DISTINCT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
-                params=[ids],
-            )
-            touch_pgcs(self._storage, [int(row["pgc"]) for row in pgc_rows])
+            with rawdata_table(self._storage, record_ids=ids):
+                self._storage.execute_batch(query_str, rows)
+                pgc_rows = self._storage.query(
+                    "SELECT DISTINCT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
+                    params=[ids],
+                )
+                touch_pgcs(self._storage, [int(row["pgc"]) for row in pgc_rows])
 
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         if not record_ids:

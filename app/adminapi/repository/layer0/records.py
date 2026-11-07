@@ -3,9 +3,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from app.adminapi import model
-from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.common import touch_pgcs
-from app.adminapi.repository.layer0.common import metadata_to_candidates
+from app.adminapi.repository.layer0.common import metadata_to_candidates, rawdata_table
 from app.catalogs import layer1, layer2
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
@@ -48,16 +47,14 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
 
-        table_id_row = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
-
-        table_id = table_id_row["id"]
-
-        query = (
-            "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
-            "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
-        )
-        rows = [[record_id, table_id] for record_id in record_ids]
-        self._storage.execute_batch(query, rows)
+        with rawdata_table(self._storage, table_name=table_name) as table_ids:
+            table_id = table_ids[0]
+            query = (
+                "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
+                "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
+            )
+            rows = [[record_id, table_id] for record_id in record_ids]
+            self._storage.execute_batch(query, rows)
 
     def get_processed_records(
         self,
@@ -145,8 +142,9 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             for record_id, triage, candidates in rows
         ]
         with self.with_tx():
-            with self._storage.get_connection().cursor() as cursor:
-                cursor.executemany(query, db_rows)
+            with rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
+                with self._storage.get_connection().cursor() as cursor:
+                    cursor.executemany(query, db_rows)
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:

@@ -1,5 +1,7 @@
 import datetime
 import json
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -13,6 +15,7 @@ from psycopg import sql
 
 from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
+from app.adminapi.repository.layer0 import common as layer0_common
 from app.adminapi.repository.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
 from app.lib.storage import enums, postgres
 
@@ -115,6 +118,11 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
     def __init__(self, storage: postgres.PgStorage) -> None:
         super().__init__(storage)
 
+    @contextmanager
+    def rawdata_table(self, table_name: str) -> Generator[int]:
+        with layer0_common.rawdata_table(self._storage, table_name=table_name) as table_ids:
+            yield table_ids[0]
+
     def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
         return postgres.get_table_metadata(self._storage, schema, table)
 
@@ -151,18 +159,19 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 )
             )
 
-            if data.table_info.description is not None:
-                self._storage.exec(
-                    "SELECT meta.setparams(%s, %s, %s::json)",
-                    params=[
-                        RAWDATA_SCHEMA,
-                        data.table_info.name,
-                        json.dumps({"description": data.table_info.description}),
-                    ],
-                )
+            with self.rawdata_table(data.table_info.name):
+                if data.table_info.description is not None:
+                    self._storage.exec(
+                        "SELECT meta.setparams(%s, %s, %s::json)",
+                        params=[
+                            RAWDATA_SCHEMA,
+                            data.table_info.name,
+                            json.dumps({"description": data.table_info.description}),
+                        ],
+                    )
 
-            for column in data.table_info.columns.values():
-                self.update_column_metadata(data.table_info.name, column)
+                for column in data.table_info.columns.values():
+                    self._set_column_metadata(data.table_info.name, column)
 
         return model.Layer0CreationResponse(table_id, True)
 
@@ -192,7 +201,8 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 row_values.append(value)
             rows.append(row_values)
 
-        self._storage.execute_batch(query_str, rows)
+        with self.rawdata_table(data.table_name):
+            self._storage.execute_batch(query_str, rows)
 
     def fetch_table(
         self,
@@ -425,9 +435,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             table_id=registry_item["id"],
         )
 
-    def update_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
-        table_id, _ = self._get_table_id(table_name)
-
+    def _set_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
         column_params: dict[str, str | None] = {
             "description": column.description,
         }
@@ -438,55 +446,51 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if column.ucd is not None:
             column_params["ucd"] = column.ucd
 
-        modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
-
         self._storage.exec(
             "SELECT meta.setparams(%s, %s, %s, %s::json)",
             params=[RAWDATA_SCHEMA, table_name, column.name, json.dumps(column_params)],
         )
-        self._storage.exec(modification_query, params=[table_id])
+
+    def update_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
+        with self.rawdata_table(table_name):
+            self._set_column_metadata(table_name, column)
 
     def update_table_metadata(self, table_name: str, description: str) -> None:
-        table_id, _ = self._get_table_id(table_name)
-        modification_query = "UPDATE layer0.tables SET modification_dt = now() WHERE id = %s"
-        self._storage.exec(
-            "SELECT meta.setparams(%s, %s, %s::json)",
-            params=[RAWDATA_SCHEMA, table_name, json.dumps({"description": description})],
-        )
-        self._storage.exec(modification_query, params=[table_id])
+        with self.rawdata_table(table_name):
+            self._storage.exec(
+                "SELECT meta.setparams(%s, %s, %s::json)",
+                params=[RAWDATA_SCHEMA, table_name, json.dumps({"description": description})],
+            )
 
     def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
-        table_id, _ = self._get_table_id(table_name)
-        self._storage.exec(
-            "UPDATE layer0.tables SET datatype = %s, modification_dt = now() WHERE id = %s",
-            params=[datatype, table_id],
-        )
+        with self.rawdata_table(table_name) as table_id:
+            self._storage.exec(
+                "UPDATE layer0.tables SET datatype = %s WHERE id = %s",
+                params=[datatype, table_id],
+            )
 
     def update_table_status(self, table_name: str, status: enums.TableStatus) -> None:
-        table_id, _ = self._get_table_id(table_name)
-        self._storage.exec(
-            "UPDATE layer0.tables SET status = %s, modification_dt = now() WHERE id = %s",
-            params=[status, table_id],
-        )
+        with self.rawdata_table(table_name) as table_id:
+            self._storage.exec(
+                "UPDATE layer0.tables SET status = %s WHERE id = %s",
+                params=[status, table_id],
+            )
 
     def is_raw_table_name_taken(self, table_name: str) -> bool:
         return self._get_table_id(table_name)[1]
 
     def rename_raw_table(self, old_table_name: str, new_table_name: str) -> None:
-        table_id, ok = self._get_table_id(old_table_name)
-        if not ok:
-            raise RuntimeError(f"table {old_table_name!r} is not in layer0.tables")
-
-        rename_q = sql.SQL("ALTER TABLE {}.{} RENAME TO {}").format(
-            sql.Identifier(RAWDATA_SCHEMA),
-            sql.Identifier(old_table_name),
-            sql.Identifier(new_table_name),
-        )
-        self._storage.exec(rename_q)
-        self._storage.exec(
-            "UPDATE layer0.tables SET table_name = %s, modification_dt = now() WHERE id = %s",
-            params=[new_table_name, table_id],
-        )
+        with self.rawdata_table(old_table_name) as table_id:
+            rename_q = sql.SQL("ALTER TABLE {}.{} RENAME TO {}").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(old_table_name),
+                sql.Identifier(new_table_name),
+            )
+            self._storage.exec(rename_q)
+            self._storage.exec(
+                "UPDATE layer0.tables SET table_name = %s WHERE id = %s",
+                params=[new_table_name, table_id],
+            )
 
     def search_tables(
         self,
