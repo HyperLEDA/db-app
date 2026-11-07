@@ -10,6 +10,7 @@ class Catalog(enum.Enum):
     DESIGNATION = "designation"
     ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
+    VELOCITY = "velocity"
     NATURE = "nature"
     MORPHOLOGY = "morphology"
     OBJECTS = "objects"

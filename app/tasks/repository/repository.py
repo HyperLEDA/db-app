@@ -62,33 +62,54 @@ class Repository(postgres.TransactionalPGRepository):
             layer2_table = object_cls.table()
             query = f"DELETE FROM {layer2_table} WHERE pgc = ANY(%s)"
             self._storage.exec(query, params=[pgcs])
+            if catalog is layer2.Catalog.REDSHIFT:
+                self._storage.exec("DELETE FROM layer2.velocity WHERE pgc = ANY(%s)", params=[pgcs])
 
-    def save(self, table_name: str, data: table.QTable) -> None:
-        if len(data) == 0:
+    def save(self, table_name: str, data: table.QTable, *, delete_pgcs: list[int] | None = None) -> None:
+        if len(data) == 0 and not delete_pgcs:
             return
 
         schema, relation = table_name.split(".", maxsplit=1)
-        table_info = self.get_table_metadata(schema, relation)
-        column_units = {name: col.unit for name, col in table_info.columns.items() if col.unit}
-
-        work = table.QTable(data, copy=True)
-        columns = [name for name in work.colnames if name != "pgc"]
-        for col in columns:
-            target_unit = column_units.get(col)
-            if target_unit is not None and work[col].unit is not None:
-                work[col] = work[col].to(u.Unit(target_unit))
-
-        all_columns = ["pgc", *columns]
-        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
         table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
-        on_conflict = sql.SQL(", ").join(
-            sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in all_columns
-        )
+        prepared: tuple[sql.Composed, sql.Composed, list[int], list[list[Any]]] | None = None
+        if len(data) > 0:
+            table_info = self.get_table_metadata(schema, relation)
+            column_units = {name: col.unit for name, col in table_info.columns.items() if col.unit}
+            pk_columns = [name for name in table_info.columns if name in table_info.primary_keys] or ["pgc"]
 
-        pgcs = [int(pgc) for pgc in work["pgc"]]
-        col_values = [_column_as_list(work[col]) for col in columns]
+            work = table.QTable(data, copy=True)
+            columns = [name for name in work.colnames if name != "pgc"]
+            for col in columns:
+                target_unit = column_units.get(col)
+                if target_unit is not None and work[col].unit is not None:
+                    work[col] = work[col].to(u.Unit(target_unit))
+
+            all_columns = ["pgc", *columns]
+            column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
+            on_conflict = sql.SQL(", ").join(
+                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in all_columns
+            )
+            conflict_target = sql.SQL(", ").join(sql.Identifier(c) for c in pk_columns)
+            insert_sql = sql.SQL(
+                "INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT ({}) DO UPDATE SET {}"
+            ).format(table_ident, column_idents, column_idents, conflict_target, on_conflict)
+            prepared = (
+                column_idents,
+                insert_sql,
+                [int(pgc) for pgc in work["pgc"]],
+                [_column_as_list(work[col]) for col in columns],
+            )
 
         with self.with_tx():
+            if delete_pgcs:
+                self._storage.exec(
+                    sql.SQL("DELETE FROM {} WHERE pgc = ANY(%s)").format(table_ident),
+                    params=[delete_pgcs],
+                )
+            if prepared is None:
+                return
+
+            column_idents, insert_sql, pgcs, col_values = prepared
             with self._storage.get_connection().cursor() as cur:
                 cur.execute(
                     sql.SQL("CREATE TEMP TABLE save_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
@@ -98,11 +119,7 @@ class Repository(postgres.TransactionalPGRepository):
                 with cur.copy(sql.SQL("COPY save_staging ({}) FROM STDIN").format(column_idents)) as copy:
                     for i, pgc in enumerate(pgcs):
                         copy.write_row((pgc, *[vals[i] for vals in col_values]))
-                cur.execute(
-                    sql.SQL(
-                        "INSERT INTO {} ({}) SELECT {} FROM save_staging ON CONFLICT (pgc) DO UPDATE SET {}"
-                    ).format(table_ident, column_idents, column_idents, on_conflict)
-                )
+                cur.execute(insert_sql)
 
     def get_new_nature_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._query_new_pgc_records("nature.data", "l1.type_name", dt, limit, offset)
@@ -245,6 +262,33 @@ class Repository(postgres.TransactionalPGRepository):
             {
                 "pgc": [int(row["pgc"]) for row in rows],
                 "type_name": [row["type_name"] for row in rows],
+            }
+        )
+
+    def get_layer2_icrs(self, pgcs: list[int]) -> table.QTable:
+        empty = table.QTable({"pgc": [], "ra": [], "e_ra": [], "dec": [], "e_dec": []})
+        if not pgcs:
+            return empty
+        rows = self._storage.query(
+            """
+            SELECT pgc, ra, e_ra, dec, e_dec
+            FROM layer2.icrs
+            WHERE pgc = ANY(%s)
+            ORDER BY pgc
+            """,
+            params=[pgcs],
+        )
+        if not rows:
+            return empty
+        icrs_info = self.get_table_metadata("layer2", "icrs")
+        units = {name: col.unit for name, col in icrs_info.columns.items() if col.unit}
+        return table.QTable(
+            {
+                "pgc": [int(row["pgc"]) for row in rows],
+                "ra": u.Quantity([float(row["ra"]) for row in rows], u.Unit(units["ra"])),
+                "e_ra": u.Quantity([float(row["e_ra"]) for row in rows], u.Unit(units["e_ra"])),
+                "dec": u.Quantity([float(row["dec"]) for row in rows], u.Unit(units["dec"])),
+                "e_dec": u.Quantity([float(row["e_dec"]) for row in rows], u.Unit(units["e_dec"])),
             }
         )
 

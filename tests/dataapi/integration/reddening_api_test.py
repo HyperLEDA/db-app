@@ -55,7 +55,6 @@ def client(
 ) -> testclient.TestClient:
     actions = domain.Actions(
         repo=repository.Repository(reader_storage, log),
-        catalog_cfg=dataapi_config.catalogs,
         fieldapi_client=_MockFieldAPIClient(),
     )
     return testclient.TestClient(Server(actions, dataapi_config.server, log).app)

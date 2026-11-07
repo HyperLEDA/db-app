@@ -36,6 +36,7 @@ def test_one_to_one_uses_unnest_left_join(repo: tuple[mock.Mock, repository.Repo
     assert "LEFT JOIN layer2.designation USING (pgc)" in query
     assert "LEFT JOIN layer2.icrs USING (pgc)" in query
     assert "LEFT JOIN layer2.cz USING (pgc)" in query
+    assert "layer2.velocity" not in query
     assert "FULL JOIN" not in query
     assert "search_params" not in query
 
@@ -51,6 +52,16 @@ def test_one_to_many_catalogs_use_separate_queries(repo: tuple[mock.Mock, reposi
     assert any("layer2.photometry_total" in q for q in queries)
     assert any("layer2.notes" in q for q in queries)
     assert not any("unnest" in q for q in queries)
+
+
+def test_velocity_uses_separate_query(repo: tuple[mock.Mock, repository.Repository]) -> None:
+    storage, repo_instance = repo
+    repo_instance.query_catalogs([layer2.Catalog.REDSHIFT, layer2.Catalog.VELOCITY], [1])
+    queries = [call.args[0] for call in storage.query.call_args_list]
+    join_queries = [q for q in queries if "unnest" in q]
+    assert len(join_queries) == 1
+    assert "layer2.velocity" not in join_queries[0]
+    assert any("layer2.velocity" in q for q in queries)
 
 
 def test_mixed_catalogs_join_only_one_to_one(repo: tuple[mock.Mock, repository.Repository]) -> None:

@@ -13,6 +13,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
       - "6432:5432"
+    volumes:
+      - hyperledadb-data:/var/lib/postgresql/data
     healthcheck:
       test: psql 'host=localhost port=5432 dbname=hyperleda user=hyperleda password=$${POSTGRES_PASSWORD}' -qtA -c 'select 1;' || exit 1
       timeout: 5s
@@ -38,3 +40,6 @@ services:
       migrate:
         condition: service_completed_successfully
     entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
+
+volumes:
+  hyperledadb-data:

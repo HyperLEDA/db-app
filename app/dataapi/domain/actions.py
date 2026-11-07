@@ -1,7 +1,7 @@
 from typing import final
 
 from app.catalogs import layer2
-from app.dataapi import repository, responders
+from app.dataapi import repository
 from app.dataapi.domain import parameterized_query, reddening
 from app.dataapi.presentation import interface
 from app.lib.tap import types as tap_types
@@ -13,6 +13,7 @@ ENABLED_CATALOGS = [
     layer2.Catalog.DESIGNATION,
     layer2.Catalog.ICRS,
     layer2.Catalog.REDSHIFT,
+    layer2.Catalog.VELOCITY,
     layer2.Catalog.NATURE,
     layer2.Catalog.MORPHOLOGY,
 ]
@@ -46,14 +47,12 @@ class Actions(interface.Actions):
     def __init__(
         self,
         repo: repository.Repository,
-        catalog_cfg: responders.CatalogConfig,
         fieldapi_client: fieldapi.FieldAPIClient,
     ) -> None:
         self.repo = repo
-        self.catalog_cfg = catalog_cfg
         self.reddening = reddening.Reddening(repo, fieldapi_client)
         self.parameterized_query_manager = parameterized_query.ParameterizedQueryManager(
-            repo, ENABLED_CATALOGS, catalog_cfg, self.reddening
+            repo, ENABLED_CATALOGS, self.reddening
         )
 
     def query_simple(self, query: spec.QuerySimpleRequest) -> spec.QuerySimpleResponse:

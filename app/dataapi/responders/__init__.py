@@ -1,3 +1,3 @@
-from app.dataapi.responders.structured_responder import CatalogConfig, StructuredResponder
+from app.dataapi.responders.structured_responder import StructuredResponder
 
-__all__ = ["StructuredResponder", "CatalogConfig"]
+__all__ = ["StructuredResponder"]

@@ -320,3 +320,38 @@ def test_run_passes_params_to_selected_catalogs() -> None:
     )
     child.run.assert_called_once_with()
     assert child.fieldapi_client is task.fieldapi_client
+
+
+def _velocity_inputs() -> tuple[table.QTable, table.QTable]:
+    kms = u.Unit("km/s")
+    deg = u.Unit("deg")
+    agg = table.QTable({"pgc": [1, 2], "cz": [1000.0, 2000.0] * kms, "e_cz": [10.0, 20.0] * kms})
+    icrs = table.QTable(
+        {"pgc": [2], "ra": [10.0] * deg, "e_ra": [0.0] * deg, "dec": [20.0] * deg, "e_dec": [0.0] * deg}
+    )
+    return agg, icrs
+
+
+def _zero_apexes(*names: str) -> dict[str, layer2_import_redshift.Apex]:
+    apex = layer2_import_redshift.Apex(lon=0.0, e_lon=0.0, lat=0.0, e_lat=0.0, vel=0.0, e_vel=0.0)
+    return dict.fromkeys(names, apex)
+
+
+def test_velocity_skips_pgc_without_icrs() -> None:
+    agg, icrs = _velocity_inputs()
+    rows = layer2_import_redshift.build_velocity_rows(agg, icrs, _zero_apexes("heliocentric"))
+    assert list(rows["pgc"]) == [2]
+
+
+def test_velocity_one_row_per_apex() -> None:
+    agg, icrs = _velocity_inputs()
+    apexes = _zero_apexes("heliocentric", "local_group", "cmb")
+    rows = layer2_import_redshift.build_velocity_rows(agg, icrs, apexes)
+    assert list(rows["apex"]) == ["heliocentric", "local_group", "cmb"]
+
+
+def test_velocity_heliocentric_matches_cz() -> None:
+    agg, icrs = _velocity_inputs()
+    rows = layer2_import_redshift.build_velocity_rows(agg, icrs, _zero_apexes("heliocentric"))
+    assert float(rows["v"][0].to_value(u.Unit("km/s"))) == pytest.approx(2000.0)
+    assert float(rows["e_v"][0].to_value(u.Unit("km/s"))) == pytest.approx(20.0)
