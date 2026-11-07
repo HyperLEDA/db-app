@@ -2,7 +2,6 @@ import pytest
 import structlog
 
 from app.adminapi import clients, domain, repository
-from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.lib.storage import enums
 from app.specs import adminapi
 from tests.lib.postgres import PostgresTestStorage
@@ -17,7 +16,6 @@ def upload_context(pg_storage: PostgresTestStorage) -> tuple[domain.SourceManage
     upload_manager = domain.TableUploadManager(
         repo,
         clients.get_mock_clients(),
-        get_mock_table_stats_cache(),
     )
     return source_manager, upload_manager
 

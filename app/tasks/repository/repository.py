@@ -1,4 +1,5 @@
 import datetime
+import json
 from collections.abc import Sequence
 from typing import Any, final
 
@@ -7,7 +8,8 @@ from astropy import table
 from astropy import units as u
 from psycopg import sql
 
-from app.catalogs import layer1, layer2
+from app.catalogs import layer1, layer2, table_statistics
+from app.lib import concurrency
 from app.lib.storage import postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -447,6 +449,143 @@ class Repository(postgres.TransactionalPGRepository):
         )
         ORDER BY o.pgc ASC"""
         return self._storage.query(query, params=[dt, offset, limit])
+
+    def list_tables_needing_statistics_refresh(self) -> list[tuple[str, datetime.datetime]]:
+        rows = self._storage.query(
+            """
+            SELECT table_name, modification_dt
+            FROM layer0.tables
+            WHERE statistics_refresh_dt IS NULL OR modification_dt > statistics_refresh_dt
+            ORDER BY table_name
+            """
+        )
+        return [(row["table_name"], row["modification_dt"]) for row in rows]
+
+    def save_table_statistics(
+        self,
+        table_name: str,
+        progress: table_statistics.TableProgress,
+        observed_modification_dt: datetime.datetime,
+    ) -> None:
+        self._storage.exec(
+            """
+            UPDATE layer0.tables
+            SET statistics = %s::jsonb, statistics_refresh_dt = %s
+            WHERE table_name = %s
+            """,
+            params=[_statistics_to_json(progress), observed_modification_dt, table_name],
+        )
+
+    def get_table_progress(
+        self,
+        table_names: list[str] | None = None,
+    ) -> dict[str, table_statistics.TableProgress]:
+        catalogs = list(layer1.Catalog)
+        catalog_names = [catalog.value for catalog in catalogs]
+
+        errgr = concurrency.ErrorGroup()
+        funnel_task = errgr.run(self._get_table_progress_funnel, table_names)
+        catalog_tasks = {catalog: errgr.run(self._get_catalog_progress, catalog, table_names) for catalog in catalogs}
+        errgr.wait()
+
+        funnel = funnel_task.result()
+        empty_catalogs = {name: table_statistics.CatalogProgress(structured=0) for name in catalog_names}
+
+        result: dict[str, table_statistics.TableProgress] = {
+            table_name: table_statistics.TableProgress(
+                total_records=int(row["total_records"]),
+                unprocessed=int(row["unprocessed"]),
+                pending_triage=int(row["pending_triage"]),
+                resolved_unsubmitted=int(row["resolved_unsubmitted"]),
+                submitted=int(row["submitted"]),
+                catalogs=dict(empty_catalogs),
+            )
+            for table_name, row in funnel.items()
+        }
+
+        for catalog in catalogs:
+            catalog_rows = catalog_tasks[catalog].result()
+            alias = catalog.value
+            for table_name, catalog_progress in catalog_rows.items():
+                if table_name not in result:
+                    result[table_name] = table_statistics.TableProgress(
+                        total_records=0,
+                        unprocessed=0,
+                        pending_triage=0,
+                        resolved_unsubmitted=0,
+                        submitted=0,
+                        catalogs=dict(empty_catalogs),
+                    )
+                result[table_name].catalogs[alias] = catalog_progress
+
+        return result
+
+    def _get_table_progress_funnel(self, table_names: list[str] | None) -> dict[str, dict[str, Any]]:
+        where_clause, params = _progress_table_filter(table_names)
+        rows = self._storage.query(
+            f"""
+            SELECT t.table_name,
+                   COUNT(*) AS total_records,
+                   COUNT(*) FILTER (WHERE c.record_id IS NULL) AS unprocessed,
+                   COUNT(*) FILTER (
+                       WHERE c.record_id IS NOT NULL AND c.triage_status = 'pending'
+                   ) AS pending_triage,
+                   COUNT(*) FILTER (
+                       WHERE c.triage_status = 'resolved' AND r.pgc IS NULL
+                   ) AS resolved_unsubmitted,
+                   COUNT(*) FILTER (WHERE r.pgc IS NOT NULL) AS submitted
+            FROM layer0.records AS r
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            LEFT JOIN layer0.crossmatch AS c ON c.record_id = r.id
+            {where_clause}
+            GROUP BY t.table_name, t.id
+            ORDER BY t.table_name
+            """,
+            params=params,
+        )
+        return {row["table_name"]: row for row in rows}
+
+    def _get_catalog_progress(
+        self,
+        catalog: layer1.Catalog,
+        table_names: list[str] | None,
+    ) -> dict[str, table_statistics.CatalogProgress]:
+        object_cls = layer1.get_catalog_object_type(catalog)
+        layer1_table = object_cls.layer1_table()
+        where_clause, params = _progress_table_filter(table_names)
+        rows = self._storage.query(
+            f"""
+            SELECT t.table_name, COUNT(*) AS structured
+            FROM (
+                SELECT DISTINCT record_id
+                FROM {layer1_table}
+            ) AS d
+            JOIN layer0.records AS r ON r.id = d.record_id
+            JOIN layer0.tables AS t ON r.table_id = t.id
+            {where_clause}
+            GROUP BY t.table_name, t.id
+            """,
+            params=params,
+        )
+        return {row["table_name"]: table_statistics.CatalogProgress(structured=int(row["structured"])) for row in rows}
+
+
+def _statistics_to_json(progress: table_statistics.TableProgress) -> str:
+    payload = {
+        "total_records": progress.total_records,
+        "unprocessed": progress.unprocessed,
+        "pending_triage": progress.pending_triage,
+        "resolved_unsubmitted": progress.resolved_unsubmitted,
+        "submitted": progress.submitted,
+        "catalogs": {name: {"structured": catalog.structured} for name, catalog in progress.catalogs.items()},
+    }
+    return json.dumps(payload)
+
+
+def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any]]:
+    if table_names is None:
+        return "", []
+    return "WHERE t.table_name = ANY(%s)", [table_names]
 
 
 def _column_as_list(col: Any) -> list[Any]:

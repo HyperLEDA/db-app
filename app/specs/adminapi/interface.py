@@ -56,8 +56,6 @@ class GetTableListRequest(pydantic.BaseModel):
 
 class CatalogProgress(pydantic.BaseModel):
     structured: int
-    in_layer2: int
-    layer2_pending: int
 
 
 class TableProgress(pydantic.BaseModel):
@@ -82,11 +80,6 @@ class TableListItem(pydantic.BaseModel):
 
 class GetTableListResponse(pydantic.BaseModel):
     tables: list[TableListItem]
-
-
-class TableStatsSnapshot(pydantic.BaseModel):
-    tables: dict[str, TableProgress]
-    computed_at: datetime.datetime
 
 
 class GetTableResponse(pydantic.BaseModel):

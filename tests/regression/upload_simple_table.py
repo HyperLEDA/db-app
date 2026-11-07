@@ -536,6 +536,7 @@ def check_get_table(
     expected_pending_triage: int,
     expected_resolved_unsubmitted: int,
 ):
+    refresh_table_statistics()
     request_data = adminapi.GetTableRequest(table_name=table_name)
     response = session.get("/v1/table", params=request_data.model_dump(mode="json"))
     response.raise_for_status()
@@ -573,6 +574,18 @@ def assign_record_pgcs(session: requests.Session, table_name: str):
 class _ConstantEbv:
     def sample_sfd_ebv(self, coordinates: list[object]) -> list[float]:
         return [0.01 for _ in coordinates]
+
+
+@lib.test_logging_decorator
+def refresh_table_statistics() -> None:
+    log = structlog.get_logger()
+    task = tasks.get_task("refresh-table-stats", log, {})
+    cfg = tasks.Config()
+    task.prepare(cfg)
+    try:
+        task.run()
+    finally:
+        task.cleanup()
 
 
 @lib.test_logging_decorator

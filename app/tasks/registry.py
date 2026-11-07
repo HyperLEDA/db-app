@@ -12,6 +12,7 @@ from app.tasks import (
     layer2_import_objects,
     layer2_import_redshift,
     layer2_orphan_cleanup,
+    refresh_table_stats,
 )
 
 tasks: list[type[interface.Task]] = [
@@ -23,6 +24,7 @@ tasks: list[type[interface.Task]] = [
     layer2_import_objects.Layer2ImportObjectsTask,
     layer2_import_redshift.Layer2ImportRedshiftTask,
     layer2_orphan_cleanup.Layer2OrphanCleanupTask,
+    refresh_table_stats.RefreshTableStatsTask,
 ]
 
 task_by_name = {task.name(): task for task in tasks}

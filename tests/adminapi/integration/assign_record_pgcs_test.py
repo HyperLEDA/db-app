@@ -78,6 +78,10 @@ def test_submit_new_and_existing_records(
         "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
         params=[old_dt, existing_pgc],
     )
+    pg_storage.storage.exec(
+        "UPDATE layer0.tables SET modification_dt = %s WHERE table_name = %s",
+        params=[old_dt, table_name],
+    )
 
     manager.assign_record_pgcs(adminapi.AssignRecordPgcsRequest(record_ids=[new_id, existing_id]))
 
@@ -95,6 +99,11 @@ def test_submit_new_and_existing_records(
         params=[new_pgc],
     )["modification_time"]
     assert new_mt.replace(tzinfo=datetime.UTC) > old_dt
+    table_mt = pg_storage.storage.query_one(
+        "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
+        params=[table_name],
+    )["modification_dt"]
+    assert table_mt.replace(tzinfo=datetime.UTC) > old_dt
 
 
 def test_reject_pending_records(

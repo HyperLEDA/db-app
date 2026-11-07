@@ -3,11 +3,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from app.adminapi import model
-from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.common import touch_pgcs
-from app.adminapi.repository.layer0.common import metadata_to_candidates
-from app.catalogs import layer1, layer2
-from app.lib import concurrency
+from app.adminapi.repository.layer0.common import metadata_to_candidates, rawdata_table
 from app.lib.storage import enums, postgres
 
 
@@ -17,24 +14,6 @@ def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
     if len(candidates) == 1:
         return {"pgc": candidates[0]}
     return {"possible_matches": candidates}
-
-
-def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any]]:
-    if table_names is None:
-        return "", []
-    return "WHERE t.table_name = ANY(%s)", [table_names]
-
-
-_LAYER2_PROGRESS: dict[layer1.Catalog, layer2.Catalog] = {
-    layer1.Catalog.DESIGNATION: layer2.Catalog.DESIGNATION,
-    layer1.Catalog.ICRS: layer2.Catalog.ICRS,
-    layer1.Catalog.REDSHIFT: layer2.Catalog.REDSHIFT,
-    layer1.Catalog.NATURE: layer2.Catalog.NATURE,
-}
-
-
-def _progress_catalogs() -> list[layer1.Catalog]:
-    return list(layer1.Catalog)
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -48,16 +27,14 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         if len(record_ids) == 0:
             raise RuntimeError("no records to upsert")
 
-        table_id_row = self._storage.query_one(repo_sql.FETCH_RAWDATA_REGISTRY, params=[table_name])
-
-        table_id = table_id_row["id"]
-
-        query = (
-            "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
-            "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
-        )
-        rows = [[record_id, table_id] for record_id in record_ids]
-        self._storage.execute_batch(query, rows)
+        with rawdata_table(self._storage, table_name=table_name) as table_ids:
+            table_id = table_ids[0]
+            query = (
+                "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
+                "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
+            )
+            rows = [[record_id, table_id] for record_id in record_ids]
+            self._storage.execute_batch(query, rows)
 
     def get_processed_records(
         self,
@@ -145,8 +122,9 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             for record_id, triage, candidates in rows
         ]
         with self.with_tx():
-            with self._storage.get_connection().cursor() as cursor:
-                cursor.executemany(query, db_rows)
+            with rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
+                with self._storage.get_connection().cursor() as cursor:
+                    cursor.executemany(query, db_rows)
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:
@@ -227,14 +205,15 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                     pgcs_to_insert[row["record_id"]] = pgc_id
 
             if pgcs_to_insert:
-                update_query = (
-                    "UPDATE layer0.records SET pgc = v.pgc "
-                    "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                    "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
-                )
-                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-                self._storage.execute_batch(update_query, rows)
-                touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
+                with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
+                    update_query = (
+                        "UPDATE layer0.records SET pgc = v.pgc "
+                        "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                        "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
+                    )
+                    rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+                    self._storage.execute_batch(update_query, rows)
+                    touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}
@@ -251,18 +230,19 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 pgcs_to_insert[record_id] = pgc
 
         if pgcs_to_insert:
-            previous_rows = self._storage.query(
-                "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
-                params=[list(pgcs_to_insert.keys())],
-            )
-            previous_pgcs = {int(row["pgc"]) for row in previous_rows}
-            update_query = (
-                "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                "WHERE layer0.records.id = v.record_id"
-            )
-            rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-            self._storage.execute_batch(update_query, rows)
-            touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
+            with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
+                previous_rows = self._storage.query(
+                    "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
+                    params=[list(pgcs_to_insert.keys())],
+                )
+                previous_pgcs = {int(row["pgc"]) for row in previous_rows}
+                update_query = (
+                    "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                    "WHERE layer0.records.id = v.record_id"
+                )
+                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+                self._storage.execute_batch(update_query, rows)
+                touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
 
     def _mint_pgc_ids(self, count: int) -> list[int]:
         rows = self._storage.query(
@@ -282,146 +262,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             """,
             params=[target_pgc, source_pgcs],
         )
-        touch_pgcs(self._storage, [target_pgc, *source_pgcs])
+        with rawdata_table(self._storage, record_ids=[row["id"] for row in rows]):
+            touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
-
-    def _get_table_progress_funnel(self, table_names: list[str] | None) -> dict[str, dict[str, Any]]:
-        where_clause, params = _progress_table_filter(table_names)
-        rows = self._storage.query(
-            f"""
-            SELECT t.table_name,
-                   COUNT(*) AS total_records,
-                   COUNT(*) FILTER (WHERE c.record_id IS NULL) AS unprocessed,
-                   COUNT(*) FILTER (
-                       WHERE c.record_id IS NOT NULL AND c.triage_status = 'pending'
-                   ) AS pending_triage,
-                   COUNT(*) FILTER (
-                       WHERE c.triage_status = 'resolved' AND r.pgc IS NULL
-                   ) AS resolved_unsubmitted,
-                   COUNT(*) FILTER (WHERE r.pgc IS NOT NULL) AS submitted
-            FROM layer0.records AS r
-            JOIN layer0.tables AS t ON r.table_id = t.id
-            LEFT JOIN layer0.crossmatch AS c ON c.record_id = r.id
-            {where_clause}
-            GROUP BY t.table_name, t.id
-            ORDER BY t.table_name
-            """,
-            params=params,
-        )
-        return {row["table_name"]: row for row in rows}
-
-    def _get_catalog_progress(
-        self,
-        catalog: layer1.Catalog,
-        table_names: list[str] | None,
-    ) -> dict[str, model.CatalogProgress]:
-        object_cls = layer1.get_catalog_object_type(catalog)
-        layer1_table = object_cls.layer1_table()
-        where_clause, params = _progress_table_filter(table_names)
-
-        layer2_catalog = _LAYER2_PROGRESS.get(catalog)
-        if layer2_catalog is None:
-            rows = self._storage.query(
-                f"""
-                SELECT t.table_name, COUNT(*) AS structured
-                FROM (
-                    SELECT DISTINCT record_id
-                    FROM {layer1_table}
-                ) AS d
-                JOIN layer0.records AS r ON r.id = d.record_id
-                JOIN layer0.tables AS t ON r.table_id = t.id
-                {where_clause}
-                GROUP BY t.table_name, t.id
-                """,
-                params=params,
-            )
-            return {
-                row["table_name"]: model.CatalogProgress(
-                    structured=int(row["structured"]),
-                    in_layer2=0,
-                    layer2_pending=0,
-                )
-                for row in rows
-            }
-
-        layer2_table = layer2.get_catalog_object_type(layer2_catalog).table()
-        rows = self._storage.query(
-            f"""
-            SELECT t.table_name,
-                   COUNT(*) AS structured,
-                   COUNT(*) FILTER (
-                       WHERE r.pgc IS NOT NULL AND l2.pgc IS NOT NULL
-                   ) AS in_layer2,
-                   COUNT(*) FILTER (
-                       WHERE r.pgc IS NOT NULL
-                         AND (l2.pgc IS NULL OR p.modification_time > lu.dt)
-                   ) AS layer2_pending
-            FROM (
-                SELECT DISTINCT record_id
-                FROM {layer1_table}
-            ) AS d
-            JOIN layer0.records AS r ON r.id = d.record_id
-            JOIN layer0.tables AS t ON r.table_id = t.id
-            LEFT JOIN common.pgc AS p ON p.id = r.pgc
-            LEFT JOIN {layer2_table} AS l2 ON l2.pgc = r.pgc
-            CROSS JOIN (
-                SELECT dt
-                FROM layer2.last_update
-                WHERE catalog = %s
-            ) AS lu
-            {where_clause}
-            GROUP BY t.table_name, t.id
-            """,
-            params=[layer2_catalog.value, *params],
-        )
-        return {
-            row["table_name"]: model.CatalogProgress(
-                structured=int(row["structured"]),
-                in_layer2=int(row["in_layer2"]),
-                layer2_pending=int(row["layer2_pending"]),
-            )
-            for row in rows
-        }
-
-    def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
-        catalogs = _progress_catalogs()
-        catalog_names = [catalog.value for catalog in catalogs]
-
-        errgr = concurrency.ErrorGroup()
-        funnel_task = errgr.run(self._get_table_progress_funnel, table_names)
-        catalog_tasks = {catalog: errgr.run(self._get_catalog_progress, catalog, table_names) for catalog in catalogs}
-        errgr.wait()
-
-        funnel = funnel_task.result()
-        empty_catalogs = {
-            name: model.CatalogProgress(structured=0, in_layer2=0, layer2_pending=0) for name in catalog_names
-        }
-
-        result: dict[str, model.TableProgress] = {
-            table_name: model.TableProgress(
-                total_records=int(row["total_records"]),
-                unprocessed=int(row["unprocessed"]),
-                pending_triage=int(row["pending_triage"]),
-                resolved_unsubmitted=int(row["resolved_unsubmitted"]),
-                submitted=int(row["submitted"]),
-                catalogs=dict(empty_catalogs),
-            )
-            for table_name, row in funnel.items()
-        }
-
-        for catalog in catalogs:
-            catalog_rows = catalog_tasks[catalog].result()
-            alias = catalog.value
-            for table_name, catalog_progress in catalog_rows.items():
-                if table_name not in result:
-                    result[table_name] = model.TableProgress(
-                        total_records=0,
-                        unprocessed=0,
-                        pending_triage=0,
-                        resolved_unsubmitted=0,
-                        submitted=0,
-                        catalogs=dict(empty_catalogs),
-                    )
-                result[table_name].catalogs[alias] = catalog_progress
-
-        return result
