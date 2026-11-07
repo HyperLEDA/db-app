@@ -181,13 +181,16 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            agg = aggregate_redshift(tbl)
-
-            if len(agg) > 0:
-                objects_to_save += len(agg)
-                if not self.dry_run:
-                    self.repository.save("layer2.cz", agg)
-                    self._save_velocities(agg)
+            with layer2_common.trace_batch(self.name(), offset=offset, input_size=len(tbl)) as span:
+                agg = aggregate_redshift(tbl)
+                saved = len(agg)
+                if saved > 0:
+                    objects_to_save += saved
+                    if not self.dry_run:
+                        self.repository.save("layer2.cz", agg)
+                        self._save_velocities(agg)
+                span.set_attribute("batch.objects_saved", saved)
+                span.set_attribute("batch.total_processed", objects_to_save)
             self.log.info(
                 "Processed batch",
                 last_pgc=offset,

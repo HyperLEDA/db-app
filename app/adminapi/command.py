@@ -97,9 +97,7 @@ class Config(config.ConfigSettings):
     storage: postgres.PgStorageConfig
     clients: ClientsConfig
     auth_enabled: bool = True
-    tracing: TracingConfig = pydantic.Field(
-        default_factory=lambda: TracingConfig(endpoint="localhost:4317", enabled=False)
-    )
+    tracing: TracingConfig = pydantic.Field(default_factory=TracingConfig)
 
 
 def parse_config(path: str) -> Config:

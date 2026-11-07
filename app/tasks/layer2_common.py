@@ -1,14 +1,28 @@
 import abc
 import datetime
+from collections.abc import Generator
+from contextlib import contextmanager
 
 import numpy as np
 import structlog
 from astropy import table
+from opentelemetry import trace
 
 from app.catalogs import layer2
 from app.lib.storage import enums, postgres
 from app.specs import fieldapi as fieldapi_client
 from app.tasks import interface, repository
+
+_tracer = trace.get_tracer("tasks.layer2")
+
+
+@contextmanager
+def trace_batch(task_name: str, *, offset: int, input_size: int) -> Generator[trace.Span]:
+    with _tracer.start_as_current_span(f"{task_name}.batch") as span:
+        span.set_attribute("task.name", task_name)
+        span.set_attribute("batch.offset", int(offset))
+        span.set_attribute("batch.input_size", int(input_size))
+        yield span
 
 
 def majority_vote_by_pgc(tbl: table.QTable, value_column: str) -> tuple[list[int], list[str]]:

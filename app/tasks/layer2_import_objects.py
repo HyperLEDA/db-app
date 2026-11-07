@@ -235,21 +235,26 @@ class Layer2ImportObjectsTask(layer2_common.Layer2CatalogImportTask):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            pgcs = [int(pgc) for pgc in pgcs_tbl["pgc"]]
-            rows, to_delete = build_object_rows(
-                pgcs,
-                self.repository.get_designation_records_for_pgcs(pgcs),
-                self.repository.get_nature_records_for_pgcs(pgcs),
-                self.repository.get_icrs_records_for_pgcs(pgcs),
-                err_types,
-            )
-            if len(rows) > 0:
-                assign_ebv(rows, self.fieldapi_client)
-                objects_to_save += len(rows)
-                if not self.dry_run:
-                    self.repository.save("layer2.objects", rows)
-            if to_delete and not self.dry_run:
-                self.repository.remove_pgcs([layer2.Catalog.OBJECTS], to_delete)
+            with layer2_common.trace_batch(self.name(), offset=offset, input_size=len(pgcs_tbl)) as span:
+                pgcs = [int(pgc) for pgc in pgcs_tbl["pgc"]]
+                rows, to_delete = build_object_rows(
+                    pgcs,
+                    self.repository.get_designation_records_for_pgcs(pgcs),
+                    self.repository.get_nature_records_for_pgcs(pgcs),
+                    self.repository.get_icrs_records_for_pgcs(pgcs),
+                    err_types,
+                )
+                saved = len(rows)
+                if saved > 0:
+                    assign_ebv(rows, self.fieldapi_client)
+                    objects_to_save += saved
+                    if not self.dry_run:
+                        self.repository.save("layer2.objects", rows)
+                if to_delete and not self.dry_run:
+                    self.repository.remove_pgcs([layer2.Catalog.OBJECTS], to_delete)
+                span.set_attribute("batch.objects_saved", saved)
+                span.set_attribute("batch.objects_deleted", len(to_delete))
+                span.set_attribute("batch.total_processed", objects_to_save)
 
             self.log.info(
                 "Processed batch",

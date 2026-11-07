@@ -2,8 +2,8 @@ from typing import final
 
 from prefect import serve
 
-from app.lib import commands
-from app.tasks import flows
+from app.lib import commands, tracing
+from app.tasks import flows, interface
 
 
 @final
@@ -17,6 +17,8 @@ class ServeTasksCommand(commands.Command):
         """
 
     def prepare(self) -> None:
+        cfg = interface.Config()
+        tracing.setup_tracing("tasks", cfg.tracing)
         self.deployments = flows.build_deployments()
 
     def run(self) -> None:

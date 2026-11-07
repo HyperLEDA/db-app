@@ -60,16 +60,20 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
             last_update_dt,
             batch_size=self.batch_size,
         ):
-            agg = aggregate_nature(tbl)
+            with layer2_common.trace_batch(self.name(), offset=offset, input_size=len(tbl)) as span:
+                agg = aggregate_nature(tbl)
 
-            for type_name in agg["type_name"]:
-                key = str(type_name)
-                type_distribution[key] = type_distribution.get(key, 0) + 1
+                for type_name in agg["type_name"]:
+                    key = str(type_name)
+                    type_distribution[key] = type_distribution.get(key, 0) + 1
 
-            if len(agg) > 0:
-                objects_to_save += len(agg)
-                if not self.dry_run:
-                    self.repository.save("layer2.nature", agg)
+                saved = len(agg)
+                if saved > 0:
+                    objects_to_save += saved
+                    if not self.dry_run:
+                        self.repository.save("layer2.nature", agg)
+                span.set_attribute("batch.objects_saved", saved)
+                span.set_attribute("batch.total_processed", objects_to_save)
 
             self.log.info(
                 "Processed batch",
