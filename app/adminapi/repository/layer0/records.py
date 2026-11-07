@@ -225,14 +225,15 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                     pgcs_to_insert[row["record_id"]] = pgc_id
 
             if pgcs_to_insert:
-                update_query = (
-                    "UPDATE layer0.records SET pgc = v.pgc "
-                    "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                    "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
-                )
-                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-                self._storage.execute_batch(update_query, rows)
-                touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
+                with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
+                    update_query = (
+                        "UPDATE layer0.records SET pgc = v.pgc "
+                        "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                        "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
+                    )
+                    rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+                    self._storage.execute_batch(update_query, rows)
+                    touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert: dict[str, int] = {}
@@ -249,18 +250,19 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 pgcs_to_insert[record_id] = pgc
 
         if pgcs_to_insert:
-            previous_rows = self._storage.query(
-                "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
-                params=[list(pgcs_to_insert.keys())],
-            )
-            previous_pgcs = {int(row["pgc"]) for row in previous_rows}
-            update_query = (
-                "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                "WHERE layer0.records.id = v.record_id"
-            )
-            rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-            self._storage.execute_batch(update_query, rows)
-            touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
+            with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
+                previous_rows = self._storage.query(
+                    "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
+                    params=[list(pgcs_to_insert.keys())],
+                )
+                previous_pgcs = {int(row["pgc"]) for row in previous_rows}
+                update_query = (
+                    "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                    "WHERE layer0.records.id = v.record_id"
+                )
+                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
+                self._storage.execute_batch(update_query, rows)
+                touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
 
     def _mint_pgc_ids(self, count: int) -> list[int]:
         rows = self._storage.query(
@@ -280,7 +282,8 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             """,
             params=[target_pgc, source_pgcs],
         )
-        touch_pgcs(self._storage, [target_pgc, *source_pgcs])
+        with rawdata_table(self._storage, record_ids=[row["id"] for row in rows]):
+            touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
 
     def _get_table_progress_funnel(self, table_names: list[str] | None) -> dict[str, dict[str, Any]]:
