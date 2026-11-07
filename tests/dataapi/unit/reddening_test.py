@@ -1,6 +1,6 @@
 import pytest
 
-from app.dataapi import domain, model, repository, responders
+from app.dataapi import domain, model, repository
 from app.dataapi.domain import reddening
 from app.dataapi.responders.structured_responder import StructuredResponder
 from app.lib.web import errors
@@ -40,22 +40,6 @@ class _FakeRepository:
             repository.ReddeningPhotometricSystem(id="Landolt", description="Landolt photometric system"),
             repository.ReddeningPhotometricSystem(id="SDSS", description="Sloan Digital Sky Survey"),
         ]
-
-
-def _catalog_config() -> responders.CatalogConfig:
-    return responders.CatalogConfig.model_validate(
-        {
-            "velocity": {
-                "apexes": {
-                    "heliocentric": {
-                        "lon": {"value": 0, "error": 0},
-                        "lat": {"value": 0, "error": 0},
-                        "vel": {"value": 0, "error": 0},
-                    }
-                }
-            }
-        }
-    )
 
 
 @pytest.fixture
@@ -106,7 +90,6 @@ def test_list_references(reddening_service: tuple[_FakeFieldAPIClient, reddening
 def actions() -> domain.Actions:
     return domain.Actions(
         repo=_FakeRepository(),
-        catalog_cfg=_catalog_config(),
         fieldapi_client=_FakeFieldAPIClient(),
     )
 
@@ -154,7 +137,7 @@ def test_list_reddening_references_returns_systems(actions: domain.Actions) -> N
 def structured_responder() -> tuple[_FakeFieldAPIClient, StructuredResponder]:
     fieldapi_client = _FakeFieldAPIClient()
     reddening_instance = reddening.Reddening(_FakeRepository(), fieldapi_client)
-    return fieldapi_client, StructuredResponder(_catalog_config(), reddening_instance)
+    return fieldapi_client, StructuredResponder(reddening_instance)
 
 
 def test_build_response_returns_observed_and_corrected_photometry(
@@ -212,7 +195,7 @@ def test_build_response_returns_observed_and_corrected_photometry(
 
 def test_build_response_degrades_when_fieldapi_unavailable() -> None:
     reddening_instance = reddening.Reddening(_FakeRepository(), _FailingFieldAPIClient())
-    responder = StructuredResponder(_catalog_config(), reddening_instance)
+    responder = StructuredResponder(reddening_instance)
     icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
     objects = [
         model.Layer2Object(

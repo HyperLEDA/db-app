@@ -10,6 +10,7 @@ from app.catalogs.layer2.object import Layer2Object
 from app.catalogs.layer2.objects import ObjectsCatalogObject
 from app.catalogs.layer2.photometry_total import PhotometryTotalCatalogObject
 from app.catalogs.layer2.redshift import RedshiftCatalogObject
+from app.catalogs.layer2.velocity import VelocityCatalogObject
 
 __all__ = [
     "AdditionalDesignationsCatalogObject",
@@ -24,5 +25,6 @@ __all__ = [
     "ObjectsCatalogObject",
     "PhotometryTotalCatalogObject",
     "RedshiftCatalogObject",
+    "VelocityCatalogObject",
     "get_catalog_object_type",
 ]

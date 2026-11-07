@@ -9,6 +9,7 @@ from app.catalogs.layer2 import (
     objects,
     photometry_total,
     redshift,
+    velocity,
 )
 
 _CATALOG_OBJECT_TYPES: dict[interface.Catalog, type[interface.CatalogObject]] = {
@@ -16,6 +17,7 @@ _CATALOG_OBJECT_TYPES: dict[interface.Catalog, type[interface.CatalogObject]] = 
     interface.Catalog.ADDITIONAL_DESIGNATIONS: additional_designations.AdditionalDesignationsCatalogObject,
     interface.Catalog.ICRS: icrs.ICRSCatalogObject,
     interface.Catalog.REDSHIFT: redshift.RedshiftCatalogObject,
+    interface.Catalog.VELOCITY: velocity.VelocityCatalogObject,
     interface.Catalog.MORPHOLOGY: morphology.MorphologyCatalogObject,
     interface.Catalog.NATURE: nature.NatureCatalogObject,
     interface.Catalog.OBJECTS: objects.ObjectsCatalogObject,

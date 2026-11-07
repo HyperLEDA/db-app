@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.13.*"
 resolution-markers = [
     "sys_platform == 'win32'",
@@ -81,7 +81,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "structlog" },
-    { name = "uncertainties" },
 ]
 
 [package.optional-dependencies]
@@ -190,7 +189,6 @@ requires-dist = [
     { name = "starlette", marker = "extra == 'dataapi'", specifier = ">=1.6,<1.11" },
     { name = "starlette", marker = "extra == 'fieldapi'", specifier = ">=1.6,<1.11" },
     { name = "structlog", specifier = "~=26.1.0" },
-    { name = "uncertainties", specifier = "~=3.2.0" },
     { name = "uvicorn", marker = "extra == 'adminapi'", specifier = ">=0.52.2,<0.55.0" },
     { name = "uvicorn", marker = "extra == 'dataapi'", specifier = ">=0.52.2,<0.55.0" },
     { name = "uvicorn", marker = "extra == 'fieldapi'", specifier = ">=0.52.2,<0.55.0" },
@@ -924,8 +922,8 @@ name = "httpcore2"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11" },
-    { name = "truststore" },
+    { name = "h11", marker = "sys_platform != 'emscripten'" },
+    { name = "truststore", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/61/afa9d6b7452f9eca73f73d45324eb0bb52f098fd5e6049bf6b8263be9b4e/httpcore2-2.16.0.tar.gz", hash = "sha256:c72cd0413563b17e1cd8354677dff887466f8ec2551679759e93126534428643", size = 69886, upload-time = "2026-10-21T07:09:45.31Z" }
 wheels = [
@@ -2265,8 +2263,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography" },
-    { name = "jeepney" },
+    { name = "cryptography", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "jeepney", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
@@ -2522,15 +2520,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b5/82/345cc927f7fbdae6065e7768759932fcc827fc20b29b45dfbafa2f1f7da4/uncalled_for-0.3.2.tar.gz", hash = "sha256:89f5dbcd71e2b8f47c030b1fa302e6cce2ec795d1ac565eeb6525c5fe55cb8a2", size = 50032, upload-time = "2026-05-06T13:38:25.204Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3b/25/2c87754f3a9e692315f7b811244090e68f362979fc8886b3fbd2985a1d8c/uncalled_for-0.3.2-py3-none-any.whl", hash = "sha256:0ff60b142c7d1f8070bde9d42afaa70aedc77dcc10998c227687e9c15713418e", size = 11444, upload-time = "2026-05-06T13:38:24.025Z" },
-]
-
-[[package]]
-name = "uncertainties"
-version = "3.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/0c/cb09f33b26955399c675ab378e4063ed7e48422d3d49f96219ab0be5eba9/uncertainties-3.2.3.tar.gz", hash = "sha256:76a5653e686f617a42922d546a239e9efce72e6b35411b7750a1d12dcba03031", size = 160492, upload-time = "2025-04-21T19:58:28.63Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/5e/f1e1dd319e35e962a4e00b33150a8868b6329cc1d19fd533436ba5488f09/uncertainties-3.2.3-py3-none-any.whl", hash = "sha256:313353900d8f88b283c9bad81e7d2b2d3d4bcc330cbace35403faaed7e78890a", size = 60118, upload-time = "2025-04-21T19:58:26.864Z" },
 ]
 
 [[package]]

@@ -26,6 +26,7 @@ _ONE_TO_MANY_CATALOGS = frozenset(
         layer2.Catalog.ADDITIONAL_DESIGNATIONS,
         layer2.Catalog.NOTE,
         layer2.Catalog.PHOTOMETRY__TOTAL,
+        layer2.Catalog.VELOCITY,
     }
 )
 
@@ -281,6 +282,9 @@ class Repository(postgres.TransactionalPGRepository):
             notes_task = errgr.run(self._query_notes, pgcs)
         if layer2.Catalog.PHOTOMETRY__TOTAL in one_to_many:
             photometry_total_task = errgr.run(self._query_photometry_total, pgcs)
+        velocity_task: concurrency.TaskResult[dict[int, dict[str, model.Velocity]]] | None = None
+        if layer2.Catalog.VELOCITY in one_to_many:
+            velocity_task = errgr.run(self._query_velocity, pgcs)
 
         errgr.wait()
 
@@ -290,6 +294,7 @@ class Repository(postgres.TransactionalPGRepository):
         )
         notes_map = notes_task.result() if notes_task is not None else {}
         photometry_total_map = photometry_total_task.result() if photometry_total_task is not None else {}
+        velocity_map = velocity_task.result() if velocity_task is not None else {}
 
         return [
             _layer2_object_from_maps(
@@ -303,6 +308,7 @@ class Repository(postgres.TransactionalPGRepository):
                 one_to_one_maps.morphology,
                 notes_map,
                 photometry_total_map,
+                velocity_map,
             )
             for pgc in pgcs
         ]
@@ -368,6 +374,19 @@ class Repository(postgres.TransactionalPGRepository):
             )
             result.setdefault(pgc, []).append(note)
         return {pgc: model.NotesCatalog(notes=notes) for pgc, notes in result.items()}
+
+    def _query_velocity(self, pgcs: list[int]) -> dict[int, dict[str, model.Velocity]]:
+        if not pgcs:
+            return {}
+        rows = self._storage.query(
+            "SELECT pgc, apex, v, e_v FROM layer2.velocity WHERE pgc = ANY(%s) ORDER BY pgc, apex",
+            params=[pgcs],
+        )
+        result: dict[int, dict[str, model.Velocity]] = {}
+        for row in rows:
+            pgc = int(row["pgc"])
+            result.setdefault(pgc, {})[str(row["apex"])] = model.Velocity(v=float(row["v"]), e_v=float(row["e_v"]))
+        return result
 
     def _query_photometry_total(self, pgcs: list[int]) -> dict[int, model.PhotometryTotalCatalog]:
         if not pgcs:
@@ -491,6 +510,7 @@ def _layer2_object_from_maps(
     morphology_map: dict[int, model.MorphologyCatalog],
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
+    velocity_map: dict[int, dict[str, model.Velocity]],
 ) -> model.Layer2Object:
     designation = designation_map.get(pgc) if layer2.Catalog.DESIGNATION in raw_catalogs else None
     additional_designations = (
@@ -502,6 +522,7 @@ def _layer2_object_from_maps(
     morphology = morphology_map.get(pgc) if layer2.Catalog.MORPHOLOGY in raw_catalogs else None
     notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
+    velocity = velocity_map.get(pgc) if layer2.Catalog.VELOCITY in raw_catalogs else None
 
     return model.Layer2Object(
         pgc=pgc,
@@ -514,6 +535,7 @@ def _layer2_object_from_maps(
             morphology=morphology,
             notes=notes,
             photometry_total=photometry_total,
+            velocity=velocity,
         ),
     )
 
