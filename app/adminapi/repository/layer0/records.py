@@ -5,7 +5,7 @@ from typing import Any
 from app.adminapi import model
 from app.adminapi.repository.common import touch_pgcs
 from app.adminapi.repository.layer0.common import metadata_to_candidates, rawdata_table
-from app.catalogs import layer1, layer2
+from app.catalogs import layer1
 from app.lib import concurrency
 from app.lib.storage import enums, postgres
 
@@ -22,14 +22,6 @@ def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any
     if table_names is None:
         return "", []
     return "WHERE t.table_name = ANY(%s)", [table_names]
-
-
-_LAYER2_PROGRESS: dict[layer1.Catalog, layer2.Catalog] = {
-    layer1.Catalog.DESIGNATION: layer2.Catalog.DESIGNATION,
-    layer1.Catalog.ICRS: layer2.Catalog.ICRS,
-    layer1.Catalog.REDSHIFT: layer2.Catalog.REDSHIFT,
-    layer1.Catalog.NATURE: layer2.Catalog.NATURE,
-}
 
 
 def _progress_catalogs() -> list[layer1.Catalog]:
@@ -320,69 +312,21 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         layer1_table = object_cls.layer1_table()
         where_clause, params = _progress_table_filter(table_names)
 
-        layer2_catalog = _LAYER2_PROGRESS.get(catalog)
-        if layer2_catalog is None:
-            rows = self._storage.query(
-                f"""
-                SELECT t.table_name, COUNT(*) AS structured
-                FROM (
-                    SELECT DISTINCT record_id
-                    FROM {layer1_table}
-                ) AS d
-                JOIN layer0.records AS r ON r.id = d.record_id
-                JOIN layer0.tables AS t ON r.table_id = t.id
-                {where_clause}
-                GROUP BY t.table_name, t.id
-                """,
-                params=params,
-            )
-            return {
-                row["table_name"]: model.CatalogProgress(
-                    structured=int(row["structured"]),
-                    in_layer2=0,
-                    layer2_pending=0,
-                )
-                for row in rows
-            }
-
-        layer2_table = layer2.get_catalog_object_type(layer2_catalog).table()
         rows = self._storage.query(
             f"""
-            SELECT t.table_name,
-                   COUNT(*) AS structured,
-                   COUNT(*) FILTER (
-                       WHERE r.pgc IS NOT NULL AND l2.pgc IS NOT NULL
-                   ) AS in_layer2,
-                   COUNT(*) FILTER (
-                       WHERE r.pgc IS NOT NULL
-                         AND (l2.pgc IS NULL OR p.modification_time > lu.dt)
-                   ) AS layer2_pending
+            SELECT t.table_name, COUNT(*) AS structured
             FROM (
                 SELECT DISTINCT record_id
                 FROM {layer1_table}
             ) AS d
             JOIN layer0.records AS r ON r.id = d.record_id
             JOIN layer0.tables AS t ON r.table_id = t.id
-            LEFT JOIN common.pgc AS p ON p.id = r.pgc
-            LEFT JOIN {layer2_table} AS l2 ON l2.pgc = r.pgc
-            CROSS JOIN (
-                SELECT dt
-                FROM layer2.last_update
-                WHERE catalog = %s
-            ) AS lu
             {where_clause}
             GROUP BY t.table_name, t.id
             """,
-            params=[layer2_catalog.value, *params],
+            params=params,
         )
-        return {
-            row["table_name"]: model.CatalogProgress(
-                structured=int(row["structured"]),
-                in_layer2=int(row["in_layer2"]),
-                layer2_pending=int(row["layer2_pending"]),
-            )
-            for row in rows
-        }
+        return {row["table_name"]: model.CatalogProgress(structured=int(row["structured"])) for row in rows}
 
     def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
         catalogs = _progress_catalogs()
@@ -394,9 +338,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         errgr.wait()
 
         funnel = funnel_task.result()
-        empty_catalogs = {
-            name: model.CatalogProgress(structured=0, in_layer2=0, layer2_pending=0) for name in catalog_names
-        }
+        empty_catalogs = {name: model.CatalogProgress(structured=0) for name in catalog_names}
 
         result: dict[str, model.TableProgress] = {
             table_name: model.TableProgress(
