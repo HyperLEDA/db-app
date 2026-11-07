@@ -40,15 +40,23 @@ def equatorial_to_lonlat(
     e_dec: float,
     frame: CoordinateFrame,
 ) -> tuple[float, float, float, float]:
-    coord = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg"))
-    transformed = coord.transform_to(frame)
-    lon = to(transformed.spherical.lon, "deg")
-    lat = to(transformed.spherical.lat, "deg")
+    lon, lat = equatorial_to_lonlat_deg(np.asarray([ra], dtype=float), np.asarray([dec], dtype=float), frame)
     # for simplicity this approach assumes errors in the transformed coordinates to be the
     # same, which might not necessarily be true for larger errors.
     e_lon = to(e_ra * u.Unit("deg"), "arcsec")
     e_lat = to(e_dec * u.Unit("deg"), "arcsec")
-    return lon, lat, e_lon, e_lat
+    return float(lon[0]), float(lat[0]), e_lon, e_lat
+
+
+def equatorial_to_lonlat_deg(
+    ra: np.ndarray,
+    dec: np.ndarray,
+    frame: CoordinateFrame,
+) -> tuple[np.ndarray, np.ndarray]:
+    if len(ra) == 0:
+        return np.asarray([], dtype=float), np.asarray([], dtype=float)
+    transformed = coords.SkyCoord(ra=ra * u.Unit("deg"), dec=dec * u.Unit("deg")).transform_to(frame)
+    return _quantity_values(transformed.spherical.lon, "deg"), _quantity_values(transformed.spherical.lat, "deg")
 
 
 def equatorial_to_galactic_radians(ra: np.ndarray, dec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

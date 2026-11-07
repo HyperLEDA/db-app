@@ -80,6 +80,9 @@ def build_object_rows(
     sgls: list[float | None] = []
     sgbs: list[float | None] = []
     to_delete: list[int] = []
+    coord_indexes: list[int] = []
+    coord_ras: list[float] = []
+    coord_decs: list[float] = []
 
     for pgc in pgcs:
         name = designation_by_pgc.get(pgc)
@@ -107,16 +110,28 @@ def build_object_rows(
         e_ra = _degrees(icrs_row["e_ra"])
         dec = _degrees(icrs_row["dec"])
         e_dec = _degrees(icrs_row["e_dec"])
-        lon, lat, _, _ = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
-        sgl, sgb, _, _ = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
         ras.append(ra)
         e_ras.append(e_ra)
         decs.append(dec)
         e_decs.append(e_dec)
-        longs.append(lon)
-        lats.append(lat)
-        sgls.append(sgl)
-        sgbs.append(sgb)
+        longs.append(None)
+        lats.append(None)
+        sgls.append(None)
+        sgbs.append(None)
+        coord_indexes.append(len(keep_pgcs) - 1)
+        coord_ras.append(ra)
+        coord_decs.append(dec)
+
+    if coord_indexes:
+        ra_arr = np.asarray(coord_ras, dtype=float)
+        dec_arr = np.asarray(coord_decs, dtype=float)
+        gal_lon, gal_lat = astronomy.equatorial_to_lonlat_deg(ra_arr, dec_arr, "galactic")
+        sg_lon, sg_lat = astronomy.equatorial_to_lonlat_deg(ra_arr, dec_arr, "supergalactic")
+        for i, idx in enumerate(coord_indexes):
+            longs[idx] = float(gal_lon[i])
+            lats[idx] = float(gal_lat[i])
+            sgls[idx] = float(sg_lon[i])
+            sgbs[idx] = float(sg_lat[i])
 
     rows = table.QTable(
         {
