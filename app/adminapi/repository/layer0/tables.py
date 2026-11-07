@@ -22,6 +22,28 @@ from app.lib.storage import enums, postgres
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
+def _statistics_from_json(raw: Any) -> model.TableProgress | None:
+    if raw is None:
+        return None
+    if isinstance(raw, memoryview):
+        raw = raw.tobytes().decode()
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.decode()
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    catalogs = raw["catalogs"]
+    return model.TableProgress(
+        total_records=int(raw["total_records"]),
+        unprocessed=int(raw["unprocessed"]),
+        pending_triage=int(raw["pending_triage"]),
+        resolved_unsubmitted=int(raw["resolved_unsubmitted"]),
+        submitted=int(raw["submitted"]),
+        catalogs={
+            name: model.CatalogProgress(structured=int(catalog["structured"])) for name, catalog in catalogs.items()
+        },
+    )
+
+
 def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for k, v in row.items():
@@ -433,6 +455,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             status=registry_item["status"],
             modification_dt=registry_item.get("modification_dt"),
             table_id=registry_item["id"],
+            statistics=_statistics_from_json(registry_item.get("statistics")),
         )
 
     def _set_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
@@ -507,6 +530,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             t.table_name,
             t.status,
             t.modification_dt,
+            t.statistics,
             COALESCE(ti.param->>'description', '') AS description,
             b.code AS bibcode,
             (
@@ -544,6 +568,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 modification_dt=row["modification_dt"],
                 bibcode=row["bibcode"],
                 status=row["status"],
+                statistics=_statistics_from_json(row.get("statistics")),
             )
             for row in rows
         ]

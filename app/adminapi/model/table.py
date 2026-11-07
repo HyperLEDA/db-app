@@ -4,6 +4,7 @@ from typing import Any
 
 import pandas
 
+from app.catalogs.table_statistics import TableProgress
 from app.lib.storage import enums, postgres
 
 
@@ -30,6 +31,7 @@ class Layer0TableMeta:
     status: enums.TableStatus = enums.TableStatus.INITIATED
     modification_dt: datetime.datetime | None = None
     table_id: int | None = None
+    statistics: TableProgress | None = None
 
 
 @dataclass
@@ -40,24 +42,10 @@ class Layer0TableListItem:
     modification_dt: datetime.datetime
     bibcode: str
     status: enums.TableStatus
+    statistics: TableProgress | None = None
 
 
 @dataclass
 class Layer0CreationResponse:
     table_id: int
     created: bool
-
-
-@dataclass
-class CatalogProgress:
-    structured: int
-
-
-@dataclass
-class TableProgress:
-    total_records: int
-    unprocessed: int
-    pending_triage: int
-    resolved_unsubmitted: int
-    submitted: int
-    catalogs: dict[str, CatalogProgress]

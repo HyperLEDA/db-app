@@ -26,6 +26,7 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import-morphology",
     "layer2-import-objects",
     "layer2-orphan-cleanup",
+    "refresh-table-stats",
 )
 
 BATCH_SIZE_DESCRIPTION = "Number of distinct PGC objects fetched in a single query"
@@ -269,6 +270,26 @@ def layer2_orphan_cleanup(
         tracing.flush_tracing()
 
 
+@flow(
+    log_prints=False,
+    name="Refresh table stats",
+    description="Recompute cached progress for rawdata tables modified since the last cache write.",
+)
+def refresh_table_stats() -> None:
+    log = _flow_logger()
+    task = tasks.get_task("refresh-table-stats", log, {})
+    cfg = tasks.Config()
+    tracing.setup_tracing("tasks", cfg.tracing)
+    task.prepare(cfg)
+    try:
+        with _tracer.start_as_current_span("refresh-table-stats") as span:
+            span.set_attribute("task.name", "refresh-table-stats")
+            task.run()
+    finally:
+        task.cleanup()
+        tracing.flush_tracing()
+
+
 FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import": layer2_import,
     "layer2-import-designation": layer2_import_designation,
@@ -278,6 +299,7 @@ FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import-morphology": layer2_import_morphology,
     "layer2-import-objects": layer2_import_objects,
     "layer2-orphan-cleanup": layer2_orphan_cleanup,
+    "refresh-table-stats": refresh_table_stats,
 }
 
 

@@ -11,8 +11,7 @@ from astropy import units
 from astropy import units as u
 from astroquery import nasa_ads as ads
 
-from app.adminapi import cache, clients, model, repository
-from app.adminapi.domain import table_stats
+from app.adminapi import clients, model, repository
 from app.lib import astronomy, concurrency
 from app.lib.storage import enums, mapping, postgres
 from app.lib.web.errors import NotFoundError, RuleValidationError
@@ -23,6 +22,30 @@ BIBCODE_REGEX = "^([0-9]{4}[A-Za-z.&]{5}[A-Za-z0-9.]{4}[AELPQ-Z0-9.][0-9.]{4}[A-
 FORBIDDEN_COLUMN_NAMES = {repository.INTERNAL_ID_COLUMN_NAME}
 
 logger = structlog.stdlib.get_logger()
+
+
+def _empty_progress() -> spec.TableProgress:
+    return spec.TableProgress(
+        total_records=0,
+        unprocessed=0,
+        pending_triage=0,
+        resolved_unsubmitted=0,
+        submitted=0,
+        catalogs={},
+    )
+
+
+def _table_progress_to_presentation(progress: model.TableProgress) -> spec.TableProgress:
+    return spec.TableProgress(
+        total_records=progress.total_records,
+        unprocessed=progress.unprocessed,
+        pending_triage=progress.pending_triage,
+        resolved_unsubmitted=progress.resolved_unsubmitted,
+        submitted=progress.submitted,
+        catalogs={
+            name: spec.CatalogProgress(structured=catalog.structured) for name, catalog in progress.catalogs.items()
+        },
+    )
 
 
 def _column_meta(schema: postgres.TableInfo, name: str) -> tuple[str, str]:
@@ -82,11 +105,9 @@ class TableUploadManager:
         self,
         repo: repository.Repository,
         clients: clients.Clients,
-        table_stats_cache: cache.BackgroundCache[spec.TableStatsSnapshot],
     ) -> None:
         self._repo = repo
         self.clients = clients
-        self.table_stats_cache = table_stats_cache
 
     def create_table(self, r: spec.CreateTableRequest) -> tuple[spec.CreateTableResponse, bool]:
         source_id = ensure_source_id(self._repo, self.clients.ads, r.bibcode)
@@ -168,18 +189,11 @@ class TableUploadManager:
 
     def get_table_list(self, r: spec.GetTableListRequest) -> spec.GetTableListResponse:
         items = self._repo.search_tables(r.query, r.page_size, r.page, r.statuses)
-        cached_tables = self.table_stats_cache.get().tables
-        empty_progress = spec.TableProgress(
-            total_records=0,
-            unprocessed=0,
-            pending_triage=0,
-            resolved_unsubmitted=0,
-            submitted=0,
-            catalogs={},
-        )
         tables: list[spec.TableListItem] = []
         for item in items:
-            progress = cached_tables.get(item.table_name) or empty_progress
+            progress = (
+                _table_progress_to_presentation(item.statistics) if item.statistics is not None else _empty_progress()
+            )
             tables.append(
                 spec.TableListItem(
                     name=item.table_name,
@@ -208,20 +222,9 @@ class TableUploadManager:
             "modification_dt": meta.modification_dt,
         }
 
-        progress = self.table_stats_cache.get().tables.get(r.table_name)
-        if progress is None:
-            fallback = self._repo.get_table_progress([r.table_name])
-            table_progress = fallback.get(r.table_name)
-            if table_progress is None:
-                table_progress = model.TableProgress(
-                    total_records=0,
-                    unprocessed=0,
-                    pending_triage=0,
-                    resolved_unsubmitted=0,
-                    submitted=0,
-                    catalogs={},
-                )
-            progress = table_stats.table_progress_to_presentation(table_progress)
+        progress = (
+            _table_progress_to_presentation(meta.statistics) if meta.statistics is not None else _empty_progress()
+        )
 
         return spec.GetTableResponse(
             id=meta.table_id,

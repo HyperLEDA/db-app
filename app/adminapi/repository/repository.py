@@ -137,9 +137,6 @@ class Repository(postgres.TransactionalPGRepository):
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self._layer0_records.register_records(table_name, record_ids)
 
-    def get_table_progress(self, table_names: list[str] | None = None) -> dict[str, model.TableProgress]:
-        return self._layer0_records.get_table_progress(table_names)
-
     def get_processed_records(
         self,
         limit: int,

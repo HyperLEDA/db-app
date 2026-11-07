@@ -82,11 +82,6 @@ class GetTableListResponse(pydantic.BaseModel):
     tables: list[TableListItem]
 
 
-class TableStatsSnapshot(pydantic.BaseModel):
-    tables: dict[str, TableProgress]
-    computed_at: datetime.datetime
-
-
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str

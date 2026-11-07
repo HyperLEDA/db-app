@@ -8,14 +8,13 @@ from app.adminapi.model.records import (
     RedshiftRecord,
 )
 from app.adminapi.model.table import (
-    CatalogProgress,
     Layer0CreationResponse,
     Layer0RawData,
     Layer0TableListItem,
     Layer0TableMeta,
-    TableProgress,
     TableRecord,
 )
+from app.catalogs.table_statistics import CatalogProgress, TableProgress
 
 __all__ = [
     "Bibliography",

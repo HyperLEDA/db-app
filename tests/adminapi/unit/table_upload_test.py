@@ -5,7 +5,6 @@ import pytest
 from astropy import units
 
 from app.adminapi import clients, domain, model, repository
-from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.adminapi.domain.table_upload import domain_descriptions_to_data, ensure_source_id
 from app.lib.storage import enums, mapping, postgres
 from app.lib.web import errors
@@ -37,7 +36,6 @@ def upload_manager() -> tuple[mock.MagicMock, domain.TableUploadManager]:
     manager = domain.TableUploadManager(
         repo,
         clients=clients.get_mock_clients(),
-        table_stats_cache=get_mock_table_stats_cache(),
     )
     return repo, manager
 
@@ -61,7 +59,6 @@ def get_records_manager() -> tuple[mock.MagicMock, domain.TableUploadManager]:
     manager = domain.TableUploadManager(
         repo,
         clients=clients.get_mock_clients(),
-        table_stats_cache=get_mock_table_stats_cache(),
     )
     return repo, manager
 

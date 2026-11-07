@@ -1,6 +1,6 @@
 from typing import final
 
-from app.adminapi import cache, clients, repository
+from app.adminapi import clients, repository
 from app.adminapi.domain import auth as admin_auth
 from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, references, sources, table_upload
 from app.adminapi.presentation import interface
@@ -26,7 +26,6 @@ class Actions(interface.Actions):
         authenticator: auth.Authenticator,
         storage: postgres.PgStorage,
         clients: clients.Clients,
-        table_stats_cache: cache.BackgroundCache[spec.TableStatsSnapshot],
     ):
         self._repo = repo
         self.source_manager = sources.SourceManager(repo)
@@ -34,7 +33,6 @@ class Actions(interface.Actions):
         self.table_upload_manager = table_upload.TableUploadManager(
             repo,
             clients,
-            table_stats_cache,
         )
         self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
         self.pgc_manager = pgc.PgcManager(repo)

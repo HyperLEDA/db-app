@@ -5,7 +5,6 @@ import structlog
 from pandas import DataFrame
 
 from app.adminapi import clients, domain, model, repository
-from app.adminapi.domain.mock import get_mock_table_stats_cache
 from app.lib.storage import enums, postgres
 from app.lib.storage.mapping import TYPE_INTEGER, TYPE_TEXT
 from app.lib.web import errors
@@ -27,7 +26,6 @@ def manager(pg_storage: PostgresTestStorage) -> domain.TableUploadManager:
     return domain.TableUploadManager(
         repo,
         clients.get_mock_clients(),
-        get_mock_table_stats_cache(),
     )
 
 
