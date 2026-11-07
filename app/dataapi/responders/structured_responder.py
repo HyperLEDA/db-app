@@ -7,7 +7,7 @@ from app.catalogs import layer2
 from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
-from app.lib import astronomy, config
+from app.lib import astronomy, velocity_config
 from app.lib.web import errors
 from app.specs import dataapi as spec
 
@@ -45,25 +45,6 @@ VELOCITY_SCHEMA = spec.AbsoluteVelocityUnits(
 )
 
 
-class ValueWithUncertainty(config.BaseConfigSettings):
-    value: float
-    error: float
-
-
-class ApexConfig(config.BaseConfigSettings):
-    lon: ValueWithUncertainty
-    lat: ValueWithUncertainty
-    vel: ValueWithUncertainty
-
-
-class VelocityCatalogConfig(config.BaseConfigSettings):
-    apexes: dict[str, ApexConfig]
-
-
-class CatalogConfig(config.BaseConfigSettings):
-    velocity: VelocityCatalogConfig
-
-
 def _coordinates_from_icrs(ra: float, dec: float, e_ra: float, e_dec: float) -> spec.Coordinates:
     eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
     eq_e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
@@ -95,7 +76,7 @@ def _photometry_total_measurement(measurement: model.PhotometryTotalMeasurement)
 
 
 class StructuredResponder(interface.ObjectResponder):
-    def __init__(self, cfg: CatalogConfig, reddening_service: reddening.Reddening) -> None:
+    def __init__(self, cfg: velocity_config.CatalogConfig, reddening_service: reddening.Reddening) -> None:
         self.config = cfg
         self.reddening_service = reddening_service
 

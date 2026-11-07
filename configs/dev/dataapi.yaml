@@ -39,17 +39,6 @@ catalogs:
         vel: 
           value: 301
           error: 3
-      cmb_old:
-        # source: https://ui.adsabs.harvard.edu/abs/1996ApJ...473..576F/abstract
-        lon:
-          value: 264.14
-          error: 0.30
-        lat:
-          value: 48.26
-          error: 0.30
-        vel:
-          value: 371
-          error: 1
       cmb:
         # source: https://ui.adsabs.harvard.edu/abs/2016A%26A...594A...8P/abstract
         lon:

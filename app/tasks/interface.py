@@ -3,7 +3,7 @@ import datetime
 
 import pydantic
 
-from app.lib import config
+from app.lib import config, velocity_config
 from app.lib.storage import postgres
 from app.specs.fieldapi import FieldAPIConfig
 
@@ -11,6 +11,7 @@ from app.specs.fieldapi import FieldAPIConfig
 class Config(config.ConfigSettings):
     storage: postgres.PgStorageConfig = postgres.PgStorageConfig()
     fieldapi: FieldAPIConfig = pydantic.Field(default_factory=FieldAPIConfig)
+    catalogs: velocity_config.CatalogConfig = pydantic.Field(default_factory=velocity_config.CatalogConfig)
 
 
 def parse_since(since: datetime.datetime | str | None) -> datetime.datetime | None:
