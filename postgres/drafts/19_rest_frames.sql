@@ -64,4 +64,29 @@ INSERT INTO common.velocity_reference_frames (id, frame_type, v, e_v, l, e_l, b,
 , ( 'CMB_Plank2018' , 'CMB' , 369.82 , 0.11 , 264.021 , 0.011 , 48.253 , 0.005 , 'Velocity of the Sun relative to the CMB (Planck 2018)' , 86 )
 ;
 
+
+CREATE OR REPLACE FUNCTION common.apex_los_vel ( L Double Precision, B Double Precision, Vapex Double Precision, Lapex Double Precision, Bapex Double Precision )
+RETURNS Double Precision
+LANGUAGE SQL
+IMMUTABLE
+PARALLEL SAFE
+AS $$ 
+  SELECT Vapex * ( sind(B)*sind(Bapex) + cosd(B)*cosd(Bapex)*cosd(L-Lapex) ) ;
+$$;
+
+CREATE OR REPLACE FUNCTION common.get_cz_frame( CZobs Double Precision, L Double Precision, B Double Precision, Vapex Double Precision, Lapex Double Precision, Bapex Double Precision )
+RETURNS Double Precision
+LANGUAGE SQL
+IMMUTABLE
+PARALLEL SAFE
+AS $$
+  SELECT 
+    (C + CZobs) / ( sqrt(1.0 - power(Vapex/C,2)) * (1.0 - v_apex_los/C) ) - C
+  FROM 
+    ( SELECT 
+        299792.458::Double Precision AS C
+      , common.apex_los_vel ( L, B, Vapex, Lapex, Bapex ) AS v_apex_los
+    ) AS params;
+$$;
+
 COMMIT ;
