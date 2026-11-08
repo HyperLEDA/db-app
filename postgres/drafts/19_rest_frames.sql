@@ -56,5 +56,12 @@ INSERT INTO common.velocity_reference_frames (id, frame_type, description ) VALU
 , ( 'Bary' , 'Solar', 'Barycentric reference frame' )
 ;
 
+INSERT INTO common.velocity_reference_frames (id, frame_type, v, e_v, l, e_l, b, e_b, description, bib) VALUES
+  ( 'LSR_SBD2010'   , 'LSR' , 18.04411538, 1.6, 47.79628626, 6.0, 23.69031811, 2.9, 'Local Standard of Rest: (U, V, W) = (11.1 +0.69-0.75, 12.24 +0.47-0.47, 7.25 +0.37-0.36) km/s, with additional systematic uncertainties (1, 2, 0.5) km/s', 88 )
+, ( 'LG_KM1996'     , 'LG'  , 316   , 5 , 93 , 2 , -4 , 2 , 'Solar apex with respect to the LG galaxies' , 87 )
+, ( 'LG_MMM2025'    , 'LG'  , 301.3 , 3.3 , 94.0 , 0.7 , -2.7 , 0.3 , 'Solar apex in the LG taking into account the approach velocity between the MW and M 31 and the motion of the Sun in the Galaxy: (Vx,Vy,Vz) = (-21.1 +-3.5, +300.3 +-3.4, -14.3 +-1.4) km/s' , 89 )
+, ( 'CMB_Plank2018' , 'CMB' , 369.82 , 0.11 , 264.021 , 0.011 , 48.253 , 0.005 , 'Velocity of the Sun relative to the CMB (Planck 2018)' , 86 )
+;
+
 
 COMMIT ;
