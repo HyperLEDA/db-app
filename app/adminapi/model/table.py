@@ -21,6 +21,7 @@ class TableRecord:
     pgc: int | None
     triage_status: str
     crossmatch_candidates: list[int]
+    table_name: str
 
 
 @dataclass

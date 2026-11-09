@@ -16,7 +16,7 @@ class CrossmatchTriageStatus(enum.Enum):
 
 
 class GetRecordsRequest(pydantic.BaseModel):
-    table_name: str
+    table_name: str | None = None
     page: int = 0
     page_size: int = 25
     pgc: int | None = None

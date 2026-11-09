@@ -328,7 +328,12 @@ def test_get_records_returns_records_with_pgc(
     repo, manager = get_records_manager
     repo.fetch_records.return_value = [
         model.TableRecord(
-            id="rec1", original_data={"name": "A"}, pgc=1001, triage_status="resolved", crossmatch_candidates=[1001]
+            id="rec1",
+            original_data={"name": "A"},
+            pgc=1001,
+            triage_status="resolved",
+            crossmatch_candidates=[1001],
+            table_name="t",
         ),
         model.TableRecord(
             id="rec2",
@@ -336,6 +341,7 @@ def test_get_records_returns_records_with_pgc(
             pgc=1002,
             triage_status="pending",
             crossmatch_candidates=[],
+            table_name="t",
         ),
     ]
 
@@ -353,6 +359,27 @@ def test_get_records_returns_records_with_pgc(
     assert response.records[1].pgc == 1002
     assert response.records[1].crossmatch.triage_status == adminapi.CrossmatchTriageStatus.PENDING
     assert response.records[1].crossmatch.candidates == []
+
+
+def test_get_records_without_table_name(
+    get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
+) -> None:
+    repo, manager = get_records_manager
+    repo.fetch_records.return_value = []
+
+    response = manager.get_records(adminapi.GetRecordsRequest(page=0, page_size=25))
+
+    call_kw = repo.fetch_records.call_args[1]
+    assert call_kw["table_name"] is None
+    assert response.schema_.original_data.description == {}
+    assert response.schema_.original_data.ucd == {}
+    assert response.schema_.original_data.unit == {}
+    rawdata_calls = [
+        call
+        for call in repo.get_table_metadata.call_args_list
+        if call.args and call.args[0] == repository.RAWDATA_SCHEMA
+    ]
+    assert rawdata_calls == []
 
 
 def test_get_records_passes_filters_to_fetch_records(
@@ -405,6 +432,7 @@ def test_get_records_pgc_none_when_missing(
             pgc=1001,
             triage_status="resolved",
             crossmatch_candidates=[],
+            table_name="t",
         ),
         model.TableRecord(
             id="rec2",
@@ -412,6 +440,7 @@ def test_get_records_pgc_none_when_missing(
             pgc=None,
             triage_status="unprocessed",
             crossmatch_candidates=[],
+            table_name="t",
         ),
     ]
 
