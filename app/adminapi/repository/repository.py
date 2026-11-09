@@ -89,7 +89,7 @@ class Repository(postgres.TransactionalPGRepository):
 
     def fetch_records(
         self,
-        table_name: str,
+        table_name: str | None,
         limit: int,
         row_offset: int,
         order_direction: str = "asc",
