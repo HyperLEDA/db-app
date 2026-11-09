@@ -382,6 +382,36 @@ def test_get_records_without_table_name(
     assert rawdata_calls == []
 
 
+def test_get_records_when_raw_schema_lookup_fails(
+    get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
+) -> None:
+    repo, manager = get_records_manager
+    repo.fetch_records.return_value = [
+        model.TableRecord(
+            id="rec1",
+            original_data={"name": "A"},
+            pgc=None,
+            triage_status="unprocessed",
+            crossmatch_candidates=[],
+            table_name="t",
+        )
+    ]
+    empty = postgres.TableInfo(schema="", name="")
+
+    def metadata(schema: str, table: str) -> postgres.TableInfo:
+        if schema == repository.RAWDATA_SCHEMA:
+            raise RuntimeError(table)
+        return empty
+
+    repo.get_table_metadata.side_effect = metadata
+
+    response = manager.get_records(adminapi.GetRecordsRequest(table_name="t"))
+
+    assert [record.id for record in response.records] == ["rec1"]
+    assert response.records[0].original_data == {"name": "A"}
+    assert response.schema_.original_data.description == {}
+
+
 def test_get_records_passes_filters_to_fetch_records(
     get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
 ) -> None:

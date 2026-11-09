@@ -2,20 +2,32 @@ from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from typing import Any
 
+import structlog
+
 from app.lib.storage import postgres
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 RAWDATA_SCHEMA = "rawdata"
 INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
 def metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
-    if metadata is None:
+    if not isinstance(metadata, dict):
         return []
     if "pgc" in metadata and metadata["pgc"] is not None:
-        return [int(metadata["pgc"])]
+        return _candidate_ids([metadata["pgc"]])
     if "possible_matches" in metadata and metadata["possible_matches"] is not None:
-        return [int(p) for p in metadata["possible_matches"]]
+        return _candidate_ids(metadata["possible_matches"])
     return []
+
+
+def _candidate_ids(values: Any) -> list[int]:
+    try:
+        return [int(value) for value in values]
+    except (TypeError, ValueError) as exc:
+        log.error("Failed to read crossmatch candidates", exc_info=exc)
+        return []
 
 
 @contextmanager
