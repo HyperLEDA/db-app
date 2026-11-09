@@ -256,11 +256,7 @@ class TableUploadManager:
         )
         schema_task: concurrency.TaskResult[postgres.TableInfo] | None = None
         if r.table_name is not None:
-            schema_task = errgr.run(
-                self._repo.get_table_metadata,
-                repository.RAWDATA_SCHEMA,
-                r.table_name,
-            )
+            schema_task = errgr.run(_load_raw_schema, self._repo, r.table_name)
         designation_schema_task = errgr.run(
             self._repo.get_table_metadata,
             "designation",
@@ -381,6 +377,14 @@ class TableUploadManager:
             catalogs=catalog_schema,
         )
         return spec.GetRecordsResponse(records=records_list, schema=record_schema)
+
+
+def _load_raw_schema(repo: repository.Repository, table_name: str) -> postgres.TableInfo:
+    try:
+        return repo.get_table_metadata(repository.RAWDATA_SCHEMA, table_name)
+    except Exception as exc:
+        logger.error("Failed to load raw table schema", table_name=table_name, exc_info=exc)
+        return postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name)
 
 
 def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:

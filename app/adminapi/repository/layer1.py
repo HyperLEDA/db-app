@@ -11,7 +11,19 @@ from app.adminapi.repository.layer0.common import rawdata_table
 from app.catalogs import layer1
 from app.lib.storage import postgres
 
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
 DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
+
+
+def _as_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        log.error("Failed to parse catalog number", exc_info=exc)
+        return None
 
 
 class Layer1Repository(postgres.TransactionalPGRepository):
@@ -79,15 +91,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
             "SELECT record_id, ra, e_ra, dec, e_dec FROM icrs.data WHERE record_id = ANY(%s)",
             params=[record_ids],
         )
-        by_id = {
-            r["record_id"]: model.ICRSRecord(
-                ra=float(r["ra"]),
-                e_ra=float(r["e_ra"]),
-                dec=float(r["dec"]),
-                e_dec=float(r["e_dec"]),
-            )
-            for r in rows
-        }
+        by_id: dict[str, model.ICRSRecord] = {}
+        for row in rows:
+            ra = _as_float(row["ra"])
+            e_ra = _as_float(row["e_ra"])
+            dec = _as_float(row["dec"])
+            e_dec = _as_float(row["e_dec"])
+            if ra is None or e_ra is None or dec is None or e_dec is None:
+                continue
+            by_id[row["record_id"]] = model.ICRSRecord(ra=ra, e_ra=e_ra, dec=dec, e_dec=e_dec)
         return [by_id.get(rid) for rid in record_ids]
 
     def get_redshift_records(self, record_ids: list[str]) -> list[model.RedshiftRecord | None]:
@@ -99,13 +111,15 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         )
         units = self.get_column_units(layer1.Catalog.REDSHIFT)
         default_e_cz = float(DEFAULT_E_CZ.to_value(u.Unit(units["e_cz"])))
-        by_id = {
-            r["record_id"]: model.RedshiftRecord(
-                cz=float(r["cz"]),
-                e_cz=float(r["e_cz"]) if r["e_cz"] is not None else default_e_cz,
-            )
-            for r in rows
-        }
+        by_id: dict[str, model.RedshiftRecord] = {}
+        for row in rows:
+            cz = _as_float(row["cz"])
+            if cz is None:
+                continue
+            e_cz = default_e_cz if row["e_cz"] is None else _as_float(row["e_cz"])
+            if e_cz is None:
+                continue
+            by_id[row["record_id"]] = model.RedshiftRecord(cz=cz, e_cz=e_cz)
         return [by_id.get(rid) for rid in record_ids]
 
     def get_nature_records(self, record_ids: list[str]) -> list[model.NatureRecord | None]:

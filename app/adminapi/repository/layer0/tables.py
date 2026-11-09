@@ -413,7 +413,11 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 sql.Identifier(raw_table_name),
                 sql.Identifier(id_col),
             )
-            raw_rows = self._storage.query(query, params=[record_ids])
+            try:
+                raw_rows = self._storage.query(query, params=[record_ids])
+            except Exception as exc:
+                log.error("Failed to load original data", table_name=raw_table_name, exc_info=exc)
+                continue
             for raw in raw_rows:
                 original_by_id[str(raw[id_col])] = _row_to_serializable_dict(raw, drop=[id_col])
         return original_by_id
