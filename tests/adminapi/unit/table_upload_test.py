@@ -350,6 +350,7 @@ def test_get_records_returns_records_with_pgc(
 
     assert len(response.records) == 2
     assert response.records[0].id == "rec1"
+    assert response.records[0].table_name == "t"
     assert response.records[0].original_data == {"name": "A"}
     assert response.records[0].pgc == 1001
     assert response.records[0].crossmatch.triage_status == adminapi.CrossmatchTriageStatus.RESOLVED
