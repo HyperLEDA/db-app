@@ -313,6 +313,7 @@ class TableUploadManager:
         records_list = [
             spec.Record(
                 id=rec.id,
+                table_name=rec.table_name,
                 original_data=rec.original_data,
                 pgc=rec.pgc,
                 crossmatch=spec.RecordCrossmatchInfo(

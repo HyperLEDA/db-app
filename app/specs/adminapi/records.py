@@ -75,6 +75,7 @@ class RecordCatalogValues(pydantic.BaseModel):
 
 class Record(pydantic.BaseModel):
     id: str
+    table_name: str
     original_data: dict[str, Any]
     pgc: int | None
     crossmatch: RecordCrossmatchInfo
