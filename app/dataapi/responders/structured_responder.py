@@ -145,13 +145,15 @@ class StructuredResponder(interface.ObjectResponder):
         for obj in objects:
             result = spec.Catalogs()
 
-            if (designation := obj.get(layer2.DesignationCatalogObject)) is not None:
-                result.designation = spec.Designation(name=designation.designation)
-
             objects_catalog = obj.get(layer2.ObjectsCatalogObject)
             if objects_catalog is not None:
+                result.designation = spec.Designation(name=objects_catalog.name)
+                if objects_catalog.objtype is not None:
+                    result.nature = spec.Nature(type_name=objects_catalog.objtype)
                 result.coordinates = _coordinates_from_objects(
                     model.ObjectsCatalog(
+                        name=objects_catalog.name,
+                        objtype=objects_catalog.objtype,
                         ra=objects_catalog.ra,
                         e_ra=objects_catalog.e_ra,
                         dec=objects_catalog.dec,
@@ -168,9 +170,6 @@ class StructuredResponder(interface.ObjectResponder):
             if redshift is not None:
                 result.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
 
-            if (nature := obj.get(layer2.NatureCatalogObject)) is not None:
-                result.nature = spec.Nature(type_name=nature.type_name)
-
             if (morphology := obj.get(layer2.MorphologyCatalogObject)) is not None:
                 result.morphology = spec.Morphology(t=morphology.t, em=morphology.em, ep=morphology.ep)
 
@@ -185,9 +184,6 @@ class StructuredResponder(interface.ObjectResponder):
 
         for obj in objects:
             catalogs = spec.Catalogs()
-
-            if obj.catalogs.designation is not None:
-                catalogs.designation = spec.Designation(name=obj.catalogs.designation.name)
 
             if obj.catalogs.additional_designations is not None:
                 catalogs.additional_designations = [
@@ -204,14 +200,14 @@ class StructuredResponder(interface.ObjectResponder):
                 ]
 
             if obj.catalogs.objects is not None:
+                catalogs.designation = spec.Designation(name=obj.catalogs.objects.name)
+                if obj.catalogs.objects.objtype is not None:
+                    catalogs.nature = spec.Nature(type_name=obj.catalogs.objects.objtype)
                 catalogs.coordinates = _coordinates_from_objects(obj.catalogs.objects)
 
             if obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift
                 catalogs.redshift = _redshift_from_cz(redshift.cz, redshift.e_cz)
-
-            if obj.catalogs.nature is not None:
-                catalogs.nature = spec.Nature(type_name=obj.catalogs.nature.type_name)
 
             if obj.catalogs.morphology is not None:
                 catalogs.morphology = spec.Morphology(

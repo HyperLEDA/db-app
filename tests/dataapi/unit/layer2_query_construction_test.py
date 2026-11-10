@@ -29,13 +29,15 @@ def _one_to_one_query_for(
 def test_one_to_one_uses_unnest_left_join(repo: tuple[mock.Mock, repository.Repository]) -> None:
     query = _one_to_one_query_for(
         repo,
-        [layer2.Catalog.DESIGNATION, layer2.Catalog.OBJECTS, layer2.Catalog.REDSHIFT],
+        [layer2.Catalog.OBJECTS, layer2.Catalog.REDSHIFT, layer2.Catalog.MORPHOLOGY],
     )
 
     assert "unnest(%s::int[]) WITH ORDINALITY" in query
-    assert "LEFT JOIN layer2.designation USING (pgc)" in query
     assert "LEFT JOIN layer2.objects USING (pgc)" in query
     assert "LEFT JOIN layer2.cz USING (pgc)" in query
+    assert "LEFT JOIN layer2.morphology USING (pgc)" in query
+    assert "layer2.designation" not in query
+    assert "layer2.nature" not in query
     assert "layer2.velocity" not in query
     assert "FULL JOIN" not in query
     assert "search_params" not in query

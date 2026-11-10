@@ -99,6 +99,8 @@ def test_build_response_returns_observed_and_corrected_photometry(
             pgc=5001,
             catalogs=model.Catalogs(
                 objects=model.ObjectsCatalog(
+                    name="NGC 4321",
+                    objtype="G",
                     ra=187.6,
                     e_ra=0.0,
                     dec=15.26,
@@ -138,6 +140,10 @@ def test_build_response_returns_observed_and_corrected_photometry(
     ]
 
     catalogs = responder.build_response(objects).objects[0].catalogs
+    assert catalogs.designation is not None
+    assert catalogs.designation.name == "NGC 4321"
+    assert catalogs.nature is not None
+    assert catalogs.nature.type_name == "G"
     assert catalogs.coordinates is not None
     assert catalogs.coordinates.galactic.lon == pytest.approx(240.0)
     assert catalogs.photometry_total is not None
@@ -156,6 +162,8 @@ def test_build_response_without_ebv_has_no_corrected_photometry(
             pgc=5001,
             catalogs=model.Catalogs(
                 objects=model.ObjectsCatalog(
+                    name="NGC 4321",
+                    objtype=None,
                     ra=187.6,
                     e_ra=0.0,
                     dec=15.26,

@@ -2,12 +2,9 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DesignationCatalog:
-    name: str
-
-
-@dataclass
 class ObjectsCatalog:
+    name: str
+    objtype: str | None
     ra: float | None
     e_ra: float | None
     dec: float | None
@@ -29,11 +26,6 @@ class RedshiftCatalog:
 class Velocity:
     v: float
     e_v: float
-
-
-@dataclass
-class NatureCatalog:
-    type_name: str
 
 
 @dataclass
@@ -92,11 +84,9 @@ class PhotometryTotalCatalog:
 
 @dataclass
 class Catalogs:
-    designation: DesignationCatalog | None = None
     additional_designations: AdditionalDesignationsCatalog | None = None
     objects: ObjectsCatalog | None = None
     redshift: RedshiftCatalog | None = None
-    nature: NatureCatalog | None = None
     morphology: MorphologyCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
@@ -113,10 +103,8 @@ __all__ = [
     "AdditionalDesignation",
     "AdditionalDesignationsCatalog",
     "Catalogs",
-    "DesignationCatalog",
     "Layer2Object",
     "MorphologyCatalog",
-    "NatureCatalog",
     "NoteEntry",
     "NotesCatalog",
     "ObjectsCatalog",

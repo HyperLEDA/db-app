@@ -58,19 +58,19 @@ def test_one_object(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="test")]),
-        layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="test2")]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2])
     _save_layer2_data(storage, objects)
 
-    actual = repo.query_catalogs([layer2.Catalog.DESIGNATION], [1])
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], [1])
 
     assert len(actual) == 1
     assert actual[0].pgc == 1
-    assert actual[0].catalogs.designation is not None
-    assert actual[0].catalogs.designation.name == "test"
+    assert actual[0].catalogs.objects is not None
+    assert actual[0].catalogs.objects.name == "obj1"
 
 
 def test_find_pgcs_by_designation(
@@ -182,7 +182,7 @@ def test_several_catalogs(
             2,
             [
                 _objects(2, 11, 11),
-                layer2.DesignationCatalogObject(design="test2"),
+                layer2.RedshiftCatalogObject(cz=100, e_cz=1),
             ],
         ),
     ]
@@ -191,15 +191,16 @@ def test_several_catalogs(
     _save_layer2_data(storage, objects)
 
     actual = repo.query_catalogs(
-        [layer2.Catalog.OBJECTS, layer2.Catalog.DESIGNATION],
+        [layer2.Catalog.OBJECTS, layer2.Catalog.REDSHIFT],
         [2],
     )
 
     assert len(actual) == 1
     assert actual[0].pgc == 2
     assert actual[0].catalogs.objects is not None
-    assert actual[0].catalogs.designation is not None
-    assert actual[0].catalogs.designation.name == "test2"
+    assert actual[0].catalogs.objects.name == "obj2"
+    assert actual[0].catalogs.redshift is not None
+    assert actual[0].catalogs.redshift.cz == pytest.approx(100)
 
 
 def test_pagination(
@@ -326,7 +327,7 @@ def test_query_by_pgc_list(
         layer2.Layer2Object(
             1,
             [
-                layer2.DesignationCatalogObject(design="test"),
+                _objects(1, 10, 10),
                 layer2.RedshiftCatalogObject(cz=100, e_cz=1),
             ],
         ),
@@ -381,14 +382,14 @@ def test_preserves_pgc_order_from_input(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="a")]),
-        layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="b")]),
-        layer2.Layer2Object(3, [layer2.DesignationCatalogObject(design="c")]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
+        layer2.Layer2Object(3, [_objects(3, 12, 12)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2, 3])
     _save_layer2_data(storage, objects)
 
-    actual = repo.query_catalogs([layer2.Catalog.DESIGNATION], [3, 1, 2])
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], [3, 1, 2])
 
     assert [obj.pgc for obj in actual] == [3, 1, 2]

@@ -13,10 +13,8 @@ from app.lib.storage import postgres
 
 _ONE_TO_ONE_CATALOGS = frozenset(
     {
-        layer2.Catalog.DESIGNATION,
         layer2.Catalog.OBJECTS,
         layer2.Catalog.REDSHIFT,
-        layer2.Catalog.NATURE,
         layer2.Catalog.MORPHOLOGY,
     }
 )
@@ -302,11 +300,9 @@ class Repository(postgres.TransactionalPGRepository):
             _layer2_object_from_maps(
                 pgc,
                 raw_catalogs,
-                one_to_one_maps.designation,
                 additional_designations_map,
                 one_to_one_maps.objects,
                 one_to_one_maps.redshift,
-                one_to_one_maps.nature,
                 one_to_one_maps.morphology,
                 notes_map,
                 photometry_total_map,
@@ -426,21 +422,17 @@ class Repository(postgres.TransactionalPGRepository):
 class _OneToOneMaps:
     def __init__(
         self,
-        designation: dict[int, model.DesignationCatalog],
         objects: dict[int, model.ObjectsCatalog],
         redshift: dict[int, model.RedshiftCatalog],
-        nature: dict[int, model.NatureCatalog],
         morphology: dict[int, model.MorphologyCatalog],
     ) -> None:
-        self.designation = designation
         self.objects = objects
         self.redshift = redshift
-        self.nature = nature
         self.morphology = morphology
 
     @classmethod
     def empty(cls) -> "_OneToOneMaps":
-        return cls({}, {}, {}, {}, {})
+        return cls({}, {}, {})
 
 
 def _optional_float(value: Any) -> float | None:
@@ -453,10 +445,8 @@ def _parse_one_to_one_rows(
     rows: list[Mapping[str, Any]],
     raw_catalogs: list[layer2.Catalog],
 ) -> _OneToOneMaps:
-    designation: dict[int, model.DesignationCatalog] = {}
     objects: dict[int, model.ObjectsCatalog] = {}
     redshift: dict[int, model.RedshiftCatalog] = {}
-    nature: dict[int, model.NatureCatalog] = {}
     morphology: dict[int, model.MorphologyCatalog] = {}
 
     for row in rows:
@@ -478,10 +468,10 @@ def _parse_one_to_one_rows(
             if not presence.get(catalog, False):
                 continue
             data = data_by_catalog.get(catalog, {})
-            if catalog == layer2.Catalog.DESIGNATION:
-                designation[pgc] = model.DesignationCatalog(name=str(data["design"]))
-            elif catalog == layer2.Catalog.OBJECTS:
+            if catalog == layer2.Catalog.OBJECTS:
                 objects[pgc] = model.ObjectsCatalog(
+                    name=str(data["name"]),
+                    objtype=str(data["objtype"]) if data.get("objtype") is not None else None,
                     ra=_optional_float(data.get("ra")),
                     e_ra=_optional_float(data.get("e_ra")),
                     dec=_optional_float(data.get("dec")),
@@ -495,9 +485,6 @@ def _parse_one_to_one_rows(
             elif catalog == layer2.Catalog.REDSHIFT:
                 if data.get("cz") is not None and data.get("e_cz") is not None:
                     redshift[pgc] = model.RedshiftCatalog(cz=float(data["cz"]), e_cz=float(data["e_cz"]))
-            elif catalog == layer2.Catalog.NATURE:
-                if data.get("type_name") is not None:
-                    nature[pgc] = model.NatureCatalog(type_name=str(data["type_name"]))
             elif catalog == layer2.Catalog.MORPHOLOGY:
                 if data.get("t") is not None:
                     em = data.get("em")
@@ -508,29 +495,25 @@ def _parse_one_to_one_rows(
                         ep=None if ep is None else float(ep),
                     )
 
-    return _OneToOneMaps(designation, objects, redshift, nature, morphology)
+    return _OneToOneMaps(objects, redshift, morphology)
 
 
 def _layer2_object_from_maps(
     pgc: int,
     raw_catalogs: list[layer2.Catalog],
-    designation_map: dict[int, model.DesignationCatalog],
     additional_designations_map: dict[int, model.AdditionalDesignationsCatalog],
     objects_map: dict[int, model.ObjectsCatalog],
     redshift_map: dict[int, model.RedshiftCatalog],
-    nature_map: dict[int, model.NatureCatalog],
     morphology_map: dict[int, model.MorphologyCatalog],
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
     velocity_map: dict[int, dict[str, model.Velocity]],
 ) -> model.Layer2Object:
-    designation = designation_map.get(pgc) if layer2.Catalog.DESIGNATION in raw_catalogs else None
     additional_designations = (
         additional_designations_map.get(pgc) if layer2.Catalog.ADDITIONAL_DESIGNATIONS in raw_catalogs else None
     )
     objects = objects_map.get(pgc) if layer2.Catalog.OBJECTS in raw_catalogs else None
     redshift = redshift_map.get(pgc) if layer2.Catalog.REDSHIFT in raw_catalogs else None
-    nature = nature_map.get(pgc) if layer2.Catalog.NATURE in raw_catalogs else None
     morphology = morphology_map.get(pgc) if layer2.Catalog.MORPHOLOGY in raw_catalogs else None
     notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
@@ -539,11 +522,9 @@ def _layer2_object_from_maps(
     return model.Layer2Object(
         pgc=pgc,
         catalogs=model.Catalogs(
-            designation=designation,
             additional_designations=additional_designations,
             objects=objects,
             redshift=redshift,
-            nature=nature,
             morphology=morphology,
             notes=notes,
             photometry_total=photometry_total,
