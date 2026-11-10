@@ -74,13 +74,10 @@ def upsert_pgc(storage: postgres.PgStorage, pgcs: dict[str, int | None]) -> None
     pgcs_to_insert: dict[str, int] = {}
     new_records = [record_id for record_id, pgc in pgcs.items() if pgc is None]
     if new_records:
-        rows = storage.query(
-            f"""INSERT INTO common.pgc (id)
-            VALUES {",".join(["(DEFAULT)"] * len(new_records))}
-            RETURNING id"""
-        )
-        for record_id, row in zip(new_records, rows, strict=True):
-            pgcs_to_insert[record_id] = int(row["id"])
+        row = storage.query_one("INSERT INTO common.pgc (id) VALUES (DEFAULT) RETURNING id")
+        shared_pgc = int(row["id"])
+        for record_id in new_records:
+            pgcs_to_insert[record_id] = shared_pgc
     for record_id, pgc in pgcs.items():
         if pgc is not None:
             pgcs_to_insert[record_id] = pgc
