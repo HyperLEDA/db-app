@@ -439,6 +439,10 @@ def test_get_records_passes_filters_to_fetch_records(
     call_kw = repo.fetch_records.call_args[1]
     assert call_kw["triage_status"] == "pending"
 
+    manager.get_records(adminapi.GetRecordsRequest(table_name="t", record_id="rec-1"))
+    call_kw = repo.fetch_records.call_args[1]
+    assert call_kw["record_id"] == "rec-1"
+
 
 def test_get_records_pagination(
     get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],

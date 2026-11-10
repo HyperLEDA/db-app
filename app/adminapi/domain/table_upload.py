@@ -253,6 +253,7 @@ class TableUploadManager:
             has_pgc=has_pgc,
             pgc_value=r.pgc,
             triage_status=triage_filter,
+            record_id=r.record_id,
         )
         schema_task: concurrency.TaskResult[postgres.TableInfo] | None = None
         if r.table_name is not None:

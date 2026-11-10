@@ -20,13 +20,14 @@ class GetRecordsRequest(pydantic.BaseModel):
     page: int = 0
     page_size: int = 25
     pgc: int | None = None
+    record_id: str | None = None
     upload_status: UploadStatus | None = None
     triage_status: CrossmatchTriageStatus | None = None
 
     @pydantic.model_validator(mode="after")
     def check_exclusive_pgc_filter(self) -> "GetRecordsRequest":
         if self.pgc is not None:
-            if any([self.upload_status is not None, self.triage_status is not None]):
+            if any([self.record_id is not None, self.upload_status is not None, self.triage_status is not None]):
                 raise ValueError("When pgc filter is specified, no other filters are allowed.")
         return self
 
