@@ -32,7 +32,7 @@ SPECTROSCOPY_FLUX_METHOD = "sum"
 KINEMATICS_WIDTH_METHOD = "peak"
 KINEMATICS_LEVEL = 50
 
-SIMPLE_FILTER_QUERY_CATALOGS = ["designation", "icrs", "redshift", "nature"]
+SIMPLE_FILTER_QUERY_CATALOGS = ["objects", "redshift"]
 
 
 @lib.test_logging_decorator
@@ -621,8 +621,9 @@ def check_pgc_names(session: lib.TestSession, name_prefix: str):
     assert len(name_results["objects"]) > 0
 
     for obj in name_results["objects"]:
-        if "designation" in obj and "name" in obj["designation"]:
-            assert obj["designation"]["name"].startswith("NGC")
+        designation = obj["catalogs"].get("designation")
+        if designation is not None:
+            assert designation["name"].startswith("NGC")
 
 
 @lib.test_logging_decorator

@@ -16,12 +16,13 @@ def test_logging_decorator(func):
         start_time = time.time()
 
         exception = None
+        status = "E"
+        result = None
         try:
             result = func(*args, **kwargs)
             status = "F"
         except Exception as e:
             exception = e
-            status = "E"
             raise KeyboardInterrupt from e
         finally:
             elapsed_time = (time.time() - start_time) * 1000
