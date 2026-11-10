@@ -65,7 +65,6 @@ def _build_raw_table_select(
     order_column: str | None = None,
     order_direction: str = "asc",
     limit: int | None = None,
-    record_id: str | None = None,
     row_offset: int | None = None,
 ) -> tuple[sql.Composed, list[Any]]:
     if columns:
@@ -83,14 +82,6 @@ def _build_raw_table_select(
             )
         )
         params.append(offset)
-
-    if record_id is not None:
-        where_parts.append(
-            sql.SQL("{} = %s").format(
-                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-            )
-        )
-        params.append(record_id)
 
     parts: list[sql.Composable] = [
         sql.SQL("SELECT {} FROM {}.{}").format(
@@ -279,13 +270,12 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
     def fetch_raw_data(
         self,
-        table_name: str | None = None,
+        table_name: str,
         offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
         limit: int | None = None,
-        record_id: str | None = None,
         row_offset: int | None = None,
     ) -> model.Layer0RawData:
         """
@@ -294,17 +284,10 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :param order_column: orders result by a provided column
         :param order_direction: if `order_column` is specified, sets order direction. Either `asc` or `desc`.
         :param offset: allows to retrieve rows starting from the `offset` record_id.
-        :param record_id: retrieves only the row with the given record_id. Other filters are still applied.
         :param limit: allows to retrieve no more than `limit` rows.
         :param row_offset: skip this many rows (use with limit for page-based pagination).
         :return: Layer0RawData
         """
-
-        if table_name is None and record_id is not None:
-            table_name = self._resolve_table_name(record_id)
-
-        if table_name is None:
-            raise ValueError("either table_name or record_id must be provided")
 
         query, params = _build_raw_table_select(
             table_name,
@@ -313,7 +296,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             order_column=order_column,
             order_direction=order_direction,
             limit=limit,
-            record_id=record_id,
             row_offset=row_offset,
         )
         rows = self._storage.query(query, params=params)
@@ -425,18 +407,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             for raw in raw_rows:
                 original_by_id[str(raw[id_col])] = _row_to_serializable_dict(raw, drop=[id_col])
         return original_by_id
-
-    def _resolve_table_name(self, record_id: str) -> str | None:
-        rows = self._storage.query(
-            """
-            SELECT t.table_name
-            FROM layer0.records AS o
-            JOIN layer0.tables AS t ON o.table_id = t.id
-            WHERE o.id = %s
-            """,
-            params=[record_id],
-        )
-        return rows[0]["table_name"] if rows else None
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self.fetch_metadata_by_name(table_name)

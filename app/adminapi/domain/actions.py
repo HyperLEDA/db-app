@@ -73,9 +73,6 @@ class Actions(interface.Actions):
     def get_records(self, r: spec.GetRecordsRequest) -> spec.GetRecordsResponse:
         return self.table_upload_manager.get_records(r)
 
-    def get_record_crossmatch(self, r: spec.GetRecordCrossmatchRequest) -> spec.GetRecordCrossmatchResponse:
-        return self.crossmatch_manager.get_record_crossmatch(r)
-
     def save_structured_data(self, r: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         return self.layer1_writer.save_data(r)
 

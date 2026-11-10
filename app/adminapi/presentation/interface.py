@@ -49,10 +49,6 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_record_crossmatch(self, r: spec.GetRecordCrossmatchRequest) -> spec.GetRecordCrossmatchResponse:
-        pass
-
-    @abc.abstractmethod
     def save_structured_data(self, r: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         pass
 

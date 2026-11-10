@@ -1,15 +1,13 @@
-from collections.abc import Sequence
 from typing import Any, final
 
 import structlog
 from astropy import table
 
 from app.adminapi import model
-from app.adminapi.repository import common, layer1, layer2, metadata, references
+from app.adminapi.repository import common, layer1, metadata, references
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository.layer0 import records, tables
 from app.catalogs import layer1 as layer1_catalogs
-from app.catalogs import layer2 as layer2_catalogs
 from app.lib.storage import enums, postgres
 
 
@@ -23,7 +21,6 @@ class Repository(postgres.TransactionalPGRepository):
         self._layer0_tables = tables.Layer0TableRepository(storage)
         self._layer0_records = records.Layer0RecordRepository(storage)
         self._layer1 = layer1.Layer1Repository(storage, logger)
-        self._layer2 = layer2.Layer2Repository(storage, logger)
         self._metadata = metadata.MetadataRepository(storage)
         self._references = references.ReferencesRepository(storage, logger)
 
@@ -67,13 +64,12 @@ class Repository(postgres.TransactionalPGRepository):
 
     def fetch_raw_data(
         self,
-        table_name: str | None = None,
+        table_name: str,
         offset: str | None = None,
         columns: list[str] | None = None,
         order_column: str | None = None,
         order_direction: str = "asc",
         limit: int | None = None,
-        record_id: str | None = None,
         row_offset: int | None = None,
     ) -> model.Layer0RawData:
         return self._layer0_tables.fetch_raw_data(
@@ -83,7 +79,6 @@ class Repository(postgres.TransactionalPGRepository):
             order_column,
             order_direction,
             limit,
-            record_id,
             row_offset,
         )
 
@@ -138,20 +133,6 @@ class Repository(postgres.TransactionalPGRepository):
     def register_records(self, table_name: str, record_ids: list[str]) -> None:
         return self._layer0_records.register_records(table_name, record_ids)
 
-    def get_processed_records(
-        self,
-        limit: int,
-        offset: str | None = None,
-        row_offset: int | None = None,
-        table_name: str | None = None,
-        status: Sequence[enums.RecordCrossmatchStatus] | None = None,
-        triage_status: Sequence[enums.RecordTriageStatus] | None = None,
-        record_id: str | None = None,
-    ) -> list[model.CrossmatchRecordRow]:
-        return self._layer0_records.get_processed_records(
-            limit, offset, row_offset, table_name, status, triage_status, record_id
-        )
-
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         return self._layer0_records.set_crossmatch_results(rows)
 
@@ -188,25 +169,6 @@ class Repository(postgres.TransactionalPGRepository):
 
     def get_nature_records(self, record_ids: list[str]) -> list[model.NatureRecord | None]:
         return self._layer1.get_nature_records(record_ids)
-
-    def query_records(
-        self,
-        raw_catalogs: list[layer1_catalogs.Catalog],
-        record_ids: list[str] | None = None,
-        table_name: str | None = None,
-        offset: str | None = None,
-        limit: int | None = None,
-    ) -> list[model.Record]:
-        return self._layer1.query_records(raw_catalogs, record_ids, table_name, offset, limit)
-
-    def query_catalogs_pgc(
-        self,
-        raw_catalogs: list[layer2_catalogs.Catalog],
-        pgc_numbers: list[int],
-        limit: int,
-        offset: int = 0,
-    ) -> list[layer2_catalogs.Layer2Object]:
-        return self._layer2.query_catalogs_pgc(raw_catalogs, pgc_numbers, limit, offset)
 
     def query_with_metadata(
         self,

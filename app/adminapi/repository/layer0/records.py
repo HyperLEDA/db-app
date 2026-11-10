@@ -1,10 +1,8 @@
 import json
-from collections.abc import Sequence
 from typing import Any
 
-from app.adminapi import model
 from app.adminapi.repository.common import touch_pgcs
-from app.adminapi.repository.layer0.common import metadata_to_candidates, rawdata_table
+from app.adminapi.repository.layer0.common import rawdata_table
 from app.lib.storage import enums, postgres
 
 
@@ -35,78 +33,6 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )
             rows = [[record_id, table_id] for record_id in record_ids]
             self._storage.execute_batch(query, rows)
-
-    def get_processed_records(
-        self,
-        limit: int,
-        offset: str | None = None,
-        row_offset: int | None = None,
-        table_name: str | None = None,
-        status: Sequence[enums.RecordCrossmatchStatus] | None = None,
-        triage_status: Sequence[enums.RecordTriageStatus] | None = None,
-        record_id: str | None = None,
-    ) -> list[model.CrossmatchRecordRow]:
-        params: list[Any] = []
-
-        where_stmnt = []
-        join_tables = """
-            FROM layer0.records AS o
-            JOIN layer0.crossmatch AS c ON o.id = c.record_id
-        """
-
-        if table_name is not None:
-            join_tables += " JOIN layer0.tables AS t ON o.table_id = t.id"
-            where_stmnt.append("t.table_name = %s")
-            params.append(table_name)
-
-        if offset is not None:
-            where_stmnt.append("o.id > %s")
-            params.append(offset)
-
-        if status is not None:
-            statuses = list(status)
-            if statuses:
-                status_values = [s.value for s in statuses]
-                where_stmnt.append(
-                    "((c.metadata::jsonb = '{}'::jsonb AND 'new' = ANY(%s)) OR "
-                    "(c.metadata::jsonb ? 'pgc' AND 'existing' = ANY(%s)) OR "
-                    "(c.metadata::jsonb ? 'possible_matches' AND 'collided' = ANY(%s)))"
-                )
-                params.extend([status_values, status_values, status_values])
-
-        if triage_status is not None:
-            triage_statuses = list(triage_status)
-            if triage_statuses:
-                where_stmnt.append("c.triage_status = ANY(%s)")
-                params.append([s.value for s in triage_statuses])
-
-        if record_id is not None:
-            where_stmnt.append("o.id = %s")
-            params.append(record_id)
-
-        where_clause = f"WHERE {' AND '.join(where_stmnt)}" if where_stmnt else ""
-
-        query = f"""SELECT o.id, c.triage_status, c.metadata
-            {join_tables}
-            {where_clause}
-            ORDER BY o.id
-            LIMIT %s"""
-        params.append(limit)
-
-        if row_offset is not None:
-            query += " OFFSET %s"
-            params.append(row_offset)
-
-        rows = self._storage.query(query, params=params)
-
-        return [
-            model.CrossmatchRecordRow(
-                record_id=row["id"],
-                triage_status=row["triage_status"],
-                candidates=metadata_to_candidates(row["metadata"]),
-            )
-            for row in rows
-        ]
 
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:

@@ -97,12 +97,6 @@ class API:
         response = self.actions.register(body)
         return server.APIOkResponse(data=response)
 
-    def get_record_crossmatch(
-        self, request: Annotated[spec.GetRecordCrossmatchRequest, fastapi.Query()]
-    ) -> server.APIOkResponse[spec.GetRecordCrossmatchResponse]:
-        response = self.actions.get_record_crossmatch(request)
-        return server.APIOkResponse(data=response)
-
     def save_structured_data(
         self,
         request: spec.SaveStructuredDataRequest,
@@ -406,14 +400,6 @@ Records in `pending` triage or with collided metadata are rejected. The request 
 Source PGC identifiers themselves are not removed.""",
                 allowed_roles=admin_only,
                 audit_action=True,
-            ),
-            server.Route(
-                "/v1/record/crossmatch",
-                http.HTTPMethod.GET,
-                api.get_record_crossmatch,
-                "Get record crossmatch details",
-                """Retrieves detailed crossmatch information for a specific record.""",
-                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/data/structured",
