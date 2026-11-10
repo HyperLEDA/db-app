@@ -177,7 +177,9 @@ def test_idempotent_retry(
 ) -> None:
     table_name = "submit_retry"
     record_id = str(uuid.uuid4())
-    _register(repo, table_name, [record_id])
+    null_a = str(uuid.uuid4())
+    null_b = str(uuid.uuid4())
+    _register(repo, table_name, [record_id, null_a, null_b])
     _set_crossmatch(repo, [(record_id, enums.RecordTriageStatus.RESOLVED, [])])
 
     request = adminapi.AssignRecordPgcsRequest(record_ids=[record_id])
@@ -194,6 +196,16 @@ def test_idempotent_retry(
 
     repo.register_pgcs([2])
     manager.assign_record_pgcs(
-        adminapi.AssignRecordPgcsRequest(assignments=[adminapi.RecordPgcAssignment(record_id=record_id, pgc=2)])
+        adminapi.AssignRecordPgcsRequest(
+            assignments=[
+                adminapi.RecordPgcAssignment(record_id=record_id, pgc=2),
+                adminapi.RecordPgcAssignment(record_id=null_a, pgc=None),
+                adminapi.RecordPgcAssignment(record_id=null_b),
+            ]
+        )
     )
     assert _pgc_for(pg_storage, record_id) == 2
+    shared_pgc = _pgc_for(pg_storage, null_a)
+    assert shared_pgc is not None
+    assert shared_pgc != 2
+    assert _pgc_for(pg_storage, null_b) == shared_pgc

@@ -65,8 +65,9 @@ class CrossmatchManager:
     def assign_record_pgcs(self, request: spec.AssignRecordPgcsRequest) -> spec.AssignRecordPgcsResponse:
         if request.assignments is not None:
             pgcs = {item.record_id: item.pgc for item in request.assignments}
-            existing = self._repo.get_existing_pgcs(list(set(pgcs.values())))
-            for pgc in pgcs.values():
+            requested = {pgc for pgc in pgcs.values() if pgc is not None}
+            existing = self._repo.get_existing_pgcs(list(requested))
+            for pgc in requested:
                 if pgc not in existing:
                     raise NotFoundError(entity_name="pgc", entity=str(pgc))
             self._repo.upsert_pgc(pgcs)
