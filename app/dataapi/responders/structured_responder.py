@@ -1,6 +1,5 @@
 from typing import Any, override
 
-import structlog
 from astropy import units as u
 
 from app.catalogs import layer2
@@ -8,10 +7,7 @@ from app.dataapi import model
 from app.dataapi.domain import reddening
 from app.dataapi.responders import interface
 from app.lib import astronomy
-from app.lib.web import errors
 from app.specs import dataapi as spec
-
-logger = structlog.stdlib.get_logger()
 
 DATA_SCHEMA = spec.Schema(
     units=spec.Units(
@@ -45,15 +41,24 @@ VELOCITY_SCHEMA = spec.AbsoluteVelocityUnits(
 )
 
 
-def _coordinates_from_icrs(ra: float, dec: float, e_ra: float, e_dec: float) -> spec.Coordinates:
-    eq_e_ra = astronomy.to(e_ra * u.Unit("deg"), "arcsec")
-    eq_e_dec = astronomy.to(e_dec * u.Unit("deg"), "arcsec")
-    lon, lat, e_lon, e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "galactic")
-    sg_lon, sg_lat, sg_e_lon, sg_e_lat = astronomy.equatorial_to_lonlat(ra, dec, e_ra, e_dec, "supergalactic")
+def _coordinates_from_objects(obj: model.ObjectsCatalog) -> spec.Coordinates | None:
+    if (
+        obj.ra is None
+        or obj.e_ra is None
+        or obj.dec is None
+        or obj.e_dec is None
+        or obj.galactic_l is None
+        or obj.galactic_b is None
+        or obj.sgl is None
+        or obj.sgb is None
+    ):
+        return None
+    eq_e_ra = astronomy.to(obj.e_ra * u.Unit("deg"), "arcsec")
+    eq_e_dec = astronomy.to(obj.e_dec * u.Unit("deg"), "arcsec")
     return spec.Coordinates(
-        equatorial=spec.EquatorialCoordinates(ra=ra, dec=dec, e_ra=eq_e_ra, e_dec=eq_e_dec),
-        galactic=spec.GalacticCoordinates(lon=lon, lat=lat, e_lon=e_lon, e_lat=e_lat),
-        supergalactic=spec.SupergalacticCoordinates(lon=sg_lon, lat=sg_lat, e_lon=sg_e_lon, e_lat=sg_e_lat),
+        equatorial=spec.EquatorialCoordinates(ra=obj.ra, dec=obj.dec, e_ra=eq_e_ra, e_dec=eq_e_dec),
+        galactic=spec.GalacticCoordinates(lon=obj.galactic_l, lat=obj.galactic_b, e_lon=eq_e_ra, e_lat=eq_e_dec),
+        supergalactic=spec.SupergalacticCoordinates(lon=obj.sgl, lat=obj.sgb, e_lon=eq_e_ra, e_lat=eq_e_dec),
     )
 
 
@@ -94,46 +99,29 @@ class StructuredResponder(interface.ObjectResponder):
         self,
         objects: list[model.Layer2Object],
     ) -> dict[int, list[spec.PhotometryTotalMeasurement]]:
-        correction_work: list[tuple[int, model.ICRSCatalog, list[model.PhotometryTotalMeasurement]]] = []
+        correction_work: list[tuple[int, float, list[model.PhotometryTotalMeasurement]]] = []
+        photsys_values: set[str] = set()
         for obj in objects:
-            if obj.catalogs.photometry_total is None or obj.catalogs.icrs is None:
+            if obj.catalogs.photometry_total is None or obj.catalogs.objects is None:
                 continue
-            correction_work.append((obj.pgc, obj.catalogs.icrs, obj.catalogs.photometry_total.measurements))
+            ebv = obj.catalogs.objects.ebv
+            if ebv is None:
+                continue
+            measurements = obj.catalogs.photometry_total.measurements
+            correction_work.append((obj.pgc, ebv, measurements))
+            photsys_values.update(measurement.photsys for measurement in measurements)
 
-        query_list: list[reddening.ReddeningQuery] = []
-        query_key_to_index: dict[tuple[str, float, float], int] = {}
-        for _, icrs, measurements in correction_work:
-            coordinate = spec.J2000Coordinate(ra=icrs.ra, dec=icrs.dec)
-            for photsys in {measurement.photsys for measurement in measurements}:
-                key = (photsys, icrs.ra, icrs.dec)
-                if key not in query_key_to_index:
-                    query_key_to_index[key] = len(query_list)
-                    query_list.append(reddening.ReddeningQuery(photsys=photsys, coordinate=coordinate))
-
-        if not query_list:
+        if not correction_work:
             return {}
 
-        try:
-            results = self.reddening_service.calculate(query_list)
-        except errors.InternalError as exc:
-            logger.warning(
-                "Field API unavailable, skipping photometry extinction correction",
-                error=str(exc),
-            )
-            return {}
-        extinction_lookup: dict[tuple[str, float, float, str], float] = {}
-        for query_index, query in enumerate(query_list):
-            ra = query.coordinate.ra
-            dec = query.coordinate.dec
-            for filter_value in results[query_index].filters:
-                extinction_lookup[(query.photsys, ra, dec, filter_value.filter)] = filter_value.a
+        a_ebv_by_photsys = {photsys: self.reddening_service.a_ebv_by_filter(photsys) for photsys in photsys_values}
 
         corrected_by_pgc: dict[int, list[spec.PhotometryTotalMeasurement]] = {}
-        for pgc, icrs, measurements in correction_work:
+        for pgc, ebv, measurements in correction_work:
             corrected: list[spec.PhotometryTotalMeasurement] = []
             for measurement in measurements:
-                extinction = extinction_lookup.get((measurement.photsys, icrs.ra, icrs.dec, measurement.filter))
-                if extinction is None:
+                a_ebv = a_ebv_by_photsys.get(measurement.photsys, {}).get(measurement.filter)
+                if a_ebv is None:
                     continue
                 corrected.append(
                     spec.PhotometryTotalMeasurement(
@@ -141,7 +129,7 @@ class StructuredResponder(interface.ObjectResponder):
                         magsys=measurement.magsys,
                         method=measurement.method,
                         wavelength=measurement.wavelength,
-                        mag=measurement.mag - extinction,
+                        mag=measurement.mag - a_ebv * ebv,
                         e_mag=measurement.e_mag,
                     )
                 )
@@ -160,9 +148,21 @@ class StructuredResponder(interface.ObjectResponder):
             if (designation := obj.get(layer2.DesignationCatalogObject)) is not None:
                 result.designation = spec.Designation(name=designation.designation)
 
-            icrs = obj.get(layer2.ICRSCatalogObject)
-            if icrs is not None:
-                result.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+            objects_catalog = obj.get(layer2.ObjectsCatalogObject)
+            if objects_catalog is not None:
+                result.coordinates = _coordinates_from_objects(
+                    model.ObjectsCatalog(
+                        ra=objects_catalog.ra,
+                        e_ra=objects_catalog.e_ra,
+                        dec=objects_catalog.dec,
+                        e_dec=objects_catalog.e_dec,
+                        galactic_l=objects_catalog.l,
+                        galactic_b=objects_catalog.b,
+                        sgl=objects_catalog.sgl,
+                        sgb=objects_catalog.sgb,
+                        ebv=objects_catalog.ebv,
+                    )
+                )
 
             redshift = obj.get(layer2.RedshiftCatalogObject)
             if redshift is not None:
@@ -203,9 +203,8 @@ class StructuredResponder(interface.ObjectResponder):
                     for ad in obj.catalogs.additional_designations.names
                 ]
 
-            icrs = obj.catalogs.icrs
-            if icrs is not None:
-                catalogs.coordinates = _coordinates_from_icrs(icrs.ra, icrs.dec, icrs.e_ra, icrs.e_dec)
+            if obj.catalogs.objects is not None:
+                catalogs.coordinates = _coordinates_from_objects(obj.catalogs.objects)
 
             if obj.catalogs.redshift is not None:
                 redshift = obj.catalogs.redshift

@@ -12,7 +12,7 @@ from app.specs import dataapi
 
 DEFAULT = [
     layer2.Catalog.DESIGNATION,
-    layer2.Catalog.ICRS,
+    layer2.Catalog.OBJECTS,
     layer2.Catalog.REDSHIFT,
 ]
 
@@ -23,16 +23,16 @@ def test_none_returns_default() -> None:
 
 def test_subset_preserves_request_order() -> None:
     assert parameterized_query.resolve_query_catalogs(
-        ["icrs", "designation"],
+        ["objects", "designation"],
         DEFAULT,
-    ) == [layer2.Catalog.ICRS, layer2.Catalog.DESIGNATION]
+    ) == [layer2.Catalog.OBJECTS, layer2.Catalog.DESIGNATION]
 
 
 def test_deduplicates() -> None:
     assert parameterized_query.resolve_query_catalogs(
-        ["icrs", "icrs"],
+        ["objects", "objects"],
         DEFAULT,
-    ) == [layer2.Catalog.ICRS]
+    ) == [layer2.Catalog.OBJECTS]
 
 
 def test_empty_list_raises() -> None:

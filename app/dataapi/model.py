@@ -7,11 +7,16 @@ class DesignationCatalog:
 
 
 @dataclass
-class ICRSCatalog:
-    ra: float
-    e_ra: float
-    dec: float
-    e_dec: float
+class ObjectsCatalog:
+    ra: float | None
+    e_ra: float | None
+    dec: float | None
+    e_dec: float | None
+    galactic_l: float | None
+    galactic_b: float | None
+    sgl: float | None
+    sgb: float | None
+    ebv: float | None
 
 
 @dataclass
@@ -89,7 +94,7 @@ class PhotometryTotalCatalog:
 class Catalogs:
     designation: DesignationCatalog | None = None
     additional_designations: AdditionalDesignationsCatalog | None = None
-    icrs: ICRSCatalog | None = None
+    objects: ObjectsCatalog | None = None
     redshift: RedshiftCatalog | None = None
     nature: NatureCatalog | None = None
     morphology: MorphologyCatalog | None = None
@@ -109,12 +114,12 @@ __all__ = [
     "AdditionalDesignationsCatalog",
     "Catalogs",
     "DesignationCatalog",
-    "ICRSCatalog",
     "Layer2Object",
     "MorphologyCatalog",
     "NatureCatalog",
     "NoteEntry",
     "NotesCatalog",
+    "ObjectsCatalog",
     "PhotometryTotalCatalog",
     "PhotometryTotalMeasurement",
     "RedshiftCatalog",

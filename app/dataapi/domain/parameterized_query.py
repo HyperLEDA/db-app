@@ -10,7 +10,7 @@ from app.specs import dataapi as spec
 CATALOGS_FOR_PGC_QUERY = [
     layer2.Catalog.DESIGNATION,
     layer2.Catalog.ADDITIONAL_DESIGNATIONS,
-    layer2.Catalog.ICRS,
+    layer2.Catalog.OBJECTS,
     layer2.Catalog.REDSHIFT,
     layer2.Catalog.VELOCITY,
     layer2.Catalog.NATURE,

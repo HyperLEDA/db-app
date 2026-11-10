@@ -29,12 +29,12 @@ def _one_to_one_query_for(
 def test_one_to_one_uses_unnest_left_join(repo: tuple[mock.Mock, repository.Repository]) -> None:
     query = _one_to_one_query_for(
         repo,
-        [layer2.Catalog.DESIGNATION, layer2.Catalog.ICRS, layer2.Catalog.REDSHIFT],
+        [layer2.Catalog.DESIGNATION, layer2.Catalog.OBJECTS, layer2.Catalog.REDSHIFT],
     )
 
     assert "unnest(%s::int[]) WITH ORDINALITY" in query
     assert "LEFT JOIN layer2.designation USING (pgc)" in query
-    assert "LEFT JOIN layer2.icrs USING (pgc)" in query
+    assert "LEFT JOIN layer2.objects USING (pgc)" in query
     assert "LEFT JOIN layer2.cz USING (pgc)" in query
     assert "layer2.velocity" not in query
     assert "FULL JOIN" not in query
@@ -67,13 +67,13 @@ def test_velocity_uses_separate_query(repo: tuple[mock.Mock, repository.Reposito
 def test_mixed_catalogs_join_only_one_to_one(repo: tuple[mock.Mock, repository.Repository]) -> None:
     storage, repo_instance = repo
     repo_instance.query_catalogs(
-        [layer2.Catalog.ICRS, layer2.Catalog.PHOTOMETRY__TOTAL],
+        [layer2.Catalog.OBJECTS, layer2.Catalog.PHOTOMETRY__TOTAL],
         [1],
     )
     queries = [call.args[0] for call in storage.query.call_args_list]
     join_queries = [q for q in queries if "unnest" in q]
     assert len(join_queries) == 1
     query = re.sub(r"\s+", " ", join_queries[0]).strip()
-    assert "LEFT JOIN layer2.icrs USING (pgc)" in query
+    assert "LEFT JOIN layer2.objects USING (pgc)" in query
     assert "photometry_total" not in query
     assert any("layer2.photometry_total" in q for q in queries)
