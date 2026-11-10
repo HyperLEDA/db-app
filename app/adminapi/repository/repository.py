@@ -96,9 +96,10 @@ class Repository(postgres.TransactionalPGRepository):
         has_pgc: bool | None = None,
         pgc_value: int | None = None,
         triage_status: str | None = None,
+        record_id: str | None = None,
     ) -> list[model.TableRecord]:
         return self._layer0_tables.fetch_records(
-            table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status
+            table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status, record_id
         )
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:

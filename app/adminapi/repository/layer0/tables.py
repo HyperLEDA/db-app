@@ -328,6 +328,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         has_pgc: bool | None = None,
         pgc_value: int | None = None,
         triage_status: str | None = None,
+        record_id: str | None = None,
     ) -> list[model.TableRecord]:
         where_parts: list[str] = []
         params: list[Any] = []
@@ -342,6 +343,9 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         if pgc_value is not None:
             where_parts.append("o.pgc = %s")
             params.append(pgc_value)
+        if record_id is not None:
+            where_parts.append("o.id = %s")
+            params.append(record_id)
 
         direction = sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc")
 
