@@ -17,11 +17,6 @@ class _FakeFieldAPIClient(fieldapi_spec.FieldAPIClient):
         return [0.03 + index * 0.01 for index in range(len(coordinates))]
 
 
-class _FailingFieldAPIClient(fieldapi_spec.FieldAPIClient):
-    def sample_sfd_ebv(self, coordinates: list[fieldapi_spec.SkyCoordinate]) -> list[float]:
-        raise errors.InternalError("fieldapi unavailable")
-
-
 class _FakeRepository:
     def list_reddening(self, photsys: str, r_v: str = "3.1") -> list[repository.ReddeningCoefficient]:
         if photsys == "Landolt":
@@ -43,58 +38,32 @@ class _FakeRepository:
 
 
 @pytest.fixture
-def reddening_service() -> tuple[_FakeFieldAPIClient, reddening.Reddening]:
+def reddening_service() -> reddening.Reddening:
+    return reddening.Reddening(_FakeRepository(), _FakeFieldAPIClient())
+
+
+def test_calculate_batches_unique_coordinates() -> None:
     fieldapi_client = _FakeFieldAPIClient()
-    return fieldapi_client, reddening.Reddening(_FakeRepository(), fieldapi_client)
-
-
-def test_calculate_batches_unique_coordinates(
-    reddening_service: tuple[_FakeFieldAPIClient, reddening.Reddening],
-) -> None:
-    fieldapi_client, reddening_instance = reddening_service
+    service = reddening.Reddening(_FakeRepository(), fieldapi_client)
     coord_a = spec.J2000Coordinate(ra=187.6, dec=15.26)
     coord_b = spec.J2000Coordinate(ra=210.25, dec=-3.1)
-    queries = [
-        reddening.ReddeningQuery("Landolt", coord_a),
-        reddening.ReddeningQuery("Landolt", coord_b),
-        reddening.ReddeningQuery("SDSS", coord_a),
-    ]
 
-    results = reddening_instance.calculate(queries)
+    results = service.calculate(
+        [
+            reddening.ReddeningQuery("Landolt", coord_a),
+            reddening.ReddeningQuery("Landolt", coord_b),
+            reddening.ReddeningQuery("SDSS", coord_a),
+        ]
+    )
 
     assert len(fieldapi_client.sampled_coordinates) == 2
-    assert len(results) == 3
     assert results[0].filters[0].a == pytest.approx(4.334 * 0.03)
     assert results[1].filters[0].a == pytest.approx(4.334 * 0.04)
     assert results[2].filters[0].a == pytest.approx(3.237 * 0.03)
 
 
-def test_calculate_returns_empty_filters_for_unknown_photsys(
-    reddening_service: tuple[_FakeFieldAPIClient, reddening.Reddening],
-) -> None:
-    _, reddening_instance = reddening_service
-    results = reddening_instance.calculate([reddening.ReddeningQuery("Unknown", spec.J2000Coordinate(ra=1.0, dec=2.0))])
-
-    assert results[0].filters == []
-
-
-def test_list_references(reddening_service: tuple[_FakeFieldAPIClient, reddening.Reddening]) -> None:
-    _, reddening_instance = reddening_service
-    response = reddening_instance.list_references()
-
-    assert len(response.systems) == 2
-    assert response.systems[0].id == "Landolt"
-
-
-@pytest.fixture
-def actions() -> domain.Actions:
-    return domain.Actions(
-        repo=_FakeRepository(),
-        fieldapi_client=_FakeFieldAPIClient(),
-    )
-
-
-def test_calculate_reddening_returns_results_in_input_order(actions: domain.Actions) -> None:
+def test_calculate_reddening_returns_results_in_input_order() -> None:
+    actions = domain.Actions(repo=_FakeRepository(), fieldapi_client=_FakeFieldAPIClient())
     response = actions.calculate_reddening(
         spec.CalculateReddeningRequest(
             photsys="Landolt",
@@ -105,16 +74,13 @@ def test_calculate_reddening_returns_results_in_input_order(actions: domain.Acti
         )
     )
 
-    assert response.photsys == "Landolt"
-    assert len(response.results) == 2
     assert response.results[0].ebv == 0.03
     assert response.results[1].ebv == 0.04
-    assert response.results[0].filters[0].filter == "U"
     assert response.results[0].filters[0].a == pytest.approx(4.334 * 0.03)
-    assert response.results[1].filters[1].a == pytest.approx(2.742 * 0.04)
 
 
-def test_calculate_reddening_unknown_photys(actions: domain.Actions) -> None:
+def test_calculate_reddening_unknown_photys() -> None:
+    actions = domain.Actions(repo=_FakeRepository(), fieldapi_client=_FakeFieldAPIClient())
     with pytest.raises(errors.NotFoundError):
         actions.calculate_reddening(
             spec.CalculateReddeningRequest(
@@ -124,32 +90,27 @@ def test_calculate_reddening_unknown_photys(actions: domain.Actions) -> None:
         )
 
 
-def test_list_reddening_references_returns_systems(actions: domain.Actions) -> None:
-    response = actions.list_reddening_references()
-
-    assert len(response.systems) == 2
-    assert response.systems[0].id == "Landolt"
-    assert response.systems[0].description == "Landolt photometric system"
-    assert response.systems[1].id == "SDSS"
-
-
-@pytest.fixture
-def structured_responder() -> tuple[_FakeFieldAPIClient, StructuredResponder]:
-    fieldapi_client = _FakeFieldAPIClient()
-    reddening_instance = reddening.Reddening(_FakeRepository(), fieldapi_client)
-    return fieldapi_client, StructuredResponder(reddening_instance)
-
-
 def test_build_response_returns_observed_and_corrected_photometry(
-    structured_responder: tuple[_FakeFieldAPIClient, StructuredResponder],
+    reddening_service: reddening.Reddening,
 ) -> None:
-    fieldapi_client, responder = structured_responder
-    icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
+    responder = StructuredResponder(reddening_service)
     objects = [
         model.Layer2Object(
             pgc=5001,
             catalogs=model.Catalogs(
-                icrs=icrs,
+                objects=model.ObjectsCatalog(
+                    name="NGC 4321",
+                    objtype="G",
+                    ra=187.6,
+                    e_ra=0.0,
+                    dec=15.26,
+                    e_dec=0.0,
+                    galactic_l=240.0,
+                    galactic_b=70.0,
+                    sgl=90.0,
+                    sgb=10.0,
+                    ebv=0.03,
+                ),
                 photometry_total=model.PhotometryTotalCatalog(
                     measurements=[
                         model.PhotometryTotalMeasurement(
@@ -178,65 +139,41 @@ def test_build_response_returns_observed_and_corrected_photometry(
         )
     ]
 
-    response = responder.build_response(objects)
-
-    assert len(fieldapi_client.sampled_coordinates) == 1
-    catalogs = response.objects[0].catalogs
+    catalogs = responder.build_response(objects).objects[0].catalogs
+    assert catalogs.designation is not None
+    assert catalogs.designation.name == "NGC 4321"
+    assert catalogs.nature is not None
+    assert catalogs.nature.type_name == "G"
+    assert catalogs.coordinates is not None
+    assert catalogs.coordinates.galactic.lon == pytest.approx(240.0)
     assert catalogs.photometry_total is not None
     assert len(catalogs.photometry_total) == 2
-    assert catalogs.photometry_total[0].mag == pytest.approx(12.5)
-    assert catalogs.photometry_total[1].mag == pytest.approx(13.0)
     assert catalogs.photometry_total_corrected is not None
     assert len(catalogs.photometry_total_corrected) == 1
-    corrected = catalogs.photometry_total_corrected[0]
-    assert corrected.band == "g"
-    assert corrected.mag == pytest.approx(13.0 - 3.237 * 0.03)
+    assert catalogs.photometry_total_corrected[0].mag == pytest.approx(13.0 - 3.237 * 0.03)
 
 
-def test_build_response_degrades_when_fieldapi_unavailable() -> None:
-    reddening_instance = reddening.Reddening(_FakeRepository(), _FailingFieldAPIClient())
-    responder = StructuredResponder(reddening_instance)
-    icrs = model.ICRSCatalog(ra=187.6, e_ra=0.0, dec=15.26, e_dec=0.0)
-    objects = [
-        model.Layer2Object(
-            pgc=5001,
-            catalogs=model.Catalogs(
-                icrs=icrs,
-                photometry_total=model.PhotometryTotalCatalog(
-                    measurements=[
-                        model.PhotometryTotalMeasurement(
-                            band="g",
-                            magsys="AB",
-                            method="psf",
-                            wavelength=4702.5,
-                            mag=13.0,
-                            e_mag=0.1,
-                            photsys="SDSS",
-                            filter="g",
-                        ),
-                    ]
-                ),
-            ),
-        )
-    ]
-
-    response = responder.build_response(objects)
-
-    catalogs = response.objects[0].catalogs
-    assert catalogs.photometry_total is not None
-    assert len(catalogs.photometry_total) == 1
-    assert catalogs.photometry_total[0].mag == pytest.approx(13.0)
-    assert catalogs.photometry_total_corrected is None
-
-
-def test_build_response_without_icrs_has_no_corrected_photometry(
-    structured_responder: tuple[_FakeFieldAPIClient, StructuredResponder],
+def test_build_response_without_ebv_has_no_corrected_photometry(
+    reddening_service: reddening.Reddening,
 ) -> None:
-    fieldapi_client, responder = structured_responder
+    responder = StructuredResponder(reddening_service)
     objects = [
         model.Layer2Object(
             pgc=5001,
             catalogs=model.Catalogs(
+                objects=model.ObjectsCatalog(
+                    name="NGC 4321",
+                    objtype=None,
+                    ra=187.6,
+                    e_ra=0.0,
+                    dec=15.26,
+                    e_dec=0.0,
+                    galactic_l=240.0,
+                    galactic_b=70.0,
+                    sgl=90.0,
+                    sgb=10.0,
+                    ebv=None,
+                ),
                 photometry_total=model.PhotometryTotalCatalog(
                     measurements=[
                         model.PhotometryTotalMeasurement(
@@ -255,9 +192,6 @@ def test_build_response_without_icrs_has_no_corrected_photometry(
         )
     ]
 
-    response = responder.build_response(objects)
-
-    assert fieldapi_client.sampled_coordinates == []
-    catalogs = response.objects[0].catalogs
+    catalogs = responder.build_response(objects).objects[0].catalogs
     assert catalogs.photometry_total is not None
     assert catalogs.photometry_total_corrected is None

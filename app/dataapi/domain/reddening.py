@@ -24,6 +24,9 @@ class Reddening:
         self._fieldapi_client = fieldapi_client
         self._r_v = r_v
 
+    def a_ebv_by_filter(self, photsys: str) -> dict[str, float]:
+        return {coefficient.filter: coefficient.a_ebv for coefficient in self._coefficients(photsys)}
+
     def calculate(self, queries: list[ReddeningQuery]) -> list[spec.ReddeningAtPosition]:
         if not queries:
             return []
@@ -45,7 +48,7 @@ class Reddening:
         photsys_coefficients: dict[str, list[repository.ReddeningCoefficient]] = {}
         for query in queries:
             if query.photsys not in photsys_coefficients:
-                photsys_coefficients[query.photsys] = self._repo.list_reddening(query.photsys, self._r_v)
+                photsys_coefficients[query.photsys] = self._coefficients(query.photsys)
 
         results: list[spec.ReddeningAtPosition] = []
         for query, coord_index in zip(queries, query_coord_indices, strict=True):
@@ -65,6 +68,9 @@ class Reddening:
                 )
             )
         return results
+
+    def _coefficients(self, photsys: str) -> list[repository.ReddeningCoefficient]:
+        return self._repo.list_reddening(photsys, self._r_v)
 
     def list_references(self) -> spec.ListReddeningReferencesResponse:
         systems = self._repo.list_reddening_systems(self._r_v)
