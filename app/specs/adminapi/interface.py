@@ -287,15 +287,30 @@ class SetCrossmatchResultsResponse(pydantic.BaseModel):
 MAX_ASSIGN_RECORD_PGC_IDS = 200_000
 
 
+class RecordPgcAssignment(pydantic.BaseModel):
+    record_id: str
+    pgc: int
+
+
 class AssignRecordPgcsRequest(WriteRequest):
-    record_ids: list[str]
+    record_ids: list[str] | None = None
+    assignments: list[RecordPgcAssignment] | None = None
 
     @pydantic.model_validator(mode="after")
-    def check_record_ids(self) -> "AssignRecordPgcsRequest":
-        if not self.record_ids:
-            raise ValueError("record_ids must be non-empty")
-        if len(self.record_ids) > MAX_ASSIGN_RECORD_PGC_IDS:
-            raise ValueError(f"record_ids must not exceed {MAX_ASSIGN_RECORD_PGC_IDS}")
+    def check_modes(self) -> "AssignRecordPgcsRequest":
+        has_record_ids = bool(self.record_ids)
+        has_assignments = bool(self.assignments)
+        if has_record_ids == has_assignments:
+            raise ValueError("exactly one of record_ids or assignments must be provided")
+        if self.record_ids is not None:
+            if len(self.record_ids) > MAX_ASSIGN_RECORD_PGC_IDS:
+                raise ValueError(f"record_ids must not exceed {MAX_ASSIGN_RECORD_PGC_IDS}")
+        if self.assignments is not None:
+            if len(self.assignments) > MAX_ASSIGN_RECORD_PGC_IDS:
+                raise ValueError(f"assignments must not exceed {MAX_ASSIGN_RECORD_PGC_IDS}")
+            record_ids = [item.record_id for item in self.assignments]
+            if len(record_ids) != len(set(record_ids)):
+                raise ValueError("assignments must not contain duplicate record_ids")
         return self
 
 

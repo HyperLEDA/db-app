@@ -191,3 +191,100 @@ def test_idempotent_retry(
 
     assert _pgc_for(pg_storage, record_id) == first_pgc
     assert pgc_count_before == pgc_count_after
+
+
+def test_assignments_set_unassigned_record(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: PostgresTestStorage,
+) -> None:
+    table_name = "assign_explicit_new"
+    record_id = str(uuid.uuid4())
+    target_pgc = 9001
+    _register(repo, table_name, [record_id])
+    repo.register_pgcs([target_pgc])
+
+    manager.assign_record_pgcs(
+        adminapi.AssignRecordPgcsRequest(
+            assignments=[adminapi.RecordPgcAssignment(record_id=record_id, pgc=target_pgc)],
+        )
+    )
+
+    assert _pgc_for(pg_storage, record_id) == target_pgc
+
+
+def test_assignments_overwrite_existing_pgc(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+    pg_storage: PostgresTestStorage,
+) -> None:
+    table_name = "assign_explicit_overwrite"
+    record_id = str(uuid.uuid4())
+    old_pgc = 100
+    new_pgc = 200
+    _register(repo, table_name, [record_id])
+    repo.register_pgcs([old_pgc, new_pgc])
+    repo.upsert_pgc({record_id: old_pgc})
+    assert _pgc_for(pg_storage, record_id) == old_pgc
+
+    old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+    pg_storage.storage.exec(
+        "UPDATE common.pgc SET modification_time = %s WHERE id = ANY(%s)",
+        params=[old_dt, [old_pgc, new_pgc]],
+    )
+
+    manager.assign_record_pgcs(
+        adminapi.AssignRecordPgcsRequest(
+            assignments=[adminapi.RecordPgcAssignment(record_id=record_id, pgc=new_pgc)],
+        )
+    )
+
+    assert _pgc_for(pg_storage, record_id) == new_pgc
+    for pgc in (old_pgc, new_pgc):
+        mt = pg_storage.storage.query_one(
+            "SELECT modification_time FROM common.pgc WHERE id = %s",
+            params=[pgc],
+        )["modification_time"]
+        assert mt.replace(tzinfo=datetime.UTC) > old_dt
+
+
+def test_assignments_missing_pgc(
+    repo: repository.Repository,
+    manager: crossmatch.CrossmatchManager,
+) -> None:
+    table_name = "assign_explicit_missing_pgc"
+    record_id = str(uuid.uuid4())
+    _register(repo, table_name, [record_id])
+
+    with pytest.raises(errors.NotFoundError):
+        manager.assign_record_pgcs(
+            adminapi.AssignRecordPgcsRequest(
+                assignments=[adminapi.RecordPgcAssignment(record_id=record_id, pgc=99999)],
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"record_ids": [], "assignments": []},
+        {
+            "record_ids": ["a"],
+            "assignments": [adminapi.RecordPgcAssignment(record_id="a", pgc=1)],
+        },
+    ],
+)
+def test_request_requires_exactly_one_mode(kwargs: dict) -> None:
+    with pytest.raises(ValueError, match="exactly one of record_ids or assignments"):
+        adminapi.AssignRecordPgcsRequest(**kwargs)
+
+
+def test_assignments_reject_duplicate_record_ids() -> None:
+    with pytest.raises(ValueError, match="duplicate record_ids"):
+        adminapi.AssignRecordPgcsRequest(
+            assignments=[
+                adminapi.RecordPgcAssignment(record_id="a", pgc=1),
+                adminapi.RecordPgcAssignment(record_id="a", pgc=2),
+            ],
+        )
