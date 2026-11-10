@@ -391,7 +391,8 @@ At least one status block must be present.
   `POST /v1/records/crossmatch` results with `triage_status = resolved`. Only fills null
   `records.pgc`. Pending or collided rows are rejected. All-or-nothing.
 - `assignments`: explicit `{record_id, pgc}` mappings. Overwrites existing assignments.
-  Target PGCs must already exist. No crossmatch precondition.""",
+  Non-null target PGCs must already exist. Null `pgc` values mint one shared new PGC
+  for all such records in the request. No crossmatch precondition.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

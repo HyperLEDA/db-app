@@ -289,7 +289,7 @@ MAX_ASSIGN_RECORD_PGC_IDS = 200_000
 
 class RecordPgcAssignment(pydantic.BaseModel):
     record_id: str
-    pgc: int
+    pgc: int | None = None
 
 
 class AssignRecordPgcsRequest(WriteRequest):

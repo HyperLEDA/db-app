@@ -145,11 +145,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         pgcs_to_insert: dict[str, int] = {}
 
         new_records = [record_id for record_id, pgc in pgcs.items() if pgc is None]
-
         if new_records:
-            minted = self._mint_pgc_ids(len(new_records))
-            for record_id, pgc_id in zip(new_records, minted, strict=True):
-                pgcs_to_insert[record_id] = pgc_id
+            shared_pgc = self._mint_pgc_ids(1)[0]
+            for record_id in new_records:
+                pgcs_to_insert[record_id] = shared_pgc
 
         for record_id, pgc in pgcs.items():
             if pgc is not None:
