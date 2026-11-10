@@ -1,6 +1,6 @@
 import datetime
 import json
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
@@ -321,97 +321,71 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
     def fetch_records(
         self,
-        table_name: str,
+        table_name: str | None,
         limit: int,
         row_offset: int,
         order_direction: str = "asc",
         has_pgc: bool | None = None,
         pgc_value: int | None = None,
         triage_status: str | None = None,
+        record_id: str | None = None,
     ) -> list[model.TableRecord]:
         where_parts: list[str] = []
+        params: list[Any] = []
+
+        if table_name is not None:
+            where_parts.append("t.table_name = %s")
+            params.append(table_name)
         if has_pgc is True:
             where_parts.append("o.pgc IS NOT NULL")
         elif has_pgc is False:
             where_parts.append("o.pgc IS NULL")
         if pgc_value is not None:
             where_parts.append("o.pgc = %s")
-
-        params: list[Any] = []
-        if pgc_value is not None:
             params.append(pgc_value)
+        if record_id is not None:
+            where_parts.append("o.id = %s")
+            params.append(record_id)
 
-        id_col = sql.Identifier(INTERNAL_ID_COLUMN_NAME)
         direction = sql.SQL(order_direction if order_direction in ("asc", "desc") else "asc")
 
         if triage_status == "unprocessed":
             where_parts.append("NOT EXISTS (SELECT 1 FROM layer0.crossmatch c WHERE c.record_id = o.id)")
-            params.append(limit)
-            params.append(row_offset)
-            parts: list[sql.Composable] = [
-                sql.SQL(
-                    "SELECT r.*, o.pgc "
-                    "FROM {}.{} AS r "
-                    "JOIN layer0.records AS o ON r.{} = o.id "
-                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s)"
-                ).format(
-                    sql.Identifier(RAWDATA_SCHEMA),
-                    sql.Identifier(table_name),
-                    id_col,
-                ),
-            ]
-            params.insert(0, table_name)
+            select_sql = (
+                "SELECT o.id, o.pgc, t.table_name FROM layer0.records AS o JOIN layer0.tables AS t ON o.table_id = t.id"
+            )
         elif triage_status in ("pending", "resolved"):
             where_parts.append("c.triage_status = %s")
             params.append(triage_status)
-            params.append(limit)
-            params.append(row_offset)
-            parts = [
-                sql.SQL(
-                    "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
-                    "FROM {}.{} AS r "
-                    "JOIN layer0.records AS o ON r.{} = o.id "
-                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s) "
-                    "JOIN layer0.crossmatch AS c ON o.id = c.record_id"
-                ).format(
-                    sql.Identifier(RAWDATA_SCHEMA),
-                    sql.Identifier(table_name),
-                    id_col,
-                ),
-            ]
-            params.insert(0, table_name)
+            select_sql = (
+                "SELECT o.id, o.pgc, t.table_name, c.triage_status, c.metadata AS crossmatch_metadata "
+                "FROM layer0.records AS o "
+                "JOIN layer0.tables AS t ON o.table_id = t.id "
+                "JOIN layer0.crossmatch AS c ON o.id = c.record_id"
+            )
         else:
-            params.append(limit)
-            params.append(row_offset)
-            parts = [
-                sql.SQL(
-                    "SELECT r.*, o.pgc, c.triage_status, c.metadata AS crossmatch_metadata "
-                    "FROM {}.{} AS r "
-                    "JOIN layer0.records AS o ON r.{} = o.id "
-                    "AND o.table_id = (SELECT id FROM layer0.tables WHERE table_name = %s) "
-                    "LEFT JOIN layer0.crossmatch AS c ON o.id = c.record_id"
-                ).format(
-                    sql.Identifier(RAWDATA_SCHEMA),
-                    sql.Identifier(table_name),
-                    id_col,
-                ),
-            ]
-            params.insert(0, table_name)
+            select_sql = (
+                "SELECT o.id, o.pgc, t.table_name, c.triage_status, c.metadata AS crossmatch_metadata "
+                "FROM layer0.records AS o "
+                "JOIN layer0.tables AS t ON o.table_id = t.id "
+                "LEFT JOIN layer0.crossmatch AS c ON o.id = c.record_id"
+            )
 
+        parts: list[sql.Composable] = [sql.SQL(select_sql)]
         if where_parts:
             parts.append(sql.SQL(" WHERE "))
-            parts.append(sql.SQL(" AND ").join([sql.SQL(w) for w in where_parts]))
-        parts.append(sql.SQL(" ORDER BY r.{} ").format(id_col))
+            parts.append(sql.SQL(" AND ").join(sql.SQL(part) for part in where_parts))
+        parts.append(sql.SQL(" ORDER BY o.id "))
         parts.append(direction)
         parts.append(sql.SQL(" LIMIT %s OFFSET %s"))
+        params.append(limit)
+        params.append(row_offset)
 
         rows = self._storage.query(sql.Composed(parts), params=params)
-        id_col_name = INTERNAL_ID_COLUMN_NAME
-        drop_labels = [id_col_name, "pgc", "triage_status", "crossmatch_metadata"]
+        original_by_id = self._fetch_original_data(rows)
         result: list[model.TableRecord] = []
         for row in rows:
-            record_id = str(row[id_col_name])
-            original_data = _row_to_serializable_dict(row, drop=drop_labels)
+            record_id = str(row["id"])
             pgc_val = row.get("pgc")
             if pgc_val is not None and (pandas.isna(pgc_val) or (isinstance(pgc_val, float) and np.isnan(pgc_val))):
                 pgc_val = None
@@ -421,13 +395,36 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             result.append(
                 model.TableRecord(
                     id=record_id,
-                    original_data=original_data,
+                    original_data=original_by_id.get(record_id, {}),
                     pgc=int(pgc_val) if pgc_val is not None else None,
                     triage_status=triage_val,
                     crossmatch_candidates=candidates,
+                    table_name=str(row["table_name"]),
                 )
             )
         return result
+
+    def _fetch_original_data(self, rows: Sequence[Any]) -> dict[str, dict[str, Any]]:
+        ids_by_table: dict[str, list[str]] = {}
+        for row in rows:
+            ids_by_table.setdefault(str(row["table_name"]), []).append(str(row["id"]))
+
+        original_by_id: dict[str, dict[str, Any]] = {}
+        id_col = INTERNAL_ID_COLUMN_NAME
+        for raw_table_name, record_ids in ids_by_table.items():
+            query = sql.SQL("SELECT * FROM {}.{} WHERE {} = ANY(%s)").format(
+                sql.Identifier(RAWDATA_SCHEMA),
+                sql.Identifier(raw_table_name),
+                sql.Identifier(id_col),
+            )
+            try:
+                raw_rows = self._storage.query(query, params=[record_ids])
+            except Exception as exc:
+                log.error("Failed to load original data", table_name=raw_table_name, exc_info=exc)
+                continue
+            for raw in raw_rows:
+                original_by_id[str(raw[id_col])] = _row_to_serializable_dict(raw, drop=[id_col])
+        return original_by_id
 
     def _resolve_table_name(self, record_id: str) -> str | None:
         rows = self._storage.query(

@@ -253,12 +253,11 @@ class TableUploadManager:
             has_pgc=has_pgc,
             pgc_value=r.pgc,
             triage_status=triage_filter,
+            record_id=r.record_id,
         )
-        schema_task = errgr.run(
-            self._repo.get_table_metadata,
-            repository.RAWDATA_SCHEMA,
-            r.table_name,
-        )
+        schema_task: concurrency.TaskResult[postgres.TableInfo] | None = None
+        if r.table_name is not None:
+            schema_task = errgr.run(_load_raw_schema, self._repo, r.table_name)
         designation_schema_task = errgr.run(
             self._repo.get_table_metadata,
             "designation",
@@ -280,7 +279,7 @@ class TableUploadManager:
         errgr.wait()
 
         raw_records = records_task.result()
-        schema_info = schema_task.result()
+        schema_info = schema_task.result() if schema_task is not None else None
         designation_schema = designation_schema_task.result()
         icrs_schema = icrs_schema_task.result()
         nature_schema = nature_schema_task.result()
@@ -315,6 +314,7 @@ class TableUploadManager:
         records_list = [
             spec.Record(
                 id=rec.id,
+                table_name=rec.table_name,
                 original_data=rec.original_data,
                 pgc=rec.pgc,
                 crossmatch=spec.RecordCrossmatchInfo(
@@ -353,7 +353,8 @@ class TableUploadManager:
         description_data: dict[str, str] = {}
         unit_data: dict[str, str] = {}
         ucd_data: dict[str, str] = {}
-        for col in schema_info.columns.values():
+        schema_columns = schema_info.columns.values() if schema_info is not None else ()
+        for col in schema_columns:
             if col.name in FORBIDDEN_COLUMN_NAMES:
                 continue
             if col.description is not None:
@@ -378,6 +379,14 @@ class TableUploadManager:
             catalogs=catalog_schema,
         )
         return spec.GetRecordsResponse(records=records_list, schema=record_schema)
+
+
+def _load_raw_schema(repo: repository.Repository, table_name: str) -> postgres.TableInfo:
+    try:
+        return repo.get_table_metadata(repository.RAWDATA_SCHEMA, table_name)
+    except Exception as exc:
+        logger.error("Failed to load raw table schema", table_name=table_name, exc_info=exc)
+        return postgres.TableInfo(schema=repository.RAWDATA_SCHEMA, name=table_name)
 
 
 def _bibliography_to_presentation(bib: model.Bibliography) -> spec.Bibliography:

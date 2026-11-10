@@ -2,16 +2,18 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DesignationCatalog:
+class ObjectsCatalog:
     name: str
-
-
-@dataclass
-class ICRSCatalog:
-    ra: float
-    e_ra: float
-    dec: float
-    e_dec: float
+    objtype: str | None
+    ra: float | None
+    e_ra: float | None
+    dec: float | None
+    e_dec: float | None
+    galactic_l: float | None
+    galactic_b: float | None
+    sgl: float | None
+    sgb: float | None
+    ebv: float | None
 
 
 @dataclass
@@ -24,11 +26,6 @@ class RedshiftCatalog:
 class Velocity:
     v: float
     e_v: float
-
-
-@dataclass
-class NatureCatalog:
-    type_name: str
 
 
 @dataclass
@@ -87,11 +84,9 @@ class PhotometryTotalCatalog:
 
 @dataclass
 class Catalogs:
-    designation: DesignationCatalog | None = None
     additional_designations: AdditionalDesignationsCatalog | None = None
-    icrs: ICRSCatalog | None = None
+    objects: ObjectsCatalog | None = None
     redshift: RedshiftCatalog | None = None
-    nature: NatureCatalog | None = None
     morphology: MorphologyCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
@@ -108,13 +103,11 @@ __all__ = [
     "AdditionalDesignation",
     "AdditionalDesignationsCatalog",
     "Catalogs",
-    "DesignationCatalog",
-    "ICRSCatalog",
     "Layer2Object",
     "MorphologyCatalog",
-    "NatureCatalog",
     "NoteEntry",
     "NotesCatalog",
+    "ObjectsCatalog",
     "PhotometryTotalCatalog",
     "PhotometryTotalMeasurement",
     "RedshiftCatalog",

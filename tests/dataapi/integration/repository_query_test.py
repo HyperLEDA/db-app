@@ -49,24 +49,28 @@ def _get_table(storage: postgres.PgStorage, table_name: str) -> int:
     return layer_seed.create_table(storage, table_name, bib_id)
 
 
+def _objects(pgc: int, ra: float, dec: float) -> layer2.ObjectsCatalogObject:
+    return layer2.ObjectsCatalogObject(name=f"obj{pgc}", ra=ra, e_ra=0.1, dec=dec, e_dec=0.1)
+
+
 def test_one_object(
     repo: repository.Repository,
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="test")]),
-        layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="test2")]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2])
     _save_layer2_data(storage, objects)
 
-    actual = repo.query_catalogs([layer2.Catalog.DESIGNATION], [1])
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], [1])
 
     assert len(actual) == 1
     assert actual[0].pgc == 1
-    assert actual[0].catalogs.designation is not None
-    assert actual[0].catalogs.designation.name == "test"
+    assert actual[0].catalogs.objects is not None
+    assert actual[0].catalogs.objects.name == "obj1"
 
 
 def test_find_pgcs_by_designation(
@@ -153,19 +157,19 @@ def test_several_objects(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(2, [layer2.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2])
     _save_layer2_data(storage, objects)
 
     pgcs = repo.find_pgcs_by_equatorial(12, 12, 10 * u.Unit("deg"), 10, 0)
-    actual = repo.query_catalogs([layer2.Catalog.ICRS], pgcs)
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], pgcs)
 
     assert [obj.pgc for obj in actual] == [2, 1]
-    assert actual[0].catalogs.icrs is not None
-    assert actual[0].catalogs.icrs.ra == pytest.approx(11)
+    assert actual[0].catalogs.objects is not None
+    assert actual[0].catalogs.objects.ra == pytest.approx(11)
 
 
 def test_several_catalogs(
@@ -173,12 +177,12 @@ def test_several_catalogs(
     storage: postgres.PgStorage,
 ) -> None:
     objects = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
         layer2.Layer2Object(
             2,
             [
-                layer2.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1),
-                layer2.DesignationCatalogObject(design="test2"),
+                _objects(2, 11, 11),
+                layer2.RedshiftCatalogObject(cz=100, e_cz=1),
             ],
         ),
     ]
@@ -187,15 +191,16 @@ def test_several_catalogs(
     _save_layer2_data(storage, objects)
 
     actual = repo.query_catalogs(
-        [layer2.Catalog.ICRS, layer2.Catalog.DESIGNATION],
+        [layer2.Catalog.OBJECTS, layer2.Catalog.REDSHIFT],
         [2],
     )
 
     assert len(actual) == 1
     assert actual[0].pgc == 2
-    assert actual[0].catalogs.icrs is not None
-    assert actual[0].catalogs.designation is not None
-    assert actual[0].catalogs.designation.name == "test2"
+    assert actual[0].catalogs.objects is not None
+    assert actual[0].catalogs.objects.name == "obj2"
+    assert actual[0].catalogs.redshift is not None
+    assert actual[0].catalogs.redshift.cz == pytest.approx(100)
 
 
 def test_pagination(
@@ -203,23 +208,23 @@ def test_pagination(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(2, [layer2.ICRSCatalogObject(ra=11, dec=11, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(3, [layer2.ICRSCatalogObject(ra=12, dec=12, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(4, [layer2.ICRSCatalogObject(ra=13, dec=13, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(5, [layer2.ICRSCatalogObject(ra=14, dec=14, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
+        layer2.Layer2Object(3, [_objects(3, 12, 12)]),
+        layer2.Layer2Object(4, [_objects(4, 13, 13)]),
+        layer2.Layer2Object(5, [_objects(5, 14, 14)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2, 3, 4, 5])
     _save_layer2_data(storage, objects)
 
     pgcs = repo.find_pgcs_by_equatorial(12, 12, 10 * u.Unit("deg"), 2, 1)
-    actual = repo.query_catalogs([layer2.Catalog.ICRS], pgcs)
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], pgcs)
 
     assert len(actual) == 2
 
 
-def _query_icrs_in_radius(
+def _query_objects_in_radius(
     repo: repository.Repository,
     ra: float,
     dec: float,
@@ -227,7 +232,7 @@ def _query_icrs_in_radius(
     raw_catalogs: list[layer2.Catalog] | None = None,
 ) -> list[model.Layer2Object]:
     pgcs = repo.find_pgcs_by_equatorial(ra, dec, radius * u.Unit("deg"), 10, 0)
-    return repo.query_catalogs(raw_catalogs or [layer2.Catalog.ICRS], pgcs)
+    return repo.query_catalogs(raw_catalogs or [layer2.Catalog.OBJECTS], pgcs)
 
 
 def test_cone_search_wraps_around_ra_zero(
@@ -235,15 +240,15 @@ def test_cone_search_wraps_around_ra_zero(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=359.99, dec=0, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(2, [layer2.ICRSCatalogObject(ra=0.01, dec=0, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(3, [layer2.ICRSCatalogObject(ra=180, dec=0, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 359.99, 0)]),
+        layer2.Layer2Object(2, [_objects(2, 0.01, 0)]),
+        layer2.Layer2Object(3, [_objects(3, 180, 0)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2, 3])
     _save_layer2_data(storage, objects)
 
-    actual = _query_icrs_in_radius(repo, ra=0.0, dec=0.0, radius=0.05)
+    actual = _query_objects_in_radius(repo, ra=0.0, dec=0.0, radius=0.05)
 
     assert {obj.pgc for obj in actual} == {1, 2}
 
@@ -253,15 +258,15 @@ def test_cone_search_accounts_for_declination_convergence(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=100, dec=80, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(2, [layer2.ICRSCatalogObject(ra=102, dec=80, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(3, [layer2.ICRSCatalogObject(ra=100, dec=79, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 100, 80)]),
+        layer2.Layer2Object(2, [_objects(2, 102, 80)]),
+        layer2.Layer2Object(3, [_objects(3, 100, 79)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2, 3])
     _save_layer2_data(storage, objects)
 
-    actual = _query_icrs_in_radius(repo, ra=100.0, dec=80.0, radius=0.5)
+    actual = _query_objects_in_radius(repo, ra=100.0, dec=80.0, radius=0.5)
 
     assert {obj.pgc for obj in actual} == {1, 2}
 
@@ -271,19 +276,19 @@ def test_distance_ordering_sorts_by_true_angular_separation(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.ICRSCatalogObject(ra=14, dec=60, e_ra=0.1, e_dec=0.1)]),
-        layer2.Layer2Object(2, [layer2.ICRSCatalogObject(ra=10, dec=62.5, e_ra=0.1, e_dec=0.1)]),
+        layer2.Layer2Object(1, [_objects(1, 14, 60)]),
+        layer2.Layer2Object(2, [_objects(2, 10, 62.5)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2])
     _save_layer2_data(storage, objects)
 
-    actual = _query_icrs_in_radius(repo, ra=10.0, dec=60.0, radius=5.0)
+    actual = _query_objects_in_radius(repo, ra=10.0, dec=60.0, radius=5.0)
 
     assert [obj.pgc for obj in actual] == [1, 2]
 
 
-def test_coordinate_filter_when_icrs_catalog_not_requested(
+def test_coordinate_filter_when_objects_catalog_not_requested(
     repo: repository.Repository,
     storage: postgres.PgStorage,
 ) -> None:
@@ -291,7 +296,7 @@ def test_coordinate_filter_when_icrs_catalog_not_requested(
         layer2.Layer2Object(
             1,
             [
-                layer2.ICRSCatalogObject(ra=10, dec=10, e_ra=0.1, e_dec=0.1),
+                _objects(1, 10, 10),
                 layer2.RedshiftCatalogObject(cz=100, e_cz=1),
             ],
         ),
@@ -300,7 +305,7 @@ def test_coordinate_filter_when_icrs_catalog_not_requested(
     layer_seed.register_pgcs(storage, [1])
     _save_layer2_data(storage, objects)
 
-    actual = _query_icrs_in_radius(
+    actual = _query_objects_in_radius(
         repo,
         ra=10.0,
         dec=10.0,
@@ -322,7 +327,7 @@ def test_query_by_pgc_list(
         layer2.Layer2Object(
             1,
             [
-                layer2.DesignationCatalogObject(design="test"),
+                _objects(1, 10, 10),
                 layer2.RedshiftCatalogObject(cz=100, e_cz=1),
             ],
         ),
@@ -377,14 +382,14 @@ def test_preserves_pgc_order_from_input(
     storage: postgres.PgStorage,
 ) -> None:
     objects: list[layer2.Layer2Object] = [
-        layer2.Layer2Object(1, [layer2.DesignationCatalogObject(design="a")]),
-        layer2.Layer2Object(2, [layer2.DesignationCatalogObject(design="b")]),
-        layer2.Layer2Object(3, [layer2.DesignationCatalogObject(design="c")]),
+        layer2.Layer2Object(1, [_objects(1, 10, 10)]),
+        layer2.Layer2Object(2, [_objects(2, 11, 11)]),
+        layer2.Layer2Object(3, [_objects(3, 12, 12)]),
     ]
 
     layer_seed.register_pgcs(storage, [1, 2, 3])
     _save_layer2_data(storage, objects)
 
-    actual = repo.query_catalogs([layer2.Catalog.DESIGNATION], [3, 1, 2])
+    actual = repo.query_catalogs([layer2.Catalog.OBJECTS], [3, 1, 2])
 
     assert [obj.pgc for obj in actual] == [3, 1, 2]
