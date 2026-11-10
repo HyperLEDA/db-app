@@ -385,9 +385,13 @@ At least one status block must be present.
                 http.HTTPMethod.POST,
                 api.assign_record_pgcs,
                 "Assign PGCs to records",
-                """Assigns PGC numbers to records that already have crossmatch results with
-`triage_status = resolved`. Each record must have been set using `POST /v1/records/crossmatch` first.
-Records in `pending` triage or with collided metadata are rejected. The request is all-or-nothing.""",
+                """Assigns PGC numbers to records. Provide exactly one of:
+
+- `record_ids`: finalize from resolved crossmatch metadata. Each record must already have
+  `POST /v1/records/crossmatch` results with `triage_status = resolved`. Only fills null
+  `records.pgc`. Pending or collided rows are rejected. All-or-nothing.
+- `assignments`: explicit `{record_id, pgc}` mappings. Overwrites existing assignments.
+  Target PGCs must already exist. No crossmatch precondition.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

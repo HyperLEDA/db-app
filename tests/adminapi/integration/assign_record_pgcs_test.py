@@ -191,3 +191,9 @@ def test_idempotent_retry(
 
     assert _pgc_for(pg_storage, record_id) == first_pgc
     assert pgc_count_before == pgc_count_after
+
+    repo.register_pgcs([2])
+    manager.assign_record_pgcs(
+        adminapi.AssignRecordPgcsRequest(assignments=[adminapi.RecordPgcAssignment(record_id=record_id, pgc=2)])
+    )
+    assert _pgc_for(pg_storage, record_id) == 2

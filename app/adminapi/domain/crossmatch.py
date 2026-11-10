@@ -3,7 +3,7 @@ from typing import final
 
 from app.adminapi import repository
 from app.lib.storage import enums
-from app.lib.web.errors import ConflictError
+from app.lib.web.errors import ConflictError, NotFoundError
 from app.specs import adminapi as spec
 
 
@@ -63,7 +63,16 @@ class CrossmatchManager:
         return spec.SetCrossmatchResultsResponse()
 
     def assign_record_pgcs(self, request: spec.AssignRecordPgcsRequest) -> spec.AssignRecordPgcsResponse:
-        unique_ids = list(dict.fromkeys(request.record_ids))
+        if request.assignments is not None:
+            pgcs = {item.record_id: item.pgc for item in request.assignments}
+            existing = self._repo.get_existing_pgcs(list(set(pgcs.values())))
+            for pgc in pgcs.values():
+                if pgc not in existing:
+                    raise NotFoundError(entity_name="pgc", entity=str(pgc))
+            self._repo.upsert_pgc(pgcs)
+            return spec.AssignRecordPgcsResponse()
+
+        unique_ids = list(dict.fromkeys(request.record_ids or []))
         try:
             self._repo.assign_record_pgcs(unique_ids)
         except repository.AssignRecordPgcsPreconditionError as e:
