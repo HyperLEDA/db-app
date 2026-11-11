@@ -86,8 +86,8 @@ def test_add_data(upload_manager: tuple[mock.MagicMock, domain.TableUploadManage
     assert list(call_args.args[0].data["test"]) == ["row", "row2"]
     assert list(call_args.args[0].data["number"]) == [41, 43]
     assert list(call_args.args[0].data["hyperleda_internal_id"]) == [
-        "6698e710-5854-47bd-c83b-f2285a84c32f",
-        "549502ca-2eaf-c026-4210-9b92a2b4e047",
+        "6381dbe5-1a87-9eef-9861-909641189bc4",
+        "cc78cdbd-573d-cc4e-2c25-c34934616290",
     ]
 
 

@@ -3,6 +3,7 @@ import uuid
 from collections.abc import Iterable
 
 import astropy.io.votable.ucd as ucd
+import numpy as np
 import pandas
 import regex
 import structlog
@@ -414,13 +415,30 @@ def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list
 
 def _compute_internal_ids(table_name: str, data_df: pandas.DataFrame) -> list[str]:
     columns = sorted(data_df.columns.tolist())
-    prefix = f"{table_name}\x1e{'\x1f'.join(columns)}\x1e".encode()
-    ordered = data_df[columns]
+    numeric = [c for c in columns if isinstance(data_df[c].dtype, np.dtype) and data_df[c].dtype.kind in "iufb"]
+    other = [c for c in columns if c not in set(numeric)]
+    num_rows = len(data_df)
+
+    # Numeric columns are hashed as raw bytes in one vectorized step: calling repr on every float is the bottleneck.
+    numeric_width = 0
+    numeric_flat = b""
+    if numeric:
+        blocks = [np.ascontiguousarray(data_df[c].to_numpy()).view(np.uint8).reshape(num_rows, -1) for c in numeric]
+        block = np.concatenate(blocks, axis=1)
+        numeric_width = block.shape[1]
+        numeric_flat = block.tobytes()
+
+    other_rows = [
+        "\x1f".join(map(repr, values)).encode() for values in data_df[other].itertuples(index=False, name=None)
+    ]
+
+    numeric_layout = ",".join(f"{c}:{data_df[c].dtype.str}" for c in numeric)
+    prefix = f"{table_name}\x1e{numeric_layout}\x1e{'\x1f'.join(other)}\x1e".encode()
 
     ids: list[str] = []
-    for values in ordered.itertuples(index=False, name=None):
-        row_bytes = "\x1f".join(map(repr, values)).encode()
-        digest = hashlib.blake2b(prefix + row_bytes, digest_size=16).digest()
+    for i in range(num_rows):
+        row = numeric_flat[i * numeric_width : (i + 1) * numeric_width] + b"\x1e" + other_rows[i]
+        digest = hashlib.blake2b(prefix + row, digest_size=16).digest()
         ids.append(str(uuid.UUID(bytes=digest)))
     return ids
 
