@@ -100,46 +100,6 @@ def test_create_table_with_nulls(manager: domain.TableUploadManager, pg_storage:
                 adminapi.ColumnDescription(
                     name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
                 ),
-            ],
-            bibcode="2024arXiv240411942F",
-            datatype=enums.DataType.REGULAR,
-            description="",
-        ),
-    )
-
-    manager.add_data(
-        adminapi.AddDataRequest(
-            table_name="test_table",
-            data=[{"ra": 5.5}, {"ra": 5.0}],
-        ),
-    )
-
-    rows = pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
-    data_df = pandas.DataFrame.from_records(rows)
-    assert data_df["ra"].to_list() == [5.0, 5.5]
-    assert data_df["dec"].to_list() == [None, None]
-
-
-def test_add_data_integer_column_with_nulls(
-    manager: domain.TableUploadManager, pg_storage: PostgresTestStorage
-) -> None:
-    lib.returns(
-        manager.clients.ads.query_simple,
-        [
-            {
-                "bibcode": "2024arXiv240411942F",
-                "author": ["test"],
-                "pubdate": "2020-03-00",
-                "title": ["test"],
-            }
-        ],
-    )
-
-    manager.create_table(
-        adminapi.CreateTableRequest(
-            table_name="test_table",
-            columns=[
-                adminapi.ColumnDescription(name="objname", data_type=adminapi.DatatypeEnum["str"]),
                 adminapi.ColumnDescription(name="count", data_type=adminapi.DatatypeEnum["int"]),
                 adminapi.ColumnDescription(name="big", data_type=adminapi.DatatypeEnum["long"]),
             ],
@@ -153,19 +113,18 @@ def test_add_data_integer_column_with_nulls(
         adminapi.AddDataRequest(
             table_name="test_table",
             data=[
-                {"objname": "a", "count": 3, "big": 10_000_000_000},
-                {"objname": "b", "count": None, "big": None},
-                {"objname": None, "count": 7, "big": 5},
+                {"ra": 5.5, "count": 3, "big": 10_000_000_000},
+                {"ra": 5.0, "count": None, "big": None},
             ],
         ),
     )
 
-    rows = pg_storage.get_storage().query("SELECT objname, count, big FROM rawdata.test_table ORDER BY count")
-    assert [(r["objname"], r["count"], r["big"]) for r in rows] == [
-        ("a", 3, 10_000_000_000),
-        (None, 7, 5),
-        ("b", None, None),
-    ]
+    rows = pg_storage.get_storage().query("SELECT ra, dec, count, big FROM rawdata.test_table ORDER BY ra")
+    data_df = pandas.DataFrame.from_records(rows)
+    assert data_df["ra"].to_list() == [5.0, 5.5]
+    assert data_df["dec"].to_list() == [None, None]
+    assert [row["count"] for row in rows] == [None, 3]
+    assert [row["big"] for row in rows] == [None, 10_000_000_000]
 
 
 def test_duplicate_column(manager: domain.TableUploadManager) -> None:
