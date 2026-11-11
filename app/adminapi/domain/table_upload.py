@@ -1,5 +1,4 @@
 import hashlib
-import json
 import uuid
 from collections.abc import Iterable
 
@@ -415,18 +414,15 @@ def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list
 
 def _compute_internal_ids(table_name: str, data_df: pandas.DataFrame) -> list[str]:
     columns = sorted(data_df.columns.tolist())
-    col_pos = {name: idx for idx, name in enumerate(data_df.columns)}
-    order = [col_pos[name] for name in columns]
+    prefix = f"{table_name}\x1e{'\x1f'.join(columns)}\x1e".encode()
+    ordered = data_df[columns]
+
     ids: list[str] = []
-    for tup in data_df.itertuples(index=False, name=None):
-        data = [[columns[i], tup[order[i]]] for i in range(len(columns))]
-        data_string = json.dumps(data, separators=(",", ":"))
-        ids.append(_hashfunc(f"{table_name}_{data_string}"))
+    for values in ordered.itertuples(index=False, name=None):
+        row_bytes = "\x1f".join(map(repr, values)).encode()
+        digest = hashlib.blake2b(prefix + row_bytes, digest_size=16).digest()
+        ids.append(str(uuid.UUID(bytes=digest)))
     return ids
-
-
-def _hashfunc(string: str) -> str:
-    return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
 
 
 def ensure_source_id(repo: repository.Repository, ads_client: ads.ADSClass, code: str) -> int:
