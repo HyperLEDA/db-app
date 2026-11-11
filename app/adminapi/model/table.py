@@ -33,6 +33,7 @@ class Layer0TableMeta:
     modification_dt: datetime.datetime | None = None
     table_id: int | None = None
     statistics: TableProgress | None = None
+    note: str | None = None
 
 
 @dataclass
@@ -44,6 +45,7 @@ class Layer0TableListItem:
     bibcode: str
     status: enums.TableStatus
     statistics: TableProgress | None = None
+    note: str | None = None
 
 
 @dataclass

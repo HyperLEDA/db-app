@@ -160,7 +160,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         with self.with_tx():
             row = self._storage.query_one(
                 repo_sql.INSERT_TABLE_REGISTRY_ITEM,
-                params=[data.bibliography_id, data.table_info.name, data.datatype],
+                params=[data.bibliography_id, data.table_info.name, data.datatype, data.note],
             )
             table_id = int(row.get("id"))
 
@@ -423,6 +423,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             modification_dt=registry_item.get("modification_dt"),
             table_id=registry_item["id"],
             statistics=_statistics_from_json(registry_item.get("statistics")),
+            note=registry_item.get("note"),
         )
 
     def _set_column_metadata(self, table_name: str, column: postgres.ColumnInfo) -> None:
@@ -450,6 +451,13 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             self._storage.exec(
                 "SELECT meta.setparams(%s, %s, %s::json)",
                 params=[RAWDATA_SCHEMA, table_name, json.dumps({"description": description})],
+            )
+
+    def update_table_note(self, table_name: str, note: str | None) -> None:
+        with self.rawdata_table(table_name) as table_id:
+            self._storage.exec(
+                "UPDATE layer0.tables SET note = %s WHERE id = %s",
+                params=[note, table_id],
             )
 
     def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
@@ -498,6 +506,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             t.status,
             t.modification_dt,
             t.statistics,
+            t.note,
             COALESCE(ti.param->>'description', '') AS description,
             b.code AS bibcode,
             (
@@ -536,6 +545,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 bibcode=row["bibcode"],
                 status=row["status"],
                 statistics=_statistics_from_json(row.get("statistics")),
+                note=row.get("note"),
             )
             for row in rows
         ]

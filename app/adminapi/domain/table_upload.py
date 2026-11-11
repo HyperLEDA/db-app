@@ -123,6 +123,7 @@ class TableUploadManager:
                 table_info=table_info,
                 bibliography_id=source_id,
                 datatype=enums.DataType(r.datatype),
+                note=r.note,
             ),
         )
 
@@ -139,6 +140,8 @@ class TableUploadManager:
         with self._repo.with_tx():
             if r.description is not None:
                 self._repo.update_table_metadata(r.table_name, r.description)
+            if r.note is not None:
+                self._repo.update_table_note(r.table_name, r.note)
             if r.datatype is not None:
                 self._repo.update_table_datatype(r.table_name, r.datatype)
             if r.status is not None:
@@ -198,6 +201,7 @@ class TableUploadManager:
                 spec.TableListItem(
                     name=item.table_name,
                     description=item.description,
+                    note=item.note,
                     num_entries=progress.total_records,
                     num_fields=item.num_fields,
                     modification_dt=item.modification_dt,
@@ -229,6 +233,7 @@ class TableUploadManager:
         return spec.GetTableResponse(
             id=meta.table_id,
             description=meta.table_info.description or "",
+            note=meta.note,
             column_info=_column_info_to_presentation(meta.table_info.columns.values()),
             meta=metadata,
             bibliography=_bibliography_to_presentation(bibliography),

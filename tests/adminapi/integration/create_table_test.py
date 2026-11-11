@@ -77,6 +77,7 @@ def test_create_table_with_patch(upload_context: tuple) -> None:
         adminapi.PatchTableRequest(
             table_name=table_name,
             description="updated table description",
+            note="updated table note",
             datatype=enums.DataType.PRELIMINARY,
             columns={
                 "name": adminapi.PatchColumnSpec(ucd="meta.id"),
@@ -87,6 +88,7 @@ def test_create_table_with_patch(upload_context: tuple) -> None:
 
     meta = upload_manager.get_table(adminapi.GetTableRequest(table_name=table_name))
     assert meta.description == "updated table description"
+    assert meta.note == "updated table note"
     assert meta.meta["datatype"] == enums.DataType.PRELIMINARY
     assert meta.meta["status"] == enums.TableStatus.INITIATED
 
