@@ -408,7 +408,7 @@ def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list
         res.append(
             spec.ColumnDescription(
                 name=col.name,
-                data_type=spec.DatatypeEnum[col.data_type],
+                data_type=spec.postgres_type_to_datatype(col.data_type),
                 ucd=col.ucd,
                 unit=col.unit,
                 description=col.description,
