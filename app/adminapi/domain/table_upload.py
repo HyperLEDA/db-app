@@ -1,7 +1,8 @@
 import hashlib
 import json
+import time
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 
 import astropy.io.votable.ucd as ucd
 import pandas
@@ -167,9 +168,13 @@ class TableUploadManager:
         return spec.PatchTableResponse()
 
     def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
+        t0 = time.perf_counter()
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repository.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
+        t1 = time.perf_counter()
+        data_df[repository.INTERNAL_ID_COLUMN_NAME] = _compute_internal_ids(r.table_name, data_df)
+        t2 = time.perf_counter()
         data_df = data_df.drop_duplicates(subset=repository.INTERNAL_ID_COLUMN_NAME, keep="last")
+        t3 = time.perf_counter()
 
         with self._repo.with_tx():
             self._repo.insert_raw_data(
@@ -178,10 +183,26 @@ class TableUploadManager:
                     data=data_df,
                 ),
             )
+            t4 = time.perf_counter()
             self._repo.register_records(
                 r.table_name,
                 record_ids=data_df[repository.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
+            t5 = time.perf_counter()
+
+        logger.info(
+            "add_data timing",
+            table_name=r.table_name,
+            rows_in=len(r.data),
+            rows_out=len(data_df),
+            cols=len(data_df.columns),
+            dataframe_s=round(t1 - t0, 4),
+            hash_s=round(t2 - t1, 4),
+            dedupe_s=round(t3 - t2, 4),
+            insert_s=round(t4 - t3, 4),
+            register_s=round(t5 - t4, 4),
+            total_s=round(t5 - t0, 4),
+        )
 
         return spec.AddDataResponse()
 
@@ -413,19 +434,16 @@ def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list
     return res
 
 
-def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
-    def _compute_hash(row: pandas.Series) -> str:
-        data = []
-
-        for key, val in dict(row).items():
-            data.append([key, val])
-
-        data = sorted(data, key=lambda t: t[0])
+def _compute_internal_ids(table_name: str, data_df: pandas.DataFrame) -> list[str]:
+    columns = sorted(data_df.columns.tolist())
+    col_pos = {name: idx for idx, name in enumerate(data_df.columns)}
+    order = [col_pos[name] for name in columns]
+    ids: list[str] = []
+    for tup in data_df.itertuples(index=False, name=None):
+        data = [[columns[i], tup[order[i]]] for i in range(len(columns))]
         data_string = json.dumps(data, separators=(",", ":"))
-
-        return _hashfunc(f"{table_name}_{data_string}")
-
-    return _compute_hash
+        ids.append(_hashfunc(f"{table_name}_{data_string}"))
+    return ids
 
 
 def _hashfunc(string: str) -> str:
