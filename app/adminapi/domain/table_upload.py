@@ -1,9 +1,9 @@
 import hashlib
-import json
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 
 import astropy.io.votable.ucd as ucd
+import numpy as np
 import pandas
 import regex
 import structlog
@@ -168,25 +168,20 @@ class TableUploadManager:
 
     def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
         data_df = pandas.DataFrame.from_records(r.data)
-        data_df[repository.INTERNAL_ID_COLUMN_NAME] = data_df.apply(_get_hash_func(r.table_name), axis=1)
+        data_df[repository.INTERNAL_ID_COLUMN_NAME] = _compute_internal_ids(r.table_name, data_df)
         data_df = data_df.drop_duplicates(subset=repository.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self._repo.with_tx():
-            errgr = concurrency.ErrorGroup()
-            errgr.run(
-                self._repo.insert_raw_data,
+            self._repo.insert_raw_data(
                 model.Layer0RawData(
                     table_name=r.table_name,
                     data=data_df,
                 ),
             )
-            errgr.run(
-                self._repo.register_records,
+            self._repo.register_records(
                 r.table_name,
                 record_ids=data_df[repository.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
-
-            errgr.wait()
 
         return spec.AddDataResponse()
 
@@ -418,23 +413,34 @@ def _column_info_to_presentation(columns: Iterable[postgres.ColumnInfo]) -> list
     return res
 
 
-def _get_hash_func(table_name: str) -> Callable[[pandas.Series], str]:
-    def _compute_hash(row: pandas.Series) -> str:
-        data = []
+def _compute_internal_ids(table_name: str, data_df: pandas.DataFrame) -> list[str]:
+    columns = sorted(data_df.columns.tolist())
+    numeric = [c for c in columns if isinstance(data_df[c].dtype, np.dtype) and data_df[c].dtype.kind in "iufb"]
+    other = [c for c in columns if c not in set(numeric)]
+    num_rows = len(data_df)
 
-        for key, val in dict(row).items():
-            data.append([key, val])
+    # Numeric columns are hashed as raw bytes in one vectorized step: calling repr on every float is the bottleneck.
+    numeric_width = 0
+    numeric_flat = b""
+    if numeric:
+        blocks = [np.ascontiguousarray(data_df[c].to_numpy()).view(np.uint8).reshape(num_rows, -1) for c in numeric]
+        block = np.concatenate(blocks, axis=1)
+        numeric_width = block.shape[1]
+        numeric_flat = block.tobytes()
 
-        data = sorted(data, key=lambda t: t[0])
-        data_string = json.dumps(data, separators=(",", ":"))
+    other_rows = [
+        "\x1f".join(map(repr, values)).encode() for values in data_df[other].itertuples(index=False, name=None)
+    ]
 
-        return _hashfunc(f"{table_name}_{data_string}")
+    numeric_layout = ",".join(f"{c}:{data_df[c].dtype.str}" for c in numeric)
+    prefix = f"{table_name}\x1e{numeric_layout}\x1e{'\x1f'.join(other)}\x1e".encode()
 
-    return _compute_hash
-
-
-def _hashfunc(string: str) -> str:
-    return str(uuid.UUID(hashlib.md5(string.encode("utf-8"), usedforsecurity=False).hexdigest()))
+    ids: list[str] = []
+    for i in range(num_rows):
+        row = numeric_flat[i * numeric_width : (i + 1) * numeric_width] + b"\x1e" + other_rows[i]
+        digest = hashlib.blake2b(prefix + row, digest_size=16).digest()
+        ids.append(str(uuid.UUID(bytes=digest)))
+    return ids
 
 
 def ensure_source_id(repo: repository.Repository, ads_client: ads.ADSClass, code: str) -> int:

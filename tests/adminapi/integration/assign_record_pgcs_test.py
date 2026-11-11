@@ -36,7 +36,8 @@ def _create_table(repo: repository.Repository, table_name: str) -> None:
 
 def _register(repo: repository.Repository, table_name: str, record_ids: list[str]) -> None:
     _create_table(repo, table_name)
-    repo.register_records(table_name, record_ids)
+    with repo.with_tx():
+        repo.register_records(table_name, record_ids)
 
 
 def _set_crossmatch(

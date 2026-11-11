@@ -42,7 +42,8 @@ def _register_with_pgcs(
 ) -> None:
     _create_table(repo, table_name)
     record_ids = list(record_pgcs.keys())
-    repo.register_records(table_name, record_ids)
+    with repo.with_tx():
+        repo.register_records(table_name, record_ids)
     repo.register_pgcs(list(set(record_pgcs.values())))
     repo.upsert_pgc(dict(record_pgcs))
 

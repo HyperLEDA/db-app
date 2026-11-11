@@ -34,7 +34,8 @@ def test_write_and_fetch_table(repo: repository.Repository) -> None:
     test_data = pd.DataFrame({"ra": [12.1, 11.1], "dec": [1.0, 2.0]})
     raw_data = model.Layer0RawData(table_meta.table_info.name, test_data)
 
-    repo.insert_raw_data(raw_data)
+    with repo.with_tx():
+        repo.insert_raw_data(raw_data)
 
     fetched_data = repo.fetch_table(table_meta.table_info.name)
 

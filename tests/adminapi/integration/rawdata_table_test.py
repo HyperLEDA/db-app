@@ -100,6 +100,8 @@ def test_create_table_with_nulls(manager: domain.TableUploadManager, pg_storage:
                 adminapi.ColumnDescription(
                     name="dec", data_type=adminapi.DatatypeEnum["float"], ucd="pos.eq.dec", unit="h"
                 ),
+                adminapi.ColumnDescription(name="count", data_type=adminapi.DatatypeEnum["int"]),
+                adminapi.ColumnDescription(name="big", data_type=adminapi.DatatypeEnum["long"]),
             ],
             bibcode="2024arXiv240411942F",
             datatype=enums.DataType.REGULAR,
@@ -110,14 +112,19 @@ def test_create_table_with_nulls(manager: domain.TableUploadManager, pg_storage:
     manager.add_data(
         adminapi.AddDataRequest(
             table_name="test_table",
-            data=[{"ra": 5.5}, {"ra": 5.0}],
+            data=[
+                {"ra": 5.5, "count": 3, "big": 10_000_000_000},
+                {"ra": 5.0, "count": None, "big": None},
+            ],
         ),
     )
 
-    rows = pg_storage.get_storage().query("SELECT ra, dec FROM rawdata.test_table ORDER BY ra")
+    rows = pg_storage.get_storage().query("SELECT ra, dec, count, big FROM rawdata.test_table ORDER BY ra")
     data_df = pandas.DataFrame.from_records(rows)
     assert data_df["ra"].to_list() == [5.0, 5.5]
     assert data_df["dec"].to_list() == [None, None]
+    assert [row["count"] for row in rows] == [None, 3]
+    assert [row["big"] for row in rows] == [None, 10_000_000_000]
 
 
 def test_duplicate_column(manager: domain.TableUploadManager) -> None:
@@ -212,7 +219,8 @@ def test_fetch_raw_table(repo: repository.Repository) -> None:
             enums.DataType.REGULAR,
         ),
     )
-    repo.insert_raw_data(model.Layer0RawData("test_table", data))
+    with repo.with_tx():
+        repo.insert_raw_data(model.Layer0RawData("test_table", data))
     expected = repo.fetch_raw_data("test_table")
 
     assert expected.data.equals(data)

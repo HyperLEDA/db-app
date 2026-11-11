@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas
+import psycopg
 import structlog
 from astropy import table
 from astropy import units as u
@@ -20,6 +21,19 @@ from app.adminapi.repository.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDA
 from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
+
+_INTEGER_TYPE_NAMES = {"int2", "int4", "int8"}
+
+
+def _copy_column(series: pandas.Series, pg_type_name: str) -> list[Any]:
+    if pg_type_name in _INTEGER_TYPE_NAMES:
+        # pandas stores integer columns that contain nulls as floats, which binary COPY would reject.
+        series = series.astype("Int64")
+
+    values = series.astype(object).to_numpy(copy=True)
+    values[series.isna().to_numpy()] = None
+    return values.tolist()
 
 
 def _statistics_from_json(raw: Any) -> model.TableProgress | None:
@@ -195,27 +209,45 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         fields = list(data.data.columns)
         field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
-        placeholders = sql.SQL(",").join([sql.Placeholder()] * len(fields))
-        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES ({}) ON CONFLICT DO NOTHING").format(
+        table_ident = sql.SQL("{}.{}").format(
             sql.Identifier(RAWDATA_SCHEMA),
             sql.Identifier(data.table_name),
-            field_identifiers,
-            placeholders,
         )
-        query_str = self._storage.query_str(query)
-
-        rows: list[list[Any]] = []
-        for row in data.data.to_dict(orient="records"):
-            row_values = []
-            for field in fields:
-                value = row[field]
-                if type(value) in (int, float) and np.isnan(value):
-                    value = None
-                row_values.append(value)
-            rows.append(row_values)
 
         with self.rawdata_table(data.table_name):
-            self._storage.execute_batch(query_str, rows)
+            with self._storage.get_connection().cursor() as cur:
+                cur.execute(
+                    sql.SQL("CREATE TEMP TABLE raw_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
+                        table_ident
+                    )
+                )
+                type_rows = self._storage.query(
+                    "SELECT a.attname, a.atttypid, t.typname FROM pg_attribute a "
+                    "JOIN pg_type t ON t.oid = a.atttypid "
+                    "WHERE a.attrelid = 'raw_staging'::regclass AND a.attnum > 0 AND NOT a.attisdropped"
+                )
+                column_types = {row["attname"]: (row["atttypid"], row["typname"]) for row in type_rows}
+
+                for field in fields:
+                    if field not in column_types:
+                        raise psycopg.errors.UndefinedColumn(
+                            f'column "{field}" of relation "{data.table_name}" does not exist'
+                        )
+
+                columns = [_copy_column(data.data[field], column_types[field][1]) for field in fields]
+                with cur.copy(
+                    sql.SQL("COPY raw_staging ({}) FROM STDIN (FORMAT BINARY)").format(field_identifiers)
+                ) as copy:
+                    copy.set_types([column_types[field][0] for field in fields])
+                    for row in zip(*columns, strict=True):
+                        copy.write_row(row)
+                cur.execute(
+                    sql.SQL("INSERT INTO {} ({}) SELECT {} FROM raw_staging ON CONFLICT DO NOTHING").format(
+                        table_ident,
+                        field_identifiers,
+                        field_identifiers,
+                    )
+                )
 
     def fetch_table(
         self,
