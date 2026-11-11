@@ -200,6 +200,7 @@ Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
                 allowed_roles=admin_only,
                 audit_action=True,
+                log_request_body=False,
             ),
             server.Route(
                 "/v1/source",
