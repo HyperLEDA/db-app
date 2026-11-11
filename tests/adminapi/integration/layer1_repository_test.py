@@ -35,7 +35,8 @@ def _insert_nature_data(
     rows: list[list[str]],
 ) -> None:
     _get_table(repo, table_name)
-    repo.register_records(table_name, record_ids)
+    with repo.with_tx():
+        repo.register_records(table_name, record_ids)
     repo.register_pgcs(list(pgcs.values()))
     repo.upsert_pgc(pgcs)
     columns = ["type_name"]
@@ -65,7 +66,8 @@ def test_icrs(repo: repository.Repository, pg_storage: PostgresTestStorage) -> N
             enums.DataType.REGULAR,
         )
     )
-    repo.register_records("test_table", ["111", "112"])
+    with repo.with_tx():
+        repo.register_records("test_table", ["111", "112"])
     columns = layer1.ICRSCatalogObject.layer1_keys()
     repo.save_structured_data(
         layer1.ICRSCatalogObject.layer1_table(),
@@ -80,7 +82,8 @@ def test_icrs(repo: repository.Repository, pg_storage: PostgresTestStorage) -> N
 
 def test_designation_multiple_names_per_record(repo: repository.Repository, pg_storage: PostgresTestStorage) -> None:
     _get_table(repo, "desig_table")
-    repo.register_records("desig_table", ["r1"])
+    with repo.with_tx():
+        repo.register_records("desig_table", ["r1"])
     repo.save_structured_data(
         layer1.DesignationCatalogObject.layer1_table(),
         layer1.DesignationCatalogObject.layer1_keys(),
@@ -99,7 +102,8 @@ def test_designation_multiple_names_per_record(repo: repository.Repository, pg_s
 
 def test_get_redshift_records_defaults_null_e_cz(repo: repository.Repository) -> None:
     _get_table(repo, "cz_table")
-    repo.register_records("cz_table", ["r1", "r2"])
+    with repo.with_tx():
+        repo.register_records("cz_table", ["r1", "r2"])
     repo.save_structured_data(
         layer1.RedshiftCatalogObject.layer1_table(),
         layer1.RedshiftCatalogObject.layer1_keys(),

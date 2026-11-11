@@ -27,12 +27,18 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
 
         with rawdata_table(self._storage, table_name=table_name) as table_ids:
             table_id = table_ids[0]
-            query = (
-                "INSERT INTO layer0.records (id, table_id) VALUES (%s, %s) "
-                "ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id"
-            )
-            rows = [[record_id, table_id] for record_id in record_ids]
-            self._storage.execute_batch(query, rows)
+            with self._storage.get_connection().cursor() as cur:
+                cur.execute("CREATE TEMP TABLE records_staging (id text, table_id int) ON COMMIT DROP")
+                with cur.copy("COPY records_staging (id, table_id) FROM STDIN") as copy:
+                    for record_id in record_ids:
+                        copy.write_row((record_id, table_id))
+                cur.execute(
+                    """
+                    INSERT INTO layer0.records (id, table_id)
+                    SELECT id, table_id FROM records_staging
+                    ON CONFLICT (id) DO UPDATE SET table_id = EXCLUDED.table_id
+                    """
+                )
 
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:

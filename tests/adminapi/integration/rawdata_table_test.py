@@ -212,7 +212,8 @@ def test_fetch_raw_table(repo: repository.Repository) -> None:
             enums.DataType.REGULAR,
         ),
     )
-    repo.insert_raw_data(model.Layer0RawData("test_table", data))
+    with repo.with_tx():
+        repo.insert_raw_data(model.Layer0RawData("test_table", data))
     expected = repo.fetch_raw_data("test_table")
 
     assert expected.data.equals(data)

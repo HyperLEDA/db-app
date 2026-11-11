@@ -22,6 +22,14 @@ from app.lib.storage import enums, postgres
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
+def _copy_value(value: Any) -> Any:
+    if isinstance(value, (float, np.floating)) and np.isnan(value):
+        return None
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
 def _statistics_from_json(raw: Any) -> model.TableProgress | None:
     if raw is None:
         return None
@@ -195,27 +203,28 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
 
         fields = list(data.data.columns)
         field_identifiers = sql.SQL(",").join([sql.Identifier(f) for f in fields])
-        placeholders = sql.SQL(",").join([sql.Placeholder()] * len(fields))
-        query = sql.SQL("INSERT INTO {}.{} ({}) VALUES ({}) ON CONFLICT DO NOTHING").format(
+        table_ident = sql.SQL("{}.{}").format(
             sql.Identifier(RAWDATA_SCHEMA),
             sql.Identifier(data.table_name),
-            field_identifiers,
-            placeholders,
         )
-        query_str = self._storage.query_str(query)
-
-        rows: list[list[Any]] = []
-        for row in data.data.to_dict(orient="records"):
-            row_values = []
-            for field in fields:
-                value = row[field]
-                if type(value) in (int, float) and np.isnan(value):
-                    value = None
-                row_values.append(value)
-            rows.append(row_values)
 
         with self.rawdata_table(data.table_name):
-            self._storage.execute_batch(query_str, rows)
+            with self._storage.get_connection().cursor() as cur:
+                cur.execute(
+                    sql.SQL("CREATE TEMP TABLE raw_staging (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP").format(
+                        table_ident
+                    )
+                )
+                with cur.copy(sql.SQL("COPY raw_staging ({}) FROM STDIN").format(field_identifiers)) as copy:
+                    for tup in data.data.itertuples(index=False, name=None):
+                        copy.write_row(tuple(_copy_value(value) for value in tup))
+                cur.execute(
+                    sql.SQL("INSERT INTO {} ({}) SELECT {} FROM raw_staging ON CONFLICT DO NOTHING").format(
+                        table_ident,
+                        field_identifiers,
+                        field_identifiers,
+                    )
+                )
 
     def fetch_table(
         self,

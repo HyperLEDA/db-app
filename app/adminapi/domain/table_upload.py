@@ -172,21 +172,16 @@ class TableUploadManager:
         data_df = data_df.drop_duplicates(subset=repository.INTERNAL_ID_COLUMN_NAME, keep="last")
 
         with self._repo.with_tx():
-            errgr = concurrency.ErrorGroup()
-            errgr.run(
-                self._repo.insert_raw_data,
+            self._repo.insert_raw_data(
                 model.Layer0RawData(
                     table_name=r.table_name,
                     data=data_df,
                 ),
             )
-            errgr.run(
-                self._repo.register_records,
+            self._repo.register_records(
                 r.table_name,
                 record_ids=data_df[repository.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
-
-            errgr.wait()
 
         return spec.AddDataResponse()
 
