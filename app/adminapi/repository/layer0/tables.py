@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas
+import psycopg
 import structlog
 from astropy import table
 from astropy import units as u
@@ -22,12 +23,17 @@ from app.lib.storage import enums, postgres
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
-def _copy_value(value: Any) -> Any:
-    if isinstance(value, (float, np.floating)) and np.isnan(value):
-        return None
-    if isinstance(value, np.generic):
-        return value.item()
-    return value
+_INTEGER_TYPE_NAMES = {"int2", "int4", "int8"}
+
+
+def _copy_column(series: pandas.Series, pg_type_name: str) -> list[Any]:
+    if pg_type_name in _INTEGER_TYPE_NAMES:
+        # pandas stores integer columns that contain nulls as floats, which binary COPY would reject.
+        series = series.astype("Int64")
+
+    values = series.astype(object).to_numpy(copy=True)
+    values[series.isna().to_numpy()] = None
+    return values.tolist()
 
 
 def _statistics_from_json(raw: Any) -> model.TableProgress | None:
@@ -215,9 +221,26 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                         table_ident
                     )
                 )
-                with cur.copy(sql.SQL("COPY raw_staging ({}) FROM STDIN").format(field_identifiers)) as copy:
-                    for tup in data.data.itertuples(index=False, name=None):
-                        copy.write_row(tuple(_copy_value(value) for value in tup))
+                type_rows = self._storage.query(
+                    "SELECT a.attname, a.atttypid, t.typname FROM pg_attribute a "
+                    "JOIN pg_type t ON t.oid = a.atttypid "
+                    "WHERE a.attrelid = 'raw_staging'::regclass AND a.attnum > 0 AND NOT a.attisdropped"
+                )
+                column_types = {row["attname"]: (row["atttypid"], row["typname"]) for row in type_rows}
+
+                for field in fields:
+                    if field not in column_types:
+                        raise psycopg.errors.UndefinedColumn(
+                            f'column "{field}" of relation "{data.table_name}" does not exist'
+                        )
+
+                columns = [_copy_column(data.data[field], column_types[field][1]) for field in fields]
+                with cur.copy(
+                    sql.SQL("COPY raw_staging ({}) FROM STDIN (FORMAT BINARY)").format(field_identifiers)
+                ) as copy:
+                    copy.set_types([column_types[field][0] for field in fields])
+                    for row in zip(*columns, strict=True):
+                        copy.write_row(row)
                 cur.execute(
                     sql.SQL("INSERT INTO {} ({}) SELECT {} FROM raw_staging ON CONFLICT DO NOTHING").format(
                         table_ident,
