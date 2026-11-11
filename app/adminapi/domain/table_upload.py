@@ -1,6 +1,5 @@
 import hashlib
 import json
-import time
 import uuid
 from collections.abc import Iterable
 
@@ -168,13 +167,9 @@ class TableUploadManager:
         return spec.PatchTableResponse()
 
     def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
-        t0 = time.perf_counter()
         data_df = pandas.DataFrame.from_records(r.data)
-        t1 = time.perf_counter()
         data_df[repository.INTERNAL_ID_COLUMN_NAME] = _compute_internal_ids(r.table_name, data_df)
-        t2 = time.perf_counter()
         data_df = data_df.drop_duplicates(subset=repository.INTERNAL_ID_COLUMN_NAME, keep="last")
-        t3 = time.perf_counter()
 
         with self._repo.with_tx():
             self._repo.insert_raw_data(
@@ -183,26 +178,10 @@ class TableUploadManager:
                     data=data_df,
                 ),
             )
-            t4 = time.perf_counter()
             self._repo.register_records(
                 r.table_name,
                 record_ids=data_df[repository.INTERNAL_ID_COLUMN_NAME].tolist(),
             )
-            t5 = time.perf_counter()
-
-        logger.info(
-            "add_data timing",
-            table_name=r.table_name,
-            rows_in=len(r.data),
-            rows_out=len(data_df),
-            cols=len(data_df.columns),
-            dataframe_s=round(t1 - t0, 4),
-            hash_s=round(t2 - t1, 4),
-            dedupe_s=round(t3 - t2, 4),
-            insert_s=round(t4 - t3, 4),
-            register_s=round(t5 - t4, 4),
-            total_s=round(t5 - t0, 4),
-        )
 
         return spec.AddDataResponse()
 
