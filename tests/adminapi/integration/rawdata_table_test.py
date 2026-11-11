@@ -235,6 +235,7 @@ def test_fetch_metadata(repo: repository.Repository) -> None:
         ),
         bib_id,
         enums.DataType.REGULAR,
+        note="longer note about the table",
     )
     _ = repo.create_table(expected)
 
@@ -244,3 +245,4 @@ def test_fetch_metadata(repo: repository.Repository) -> None:
     assert expected.table_info.columns == actual.table_info.columns
     assert expected.bibliography_id == actual.bibliography_id
     assert expected.datatype == actual.datatype
+    assert expected.note == actual.note

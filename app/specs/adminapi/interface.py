@@ -70,6 +70,7 @@ class TableProgress(pydantic.BaseModel):
 class TableListItem(pydantic.BaseModel):
     name: str
     description: str
+    note: str | None = None
     num_entries: int
     num_fields: int
     modification_dt: datetime.datetime
@@ -85,6 +86,7 @@ class GetTableListResponse(pydantic.BaseModel):
 class GetTableResponse(pydantic.BaseModel):
     id: int
     description: str
+    note: str | None = None
     column_info: list[ColumnDescription]
     meta: dict[str, Any]
     bibliography: Bibliography
@@ -109,6 +111,10 @@ class CreateTableRequest(WriteRequest):
     )
     datatype: enums.DataType
     description: str = pydantic.Field(description="Human-readable description of the table")
+    note: str | None = pydantic.Field(
+        default=None,
+        description="Longer free-form textual note about the table",
+    )
 
 
 class CreateTableResponse(pydantic.BaseModel):
@@ -161,6 +167,10 @@ class PatchTableRequest(WriteRequest):
     description: str | None = pydantic.Field(
         default=None,
         description="When set, replaces the human-readable description of the table",
+    )
+    note: str | None = pydantic.Field(
+        default=None,
+        description="When set, replaces the longer free-form note about the table",
     )
     datatype: enums.DataType | None = pydantic.Field(
         default=None,

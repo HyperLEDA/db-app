@@ -118,6 +118,9 @@ class Repository(postgres.TransactionalPGRepository):
     def update_table_metadata(self, table_name: str, description: str) -> None:
         return self._layer0_tables.update_table_metadata(table_name, description)
 
+    def update_table_note(self, table_name: str, note: str | None) -> None:
+        return self._layer0_tables.update_table_note(table_name, note)
+
     def update_table_datatype(self, table_name: str, datatype: enums.DataType) -> None:
         return self._layer0_tables.update_table_datatype(table_name, datatype)
 
