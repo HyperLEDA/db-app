@@ -58,7 +58,10 @@ def test_refresh_updates_only_stale_tables(
     refresh_task.run()
     cache, modified, refreshed = _statistics(pg_storage, table_name)
     assert cache["total_records"] == 1
-    assert cache["columns"] == {"name": {"non_null_count": 2}, "ra": {"non_null_count": 1}}
+    assert cache["columns"] == {
+        "name": {"non_null_count": 2, "min": "a", "max": "b"},
+        "ra": {"non_null_count": 1, "min": 1.0, "max": 1.0},
+    }
     assert refreshed == modified
 
     storage.exec(
@@ -72,5 +75,8 @@ def test_refresh_updates_only_stale_tables(
     refresh_task.run()
     cache, modified, refreshed = _statistics(pg_storage, table_name)
     assert cache["total_records"] == 1
-    assert cache["columns"] == {"name": {"non_null_count": 2}, "ra": {"non_null_count": 1}}
+    assert cache["columns"] == {
+        "name": {"non_null_count": 2, "min": "a", "max": "b"},
+        "ra": {"non_null_count": 1, "min": 1.0, "max": 1.0},
+    }
     assert refreshed == modified

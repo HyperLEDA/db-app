@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+type StatValue = int | float | str | bool
+
 
 @dataclass
 class CatalogProgress:
@@ -9,6 +11,8 @@ class CatalogProgress:
 @dataclass
 class ColumnProgress:
     non_null_count: int
+    min: StatValue | None = None
+    max: StatValue | None = None
 
 
 @dataclass

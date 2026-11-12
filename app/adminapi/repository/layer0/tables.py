@@ -48,7 +48,11 @@ def _statistics_from_json(raw: Any) -> model.TableProgress | None:
         raw = json.loads(raw)
     catalogs = raw["catalogs"]
     columns = {
-        name: model.ColumnProgress(non_null_count=int(column["non_null_count"]))
+        name: model.ColumnProgress(
+            non_null_count=int(column["non_null_count"]),
+            min=column.get("min"),
+            max=column.get("max"),
+        )
         for name, column in raw.get("columns", {}).items()
     }
     return model.TableProgress(

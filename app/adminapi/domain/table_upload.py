@@ -47,7 +47,12 @@ def _table_progress_to_presentation(progress: model.TableProgress) -> spec.Table
             name: spec.CatalogProgress(structured=catalog.structured) for name, catalog in progress.catalogs.items()
         },
         columns={
-            name: spec.ColumnProgress(non_null_count=column.non_null_count) for name, column in progress.columns.items()
+            name: spec.ColumnProgress(
+                non_null_count=column.non_null_count,
+                min=column.min,
+                max=column.max,
+            )
+            for name, column in progress.columns.items()
         },
     )
 

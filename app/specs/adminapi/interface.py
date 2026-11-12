@@ -60,6 +60,8 @@ class CatalogProgress(pydantic.BaseModel):
 
 class ColumnProgress(pydantic.BaseModel):
     non_null_count: int
+    min: int | float | str | bool | None = None
+    max: int | float | str | bool | None = None
 
 
 class TableProgress(pydantic.BaseModel):
