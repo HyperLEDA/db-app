@@ -189,31 +189,24 @@ def _evaluate_batch(
     fields_by_name: Mapping[str, spec.CatalogField],
     column_units: Mapping[str, str],
 ) -> tuple[list[str], list[list[Any]]]:
-    ids: list[str] = []
-    data: list[list[Any]] = []
-    referenced = _referenced_columns(parsed)
-    for row in rows:
-        if any(row.get(column) is None for column in referenced):
-            continue
-        values = {column: formula.column_quantity(row[column], column_units.get(column, "")) for column in referenced}
-        ids.append(str(row[layer0.INTERNAL_ID_COLUMN_NAME]))
-        data.append(
-            [
-                _evaluate_field(
-                    fields_by_name[name],
-                    expressions[name],
-                    parsed[name],
-                    values,
-                    column_units,
-                )
-                for name in output_columns
-            ]
-        )
-    return ids, data
+    referenced = sorted(set().union(*(expr.referenced_columns for expr in parsed.values())))
+    keep = np.ones(len(rows), dtype=bool)
+    for column in referenced:
+        keep &= np.fromiter((row.get(column) is not None for row in rows), dtype=bool, count=len(rows))
+    kept = [row for row, flag in zip(rows, keep, strict=True) if flag]
+    if not kept:
+        return [], []
 
-
-def _referenced_columns(parsed: Mapping[str, formula.Expression]) -> set[str]:
-    return set().union(*(expr.referenced_columns for expr in parsed.values()))
+    ids = [str(row[layer0.INTERNAL_ID_COLUMN_NAME]) for row in kept]
+    columns = {
+        column: formula.column_quantity([row[column] for row in kept], column_units.get(column, ""))
+        for column in referenced
+    }
+    results = [
+        _evaluate_field(fields_by_name[name], expressions[name], parsed[name], columns, column_units, kept, ids)
+        for name in output_columns
+    ]
+    return ids, [list(row) for row in zip(*results, strict=True)]
 
 
 def _evaluate_field(
@@ -222,10 +215,12 @@ def _evaluate_field(
     expression: formula.Expression,
     columns: Mapping[str, formula.Value],
     column_units: Mapping[str, str],
-) -> Any:
+    rows: Sequence[Mapping[str, Any]],
+    ids: Sequence[str],
+) -> list[Any]:
     if field.data_type.value in _FLOAT_TYPES or field.data_type.value in _INT_TYPES:
-        return _evaluate_numeric(field, source, expression, columns, column_units)
-    return _evaluate_text(field, source, expression, columns, column_units)
+        return _evaluate_numeric(field, source, expression, columns, column_units, rows, ids)
+    return _evaluate_text(field, source, expression, columns, column_units, len(rows))
 
 
 def _evaluate_numeric(
@@ -234,25 +229,52 @@ def _evaluate_numeric(
     expression: formula.Expression,
     columns: Mapping[str, formula.Value],
     column_units: Mapping[str, str],
-) -> float | int:
+    rows: Sequence[Mapping[str, Any]],
+    ids: Sequence[str],
+) -> list[Any]:
+    size = len(rows)
     try:
-        quantity = _as_quantity(formula.evaluate(expression, columns))
+        with np.errstate(all="ignore"):
+            quantity = _as_quantity(formula.evaluate(expression, columns))
     except (formula.ExpressionEvaluationError, ValueError, u.UnitConversionError) as e:
         raise RuntimeError(
             f"failed to evaluate {field.name!r} ({source!r}){_context(expression, column_units)}: {e}"
         ) from e
     target = u.Unit(field.unit) if field.unit else u.Unit("")
     try:
-        converted = quantity.to(target)
-        value = _scalar_numeric(converted)
+        converted = np.asarray(quantity.to_value(target), dtype=float)
+        if converted.shape == ():
+            converted = np.full(size, converted.item())
+        elif converted.shape != (size,):
+            raise ValueError("expression must evaluate to a scalar value per row")
     except (ValueError, u.UnitConversionError) as e:
         raise RuntimeError(
             f"failed to convert {field.name!r} ({source!r}) to {field.unit or 'dimensionless'}"
             f"{_context(expression, column_units)}: {e}"
         ) from e
+    _check_finite(field, source, expression, converted, rows, ids)
     if field.data_type.value in _INT_TYPES:
-        return int(value)
-    return value
+        return converted.astype(np.int64).tolist()
+    return converted.tolist()
+
+
+def _check_finite(
+    field: spec.CatalogField,
+    source: str,
+    expression: formula.Expression,
+    values: np.ndarray,
+    rows: Sequence[Mapping[str, Any]],
+    ids: Sequence[str],
+) -> None:
+    bad = np.flatnonzero(~np.isfinite(values))
+    if len(bad) == 0:
+        return
+    first = int(bad[0])
+    inputs = ", ".join(f"{column}={rows[first][column]!r}" for column in sorted(expression.referenced_columns))
+    raise RuntimeError(
+        f"{field.name!r} ({source!r}) produced {len(bad)} non-finite value(s) out of {len(values)} rows; "
+        f"first at record {ids[first]}, value {values[first]!r}" + (f", inputs: {inputs}" if inputs else "")
+    )
 
 
 def _evaluate_text(
@@ -261,9 +283,11 @@ def _evaluate_text(
     expression: formula.Expression,
     columns: Mapping[str, formula.Value],
     column_units: Mapping[str, str],
-) -> str:
+    size: int,
+) -> list[str]:
     try:
-        return formula.value_to_str(formula.evaluate(expression, columns))
+        with np.errstate(all="ignore"):
+            return formula.value_to_str_list(formula.evaluate(expression, columns), size)
     except (formula.ExpressionEvaluationError, ValueError, TypeError) as e:
         raise RuntimeError(
             f"failed to evaluate {field.name!r} ({source!r}){_context(expression, column_units)}: {e}"
@@ -280,19 +304,6 @@ def _context(expression: formula.Expression, column_units: Mapping[str, str]) ->
 def _as_quantity(value: object) -> u.Quantity:
     if isinstance(value, u.Quantity):
         return value
-    if isinstance(value, np.ndarray) and value.shape == ():
-        value = value.item()
-    if isinstance(value, bool) or not isinstance(value, (int, float, np.number)):
-        raise ValueError(f"numeric expression must evaluate to a quantity, got {type(value).__name__}")
-    return float(value) * u.Unit("")
-
-
-def _scalar_numeric(quantity: u.Quantity) -> float:
-    scalar = quantity.value
-    if isinstance(scalar, np.ndarray):
-        if scalar.shape != ():
-            raise ValueError("expression must evaluate to a scalar value per row")
-        scalar = scalar.item()
-    if isinstance(scalar, bool):
-        raise ValueError("numeric expression must evaluate to a quantity, got bool")
-    return float(scalar)
+    if isinstance(value, (np.ndarray, np.number, int, float)) and np.asarray(value).dtype.kind in "fiu":
+        return np.asarray(value, dtype=float) * u.Unit("")
+    raise ValueError(f"numeric expression must evaluate to a quantity, got {type(value).__name__}")

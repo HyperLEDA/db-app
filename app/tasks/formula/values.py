@@ -10,17 +10,17 @@ from astropy.units.function.core import FunctionUnitBase
 @final
 @dataclass(frozen=True)
 class TextValue:
-    data: str
+    data: str | np.ndarray
     unit: str = ""
 
-    def __add__(self, other: object) -> str:
+    def __add__(self, other: object) -> str | np.ndarray:
         if isinstance(other, TextValue):
             return self.data + other.data
         if isinstance(other, str):
             return self.data + other
         return NotImplemented
 
-    def __radd__(self, other: object) -> str:
+    def __radd__(self, other: object) -> str | np.ndarray:
         if isinstance(other, str):
             return other + self.data
         return NotImplemented
@@ -44,6 +44,23 @@ def value_to_str(value: Value) -> str:
     if isinstance(value, u.Quantity):
         return _quantity_to_str(value)
     return _array_to_str(value)
+
+
+def value_to_str_list(value: Value, size: int) -> list[str]:
+    if isinstance(value, str):
+        return [value] * size
+    if isinstance(value, TextValue):
+        return value_to_str_list(value.data, size)
+    array = np.asarray(value.value if isinstance(value, u.Quantity) else value)
+    if array.shape == ():
+        array = np.full(size, array.item())
+    elif array.shape != (size,):
+        raise ValueError("expression must evaluate to a scalar value per row")
+    if array.dtype.kind in "US":
+        return array.astype(str).tolist()
+    if array.dtype.kind not in "fiu":
+        raise ValueError(f"unsupported expression result type: {array.dtype}")
+    return [scalar_to_str(item) for item in array.tolist()]
 
 
 def _quantity_to_str(value: u.Quantity) -> str:
@@ -74,7 +91,8 @@ def column_quantity(value: float | str | Sequence[float] | Sequence[str], unit: 
     if isinstance(value, str):
         return TextValue(value, unit) if unit else value
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)) and all(isinstance(x, str) for x in value):
-        return np.asarray(value)
+        array = np.asarray(value)
+        return TextValue(array, unit) if unit else array
     numeric = np.asarray(value, dtype=float)
     if not unit:
         return numeric * u.Unit("")
