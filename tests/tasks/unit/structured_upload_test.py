@@ -34,15 +34,18 @@ class _Repo:
     def get_table_record_count(self, table_name: str) -> int:
         return self.total
 
-    def fetch_rawdata_batch(
+    def get_rawdata_page_stats(self, table_name: str) -> tuple[int, float]:
+        return 1, float(max(1, len(self.rows)))
+
+    def fetch_rawdata_pages(
         self,
         table_name: str,
         columns: list[str],
-        limit: int,
-        offset: str,
+        start_page: int,
+        end_page: int,
     ) -> list[dict[str, Any]]:
-        del table_name, columns, limit
-        if offset:
+        del table_name, columns, end_page
+        if start_page > 0:
             return []
         return self.rows
 

@@ -7,7 +7,6 @@ import structlog
 from astropy import units as u
 
 from app.catalogs import layer0, layer1
-from app.lib import containers
 from app.specs import adminapi as spec
 from app.tasks import formula, layer2_common, repository
 
@@ -110,15 +109,12 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         processed = 0
         preview_sent = False
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
-        for _, rows in containers.read_batches(
-            self.repository.fetch_rawdata_batch,
-            lambda batch: len(batch) == 0,
-            "",
-            lambda batch, _: str(batch[-1][layer0.INTERNAL_ID_COLUMN_NAME]),
-            table_name,
-            fetch_columns,
-            batch_size=int(values["batch_size"]),
-        ):
+        total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
+        pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
+        for start_page in range(0, total_pages, pages_per_batch):
+            rows = self.repository.fetch_rawdata_pages(
+                table_name, fetch_columns, start_page, start_page + pages_per_batch
+            )
             processed += len(rows)
             ids, data = _evaluate_batch(
                 rows,
@@ -133,7 +129,8 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             elif ids and not values["write"] and not preview_sent:
                 self._emit_preview(output_columns, ids, data)
                 preview_sent = True
-            self._report(min(99, int(100 * processed / total)), f"Processed {processed} / {total} rows")
+            pages_done = min(start_page + pages_per_batch, total_pages)
+            self._report(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
         self._report(100, "Finished")
 
     def _report(self, progress: float, description: str) -> None:

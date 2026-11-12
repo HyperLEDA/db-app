@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 import psycopg
 import structlog
+from psycopg import sql
 from psycopg.types import enum
 from testcontainers import postgres as pgcontainer
 
@@ -139,7 +140,11 @@ class PostgresTestStorage:
             WHERE table_schema = 'rawdata'
             """)
         for table in tables:
-            self.storage.exec(f"DROP TABLE rawdata.{table['table_name']} CASCADE")
+            self.storage.exec(
+                sql.SQL("DROP TABLE {}.{} CASCADE").format(
+                    sql.Identifier("rawdata"), sql.Identifier(table["table_name"])
+                )
+            )
 
         for table in self.storage.query(
             "SELECT table_schema, table_name FROM information_schema.tables "

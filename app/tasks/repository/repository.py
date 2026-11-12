@@ -452,22 +452,45 @@ class Repository(postgres.TransactionalPGRepository):
             return 0
         return int(row["total_records"])
 
-    def fetch_rawdata_batch(
+    def get_rawdata_page_stats(self, table_name: str) -> tuple[int, float]:
+        row = self._storage.query_one(
+            """
+            WITH rel AS (
+                SELECT format('%%I.%%I', %s::text, %s::text)::regclass AS oid
+            )
+            SELECT
+                pg_relation_size(rel.oid) / current_setting('block_size')::int AS pages,
+                c.reltuples AS reltuples,
+                c.relpages AS relpages
+            FROM rel JOIN pg_class c ON c.oid = rel.oid
+            """,
+            params=[layer0.RAWDATA_SCHEMA, table_name],
+        )
+        pages = int(row["pages"])
+        if pages == 0:
+            return 0, 1.0
+        if row["reltuples"] > 0 and row["relpages"] > 0:
+            return pages, float(row["reltuples"]) / int(row["relpages"])
+        count = self._storage.query_one(
+            sql.SQL("SELECT count(*) AS n FROM {}.{}").format(
+                sql.Identifier(layer0.RAWDATA_SCHEMA), sql.Identifier(table_name)
+            )
+        )
+        return pages, max(1.0, int(count["n"]) / pages)
+
+    def fetch_rawdata_pages(
         self,
         table_name: str,
         columns: Sequence[str],
-        limit: int,
-        offset: str,
+        start_page: int,
+        end_page: int,
     ) -> list[dict[str, Any]]:
-        query, params = layer0.build_raw_table_select(
-            table_name,
-            columns=[layer0.INTERNAL_ID_COLUMN_NAME, *columns],
-            offset=offset,
-            order_column=layer0.INTERNAL_ID_COLUMN_NAME,
-            order_direction="asc",
-            limit=limit,
+        query = sql.SQL("SELECT {} FROM {}.{} WHERE ctid >= %s::tid AND ctid < %s::tid").format(
+            sql.SQL(", ").join(sql.Identifier(c) for c in [layer0.INTERNAL_ID_COLUMN_NAME, *columns]),
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
         )
-        return list(self._storage.query(query, params=params))
+        return list(self._storage.query(query, params=[f"({start_page},0)", f"({end_page},0)"]))
 
     def save_structured_data(
         self,
