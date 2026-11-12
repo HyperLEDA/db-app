@@ -125,12 +125,6 @@ def save_structured_data(
     rows = [[rid, *vals] for rid, vals in zip(ids, data, strict=True)]
     if not rows:
         return
-    conn = storage.get_thread_conn()
-    if conn is not None:
-        touched = _upsert_via_copy(conn, table, all_columns, resolved_keys, rows)
-    else:
-        with storage.get_pool().connection() as pool_conn:
-            with pool_conn.transaction():
-                touched = _upsert_via_copy(pool_conn, table, all_columns, resolved_keys, rows)
+    touched = _upsert_via_copy(storage.get_connection(), table, all_columns, resolved_keys, rows)
     layer0.touch_tables(storage, sorted({table_id for table_id, _ in touched}))
     layer0.touch_pgcs(storage, sorted({pgc for _, pgc in touched if pgc is not None}))

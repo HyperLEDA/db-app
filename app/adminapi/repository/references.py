@@ -370,16 +370,9 @@ class ReferencesRepository(postgres.TransactionalPGRepository):
             sql.SQL(", ").join(set_parts),
             sql.SQL(" AND ").join(where_parts),
         )
-        conn = self._storage.get_thread_conn()
-        if conn is not None:
-            with conn.cursor() as cursor:
-                cursor.execute(statement, params)
-                return cursor.rowcount
-
-        with self._storage.get_pool().connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(statement, params)
-                return cursor.rowcount
+        with self._storage.get_connection().cursor() as cursor:
+            cursor.execute(statement, params)
+            return cursor.rowcount
 
     @staticmethod
     def is_unique_violation(exc: Exception) -> bool:

@@ -5,7 +5,8 @@ from psycopg import sql
 
 from app.catalogs import layer0, layer1
 from app.lib.storage import postgres
-
+from app.lib.storage.postgres.transactional import TransactionalPGRepository
+ 
 
 def create_bibliography(
     storage: postgres.PgStorage,
@@ -102,7 +103,8 @@ def save_structured_data(
     data: list[list[Any]],
     conflict_keys: list[str] | None = None,
 ) -> None:
-    layer1.save_structured_data(storage, table, columns, ids, data, conflict_keys=conflict_keys)
+    with TransactionalPGRepository(storage).with_tx():
+        layer1.save_structured_data(storage, table, columns, ids, data, conflict_keys=conflict_keys)
 
 
 def seed_layer1_table(
