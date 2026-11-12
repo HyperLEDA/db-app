@@ -59,8 +59,8 @@ def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
     if not pgc_ids:
         return
     storage.exec(
-        "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-        params=[list(pgc_ids)],
+        "INSERT INTO common.pgc_changes (pgc) SELECT unnest(%s::int[])",
+        params=[sorted(set(pgc_ids))],
     )
 
 

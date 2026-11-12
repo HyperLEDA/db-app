@@ -75,10 +75,7 @@ def test_submit_new_and_existing_records(
     )
 
     old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
-    pg_storage.storage.exec(
-        "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
-        params=[old_dt, existing_pgc],
-    )
+    pg_storage.storage.exec("DELETE FROM common.pgc_changes")
     pg_storage.storage.exec(
         "UPDATE layer0.tables SET modification_dt = %s WHERE table_name = %s",
         params=[old_dt, table_name],
@@ -90,16 +87,8 @@ def test_submit_new_and_existing_records(
     assert new_pgc is not None
     assert _pgc_for(pg_storage, existing_id) == existing_pgc
     assert new_pgc != existing_pgc
-    existing_mt = pg_storage.storage.query_one(
-        "SELECT modification_time FROM common.pgc WHERE id = %s",
-        params=[existing_pgc],
-    )["modification_time"]
-    assert existing_mt.replace(tzinfo=datetime.UTC) > old_dt
-    new_mt = pg_storage.storage.query_one(
-        "SELECT modification_time FROM common.pgc WHERE id = %s",
-        params=[new_pgc],
-    )["modification_time"]
-    assert new_mt.replace(tzinfo=datetime.UTC) > old_dt
+    logged = {row["pgc"] for row in pg_storage.storage.query("SELECT pgc FROM common.pgc_changes")}
+    assert logged == {existing_pgc, new_pgc}
     table_mt = pg_storage.storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
         params=[table_name],

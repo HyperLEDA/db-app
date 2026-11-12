@@ -160,10 +160,7 @@ class Layer2ImportRedshiftTask(layer2_common.Layer2CatalogImportTask):
         self.repository.save("layer2.velocity", velocities, delete_pgcs=pgcs)
 
     def run(self) -> None:
-        if self.since is not None:
-            last_update_dt = self.since
-        else:
-            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.REDSHIFT)
+        last_update_dt = self.start_run(layer2.Catalog.REDSHIFT)
 
         self.log.info(
             "Starting Layer 2 redshift import",

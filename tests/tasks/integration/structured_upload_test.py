@@ -25,7 +25,7 @@ def _seed(storage: PostgresTestStorage, table_name: str) -> int:
     layer_seed.register_records(db, table_name, ["r1", "r2"])
     layer_seed.register_pgcs(db, [4242])
     db.exec("UPDATE layer0.records SET pgc = %s WHERE id = %s", params=[4242, "r1"])
-    db.exec("UPDATE common.pgc SET modification_time = TIMESTAMP '2000-01-01' WHERE id = %s", params=[4242])
+    db.exec("DELETE FROM common.pgc_changes")
     db.exec(
         "UPDATE layer0.tables SET modification_dt = TIMESTAMP '2000-01-01' WHERE table_name = %s",
         params=[table_name],
@@ -94,10 +94,10 @@ def test_write_normalizes_designation_and_touches_pgc(pg_storage: PostgresTestSt
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
         params=[table_name],
     )
-    touched = pg_storage.storage.query_one(
-        "SELECT modification_time FROM common.pgc WHERE id = %s",
+    touched = pg_storage.storage.query(
+        "SELECT pgc FROM common.pgc_changes WHERE pgc = %s",
         params=[pgc],
     )
     assert stored == [{"record_id": "r1", "design": "NGC 905"}]
     assert modified["modification_dt"].year != 2000
-    assert touched["modification_time"].year != 2000
+    assert len(touched) == 1

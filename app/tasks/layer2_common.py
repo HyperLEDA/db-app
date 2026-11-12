@@ -13,6 +13,8 @@ from app.lib.storage import enums, postgres
 from app.specs import fieldapi as fieldapi_client
 from app.tasks import interface, repository
 
+WATERMARK_SAFETY_MARGIN = datetime.timedelta(minutes=5)
+
 _tracer = trace.get_tracer("tasks.layer2")
 
 
@@ -94,6 +96,13 @@ class Layer2CatalogImportTask(Layer2StorageTask, abc.ABC):
         self.silent = silent
         self.since = interface.parse_since(since)
         self.cleanup_orphans = cleanup_orphans
+        self.run_start: datetime.datetime | None = None
+
+    def start_run(self, catalog: layer2.Catalog) -> datetime.datetime:
+        self.run_start = self.repository.get_database_time()
+        if self.since is not None:
+            return self.since
+        return self.repository.get_last_update_time(catalog)
 
     def finalize_catalog(self, catalog: layer2.Catalog) -> int:
         orphans_to_delete = 0
@@ -105,5 +114,8 @@ class Layer2CatalogImportTask(Layer2StorageTask, abc.ABC):
                 self.repository.remove_pgcs([catalog], pgcs_to_remove)
 
         if not self.dry_run:
-            self.repository.update_last_update_time(datetime.datetime.now(tz=datetime.UTC), catalog)
+            if self.run_start is None:
+                raise RuntimeError("start_run must be called before finalize_catalog")
+            self.repository.update_last_update_time(self.run_start - WATERMARK_SAFETY_MARGIN, catalog)
+            self.repository.prune_pgc_changes()
         return orphans_to_delete

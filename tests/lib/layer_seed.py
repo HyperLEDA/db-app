@@ -91,8 +91,8 @@ def upsert_pgc(storage: postgres.PgStorage, pgcs: dict[str, int | None]) -> None
             [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
         )
         storage.exec(
-            "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-            params=[list(set(pgcs_to_insert.values()))],
+            "INSERT INTO common.pgc_changes (pgc) SELECT unnest(%s::int[])",
+            params=[sorted(set(pgcs_to_insert.values()))],
         )
 
 
@@ -133,7 +133,7 @@ def save_structured_data(
     pgc_ids = [int(row["pgc"]) for row in pgc_rows]
     if pgc_ids:
         storage.exec(
-            "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
+            "INSERT INTO common.pgc_changes (pgc) SELECT unnest(%s::int[])",
             params=[pgc_ids],
         )
 

@@ -1,5 +1,3 @@
-import datetime
-
 import pytest
 import structlog
 
@@ -124,16 +122,12 @@ def test_get_redshift_records_defaults_null_e_cz(repo: repository.Repository) ->
     assert result[1].e_cz == 100.0
 
 
-def test_save_structured_data_bumps_pgc_modification_time(
+def test_save_structured_data_logs_pgc_change(
     repo: repository.Repository,
     pg_storage: PostgresTestStorage,
 ) -> None:
     _insert_nature_data(repo, "t_bump", ["rec1"], {"rec1": 5001}, [["G"]])
-    old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
-    pg_storage.storage.exec(
-        "UPDATE common.pgc SET modification_time = %s WHERE id = %s",
-        params=[old_dt, 5001],
-    )
+    pg_storage.storage.exec("DELETE FROM common.pgc_changes")
 
     repo.save_structured_data(
         layer1.NatureCatalogObject.layer1_table(),
@@ -142,8 +136,5 @@ def test_save_structured_data_bumps_pgc_modification_time(
         [["QSO"]],
     )
 
-    row = pg_storage.storage.query_one(
-        "SELECT modification_time FROM common.pgc WHERE id = %s",
-        params=[5001],
-    )
-    assert row["modification_time"].replace(tzinfo=datetime.UTC) > old_dt
+    rows = pg_storage.storage.query("SELECT pgc FROM common.pgc_changes")
+    assert [row["pgc"] for row in rows] == [5001]

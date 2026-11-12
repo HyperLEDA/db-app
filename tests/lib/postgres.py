@@ -131,6 +131,7 @@ class PostgresTestStorage:
         self.storage.exec("TRUNCATE distance.calibrations CASCADE")
         self.storage.exec("TRUNCATE distance.methods CASCADE")
         self.storage.exec("TRUNCATE common.bib CASCADE")
+        self.storage.exec("TRUNCATE common.pgc_changes")
         self.storage.exec("TRUNCATE layer0.tables CASCADE")
         tables = self.storage.query("""
             SELECT table_name 

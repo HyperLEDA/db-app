@@ -39,10 +39,7 @@ class Layer2ImportNatureTask(layer2_common.Layer2CatalogImportTask):
         return "layer2-import-nature"
 
     def run(self) -> None:
-        if self.since is not None:
-            last_update_dt = self.since
-        else:
-            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.NATURE)
+        last_update_dt = self.start_run(layer2.Catalog.NATURE)
         self.log.info(
             "Starting Layer 2 nature import",
             last_update=last_update_dt.ctime(),

@@ -44,6 +44,12 @@ class Repository(postgres.TransactionalPGRepository):
             params=[dt, catalog.value],
         )
 
+    def get_database_time(self) -> datetime.datetime:
+        return self._storage.query_one("SELECT clock_timestamp() AS dt")["dt"]
+
+    def prune_pgc_changes(self) -> None:
+        self._storage.exec("DELETE FROM common.pgc_changes WHERE changed_at < (SELECT min(dt) FROM layer2.last_update)")
+
     def get_orphaned_pgcs(self, raw_catalogs: list[layer2.Catalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
         for catalog in raw_catalogs:
@@ -223,31 +229,33 @@ class Repository(postgres.TransactionalPGRepository):
     def get_modified_object_pgcs(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._storage.query(
             """
-            SELECT p.id AS pgc
-            FROM common.pgc AS p
-            WHERE p.modification_time > %s
-              AND p.id > %s
-              AND (
+            SELECT p.pgc
+            FROM (
+              SELECT DISTINCT c.pgc
+              FROM common.pgc_changes AS c
+              WHERE c.changed_at > %s AND c.pgc > %s
+            ) AS p
+            WHERE (
                 EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN designation.data AS d ON d.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
                 OR EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN nature.data AS n ON n.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
                 OR EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN icrs.data AS i ON i.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
               )
-            ORDER BY p.id
+            ORDER BY p.pgc
             LIMIT %s
             """,
             params=[dt, offset, limit],
@@ -497,12 +505,19 @@ class Repository(postgres.TransactionalPGRepository):
         JOIN layer0.records AS o ON l1.record_id = o.id
         {extra_joins}
         WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM {layer1_table} AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            JOIN common.pgc AS p ON p.id = o.pgc
-            WHERE p.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
+            SELECT c.pgc
+            FROM (
+                SELECT DISTINCT pgc
+                FROM common.pgc_changes
+                WHERE changed_at > %s AND pgc > %s
+            ) AS c
+            WHERE EXISTS (
+                SELECT 1
+                FROM layer0.records AS o2
+                JOIN {layer1_table} AS l2 ON l2.record_id = o2.id
+                WHERE o2.pgc = c.pgc
+            )
+            ORDER BY c.pgc
             LIMIT %s
         )
         ORDER BY o.pgc ASC"""
