@@ -6,7 +6,7 @@ from psycopg import sql
 from app.catalogs import layer0, layer1
 from app.lib.storage import postgres
 from app.lib.storage.postgres.transactional import TransactionalPGRepository
- 
+
 
 def create_bibliography(
     storage: postgres.PgStorage,
