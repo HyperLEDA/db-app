@@ -172,27 +172,29 @@ def test_layer1_only_update_recalculates_layer2(
     assert_catalog_object_equal(icrs, layer2.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))
 
 
-def test_watermark_is_database_run_start_minus_margin(
-    repo: repository.Repository,
-    layer2_import_task: layer2_import.Layer2ImportTask,
-) -> None:
-    run_start = datetime.datetime(2030, 5, 1, 12, 0, 0, tzinfo=datetime.UTC)
-    with mock.patch.object(layer2_import_task.repository, "get_database_time", return_value=run_start):
-        layer2_import_task.run()
-
-    expected = (run_start - layer2_common.WATERMARK_SAFETY_MARGIN).replace(tzinfo=None)
-    for catalog in layer2_import.DEFAULT_CATALOGS:
-        assert repo.get_last_update_time(layer2.Catalog(catalog)) == expected
-
-
-def test_change_logged_during_previous_run_is_picked_up_next_run(
+def test_watermark_dry_run_and_late_change_log(
     storage: postgres.PgStorage,
     repo: repository.Repository,
     layer2_import_task: layer2_import.Layer2ImportTask,
 ) -> None:
-    _import_two_catalogs(storage, layer2_import_task)
-    watermark = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
+    dry = layer2_import.Layer2ImportTask(structlog.get_logger(), dry_run=True, silent=True)
+    dry.pg_storage = storage
+    dry.repository = repo
+    dry.fieldapi_client = _ConstantEbv()
+    before = repo.get_last_update_time(layer2.Catalog.ICRS)
+    storage.exec("INSERT INTO common.pgc_changes (pgc, changed_at) VALUES (1, TIMESTAMP '1971-01-01')")
+    dry.run()
+    assert repo.get_last_update_time(layer2.Catalog.ICRS) == before
+    assert storage.query_one("SELECT count(*) AS n FROM common.pgc_changes WHERE pgc = 1")["n"] == 1
 
+    run_start = datetime.datetime(2030, 5, 1, 12, 0, 0, tzinfo=datetime.UTC)
+    with mock.patch.object(layer2_import_task.repository, "get_database_time", return_value=run_start):
+        layer2_import_task.run()
+    expected = (run_start - layer2_common.WATERMARK_SAFETY_MARGIN).replace(tzinfo=None)
+    for catalog in layer2_import.DEFAULT_CATALOGS:
+        assert repo.get_last_update_time(layer2.Catalog(catalog)) == expected
+
+    watermark = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
     _ = _get_table(storage, "test_race")
     layer_seed.register_records(storage, "test_race", ["race1"])
     layer_seed.register_pgcs(storage, [7777])
@@ -209,26 +211,7 @@ def test_change_logged_during_previous_run_is_picked_up_next_run(
         "UPDATE common.pgc_changes SET changed_at = %s WHERE pgc = 7777",
         params=[watermark + datetime.timedelta(minutes=1)],
     )
-
     layer2_import_task.run()
-
     designation = _designation(storage, 7777)
     assert designation is not None
     assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("race"))
-
-
-def test_dry_run_does_not_move_watermark_or_prune(
-    storage: postgres.PgStorage,
-    repo: repository.Repository,
-) -> None:
-    task = layer2_import.Layer2ImportTask(structlog.get_logger(), dry_run=True, silent=True)
-    task.pg_storage = storage
-    task.repository = repo
-    task.fieldapi_client = _ConstantEbv()
-    before = repo.get_last_update_time(layer2.Catalog.ICRS)
-    storage.exec("INSERT INTO common.pgc_changes (pgc, changed_at) VALUES (1, TIMESTAMP '1971-01-01')")
-
-    task.run()
-
-    assert repo.get_last_update_time(layer2.Catalog.ICRS) == before
-    assert storage.query_one("SELECT count(*) AS n FROM common.pgc_changes WHERE pgc = 1")["n"] == 1

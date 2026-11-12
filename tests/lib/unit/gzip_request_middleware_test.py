@@ -35,21 +35,12 @@ def client() -> testclient.TestClient:
     return testclient.TestClient(srv.app)
 
 
-def test_gzip_body_is_decompressed(client: testclient.TestClient) -> None:
-    body = gzip.compress(json.dumps({"value": "hello"}).encode())
-
-    response = client.post(
+def test_gzip_and_plain_bodies(client: testclient.TestClient) -> None:
+    gzipped = client.post(
         "/api/echo",
-        content=body,
+        content=gzip.compress(json.dumps({"value": "hello"}).encode()),
         headers={"Content-Encoding": "gzip", "Content-Type": "application/json"},
     )
-
-    assert response.status_code == 200
-    assert response.json()["data"]["echo"] == "hello"
-
-
-def test_plain_body_still_works(client: testclient.TestClient) -> None:
-    response = client.post("/api/echo", json={"value": "hello"})
-
-    assert response.status_code == 200
-    assert response.json()["data"]["echo"] == "hello"
+    plain = client.post("/api/echo", json={"value": "hello"})
+    assert gzipped.status_code == plain.status_code == 200
+    assert gzipped.json()["data"]["echo"] == plain.json()["data"]["echo"] == "hello"

@@ -401,19 +401,15 @@ def _log_change(storage: postgres.PgStorage, pgc: int, changed_at: datetime.date
     storage.exec("INSERT INTO common.pgc_changes (pgc, changed_at) VALUES (%s, %s)", params=[pgc, changed_at])
 
 
-def test_touch_pgcs_appends_deduplicated_rows(storage: postgres.PgStorage) -> None:
-    layer0.touch_pgcs(storage, [3, 1, 3])
-    layer0.touch_pgcs(storage, [1])
-    layer0.touch_pgcs(storage, [])
-
-    rows = storage.query("SELECT pgc FROM common.pgc_changes ORDER BY pgc")
-    assert [row["pgc"] for row in rows] == [1, 1, 3]
-
-
-def test_consumer_queries_return_each_changed_pgc_once(
+def test_pgc_change_log_consumers_and_touch(
     storage: postgres.PgStorage,
     repo: repository.Repository,
 ) -> None:
+    layer0.touch_pgcs(storage, [3, 1, 3])
+    layer0.touch_pgcs(storage, [1])
+    layer0.touch_pgcs(storage, [])
+    assert [row["pgc"] for row in storage.query("SELECT pgc FROM common.pgc_changes ORDER BY pgc")] == [1, 1, 3]
+
     _seed_nature_pgcs(storage, "t_consumer", [10, 20, 30, 40])
     old = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
     new = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
@@ -424,36 +420,16 @@ def test_consumer_queries_return_each_changed_pgc_once(
     _log_change(storage, 40, old)
     _log_change(storage, 99, new)
 
-    records = repo.get_new_nature_records(watermark, 2, 0)
-    assert [int(pgc) for pgc in records["pgc"]] == [10, 20]
-    records = repo.get_new_nature_records(watermark, 2, 20)
-    assert [int(pgc) for pgc in records["pgc"]] == [30]
-
-    modified = repo.get_modified_object_pgcs(watermark, 10, 0)
-    assert [int(pgc) for pgc in modified["pgc"]] == [10, 20, 30]
-
-
-def test_get_modified_object_pgcs_dedupes_and_paginates(
-    storage: postgres.PgStorage,
-    repo: repository.Repository,
-) -> None:
-    _seed_nature_pgcs(storage, "t_modified", [10, 20, 30])
-    new = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
-    for pgc in (10, 20, 30):
-        _log_change(storage, pgc, new)
-        _log_change(storage, pgc, new)
-    watermark = datetime.datetime(2010, 1, 1, tzinfo=datetime.UTC)
-
+    assert [int(pgc) for pgc in repo.get_new_nature_records(watermark, 2, 0)["pgc"]] == [10, 20]
+    assert [int(pgc) for pgc in repo.get_new_nature_records(watermark, 2, 20)["pgc"]] == [30]
+    assert [int(pgc) for pgc in repo.get_modified_object_pgcs(watermark, 10, 0)["pgc"]] == [10, 20, 30]
     assert [int(p) for p in repo.get_modified_object_pgcs(watermark, 2, 0)["pgc"]] == [10, 20]
     assert [int(p) for p in repo.get_modified_object_pgcs(watermark, 2, 20)["pgc"]] == [30]
-    later = datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC)
-    assert len(repo.get_modified_object_pgcs(later, 10, 0)) == 0
+    assert len(repo.get_modified_object_pgcs(datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC), 10, 0)) == 0
+    assert abs((repo.get_database_time() - datetime.datetime.now(tz=datetime.UTC)).total_seconds()) < 60
 
 
-def test_prune_pgc_changes_keeps_rows_newer_than_oldest_watermark(
-    storage: postgres.PgStorage,
-    repo: repository.Repository,
-) -> None:
+def test_prune_and_migration_backfill(storage: postgres.PgStorage, repo: repository.Repository) -> None:
     storage.exec("DELETE FROM common.pgc_changes")
     for catalog in layer2.Catalog:
         repo.update_last_update_time(datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC), catalog)
@@ -461,40 +437,24 @@ def test_prune_pgc_changes_keeps_rows_newer_than_oldest_watermark(
     _log_change(storage, 1, datetime.datetime(2014, 1, 1, tzinfo=datetime.UTC))
     _log_change(storage, 2, datetime.datetime(2016, 1, 1, tzinfo=datetime.UTC))
     _log_change(storage, 3, datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC))
-
     repo.prune_pgc_changes()
+    assert [row["pgc"] for row in storage.query("SELECT pgc FROM common.pgc_changes ORDER BY pgc")] == [2, 3]
 
-    rows = storage.query("SELECT pgc FROM common.pgc_changes ORDER BY pgc")
-    assert [row["pgc"] for row in rows] == [2, 3]
-
-
-def test_get_database_time_is_close_to_now(repo: repository.Repository) -> None:
-    got = repo.get_database_time()
-    now = datetime.datetime.now(tz=datetime.UTC)
-    assert abs((got - now).total_seconds()) < 60
-
-
-def test_migration_backfill_logs_pgcs_modified_after_oldest_watermark(
-    storage: postgres.PgStorage,
-    repo: repository.Repository,
-) -> None:
-    layer_seed.register_pgcs(storage, [1, 2])
+    layer_seed.register_pgcs(storage, [11, 12])
     storage.exec("DELETE FROM common.pgc_changes")
     for catalog in layer2.Catalog:
         repo.update_last_update_time(datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC), catalog)
     storage.exec(
-        "UPDATE common.pgc SET modification_time = %s WHERE id = 1",
+        "UPDATE common.pgc SET modification_time = %s WHERE id = 11",
         params=[datetime.datetime(2019, 1, 1, tzinfo=datetime.UTC)],
     )
     storage.exec(
-        "UPDATE common.pgc SET modification_time = %s WHERE id = 2",
+        "UPDATE common.pgc SET modification_time = %s WHERE id = 12",
         params=[datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC)],
     )
-
     migration = pathlib.Path("postgres/migrations/V081__pgc_change_log.sql").read_text()
     storage.exec(migration[migration.index("INSERT INTO") :])
-
-    rows = storage.query("SELECT pgc, changed_at FROM common.pgc_changes WHERE pgc IN (1, 2)")
+    rows = storage.query("SELECT pgc, changed_at FROM common.pgc_changes WHERE pgc IN (11, 12)")
     assert [(row["pgc"], row["changed_at"].replace(tzinfo=datetime.UTC)) for row in rows] == [
-        (2, datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC))
+        (12, datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC))
     ]
