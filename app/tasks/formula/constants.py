@@ -1,0 +1,41 @@
+from dataclasses import dataclass
+from typing import final
+
+import numpy as np
+from astropy import constants as const
+from astropy import units as u
+
+
+@final
+@dataclass(frozen=True)
+class ConstantDef:
+    name: str
+    value: u.Quantity
+    detail: str
+
+
+NAMED_CONSTANTS: tuple[ConstantDef, ...] = (
+    ConstantDef("pi", np.pi * u.Unit(""), "Pi"),
+    ConstantDef("c", const.c, "Speed of light"),
+    ConstantDef("G", const.G, "Gravitational constant"),
+    ConstantDef("h", const.h, "Planck constant"),
+    ConstantDef("k_B", const.k_B, "Boltzmann constant"),
+    ConstantDef("sigma", const.sigma_sb, "Stefan-Boltzmann constant"),
+    ConstantDef("m_e", const.m_e, "Electron mass"),
+    ConstantDef("m_p", const.m_p, "Proton mass"),
+    ConstantDef("au", 1 * u.Unit("au"), "Astronomical unit"),
+    ConstantDef("pc", 1 * u.Unit("pc"), "Parsec"),
+    ConstantDef("ly", 1 * u.Unit("lyr"), "Light year"),
+    ConstantDef("eV", 1 * u.Unit("eV"), "Electronvolt"),
+    ConstantDef("Jy", 1 * u.Unit("Jy"), "Jansky"),
+    ConstantDef("M_sun", const.M_sun, "Solar mass"),
+    ConstantDef("R_sun", const.R_sun, "Nominal solar radius"),
+    ConstantDef("L_sun", const.L_sun, "Nominal solar luminosity"),
+    ConstantDef("M_earth", const.M_earth, "Earth mass"),
+    ConstantDef("M_jup", const.M_jup, "Jupiter mass"),
+    ConstantDef("deg", 1 * u.Unit("deg"), "Degree"),
+    ConstantDef("rad", 1 * u.Unit("rad"), "Radian"),
+    ConstantDef("arcmin", 1 * u.Unit("arcmin"), "Arcminute"),
+    ConstantDef("arcsec", 1 * u.Unit("arcsec"), "Arcsecond"),
+    ConstantDef("mag", 1 * u.Unit("mag"), "Magnitude"),
+)

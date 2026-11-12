@@ -1,15 +1,12 @@
-from collections.abc import Generator, Sequence
-from contextlib import contextmanager
 from typing import Any
 
 import structlog
 
-from app.lib.storage import postgres
+from app.catalogs.layer0 import INTERNAL_ID_COLUMN_NAME as INTERNAL_ID_COLUMN_NAME
+from app.catalogs.layer0 import RAWDATA_SCHEMA as RAWDATA_SCHEMA
+from app.catalogs.layer0 import rawdata_table as rawdata_table
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
-
-RAWDATA_SCHEMA = "rawdata"
-INTERNAL_ID_COLUMN_NAME = "hyperleda_internal_id"
 
 
 def metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
@@ -28,39 +25,3 @@ def _candidate_ids(values: Any) -> list[int]:
     except (TypeError, ValueError) as exc:
         log.error("Failed to read crossmatch candidates", exc_info=exc)
         return []
-
-
-@contextmanager
-def rawdata_table(
-    storage: postgres.PgStorage,
-    *,
-    table_name: str | None = None,
-    record_ids: Sequence[str] | None = None,
-) -> Generator[list[int]]:
-    if (table_name is None) == (record_ids is None):
-        raise ValueError("provide exactly one of table_name or record_ids")
-
-    if table_name is not None:
-        try:
-            row = storage.query_one(
-                "SELECT id FROM layer0.tables WHERE table_name = %s",
-                params=[table_name],
-            )
-        except RuntimeError as e:
-            raise RuntimeError(f"table {table_name!r} is not in layer0.tables") from e
-        table_ids = [int(row["id"])]
-    elif not record_ids:
-        table_ids = []
-    else:
-        rows = storage.query(
-            "SELECT DISTINCT table_id FROM layer0.records WHERE id = ANY(%s)",
-            params=[list(record_ids)],
-        )
-        table_ids = [int(row["table_id"]) for row in rows]
-
-    yield table_ids
-    if table_ids:
-        storage.exec(
-            "UPDATE layer0.tables SET modification_dt = now() WHERE id = ANY(%s)",
-            params=[table_ids],
-        )

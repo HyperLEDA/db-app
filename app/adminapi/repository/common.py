@@ -5,21 +5,13 @@ import structlog
 
 from app.adminapi import model
 from app.adminapi.repository import sql
+from app.catalogs.layer0 import touch_pgcs
 from app.lib.storage import postgres
 
 
 def get_column_units(storage: postgres.PgStorage, schema: str, table: str) -> dict[str, str]:
     info = postgres.get_table_metadata(storage, schema, table)
     return {name: col.unit for name, col in info.columns.items() if col.unit}
-
-
-def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
-    if not pgc_ids:
-        return
-    storage.exec(
-        "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-        params=[list(pgc_ids)],
-    )
 
 
 @final

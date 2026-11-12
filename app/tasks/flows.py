@@ -10,10 +10,14 @@ from prefect import flow
 from prefect.deployments.runner import RunnerDeployment
 from prefect.flows import Flow
 from prefect.logging import get_run_logger
+from prefect.utilities.callables import ParameterSchema, parameter_schema
 from pydantic import BaseModel, Field
 
 from app import tasks
+from app.catalogs import layer1
 from app.lib import structlog_config, tracing
+from app.specs import adminapi as spec
+from app.tasks import artifacts, formula, structured_upload
 
 _tracer = trace.get_tracer("tasks")
 
@@ -96,6 +100,20 @@ def _flow_logger() -> structlog.stdlib.BoundLogger:
     )
 
 
+def _execute_task(task: tasks.Task, span_name: str, span_attributes: Mapping[str, Any]) -> None:
+    cfg = tasks.Config()
+    tracing.setup_tracing("tasks", cfg.tracing)
+    task.prepare(cfg)
+    try:
+        with _tracer.start_as_current_span(span_name) as span:
+            for key, value in span_attributes.items():
+                span.set_attribute(key, value)
+            task.run()
+    finally:
+        task.cleanup()
+        tracing.flush_tracing()
+
+
 def run_task(
     task_name: str,
     batch_size: int = 100000,
@@ -116,23 +134,17 @@ def run_task(
     if catalogs is not None:
         params["catalogs"] = list(catalogs)
     task = tasks.get_task(task_name, log, params)
-    cfg = tasks.Config()
-    tracing.setup_tracing("tasks", cfg.tracing)
-    task.prepare(cfg)
-    try:
-        with _tracer.start_as_current_span(task_name) as span:
-            span.set_attribute("task.name", task_name)
-            span.set_attribute("task.batch_size", int(batch_size))
-            span.set_attribute("task.dry_run", bool(dry_run))
-            span.set_attribute("task.cleanup_orphans", bool(cleanup_orphans))
-            if since is not None:
-                span.set_attribute("task.since", since.isoformat())
-            if catalogs is not None:
-                span.set_attribute("task.catalogs", ",".join(catalogs))
-            task.run()
-    finally:
-        task.cleanup()
-        tracing.flush_tracing()
+    attributes: dict[str, Any] = {
+        "task.name": task_name,
+        "task.batch_size": int(batch_size),
+        "task.dry_run": bool(dry_run),
+        "task.cleanup_orphans": bool(cleanup_orphans),
+    }
+    if since is not None:
+        attributes["task.since"] = since.isoformat()
+    if catalogs is not None:
+        attributes["task.catalogs"] = ",".join(catalogs)
+    _execute_task(task, task_name, attributes)
 
 
 @flow(
@@ -257,17 +269,11 @@ def layer2_orphan_cleanup(
 ) -> None:
     log = _flow_logger()
     task = tasks.get_task("layer2-orphan-cleanup", log, {"write": bool(params.write)})
-    cfg = tasks.Config()
-    tracing.setup_tracing("tasks", cfg.tracing)
-    task.prepare(cfg)
-    try:
-        with _tracer.start_as_current_span("layer2-orphan-cleanup") as span:
-            span.set_attribute("task.name", "layer2-orphan-cleanup")
-            span.set_attribute("task.write", bool(params.write))
-            task.run()
-    finally:
-        task.cleanup()
-        tracing.flush_tracing()
+    _execute_task(
+        task,
+        "layer2-orphan-cleanup",
+        {"task.name": "layer2-orphan-cleanup", "task.write": bool(params.write)},
+    )
 
 
 @flow(
@@ -278,16 +284,39 @@ def layer2_orphan_cleanup(
 def refresh_table_stats() -> None:
     log = _flow_logger()
     task = tasks.get_task("refresh-table-stats", log, {})
-    cfg = tasks.Config()
-    tracing.setup_tracing("tasks", cfg.tracing)
-    task.prepare(cfg)
-    try:
-        with _tracer.start_as_current_span("refresh-table-stats") as span:
-            span.set_attribute("task.name", "refresh-table-stats")
-            task.run()
-    finally:
-        task.cleanup()
-        tracing.flush_tracing()
+    _execute_task(task, "refresh-table-stats", {"task.name": "refresh-table-stats"})
+
+
+def run_structured_upload(catalog: layer1.Catalog, params: Mapping[str, Any]) -> None:
+    log = _flow_logger()
+    tracker = artifacts.ProgressTracker()
+    task = structured_upload.StructuredCatalogUploadTask(
+        log,
+        catalog,
+        params,
+        on_progress=tracker.update,
+        on_preview_table=artifacts.emit_preview_table,
+    )
+    _execute_task(task, "tasks.structured_upload", {"task.catalog": catalog.value})
+
+
+def _structured_upload_flow(catalog: layer1.Catalog) -> Flow:
+    def run_upload(params: dict[str, Any]) -> None:
+        run_structured_upload(catalog, params)
+
+    run_upload.__qualname__ = f"structured_upload_{catalog.value}"
+    run_upload.__name__ = run_upload.__qualname__
+    object_cls = layer1.get_catalog_object_type(catalog)
+    return flow(
+        log_prints=False,
+        name=object_cls.title(),
+        description=f"{object_cls.description().strip()}\n\n{formula.expression_syntax_help()}",
+        validate_parameters=False,
+    )(run_upload)
+
+
+for _catalog in layer1.Catalog:
+    globals()[f"structured_upload_{_catalog.value}"] = _structured_upload_flow(_catalog)
 
 
 FLOWS_BY_NAME: dict[str, Flow] = {
@@ -303,7 +332,10 @@ FLOWS_BY_NAME: dict[str, Flow] = {
 }
 
 
-def build_deployments(environ: Mapping[str, str] | None = None) -> list[RunnerDeployment]:
+def build_deployments(
+    environ: Mapping[str, str] | None = None,
+    catalog_schemas: Sequence[spec.CatalogSchema] = (),
+) -> list[RunnerDeployment]:
     deployments: list[RunnerDeployment] = []
     for task_name in LAYER2_TASK_NAMES:
         flow_fn = FLOWS_BY_NAME[task_name]
@@ -312,4 +344,29 @@ def build_deployments(environ: Mapping[str, str] | None = None) -> list[RunnerDe
             deployments.append(flow_fn.to_deployment(name=task_name))
         else:
             deployments.append(flow_fn.to_deployment(name=task_name, cron=cron))
+    for schema in catalog_schemas:
+        deployments.append(_catalog_deployment(schema, environ))
     return deployments
+
+
+def _catalog_deployment(schema: spec.CatalogSchema, environ: Mapping[str, str] | None) -> RunnerDeployment:
+    flow_fn: Flow = globals()[f"structured_upload_{schema.catalog}"]
+    name = f"upload-{schema.catalog}"
+    cron = cron_from_env(name, environ)
+    if cron is None:
+        deployment = flow_fn.to_deployment(name=name)
+    else:
+        deployment = flow_fn.to_deployment(name=name, cron=cron)
+    parameter_schema_doc = _openapi_for_params(structured_upload.build_catalog_params_model(schema))
+    deployment._parameter_openapi_schema = parameter_schema_doc  # noqa: SLF001
+    if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
+        raise RuntimeError(f"parameter schema for {name} is empty")
+    return deployment
+
+
+def _openapi_for_params(model: type[BaseModel]) -> ParameterSchema:
+    def accept(params: Any) -> None:
+        del params
+
+    accept.__annotations__["params"] = model
+    return parameter_schema(accept)

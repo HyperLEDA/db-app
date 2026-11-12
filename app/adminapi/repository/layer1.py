@@ -2,12 +2,9 @@ from typing import Any
 
 import structlog
 from astropy import units as u
-from psycopg import sql
 
 from app.adminapi import model
 from app.adminapi.repository.common import get_column_units as query_column_units
-from app.adminapi.repository.common import touch_pgcs
-from app.adminapi.repository.layer0.common import rawdata_table
 from app.catalogs import layer1
 from app.lib.storage import postgres
 
@@ -44,35 +41,8 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         data: list[list[Any]],
         conflict_keys: list[str] | None = None,
     ) -> None:
-        if conflict_keys is None:
-            conflict_keys = ["record_id"]
-        all_columns = ["record_id"] + columns
-        schema, relation = table.split(".", maxsplit=1)
-        table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
-        column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
-        placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in all_columns)
-        conflict_idents = sql.SQL(", ").join(sql.Identifier(c) for c in conflict_keys)
-        update_columns = [c for c in all_columns if c not in conflict_keys]
-        if update_columns:
-            on_conflict_set = sql.SQL(", ").join(
-                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in update_columns
-            )
-            conflict_action = sql.SQL("ON CONFLICT ({}) DO UPDATE SET {}").format(conflict_idents, on_conflict_set)
-        else:
-            conflict_action = sql.SQL("ON CONFLICT ({}) DO NOTHING").format(conflict_idents)
-        query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) {}").format(
-            table_ident, column_idents, placeholders, conflict_action
-        )
-        query_str = self._storage.query_str(query)
-        rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
         with self.with_tx():
-            with rawdata_table(self._storage, record_ids=ids):
-                self._storage.execute_batch(query_str, rows)
-                pgc_rows = self._storage.query(
-                    "SELECT DISTINCT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
-                    params=[ids],
-                )
-                touch_pgcs(self._storage, [int(row["pgc"]) for row in pgc_rows])
+            layer1.save_structured_data(self._storage, table, columns, ids, data, conflict_keys)
 
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         if not record_ids:

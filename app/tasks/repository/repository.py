@@ -3,12 +3,13 @@ import json
 from collections.abc import Sequence
 from typing import Any, final
 
+import psycopg
 import structlog
 from astropy import table
 from astropy import units as u
 from psycopg import sql
 
-from app.catalogs import layer1, layer2, table_statistics
+from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
 from app.lib.storage import postgres
 
@@ -424,6 +425,52 @@ class Repository(postgres.TransactionalPGRepository):
 
     def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
         return postgres.get_table_metadata(self._storage, schema, table)
+
+    def get_table_record_count(self, table_name: str) -> int:
+        layer0.require_table_id(self._storage, table_name)
+        row = self._get_table_progress_funnel([table_name]).get(table_name)
+        if row is None:
+            return 0
+        return int(row["total_records"])
+
+    def fetch_rawdata_batch(
+        self,
+        table_name: str,
+        columns: Sequence[str],
+        limit: int,
+        offset: str,
+    ) -> list[dict[str, Any]]:
+        query, params = layer0.build_raw_table_select(
+            table_name,
+            columns=[layer0.INTERNAL_ID_COLUMN_NAME, *columns],
+            offset=offset,
+            order_column=layer0.INTERNAL_ID_COLUMN_NAME,
+            order_direction="asc",
+            limit=limit,
+        )
+        return list(self._storage.query(query, params=params))
+
+    def save_structured_data(
+        self,
+        catalog: layer1.Catalog,
+        columns: Sequence[str],
+        ids: Sequence[str],
+        data: list[list[Any]],
+    ) -> None:
+        object_cls = layer1.get_catalog_object_type(catalog)
+        normalized = layer1.normalize_catalog_rows(catalog, columns, [list(row) for row in data])
+        try:
+            with self.with_tx():
+                layer1.save_structured_data(
+                    self._storage,
+                    object_cls.layer1_table(),
+                    columns,
+                    ids,
+                    normalized,
+                    object_cls.layer1_primary_keys(),
+                )
+        except psycopg.errors.ForeignKeyViolation as e:
+            raise RuntimeError(layer1.format_foreign_key_violation(e)) from e
 
     def _query_new_pgc_records(
         self,

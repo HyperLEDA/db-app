@@ -1,9 +1,11 @@
 from typing import final
 
+import structlog
 from prefect import serve
 
 from app.lib import commands, tracing
-from app.tasks import flows, interface
+from app.lib.storage import enums, postgres
+from app.tasks import flows, interface, repository, structured_upload
 
 
 @final
@@ -19,7 +21,14 @@ class ServeTasksCommand(commands.Command):
     def prepare(self) -> None:
         cfg = interface.Config()
         tracing.setup_tracing("tasks", cfg.tracing)
-        self.deployments = flows.build_deployments()
+        storage = postgres.PgStorage(cfg.storage, structlog.get_logger(), enums.PG_ENUM_REGISTRY)
+        storage.connect()
+        try:
+            repo = repository.Repository(storage, structlog.get_logger())
+            catalog_schemas = structured_upload.build_catalog_schemas(repo)
+        finally:
+            storage.disconnect()
+        self.deployments = flows.build_deployments(catalog_schemas=catalog_schemas)
 
     def run(self) -> None:
         serve(*self.deployments)

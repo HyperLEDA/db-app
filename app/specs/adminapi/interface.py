@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import pydantic
 
-from app.lib.storage import enums, mapping
+from app.lib.storage import enums, mapping, postgres
 
 DatatypeEnum = enum.StrEnum(
     "DatatypeEnum",
@@ -356,6 +356,17 @@ class CatalogField(pydantic.BaseModel):
     required: bool = True
     ucd: str | None = None
     description: str = ""
+
+
+def field_from_column(col: postgres.ColumnInfo) -> CatalogField:
+    return CatalogField(
+        name=col.name,
+        data_type=postgres_type_to_datatype(col.data_type),
+        unit=col.unit,
+        required=col.not_null,
+        ucd=col.ucd,
+        description=str(col.description) if col.description else "",
+    )
 
 
 class CatalogSchema(pydantic.BaseModel):
