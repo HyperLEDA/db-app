@@ -166,6 +166,7 @@ class WebServer:
                 http.HTTPMethod.OPTIONS,
             ],
         )
+        app.add_middleware(middlewares.GzipRequestMiddleware)
 
         for route in routes:
             endpoint = route.handler
