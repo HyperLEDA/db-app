@@ -44,6 +44,12 @@ class Repository(postgres.TransactionalPGRepository):
             params=[dt, catalog.value],
         )
 
+    def get_database_time(self) -> datetime.datetime:
+        return self._storage.query_one("SELECT clock_timestamp() AS dt")["dt"]
+
+    def prune_pgc_changes(self) -> None:
+        self._storage.exec("DELETE FROM common.pgc_changes WHERE changed_at < (SELECT min(dt) FROM layer2.last_update)")
+
     def get_orphaned_pgcs(self, raw_catalogs: list[layer2.Catalog]) -> dict[str, list[int]]:
         result: dict[str, list[int]] = {}
         for catalog in raw_catalogs:
@@ -223,31 +229,33 @@ class Repository(postgres.TransactionalPGRepository):
     def get_modified_object_pgcs(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
         rows = self._storage.query(
             """
-            SELECT p.id AS pgc
-            FROM common.pgc AS p
-            WHERE p.modification_time > %s
-              AND p.id > %s
-              AND (
+            SELECT p.pgc
+            FROM (
+              SELECT DISTINCT c.pgc
+              FROM common.pgc_changes AS c
+              WHERE c.changed_at > %s AND c.pgc > %s
+            ) AS p
+            WHERE (
                 EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN designation.data AS d ON d.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
                 OR EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN nature.data AS n ON n.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
                 OR EXISTS (
                   SELECT 1
                   FROM layer0.records AS o
                   JOIN icrs.data AS i ON i.record_id = o.id
-                  WHERE o.pgc = p.id
+                  WHERE o.pgc = p.pgc
                 )
               )
-            ORDER BY p.id
+            ORDER BY p.pgc
             LIMIT %s
             """,
             params=[dt, offset, limit],
@@ -444,22 +452,45 @@ class Repository(postgres.TransactionalPGRepository):
             return 0
         return int(row["total_records"])
 
-    def fetch_rawdata_batch(
+    def get_rawdata_page_stats(self, table_name: str) -> tuple[int, float]:
+        row = self._storage.query_one(
+            """
+            WITH rel AS (
+                SELECT format('%%I.%%I', %s::text, %s::text)::regclass AS oid
+            )
+            SELECT
+                pg_relation_size(rel.oid) / current_setting('block_size')::int AS pages,
+                c.reltuples AS reltuples,
+                c.relpages AS relpages
+            FROM rel JOIN pg_class c ON c.oid = rel.oid
+            """,
+            params=[layer0.RAWDATA_SCHEMA, table_name],
+        )
+        pages = int(row["pages"])
+        if pages == 0:
+            return 0, 1.0
+        if row["reltuples"] > 0 and row["relpages"] > 0:
+            return pages, float(row["reltuples"]) / int(row["relpages"])
+        count = self._storage.query_one(
+            sql.SQL("SELECT count(*) AS n FROM {}.{}").format(
+                sql.Identifier(layer0.RAWDATA_SCHEMA), sql.Identifier(table_name)
+            )
+        )
+        return pages, max(1.0, int(count["n"]) / pages)
+
+    def fetch_rawdata_pages(
         self,
         table_name: str,
         columns: Sequence[str],
-        limit: int,
-        offset: str,
+        start_page: int,
+        end_page: int,
     ) -> list[dict[str, Any]]:
-        query, params = layer0.build_raw_table_select(
-            table_name,
-            columns=[layer0.INTERNAL_ID_COLUMN_NAME, *columns],
-            offset=offset,
-            order_column=layer0.INTERNAL_ID_COLUMN_NAME,
-            order_direction="asc",
-            limit=limit,
+        query = sql.SQL("SELECT {} FROM {}.{} WHERE ctid >= %s::tid AND ctid < %s::tid").format(
+            sql.SQL(", ").join(sql.Identifier(c) for c in [layer0.INTERNAL_ID_COLUMN_NAME, *columns]),
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
         )
-        return list(self._storage.query(query, params=params))
+        return list(self._storage.query(query, params=[f"({start_page},0)", f"({end_page},0)"]))
 
     def save_structured_data(
         self,
@@ -497,12 +528,19 @@ class Repository(postgres.TransactionalPGRepository):
         JOIN layer0.records AS o ON l1.record_id = o.id
         {extra_joins}
         WHERE o.pgc IN (
-            SELECT DISTINCT o.pgc
-            FROM {layer1_table} AS l1
-            JOIN layer0.records AS o ON l1.record_id = o.id
-            JOIN common.pgc AS p ON p.id = o.pgc
-            WHERE p.modification_time > %s AND o.pgc > %s
-            ORDER BY o.pgc
+            SELECT c.pgc
+            FROM (
+                SELECT DISTINCT pgc
+                FROM common.pgc_changes
+                WHERE changed_at > %s AND pgc > %s
+            ) AS c
+            WHERE EXISTS (
+                SELECT 1
+                FROM layer0.records AS o2
+                JOIN {layer1_table} AS l2 ON l2.record_id = o2.id
+                WHERE o2.pgc = c.pgc
+            )
+            ORDER BY c.pgc
             LIMIT %s
         )
         ORDER BY o.pgc ASC"""

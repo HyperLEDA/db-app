@@ -56,14 +56,6 @@ def _pgc_for(pg_storage: PostgresTestStorage, record_id: str) -> int | None:
     return row["pgc"]
 
 
-def _modification_time(pg_storage: PostgresTestStorage, pgc_id: int) -> datetime.datetime:
-    row = pg_storage.storage.query_one(
-        "SELECT modification_time FROM common.pgc WHERE id = %s",
-        params=[pgc_id],
-    )
-    return row["modification_time"]
-
-
 def test_merge_multiple_sources_onto_target(
     repo: repository.Repository,
     manager: pgc.PgcManager,
@@ -86,10 +78,7 @@ def test_merge_multiple_sources_onto_target(
     )
 
     old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
-    pg_storage.storage.exec(
-        "UPDATE common.pgc SET modification_time = %s WHERE id = ANY(%s)",
-        params=[old_dt, [target_pgc, source_a, source_b]],
-    )
+    pg_storage.storage.exec("DELETE FROM common.pgc_changes")
     pg_storage.storage.exec(
         "UPDATE layer0.tables SET modification_dt = %s WHERE table_name = %s",
         params=[old_dt, "merge_multi"],
@@ -105,9 +94,8 @@ def test_merge_multiple_sources_onto_target(
     assert _pgc_for(pg_storage, target_id) == target_pgc
     assert _pgc_for(pg_storage, source_a_id) == target_pgc
     assert _pgc_for(pg_storage, source_b_id) == target_pgc
-    assert _modification_time(pg_storage, target_pgc).replace(tzinfo=datetime.UTC) > old_dt
-    assert _modification_time(pg_storage, source_a).replace(tzinfo=datetime.UTC) > old_dt
-    assert _modification_time(pg_storage, source_b).replace(tzinfo=datetime.UTC) > old_dt
+    logged = {row["pgc"] for row in pg_storage.storage.query("SELECT pgc FROM common.pgc_changes")}
+    assert logged == {target_pgc, source_a, source_b}
     table_mt = pg_storage.storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
         params=["merge_multi"],

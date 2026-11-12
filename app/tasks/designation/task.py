@@ -34,10 +34,7 @@ class Layer2ImportDesignationTask(layer2_common.Layer2CatalogImportTask):
         return "layer2-import-designation"
 
     def run(self) -> None:
-        if self.since is not None:
-            last_update_dt = self.since
-        else:
-            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.DESIGNATION)
+        last_update_dt = self.start_run(layer2.Catalog.DESIGNATION)
         self.log.info(
             "Starting Layer 2 designation import",
             last_update=last_update_dt.ctime(),

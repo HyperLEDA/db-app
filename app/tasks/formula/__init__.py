@@ -2,7 +2,7 @@ from app.tasks.formula.core import Expression, evaluate, parse
 from app.tasks.formula.errors import ExpressionError, ExpressionEvaluationError, ExpressionSyntaxError
 from app.tasks.formula.namespace import expression_syntax_help
 from app.tasks.formula.validate import ExpressionDiagnostic, ExpressionStr, validate_expression
-from app.tasks.formula.values import TextValue, Value, column_quantity, value_to_str
+from app.tasks.formula.values import TextValue, Value, column_quantity, value_to_str, value_to_str_list
 
 __all__ = [
     "Expression",
@@ -19,4 +19,5 @@ __all__ = [
     "parse",
     "validate_expression",
     "value_to_str",
+    "value_to_str_list",
 ]

@@ -362,31 +362,39 @@ def test_get_records_returns_records_with_pgc(
     assert response.records[1].crossmatch.candidates == []
 
 
-def test_get_records_without_table_name(
+def test_get_records_passes_filters_and_schema_fallbacks(
     get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
 ) -> None:
     repo, manager = get_records_manager
     repo.fetch_records.return_value = []
 
     response = manager.get_records(adminapi.GetRecordsRequest(page=0, page_size=25))
-
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["table_name"] is None
+    assert repo.fetch_records.call_args[1]["table_name"] is None
     assert response.schema_.original_data.description == {}
-    assert response.schema_.original_data.ucd == {}
-    assert response.schema_.original_data.unit == {}
-    rawdata_calls = [
-        call
-        for call in repo.get_table_metadata.call_args_list
-        if call.args and call.args[0] == repository.RAWDATA_SCHEMA
-    ]
-    assert rawdata_calls == []
+    assert response.schema_.original_data.ucd == response.schema_.original_data.unit == {}
+    assert not any(
+        call.args and call.args[0] == repository.RAWDATA_SCHEMA for call in repo.get_table_metadata.call_args_list
+    )
 
+    manager.get_records(adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.UPLOADED))
+    assert repo.fetch_records.call_args[1]["has_pgc"] is True
+    assert repo.fetch_records.call_args[1]["pgc_value"] is None
 
-def test_get_records_when_raw_schema_lookup_fails(
-    get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
-) -> None:
-    repo, manager = get_records_manager
+    manager.get_records(adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.PENDING))
+    assert repo.fetch_records.call_args[1]["has_pgc"] is False
+
+    manager.get_records(adminapi.GetRecordsRequest(table_name="t", pgc=42))
+    assert repo.fetch_records.call_args[1]["has_pgc"] is None
+    assert repo.fetch_records.call_args[1]["pgc_value"] == 42
+
+    manager.get_records(
+        adminapi.GetRecordsRequest(table_name="t", triage_status=adminapi.CrossmatchTriageStatus.PENDING)
+    )
+    assert repo.fetch_records.call_args[1]["triage_status"] == "pending"
+
+    manager.get_records(adminapi.GetRecordsRequest(table_name="t", record_id="rec-1"))
+    assert repo.fetch_records.call_args[1]["record_id"] == "rec-1"
+
     repo.fetch_records.return_value = [
         model.TableRecord(
             id="rec1",
@@ -405,43 +413,10 @@ def test_get_records_when_raw_schema_lookup_fails(
         return empty
 
     repo.get_table_metadata.side_effect = metadata
-
-    response = manager.get_records(adminapi.GetRecordsRequest(table_name="t"))
-
-    assert [record.id for record in response.records] == ["rec1"]
-    assert response.records[0].original_data == {"name": "A"}
-    assert response.schema_.original_data.description == {}
-
-
-def test_get_records_passes_filters_to_fetch_records(
-    get_records_manager: tuple[mock.MagicMock, domain.TableUploadManager],
-) -> None:
-    repo, manager = get_records_manager
-    repo.fetch_records.return_value = []
-
-    manager.get_records(adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.UPLOADED))
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["has_pgc"] is True
-    assert call_kw["pgc_value"] is None
-
-    manager.get_records(adminapi.GetRecordsRequest(table_name="t", upload_status=adminapi.UploadStatus.PENDING))
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["has_pgc"] is False
-
-    manager.get_records(adminapi.GetRecordsRequest(table_name="t", pgc=42))
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["has_pgc"] is None
-    assert call_kw["pgc_value"] == 42
-
-    manager.get_records(
-        adminapi.GetRecordsRequest(table_name="t", triage_status=adminapi.CrossmatchTriageStatus.PENDING)
-    )
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["triage_status"] == "pending"
-
-    manager.get_records(adminapi.GetRecordsRequest(table_name="t", record_id="rec-1"))
-    call_kw = repo.fetch_records.call_args[1]
-    assert call_kw["record_id"] == "rec-1"
+    failed = manager.get_records(adminapi.GetRecordsRequest(table_name="t"))
+    assert [record.id for record in failed.records] == ["rec1"]
+    assert failed.records[0].original_data == {"name": "A"}
+    assert failed.schema_.original_data.description == {}
 
 
 def test_get_records_pagination(

@@ -57,10 +57,7 @@ class Layer2ImportICRSTask(layer2_common.Layer2CatalogImportTask):
         return "layer2-import-icrs"
 
     def run(self) -> None:
-        if self.since is not None:
-            last_update_dt = self.since
-        else:
-            last_update_dt = self.repository.get_last_update_time(layer2.Catalog.ICRS)
+        last_update_dt = self.start_run(layer2.Catalog.ICRS)
         self.log.info(
             "Starting Layer 2 ICRS import",
             last_update=last_update_dt.ctime(),

@@ -43,19 +43,24 @@ def rawdata_table(
         table_ids = [int(row["table_id"]) for row in rows]
 
     yield table_ids
-    if table_ids:
-        storage.exec(
-            "UPDATE layer0.tables SET modification_dt = now() WHERE id = ANY(%s)",
-            params=[table_ids],
-        )
+    touch_tables(storage, table_ids)
+
+
+def touch_tables(storage: postgres.PgStorage, table_ids: Sequence[int]) -> None:
+    if not table_ids:
+        return
+    storage.exec(
+        "UPDATE layer0.tables SET modification_dt = now() WHERE id = ANY(%s)",
+        params=[list(table_ids)],
+    )
 
 
 def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
     if not pgc_ids:
         return
     storage.exec(
-        "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-        params=[list(pgc_ids)],
+        "INSERT INTO common.pgc_changes (pgc) SELECT unnest(%s::int[])",
+        params=[sorted(set(pgc_ids))],
     )
 
 

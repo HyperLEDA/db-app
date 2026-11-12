@@ -34,6 +34,8 @@ def _formula_str(value: values.Value) -> str | np.ndarray:
         if isinstance(scalar, np.ndarray):
             return np.asarray([values.scalar_to_str(item) for item in scalar])
         return values.scalar_to_str(scalar)
+    if value.dtype.kind in "US":
+        return value
     return np.asarray([values.scalar_to_str(item) for item in value])
 
 
@@ -146,7 +148,11 @@ FUNCTIONS: tuple[FunctionDef, ...] = (
     FunctionDef("pow", "Raise x to the power y", _math(np.power), placeholder="${1:x}, ${2:y}"),
     FunctionDef("max", "Larger of two values", _extremum(np.maximum), placeholder="${1:x}, ${2:y}"),
     FunctionDef("min", "Smaller of two values", _extremum(np.minimum), placeholder="${1:x}, ${2:y}"),
-    FunctionDef("str", "Convert to text", _formula_str),
+    FunctionDef(
+        "str",
+        "Convert to text; slow, converts each value separately. Prefer text literals or text columns directly",
+        _formula_str,
+    ),
     FunctionDef(
         "where",
         "Pick then if cond is true, otherwise the third argument; nest for extra branches",
@@ -155,7 +161,9 @@ FUNCTIONS: tuple[FunctionDef, ...] = (
     ),
     FunctionDef(
         "to_deg",
-        'Convert to degrees; e.g. "00 02 08.4" (hourangle), "+16 35 13" (deg), "00h02m08.4s"',
+        'Convert to degrees; e.g. "00 02 08.4" (hourangle), "+16 35 13" (deg), "00h02m08.4s". '
+        "Slow on text, parses each value separately. Prefer numeric columns with units, "
+        'e.g. col("ra") or col("ra_h") / unit("h") * 15 * deg',
         _to_deg,
     ),
     FunctionDef(

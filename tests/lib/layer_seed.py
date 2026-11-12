@@ -3,7 +3,9 @@ from typing import Any
 
 from psycopg import sql
 
+from app.catalogs import layer0, layer1
 from app.lib.storage import postgres
+from app.lib.storage.postgres.transactional import TransactionalPGRepository
 
 
 def create_bibliography(
@@ -90,10 +92,7 @@ def upsert_pgc(storage: postgres.PgStorage, pgcs: dict[str, int | None]) -> None
             update_query,
             [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
         )
-        storage.exec(
-            "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-            params=[list(set(pgcs_to_insert.values()))],
-        )
+        layer0.touch_pgcs(storage, list(pgcs_to_insert.values()))
 
 
 def save_structured_data(
@@ -104,38 +103,8 @@ def save_structured_data(
     data: list[list[Any]],
     conflict_keys: list[str] | None = None,
 ) -> None:
-    if conflict_keys is None:
-        conflict_keys = ["record_id"]
-    all_columns = ["record_id"] + columns
-    schema, relation = table.split(".", maxsplit=1)
-    table_ident = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
-    column_idents = sql.SQL(", ").join(sql.Identifier(c) for c in all_columns)
-    placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in all_columns)
-    conflict_idents = sql.SQL(", ").join(sql.Identifier(c) for c in conflict_keys)
-    update_columns = [c for c in all_columns if c not in conflict_keys]
-    if update_columns:
-        on_conflict_set = sql.SQL(", ").join(
-            sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(c), sql.Identifier(c)) for c in update_columns
-        )
-        conflict_action = sql.SQL("ON CONFLICT ({}) DO UPDATE SET {}").format(conflict_idents, on_conflict_set)
-    else:
-        conflict_action = sql.SQL("ON CONFLICT ({}) DO NOTHING").format(conflict_idents)
-    query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) {}").format(
-        table_ident, column_idents, placeholders, conflict_action
-    )
-    query_str = storage.query_str(query)
-    rows = [[rid] + vals for rid, vals in zip(ids, data, strict=True)]
-    storage.execute_batch(query_str, rows)
-    pgc_rows = storage.query(
-        "SELECT DISTINCT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
-        params=[ids],
-    )
-    pgc_ids = [int(row["pgc"]) for row in pgc_rows]
-    if pgc_ids:
-        storage.exec(
-            "UPDATE common.pgc SET modification_time = NOW() WHERE id = ANY(%s)",
-            params=[pgc_ids],
-        )
+    with TransactionalPGRepository(storage).with_tx():
+        layer1.save_structured_data(storage, table, columns, ids, data, conflict_keys=conflict_keys)
 
 
 def seed_layer1_table(
