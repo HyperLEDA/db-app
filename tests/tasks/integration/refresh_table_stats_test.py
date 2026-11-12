@@ -3,6 +3,7 @@ from collections.abc import Generator
 
 import pytest
 import structlog
+from psycopg import sql
 
 from app import tasks
 from app.tasks import refresh_table_stats
@@ -44,9 +45,20 @@ def test_refresh_updates_only_stale_tables(
     layer_seed.create_table(storage, table_name, bib_id)
     layer_seed.register_records(storage, table_name, ["r1"])
 
+    storage.exec(
+        sql.SQL("ALTER TABLE rawdata.{} ADD COLUMN name text, ADD COLUMN ra double precision").format(
+            sql.Identifier(table_name)
+        )
+    )
+    storage.exec(
+        sql.SQL("INSERT INTO rawdata.{} (name, ra) VALUES (%s, %s), (%s, %s)").format(sql.Identifier(table_name)),
+        params=["a", 1.0, "b", None],
+    )
+
     refresh_task.run()
     cache, modified, refreshed = _statistics(pg_storage, table_name)
     assert cache["total_records"] == 1
+    assert cache["columns"] == {"name": {"non_null_count": 2}, "ra": {"non_null_count": 1}}
     assert refreshed == modified
 
     storage.exec(
@@ -60,4 +72,5 @@ def test_refresh_updates_only_stale_tables(
     refresh_task.run()
     cache, modified, refreshed = _statistics(pg_storage, table_name)
     assert cache["total_records"] == 1
+    assert cache["columns"] == {"name": {"non_null_count": 2}, "ra": {"non_null_count": 1}}
     assert refreshed == modified

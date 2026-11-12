@@ -58,6 +58,10 @@ class CatalogProgress(pydantic.BaseModel):
     structured: int
 
 
+class ColumnProgress(pydantic.BaseModel):
+    non_null_count: int
+
+
 class TableProgress(pydantic.BaseModel):
     total_records: int
     unprocessed: int
@@ -65,6 +69,7 @@ class TableProgress(pydantic.BaseModel):
     resolved_unsubmitted: int
     submitted: int
     catalogs: dict[str, CatalogProgress]
+    columns: dict[str, ColumnProgress] = pydantic.Field(default_factory=dict)
 
 
 class TableListItem(pydantic.BaseModel):

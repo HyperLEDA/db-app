@@ -523,6 +523,22 @@ class Repository(postgres.TransactionalPGRepository):
             params=[_statistics_to_json(progress), observed_modification_dt, table_name],
         )
 
+    def get_column_progress(self, table_name: str) -> dict[str, table_statistics.ColumnProgress]:
+        meta = self.get_table_metadata(layer0.RAWDATA_SCHEMA, table_name)
+        columns = [name for name in meta.columns if name != layer0.INTERNAL_ID_COLUMN_NAME]
+        if not columns:
+            return {}
+        counts_sql = sql.SQL(", ").join(
+            sql.SQL("COUNT({}) AS {}").format(sql.Identifier(col), sql.Identifier(col)) for col in columns
+        )
+        query = sql.SQL("SELECT {} FROM {}.{}").format(
+            counts_sql,
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        row = self._storage.query_one(query)
+        return {col: table_statistics.ColumnProgress(non_null_count=int(row[col])) for col in columns}
+
     def get_table_progress(
         self,
         table_names: list[str] | None = None,
@@ -625,6 +641,7 @@ def _statistics_to_json(progress: table_statistics.TableProgress) -> str:
         "resolved_unsubmitted": progress.resolved_unsubmitted,
         "submitted": progress.submitted,
         "catalogs": {name: {"structured": catalog.structured} for name, catalog in progress.catalogs.items()},
+        "columns": {name: {"non_null_count": column.non_null_count} for name, column in progress.columns.items()},
     }
     return json.dumps(payload)
 
