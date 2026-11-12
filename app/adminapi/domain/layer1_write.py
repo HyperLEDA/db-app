@@ -2,7 +2,7 @@ import psycopg
 from astropy import units as u
 
 from app.adminapi import repository
-from app.catalogs import designation_normalization, layer1
+from app.catalogs import layer1
 from app.lib.web.errors import RuleValidationError
 from app.specs import adminapi as spec
 
@@ -38,23 +38,12 @@ class Layer1Writer:
                     new_row.append(value)
             converted.append(new_row)
 
-        if catalog == layer1.Catalog.DESIGNATION and "design" in request.columns:
-            design_idx = request.columns.index("design")
-            for row in converted:
-                row[design_idx] = designation_normalization.normalize_designation(str(row[design_idx]))
+        converted = layer1.normalize_catalog_rows(catalog, request.columns, converted)
 
         try:
             conflict_keys = object_cls.layer1_primary_keys()
             self._repo.save_structured_data(table, request.columns, request.ids, converted, conflict_keys=conflict_keys)
         except psycopg.errors.ForeignKeyViolation as e:
-            diag = getattr(e, "diag", None)
-            detail = getattr(diag, "message_detail", None) if diag else None
-            constraint = getattr(diag, "constraint_name", None) if diag else None
-            msg = "foreign key violation"
-            if constraint:
-                msg += f": {constraint}"
-            if detail:
-                msg += f" ({detail})"
-            raise RuleValidationError(msg) from e
+            raise RuleValidationError(layer1.format_foreign_key_violation(e)) from e
 
         return spec.SaveStructuredDataResponse()

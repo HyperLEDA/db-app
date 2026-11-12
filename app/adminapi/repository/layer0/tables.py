@@ -18,6 +18,7 @@ from app.adminapi import model
 from app.adminapi.repository import sql as repo_sql
 from app.adminapi.repository.layer0 import common as layer0_common
 from app.adminapi.repository.layer0.common import INTERNAL_ID_COLUMN_NAME, RAWDATA_SCHEMA, metadata_to_candidates
+from app.catalogs.layer0 import build_raw_table_select
 from app.lib.storage import enums, postgres
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -70,66 +71,6 @@ def _row_to_serializable_dict(row: Any, drop: list[str]) -> dict[str, Any]:
         else:
             out[k] = v
     return out
-
-
-def _build_raw_table_select(
-    table_name: str,
-    columns: list[str] | None = None,
-    offset: str | None = None,
-    order_column: str | None = None,
-    order_direction: str = "asc",
-    limit: int | None = None,
-    row_offset: int | None = None,
-) -> tuple[sql.Composed, list[Any]]:
-    if columns:
-        columns_sql = sql.SQL(",").join([sql.Identifier(c) for c in columns])
-    else:
-        columns_sql = sql.SQL("*")
-
-    params: list[Any] = []
-    where_parts: list[sql.Composable] = []
-
-    if offset is not None:
-        where_parts.append(
-            sql.SQL("{} > %s").format(
-                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-            )
-        )
-        params.append(offset)
-
-    parts: list[sql.Composable] = [
-        sql.SQL("SELECT {} FROM {}.{}").format(
-            columns_sql,
-            sql.Identifier(RAWDATA_SCHEMA),
-            sql.Identifier(table_name),
-        )
-    ]
-
-    if where_parts:
-        parts.append(sql.SQL(" WHERE "))
-        parts.append(sql.SQL(" AND ").join(where_parts))
-
-    if order_column is not None:
-        if order_direction not in ("asc", "desc"):
-            raise ValueError(f"invalid order direction: {order_direction}")
-        parts.append(sql.SQL(" ORDER BY {} ").format(sql.Identifier(order_column)))
-        parts.append(sql.SQL(order_direction))
-    elif row_offset is not None:
-        parts.append(
-            sql.SQL(" ORDER BY {} ").format(
-                sql.Identifier(INTERNAL_ID_COLUMN_NAME),
-            )
-        )
-
-    if limit is not None:
-        parts.append(sql.SQL(" LIMIT %s"))
-        params.append(limit)
-
-    if row_offset is not None:
-        parts.append(sql.SQL(" OFFSET %s"))
-        params.append(row_offset)
-
-    return sql.Composed(parts), params
 
 
 @dataclass
@@ -268,7 +209,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         """
 
         meta = self.fetch_metadata_by_name(table_name)
-        query, params = _build_raw_table_select(
+        query, params = build_raw_table_select(
             table_name,
             columns=columns,
             offset=offset,
@@ -321,7 +262,7 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         :return: Layer0RawData
         """
 
-        query, params = _build_raw_table_select(
+        query, params = build_raw_table_select(
             table_name,
             columns=columns,
             offset=offset,
