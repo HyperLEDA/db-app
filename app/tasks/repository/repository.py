@@ -11,9 +11,20 @@ from psycopg import sql
 
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
-from app.lib.storage import postgres
+from app.lib.storage import mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
+
+_MIN_MAX_TYPES = frozenset(
+    {
+        mapping.TYPE_INTEGER,
+        mapping.TYPE_BIGINT,
+        mapping.TYPE_DOUBLE_PRECISION,
+        mapping.TYPE_TIMESTAMP,
+        mapping.TYPE_TEXT,
+        mapping.TYPE_BOOLEAN,
+    }
+)
 
 
 @final
@@ -523,6 +534,48 @@ class Repository(postgres.TransactionalPGRepository):
             params=[_statistics_to_json(progress), observed_modification_dt, table_name],
         )
 
+    def get_column_progress(self, table_name: str) -> dict[str, table_statistics.ColumnProgress]:
+        meta = self.get_table_metadata(layer0.RAWDATA_SCHEMA, table_name)
+        columns = [
+            (name, info.data_type) for name, info in meta.columns.items() if name != layer0.INTERNAL_ID_COLUMN_NAME
+        ]
+        if not columns:
+            return {}
+
+        select_parts: list[sql.Composable] = []
+        for index, (name, data_type) in enumerate(columns):
+            select_parts.append(
+                sql.SQL("COUNT({}) AS {}").format(sql.Identifier(name), sql.Identifier(f"__nn_{index}"))
+            )
+            if _supports_min_max(data_type):
+                select_parts.append(
+                    sql.SQL("MIN({}) AS {}").format(sql.Identifier(name), sql.Identifier(f"__min_{index}"))
+                )
+                select_parts.append(
+                    sql.SQL("MAX({}) AS {}").format(sql.Identifier(name), sql.Identifier(f"__max_{index}"))
+                )
+
+        query = sql.SQL("SELECT {} FROM {}.{}").format(
+            sql.SQL(", ").join(select_parts),
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        row = self._storage.query_one(query)
+
+        result: dict[str, table_statistics.ColumnProgress] = {}
+        for index, (name, data_type) in enumerate(columns):
+            min_value: table_statistics.StatValue | None = None
+            max_value: table_statistics.StatValue | None = None
+            if _supports_min_max(data_type):
+                min_value = _stat_value(row[f"__min_{index}"])
+                max_value = _stat_value(row[f"__max_{index}"])
+            result[name] = table_statistics.ColumnProgress(
+                non_null_count=int(row[f"__nn_{index}"]),
+                min=min_value,
+                max=max_value,
+            )
+        return result
+
     def get_table_progress(
         self,
         table_names: list[str] | None = None,
@@ -625,8 +678,38 @@ def _statistics_to_json(progress: table_statistics.TableProgress) -> str:
         "resolved_unsubmitted": progress.resolved_unsubmitted,
         "submitted": progress.submitted,
         "catalogs": {name: {"structured": catalog.structured} for name, catalog in progress.catalogs.items()},
+        "columns": {
+            name: {
+                "non_null_count": column.non_null_count,
+                "min": column.min,
+                "max": column.max,
+            }
+            for name, column in progress.columns.items()
+        },
     }
     return json.dumps(payload)
+
+
+def _supports_min_max(data_type: str) -> bool:
+    return mapping.type_map.get(data_type, data_type) in _MIN_MAX_TYPES
+
+
+def _stat_value(value: Any) -> table_statistics.StatValue | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime.datetime):
+        return value.isoformat()
+    if isinstance(value, datetime.date):
+        return value.isoformat()
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, float):
+        return float(value)
+    if hasattr(value, "item"):
+        return _stat_value(value.item())
+    return str(value)
 
 
 def _progress_table_filter(table_names: list[str] | None) -> tuple[str, list[Any]]:

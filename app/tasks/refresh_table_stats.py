@@ -12,6 +12,7 @@ def _empty_progress() -> table_statistics.TableProgress:
         resolved_unsubmitted=0,
         submitted=0,
         catalogs={},
+        columns={},
     )
 
 
@@ -27,4 +28,5 @@ class RefreshTableStatsTask(layer2_common.Layer2StorageTask):
             progress = self.repository.get_table_progress([table_name]).get(table_name)
             if progress is None:
                 progress = _empty_progress()
+            progress.columns = self.repository.get_column_progress(table_name)
             self.repository.save_table_statistics(table_name, progress, observed_dt)

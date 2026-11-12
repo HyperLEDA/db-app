@@ -32,6 +32,7 @@ def _empty_progress() -> spec.TableProgress:
         resolved_unsubmitted=0,
         submitted=0,
         catalogs={},
+        columns={},
     )
 
 
@@ -44,6 +45,14 @@ def _table_progress_to_presentation(progress: model.TableProgress) -> spec.Table
         submitted=progress.submitted,
         catalogs={
             name: spec.CatalogProgress(structured=catalog.structured) for name, catalog in progress.catalogs.items()
+        },
+        columns={
+            name: spec.ColumnProgress(
+                non_null_count=column.non_null_count,
+                min=column.min,
+                max=column.max,
+            )
+            for name, column in progress.columns.items()
         },
     )
 

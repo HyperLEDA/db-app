@@ -12,11 +12,12 @@ from app.adminapi.model.table import (
     Layer0TableMeta,
     TableRecord,
 )
-from app.catalogs.table_statistics import CatalogProgress, TableProgress
+from app.catalogs.table_statistics import CatalogProgress, ColumnProgress, TableProgress
 
 __all__ = [
     "Bibliography",
     "CatalogProgress",
+    "ColumnProgress",
     "DesignationRecord",
     "ICRSRecord",
     "Layer0CreationResponse",

@@ -47,6 +47,14 @@ def _statistics_from_json(raw: Any) -> model.TableProgress | None:
     if isinstance(raw, str):
         raw = json.loads(raw)
     catalogs = raw["catalogs"]
+    columns = {
+        name: model.ColumnProgress(
+            non_null_count=int(column["non_null_count"]),
+            min=column.get("min"),
+            max=column.get("max"),
+        )
+        for name, column in raw.get("columns", {}).items()
+    }
     return model.TableProgress(
         total_records=int(raw["total_records"]),
         unprocessed=int(raw["unprocessed"]),
@@ -56,6 +64,7 @@ def _statistics_from_json(raw: Any) -> model.TableProgress | None:
         catalogs={
             name: model.CatalogProgress(structured=int(catalog["structured"])) for name, catalog in catalogs.items()
         },
+        columns=columns,
     )
 
 
