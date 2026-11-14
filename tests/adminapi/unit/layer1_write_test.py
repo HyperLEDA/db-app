@@ -83,9 +83,7 @@ def test_start_upload() -> None:
     writer = Layer1Writer(mock.Mock(), prefect)
     params = {"table_name": "raw", "ra": 'col("ra")'}
 
-    assert (
-        writer.start_upload(adminapi.StartStructuredUploadRequest(catalog="icrs", params=params)).task_id == run_id
-    )
+    assert writer.start_upload(adminapi.StartStructuredUploadRequest(catalog="icrs", params=params)).task_id == run_id
     prefect.create_flow_run.assert_called_once_with(
         name="ICRS/upload-icrs",
         parameters={"params": params},
