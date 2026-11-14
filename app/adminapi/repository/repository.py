@@ -98,8 +98,8 @@ class Repository(postgres.TransactionalPGRepository):
             table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status, record_id
         )
 
-    def sample_rawdata(self, table_name: str, columns: Sequence[str], limit: int, random: bool) -> list[dict[str, Any]]:
-        return self._layer0_tables.sample_rawdata(table_name, columns, limit, random)
+    def sample_rawdata(self, table_name: str, columns: Sequence[str], limit: int) -> list[dict[str, Any]]:
+        return self._layer0_tables.sample_rawdata(table_name, columns, limit)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self._layer0_tables.fetch_metadata(table_name)

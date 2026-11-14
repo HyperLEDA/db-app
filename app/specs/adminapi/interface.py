@@ -1,6 +1,6 @@
 import datetime
 import enum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 import pydantic
 
@@ -173,7 +173,6 @@ class PreviewStructuredUploadRequest(pydantic.BaseModel):
     table_name: str
     expressions: dict[str, str]
     limit: int = pydantic.Field(default=20, ge=1, le=200)
-    sample: Literal["first", "random"] = "first"
 
 
 class PreviewFieldError(pydantic.BaseModel):

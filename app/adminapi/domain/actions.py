@@ -9,7 +9,6 @@ from app.adminapi.domain import (
     pgc,
     references,
     sources,
-    structured_preview,
     table_upload,
 )
 from app.adminapi.presentation import interface
@@ -46,7 +45,6 @@ class Actions(interface.Actions):
         self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
         self.pgc_manager = pgc.PgcManager(repo)
         self.layer1_writer = layer1_write.Layer1Writer(repo, clients.prefect)
-        self.structured_preview = structured_preview.StructuredPreview(repo)
         self.catalog_manager = catalogs.CatalogManager(repo)
         self.references_manager = references.ReferencesManager(repo)
 
@@ -90,7 +88,7 @@ class Actions(interface.Actions):
         return self.layer1_writer.start_upload(r)
 
     def preview_structured_upload(self, r: spec.PreviewStructuredUploadRequest) -> spec.PreviewStructuredUploadResponse:
-        return self.structured_preview.preview(r)
+        return self.layer1_writer.preview_upload(r)
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)

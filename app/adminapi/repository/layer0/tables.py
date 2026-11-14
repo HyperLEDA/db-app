@@ -397,18 +397,11 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         table_name: str,
         columns: Sequence[str],
         limit: int,
-        random: bool,
     ) -> list[dict[str, Any]]:
         select = sql.SQL("SELECT {} FROM {}.{}")
         fields = sql.SQL(", ").join(sql.Identifier(c) for c in [INTERNAL_ID_COLUMN_NAME, *columns])
         table_ident = sql.Identifier(RAWDATA_SCHEMA)
         name_ident = sql.Identifier(table_name)
-
-        if not random:
-            query = (select + sql.SQL(" ORDER BY {} LIMIT %s")).format(
-                fields, table_ident, name_ident, sql.Identifier(INTERNAL_ID_COLUMN_NAME)
-            )
-            return list(self._storage.query(query, params=[limit], read_only=True))
 
         estimate = self._storage.query_one(
             """
