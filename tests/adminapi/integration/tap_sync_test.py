@@ -20,8 +20,7 @@ def client(cleared_pg_storage: PostgresTestStorage) -> testclient.TestClient:
         repo=repository.Repository(pg, log),
         authenticator=auth.NoopAuthenticator(),
         storage=pg,
-        clients=clients.Clients(ads_token="test"),
-        prefect_api_url="http://localhost:4200/api",
+        clients=clients.Clients(ads_token="test", prefect_api_url="http://localhost:4200/api"),
     )
     cfg = server.ServerConfig(host="127.0.0.1", port=0, path_prefix="/admin/api")
     return testclient.TestClient(

@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from unittest import mock
 from uuid import uuid4
 
@@ -10,16 +9,16 @@ from app.specs import adminapi as spec
 
 
 def test_start_structured_upload() -> None:
-    run_id = uuid4()
-    start = mock.Mock(return_value=SimpleNamespace(id=run_id))
-    manager = StructuredUploadManager(prefect_api_url="http://tasks:4200/api", start_deployment=start)
+    run_id = str(uuid4())
+    prefect = mock.Mock()
+    prefect.create_flow_run.return_value = run_id
+    manager = StructuredUploadManager(prefect)
     params = {"table_name": "raw", "ra": 'col("ra")'}
 
-    assert manager.start(spec.StartStructuredUploadRequest(catalog="icrs", params=params)).flow_run_id == str(run_id)
-    assert start.call_args.kwargs == {
-        "name": "ICRS/upload-icrs",
-        "parameters": {"params": params},
-        "timeout": 0,
-    }
+    assert manager.start(spec.StartStructuredUploadRequest(catalog="icrs", params=params)).flow_run_id == run_id
+    prefect.create_flow_run.assert_called_once_with(
+        name="ICRS/upload-icrs",
+        parameters={"params": params},
+    )
     with pytest.raises(NotFoundError):
         manager.start(spec.StartStructuredUploadRequest(catalog="missing", params=params))

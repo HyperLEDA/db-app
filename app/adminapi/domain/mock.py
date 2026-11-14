@@ -11,5 +11,4 @@ def get_mock_actions():
         authenticator=auth.NoopAuthenticator(),
         storage=mock.MagicMock(),
         clients=clients.get_mock_clients(),
-        prefect_api_url="http://localhost:4200/api",
     )

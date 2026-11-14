@@ -47,8 +47,7 @@ class AdminAPICommand(commands.Command):
             repo=repo,
             authenticator=authenticator,
             storage=self.pg_storage,
-            clients=clients.Clients(cfg.clients.ads_token),
-            prefect_api_url=cfg.prefect.api_url,
+            clients=clients.Clients(cfg.clients.ads_token, cfg.prefect.api_url),
         )
 
         self.app = presentation.Server(
