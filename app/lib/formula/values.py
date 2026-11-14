@@ -8,7 +8,7 @@ from astropy.units.function.core import FunctionUnitBase
 
 
 @final
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class TextValue:
     data: str | np.ndarray
     unit: str = ""
@@ -24,6 +24,19 @@ class TextValue:
         if isinstance(other, str):
             return other + self.data
         return NotImplemented
+
+    def __eq__(self, other: object) -> np.ndarray:  # type: ignore[override]
+        if isinstance(other, TextValue):
+            return np.asarray(self.data == other.data)
+        if isinstance(other, (str, np.ndarray)):
+            return np.asarray(self.data == other)
+        return NotImplemented
+
+    def __ne__(self, other: object) -> np.ndarray:  # type: ignore[override]
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result
+        return np.logical_not(result)
 
 
 type Value = u.Quantity | str | TextValue | np.ndarray

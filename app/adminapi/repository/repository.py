@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, final
 
 import structlog
@@ -96,6 +97,9 @@ class Repository(postgres.TransactionalPGRepository):
         return self._layer0_tables.fetch_records(
             table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status, record_id
         )
+
+    def sample_rawdata(self, table_name: str, columns: Sequence[str], limit: int) -> list[dict[str, Any]]:
+        return self._layer0_tables.sample_rawdata(table_name, columns, limit)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self._layer0_tables.fetch_metadata(table_name)

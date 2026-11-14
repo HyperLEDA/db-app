@@ -168,6 +168,31 @@ class StartStructuredUploadResponse(pydantic.BaseModel):
     task_id: str
 
 
+class PreviewStructuredUploadRequest(pydantic.BaseModel):
+    catalog: str
+    table_name: str
+    expressions: dict[str, str]
+    limit: int = pydantic.Field(default=20, ge=1, le=200)
+
+
+class PreviewFieldError(pydantic.BaseModel):
+    field: str
+    message: str
+    record_id: str | None = None
+
+
+class PreviewRow(pydantic.BaseModel):
+    record_id: str
+    inputs: dict[str, Any]
+    outputs: dict[str, Any]
+    skipped_reason: str | None = None
+
+
+class PreviewStructuredUploadResponse(pydantic.BaseModel):
+    rows: list[PreviewRow]
+    errors: list[PreviewFieldError]
+
+
 class PatchColumnSpec(pydantic.BaseModel):
     ucd: str | None = None
     unit: str | None = None

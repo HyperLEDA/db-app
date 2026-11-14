@@ -1,3 +1,4 @@
+import functools
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -7,7 +8,7 @@ import numpy as np
 from astropy import coordinates
 from astropy import units as u
 
-from app.tasks.formula import values
+from app.lib.formula import values
 
 
 @final
@@ -123,6 +124,84 @@ def _where(cond: object, then: object, otherwise: object) -> object:
     return np.where(mask, np.asarray(then_v), np.asarray(else_v))
 
 
+def _raw(value: object) -> object:
+    if isinstance(value, values.TextValue):
+        return value.data
+    if isinstance(value, u.Quantity):
+        return value.value
+    return value
+
+
+def _int(value: object) -> np.ndarray:
+    return np.asarray(_to_quantity(value).to_value(u.Unit("")), dtype=int)
+
+
+def _count(value: object) -> u.Quantity:
+    return np.asarray(value, dtype=float) * u.Unit("")
+
+
+def _logical(fn: Callable[[object, object], np.ndarray]) -> Callable[..., np.ndarray]:
+    def impl(first: object, *rest: object) -> np.ndarray:
+        return functools.reduce(fn, (_mask(arg) for arg in rest), _mask(first))
+
+    return impl
+
+
+def _not(cond: object) -> np.ndarray:
+    return np.logical_not(_mask(cond))
+
+
+def _select(*args: object) -> object:
+    if len(args) < 3 or len(args) % 2 == 0:
+        raise TypeError("select() takes condition/value pairs followed by a default value")
+    conds = [_mask(cond) for cond in args[:-1:2]]
+    choices = list(args[1:-1:2]) + [args[-1]]
+    raw = [np.asarray(_raw(choice)) for choice in choices]
+    if any(item.dtype.kind in "US" for item in raw):
+        return np.select(conds, raw[:-1], default=raw[-1])
+    quantities = [_to_quantity(choice) for choice in choices]
+    unit = next((choice.unit for choice in choices if isinstance(choice, u.Quantity)), u.Unit(""))
+    aligned = [np.asarray(quantity.to_value(unit)) for quantity in quantities]
+    return np.select(conds, aligned[:-1], default=aligned[-1]) * unit
+
+
+def _isin(x: object, *options: object) -> np.ndarray:
+    if isinstance(x, u.Quantity):
+        pool = [np.ravel(_to_quantity(option).to_value(x.unit)) for option in options]
+    else:
+        pool = [np.ravel(np.asarray(_raw(option))) for option in options]
+    return np.isin(_raw(x), np.concatenate(pool))
+
+
+def _string(fn: Callable[..., object], *, numeric_args: tuple[int, ...] = ()) -> Callable[..., object]:
+    def impl(text: object, *args: object) -> object:
+        converted = [_int(arg) if i in numeric_args else _formula_str(arg) for i, arg in enumerate(args)]
+        return fn(_formula_str(text), *converted)
+
+    return impl
+
+
+def _string_count(fn: Callable[..., object], *, numeric_args: tuple[int, ...] = ()) -> Callable[..., u.Quantity]:
+    inner = _string(fn, numeric_args=numeric_args)
+
+    def impl(text: object, *args: object) -> u.Quantity:
+        return _count(inner(text, *args))
+
+    return impl
+
+
+def _contains(text: str | np.ndarray, sub: str | np.ndarray) -> np.ndarray:
+    return np.strings.find(text, sub) >= 0
+
+
+def _num(text: object) -> u.Quantity:
+    return np.asarray(_formula_str(text), dtype=float) * u.Unit("")
+
+
+def _round(x: object, ndigits: object) -> u.Quantity:
+    return np.round(_to_quantity(x), int(_int(ndigits)))
+
+
 COL_FUNCTION = FunctionDef("col", "Rawdata column", placeholder='"${1:name}"')
 
 FUNCTIONS: tuple[FunctionDef, ...] = (
@@ -158,6 +237,93 @@ FUNCTIONS: tuple[FunctionDef, ...] = (
         "Pick then if cond is true, otherwise the third argument; nest for extra branches",
         _where,
         placeholder="${1:cond}, ${2:then}, ${3:else}",
+    ),
+    FunctionDef("abs", "Absolute value", _math(np.abs)),
+    FunctionDef("floor", "Round down to an integer, keeping units", _math(np.floor)),
+    FunctionDef("ceil", "Round up to an integer, keeping units", _math(np.ceil)),
+    FunctionDef(
+        "round",
+        "Round to ndigits decimal places, keeping units",
+        _round,
+        placeholder="${1:x}, ${2:ndigits}",
+    ),
+    FunctionDef(
+        "and_",
+        "Logical AND of two or more conditions",
+        _logical(np.logical_and),
+        placeholder="${1:a}, ${2:b}",
+    ),
+    FunctionDef(
+        "or_",
+        "Logical OR of two or more conditions",
+        _logical(np.logical_or),
+        placeholder="${1:a}, ${2:b}",
+    ),
+    FunctionDef("not_", "Logical NOT of a condition", _not, placeholder="${1:cond}"),
+    FunctionDef(
+        "select",
+        "Multi-way switch: value of the first true condition, otherwise the default; "
+        "quantities are converted to the unit of the first quantity value",
+        _select,
+        placeholder="${1:cond1}, ${2:value1}, ${3:cond2}, ${4:value2}, ${5:default}",
+    ),
+    FunctionDef(
+        "isin",
+        "True where x equals any of the listed values (text or numbers)",
+        _isin,
+        placeholder="${1:x}, ${2:v1}, ${3:v2}",
+    ),
+    FunctionDef(
+        "contains",
+        "True where the text contains the substring",
+        _string(_contains),
+        placeholder="${1:s}, ${2:sub}",
+    ),
+    FunctionDef(
+        "startswith",
+        "True where the text starts with the prefix",
+        _string(np.strings.startswith),
+        placeholder="${1:s}, ${2:prefix}",
+    ),
+    FunctionDef(
+        "endswith",
+        "True where the text ends with the suffix",
+        _string(np.strings.endswith),
+        placeholder="${1:s}, ${2:suffix}",
+    ),
+    FunctionDef("upper", "Upper-case text", _string(np.strings.upper), placeholder="${1:s}"),
+    FunctionDef("lower", "Lower-case text", _string(np.strings.lower), placeholder="${1:s}"),
+    FunctionDef("strip", "Remove leading and trailing whitespace", _string(np.strings.strip), placeholder="${1:s}"),
+    FunctionDef(
+        "replace",
+        "Replace all occurrences of old with new in text",
+        _string(np.strings.replace),
+        placeholder="${1:s}, ${2:old}, ${3:new}",
+    ),
+    FunctionDef(
+        "slice",
+        "Substring from start (inclusive) to stop (exclusive); negative indices count from the end",
+        _string(np.strings.slice, numeric_args=(0, 1)),
+        placeholder="${1:s}, ${2:start}, ${3:stop}",
+    ),
+    FunctionDef("len", "Text length", _string_count(np.strings.str_len), placeholder="${1:s}"),
+    FunctionDef(
+        "find",
+        "Index of the first occurrence of sub in text, -1 if absent",
+        _string_count(np.strings.find),
+        placeholder="${1:s}, ${2:sub}",
+    ),
+    FunctionDef(
+        "zfill",
+        "Left-pad text with zeros to the given width",
+        _string(np.strings.zfill, numeric_args=(0,)),
+        placeholder="${1:s}, ${2:width}",
+    ),
+    FunctionDef(
+        "num",
+        "Parse text to a dimensionless number; fails on unparseable values",
+        _num,
+        placeholder="${1:s}",
     ),
     FunctionDef(
         "to_deg",

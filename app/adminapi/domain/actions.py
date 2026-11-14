@@ -87,6 +87,9 @@ class Actions(interface.Actions):
     def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
         return self.layer1_writer.start_upload(r)
 
+    def preview_structured_upload(self, r: spec.PreviewStructuredUploadRequest) -> spec.PreviewStructuredUploadResponse:
+        return self.layer1_writer.preview_upload(r)
+
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)
 

@@ -6,9 +6,10 @@ import pytest
 import structlog
 
 from app.catalogs import layer0, layer1
+from app.lib import formula
 from app.lib.storage import postgres
 from app.specs import adminapi as spec
-from app.tasks import artifacts, formula, structured_upload
+from app.tasks import artifacts, structured_upload
 
 
 def _col(name: str, data_type: str, *, unit: str | None = None, not_null: bool = True) -> postgres.ColumnInfo:
@@ -76,13 +77,14 @@ def _evaluate(
     rows: list[dict[str, Any]],
     column_units: dict[str, str] | None = None,
 ) -> tuple[list[str], list[list[Any]]]:
-    return structured_upload._evaluate_batch(  # noqa: SLF001
+    return formula.evaluate_batch(
         rows,
         [f.name for f in fields],
         expressions,
         {n: formula.parse(s) for n, s in expressions.items()},
-        {f.name: f for f in fields},
+        {f.name: formula.OutputField(f.name, f.data_type.value, f.unit) for f in fields},
         column_units or {},
+        layer0.INTERNAL_ID_COLUMN_NAME,
     )
 
 

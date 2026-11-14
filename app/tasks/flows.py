@@ -15,9 +15,9 @@ from pydantic import BaseModel, Field
 
 from app import tasks
 from app.catalogs import layer1
-from app.lib import structlog_config, tracing
+from app.lib import formula, structlog_config, tracing
 from app.specs import adminapi as spec
-from app.tasks import formula, structured_upload
+from app.tasks import structured_upload
 
 _tracer = trace.get_tracer("tasks")
 

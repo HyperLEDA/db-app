@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 
-from app.tasks.formula.constants import NAMED_CONSTANTS
-from app.tasks.formula.functions import COL_FUNCTION, FUNCTIONS
-from app.tasks.formula.operators import OPERATORS
-from app.tasks.formula.values import Value
+from app.lib.formula.constants import NAMED_CONSTANTS
+from app.lib.formula.functions import COL_FUNCTION, FUNCTIONS
+from app.lib.formula.operators import OPERATORS
+from app.lib.formula.values import Value
 
 
 def build_namespace(columns: Mapping[str, Value]) -> dict[str, object]:
@@ -41,4 +41,9 @@ Available constants: {constants}.
     - `"G"` - fills the column with a text "G"
 - Copy another column: `col("ra")`
 - Mathematical expression: `3 * 10 ** col("logd25") * arcsec`
-- Conditional: `where(col("v") > 0, col("v"), 0)`"""
+- Conditional: `where(col("v") > 0, col("v"), 0)`
+- Multi-way switch with a default: `select(col("t") == "E", 1, col("t") == "S", 2, 0)`
+- Boolean logic: `and_(col("v") > 0, not_(isin(col("t"), "E", "S0")))`
+- Text matching: `where(contains(col("name"), "NGC"), 1, 0)`
+- Text slicing and concatenation: `"NGC " + slice(col("name"), 3, 7)`
+- Parse text to a number: `num(slice(col("id"), 1, 5)) * deg`"""
