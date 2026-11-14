@@ -89,7 +89,8 @@ def _collect_diagnostics(node: ast.AST, columns: set[str], diagnostics: list[Exp
     if isinstance(node, ast.Name):
         if not _is_known_name(node.id):
             message = (
-                f"unknown name {node.id!r}; use {COL_FUNCTION.name}() for columns or a predefined constant/function"
+                f"unknown name {node.id!r}; use {COL_FUNCTION.name}() for columns, "
+                "a predefined constant/function, or quotes for a string literal"
             )
             diagnostics.append(_from_node(node, message))
         return
@@ -119,11 +120,27 @@ def _collect_call_diagnostics(node: ast.Call, columns: set[str], diagnostics: li
         _collect_diagnostics(arg, columns, diagnostics)
 
 
-def diagnose_expression(source: str) -> tuple[ast.AST | None, frozenset[str], list[ExpressionDiagnostic]]:
+def _parse_expression_ast(source: str) -> tuple[ast.AST | None, SyntaxError | None]:
     try:
-        tree = ast.parse(source, mode="eval")
-    except SyntaxError as e:
-        return None, frozenset(), [_from_syntax_error(e, source)]
+        return ast.parse(source, mode="eval"), None
+    except SyntaxError as first:
+        if "\n" not in source:
+            return None, first
+        try:
+            return ast.parse(f"({source})", mode="eval"), None
+        except SyntaxError as wrapped:
+            return None, wrapped
+
+
+def diagnose_expression(source: str) -> tuple[ast.AST | None, frozenset[str], list[ExpressionDiagnostic]]:
+    tree, syntax_error = _parse_expression_ast(source)
+    if tree is None:
+        message = (
+            _from_syntax_error(syntax_error, source)
+            if syntax_error is not None
+            else ExpressionDiagnostic("invalid expression", 1, 1, 1, 2)
+        )
+        return None, frozenset(), [message]
     columns: set[str] = set()
     diagnostics: list[ExpressionDiagnostic] = []
     _collect_diagnostics(tree.body, columns, diagnostics)

@@ -10,9 +10,14 @@ from app.lib import formula
 
 def test_parse_validation_and_helpers() -> None:
     assert formula.parse('col("ra") + 1 * arcmin').referenced_columns == frozenset({"ra"})
-    with pytest.raises(formula.ExpressionSyntaxError, match="unknown name"):
+    with pytest.raises(formula.ExpressionSyntaxError, match="quotes for a string literal"):
         formula.parse("not_a_column + 1")
     assert formula.validate_expression("   ") == []
+    multiline = formula.parse('"SDSS J"\n+ zfill(str(floor(col("ra") / deg / 15)), 2)')
+    assert multiline.referenced_columns == frozenset({"ra"})
+    assert (
+        formula.value_to_str(formula.evaluate(multiline, {"ra": formula.column_quantity(195.0, "deg")})) == "SDSS J13"
+    )
 
     class Model(pydantic.BaseModel):
         source: formula.ExpressionStr
