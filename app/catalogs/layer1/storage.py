@@ -51,6 +51,7 @@ def _upsert_via_copy(
     all_columns: Sequence[str],
     conflict_keys: Sequence[str],
     rows: Sequence[Sequence[Any]],
+    track_changes: bool = True,
 ) -> list[tuple[int, int | None]]:
     schema, relation = table.split(".", maxsplit=1)
     target = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(relation))
@@ -102,12 +103,14 @@ def _upsert_via_copy(
                 conflict_action=conflict_action,
             )
         )
-        cur.execute(
-            sql.SQL(
-                "SELECT DISTINCT r.table_id, r.pgc FROM {} AS s JOIN layer0.records AS r ON r.id = s.record_id"
-            ).format(stage)
-        )
-        touched = cur.fetchall()
+        touched: list[tuple[int, int | None]] = []
+        if track_changes:
+            cur.execute(
+                sql.SQL(
+                    "SELECT DISTINCT r.table_id, r.pgc FROM {} AS s JOIN layer0.records AS r ON r.id = s.record_id"
+                ).format(stage)
+            )
+            touched = cur.fetchall()
         cur.execute(sql.SQL("DROP TABLE {}").format(stage))
     return touched
 
@@ -119,12 +122,16 @@ def save_structured_data(
     ids: Sequence[str],
     data: Sequence[Sequence[Any]],
     conflict_keys: Sequence[str] | None = None,
+    *,
+    track_changes: bool = True,
 ) -> None:
     resolved_keys = list(conflict_keys) if conflict_keys is not None else ["record_id"]
     all_columns = ["record_id", *columns]
     rows = [[rid, *vals] for rid, vals in zip(ids, data, strict=True)]
     if not rows:
         return
-    touched = _upsert_via_copy(storage.get_connection(), table, all_columns, resolved_keys, rows)
+    touched = _upsert_via_copy(storage.get_connection(), table, all_columns, resolved_keys, rows, track_changes)
+    if not track_changes:
+        return
     layer0.touch_tables(storage, sorted({table_id for table_id, _ in touched}))
     layer0.touch_pgcs(storage, sorted({pgc for _, pgc in touched if pgc is not None}))

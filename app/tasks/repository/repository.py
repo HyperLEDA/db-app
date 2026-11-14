@@ -494,6 +494,7 @@ class Repository(postgres.TransactionalPGRepository):
 
     def save_structured_data(
         self,
+        table_name: str,
         catalog: layer1.Catalog,
         columns: Sequence[str],
         ids: Sequence[str],
@@ -505,6 +506,7 @@ class Repository(postgres.TransactionalPGRepository):
             with self.with_tx():
                 # Skip per-row FK triggers on bulk upserts; IDs already come from layer0/rawdata.
                 self._storage.exec("SET LOCAL session_replication_role = replica")
+                table_id = layer0.require_table_id(self._storage, table_name)
                 layer1.save_structured_data(
                     self._storage,
                     object_cls.layer1_table(),
@@ -512,9 +514,16 @@ class Repository(postgres.TransactionalPGRepository):
                     ids,
                     normalized,
                     object_cls.layer1_primary_keys(),
+                    track_changes=False,
                 )
+                layer0.touch_tables(self._storage, [table_id])
         except psycopg.errors.ForeignKeyViolation as e:
             raise RuntimeError(layer1.format_foreign_key_violation(e)) from e
+
+    def touch_table_pgcs(self, table_name: str) -> None:
+        with self.with_tx():
+            table_id = layer0.require_table_id(self._storage, table_name)
+            layer0.touch_table_pgcs(self._storage, table_id)
 
     def _query_new_pgc_records(
         self,
