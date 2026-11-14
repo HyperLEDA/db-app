@@ -22,7 +22,7 @@ def test_start_structured_upload() -> None:
     repo.get_table_metadata.return_value = postgres.TableInfo(schema="icrs", name="data", columns=cols)
     run_id = uuid4()
     start = mock.Mock(return_value=SimpleNamespace(id=run_id))
-    manager = StructuredUploadManager(repo, start_deployment=start)
+    manager = StructuredUploadManager(repo, prefect_api_url="http://tasks:4200/api", start_deployment=start)
 
     assert manager.start(spec.StartStructuredUploadRequest(catalog="icrs", params=_PARAMS)).flow_run_id == str(run_id)
     assert start.call_args.kwargs["name"] == "ICRS/upload-icrs"

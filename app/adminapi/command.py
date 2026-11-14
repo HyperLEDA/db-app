@@ -48,6 +48,7 @@ class AdminAPICommand(commands.Command):
             authenticator=authenticator,
             storage=self.pg_storage,
             clients=clients.Clients(cfg.clients.ads_token),
+            prefect_api_url=cfg.prefect.api_url,
         )
 
         self.app = presentation.Server(
@@ -75,10 +76,17 @@ class ClientsConfig(config.ConfigSettings):
     ads_token: str
 
 
+class PrefectConfig(config.ConfigSettings):
+    model_config = settings.SettingsConfigDict(env_prefix="PREFECT_")
+
+    api_url: str = "http://localhost:4200/api"
+
+
 class Config(config.ConfigSettings):
     server: server.ServerConfig
     storage: postgres.PgStorageConfig
     clients: ClientsConfig
+    prefect: PrefectConfig = pydantic.Field(default_factory=PrefectConfig)
     auth_enabled: bool = True
     tracing: TracingConfig = pydantic.Field(default_factory=TracingConfig)
 

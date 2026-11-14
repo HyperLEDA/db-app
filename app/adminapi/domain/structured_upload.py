@@ -1,5 +1,4 @@
 import json
-import os
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -63,45 +62,46 @@ def _prefect_request(method: str, url: str, body: Mapping[str, Any] | None = Non
         raise InternalError(f"prefect API unreachable: {exc}") from exc
 
 
-def _create_prefect_flow_run(
-    *,
-    name: str,
-    parameters: dict[str, Any] | None = None,
-    timeout: float | None = None,
-) -> SimpleNamespace:
-    del timeout
-    api_url = os.environ.get("PREFECT_API_URL", "").rstrip("/")
-    if not api_url:
-        raise InternalError("PREFECT_API_URL is not configured")
-    try:
-        flow_name, deployment_name = name.split("/", 1)
-    except ValueError as exc:
-        raise RuleValidationError(f"invalid deployment name: {name}") from exc
-
-    deployment_url = (
-        f"{api_url}/deployments/name/"
-        f"{urllib.parse.quote(flow_name, safe='')}/"
-        f"{urllib.parse.quote(deployment_name, safe='')}"
-    )
-    deployment = _prefect_request("GET", deployment_url)
-    flow_run = _prefect_request(
-        "POST",
-        f"{api_url}/deployments/{deployment['id']}/create_flow_run",
-        {"parameters": parameters or {}},
-    )
-    return SimpleNamespace(id=flow_run["id"])
-
-
 @final
 class StructuredUploadManager:
     def __init__(
         self,
         repo: repository.Repository,
         *,
+        prefect_api_url: str,
         start_deployment: Callable[..., Any] | None = None,
     ) -> None:
         self._repo = repo
-        self._start_deployment = start_deployment or _create_prefect_flow_run
+        self._prefect_api_url = prefect_api_url.rstrip("/")
+        self._start_deployment = start_deployment or self._create_prefect_flow_run
+
+    def _create_prefect_flow_run(
+        self,
+        *,
+        name: str,
+        parameters: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> SimpleNamespace:
+        del timeout
+        if not self._prefect_api_url:
+            raise InternalError("prefect.api_url is not configured")
+        try:
+            flow_name, deployment_name = name.split("/", 1)
+        except ValueError as exc:
+            raise RuleValidationError(f"invalid deployment name: {name}") from exc
+
+        deployment_url = (
+            f"{self._prefect_api_url}/deployments/name/"
+            f"{urllib.parse.quote(flow_name, safe='')}/"
+            f"{urllib.parse.quote(deployment_name, safe='')}"
+        )
+        deployment = _prefect_request("GET", deployment_url)
+        flow_run = _prefect_request(
+            "POST",
+            f"{self._prefect_api_url}/deployments/{deployment['id']}/create_flow_run",
+            {"parameters": parameters or {}},
+        )
+        return SimpleNamespace(id=flow_run["id"])
 
     def start(self, request: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
         try:

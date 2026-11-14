@@ -35,6 +35,7 @@ class Actions(interface.Actions):
         authenticator: auth.Authenticator,
         storage: postgres.PgStorage,
         clients: clients.Clients,
+        prefect_api_url: str,
     ):
         self._repo = repo
         self.source_manager = sources.SourceManager(repo)
@@ -47,7 +48,10 @@ class Actions(interface.Actions):
         self.pgc_manager = pgc.PgcManager(repo)
         self.layer1_writer = layer1_write.Layer1Writer(repo)
         self.catalog_manager = catalogs.CatalogManager(repo)
-        self.structured_upload_manager = structured_upload.StructuredUploadManager(repo)
+        self.structured_upload_manager = structured_upload.StructuredUploadManager(
+            repo,
+            prefect_api_url=prefect_api_url,
+        )
         self.references_manager = references.ReferencesManager(repo)
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
