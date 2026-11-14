@@ -27,6 +27,7 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 _INTEGER_TYPE_NAMES = {"int2", "int4", "int8"}
 _TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
 _TABLESAMPLE_OVERSAMPLING = 3
+_TABLESAMPLE_RETRY_FACTOR = 4
 
 
 def _copy_column(series: pandas.Series, pg_type_name: str) -> list[Any]:
@@ -398,7 +399,6 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         columns: Sequence[str],
         limit: int,
     ) -> list[dict[str, Any]]:
-        select = sql.SQL("SELECT {} FROM {}.{}")
         fields = sql.SQL(", ").join(sql.Identifier(c) for c in [INTERNAL_ID_COLUMN_NAME, *columns])
         table_ident = sql.Identifier(RAWDATA_SCHEMA)
         name_ident = sql.Identifier(table_name)
@@ -412,14 +412,19 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         )
         reltuples = float(estimate["reltuples"])
         if reltuples < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
-            query = (select + sql.SQL(" ORDER BY random() LIMIT %s")).format(fields, table_ident, name_ident)
+            query = sql.SQL("SELECT {} FROM {}.{} ORDER BY random() LIMIT %s").format(fields, table_ident, name_ident)
             return list(self._storage.query(query, params=[limit], read_only=True))
 
         percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / reltuples)
-        query = (select + sql.SQL(" TABLESAMPLE SYSTEM (%s) ORDER BY random() LIMIT %s")).format(
+        query = sql.SQL("SELECT {} FROM {}.{} TABLESAMPLE SYSTEM (%s) ORDER BY random() LIMIT %s").format(
             fields, table_ident, name_ident
         )
-        return list(self._storage.query(query, params=[percent, limit], read_only=True))
+        while True:
+            result = list(self._storage.query(query, params=[percent, limit], read_only=True))
+            if len(result) >= limit or percent >= 100.0:
+                return result
+            # SYSTEM sampling picks whole pages, so a small percentage can yield fewer rows than requested.
+            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self.fetch_metadata_by_name(table_name)
