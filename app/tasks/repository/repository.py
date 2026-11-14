@@ -503,6 +503,8 @@ class Repository(postgres.TransactionalPGRepository):
         normalized = layer1.normalize_catalog_rows(catalog, columns, [list(row) for row in data])
         try:
             with self.with_tx():
+                # Skip per-row FK triggers on bulk upserts; IDs already come from layer0/rawdata.
+                self._storage.exec("SET LOCAL session_replication_role = replica")
                 layer1.save_structured_data(
                     self._storage,
                     object_cls.layer1_table(),
