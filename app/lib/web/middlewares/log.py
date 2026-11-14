@@ -80,6 +80,9 @@ class LoggingMiddleware(middlewares.BaseHTTPMiddleware):
     async def dispatch(
         self, request: fastapi.Request, call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]]
     ) -> fastapi.Response:
+        if request.url.path == "/ping":
+            return await call_next(request)
+
         structlog.contextvars.clear_contextvars()
         client_ip = _client_ip(request)
         context: dict[str, str] = {"request_id": _request_id()}

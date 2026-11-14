@@ -177,7 +177,7 @@ class WebServer:
 
         app.add_exception_handler(exceptions.RequestValidationError, validation_exception_handler)
 
-        FastAPIInstrumentor.instrument_app(app)
+        FastAPIInstrumentor.instrument_app(app, excluded_urls="/ping")
 
         app.openapi = _make_openapi(app)
 
