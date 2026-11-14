@@ -28,7 +28,8 @@ Mathematical operations:
 - Operators: {operators}
 - Functions: {functions}
 - Numbers are dimensionless
-- String literals are supported
+- String literals are supported (use quotes; bare names are not strings)
+- Expressions may span multiple lines
 - Log columns (`mag`/`dex`) yield the bare exponent; multiply by the scale yourself
 
 Available constants: {constants}.
