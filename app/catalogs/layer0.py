@@ -64,6 +64,14 @@ def touch_pgcs(storage: postgres.PgStorage, pgc_ids: Sequence[int]) -> None:
     )
 
 
+def touch_table_pgcs(storage: postgres.PgStorage, table_id: int) -> None:
+    storage.exec(
+        "INSERT INTO common.pgc_changes (pgc) SELECT DISTINCT pgc FROM layer0.records "
+        "WHERE table_id = %s AND pgc IS NOT NULL",
+        params=[table_id],
+    )
+
+
 def build_raw_table_select(
     table_name: str,
     columns: list[str] | None = None,

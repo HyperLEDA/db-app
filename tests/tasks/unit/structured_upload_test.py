@@ -25,6 +25,7 @@ class _Repo:
         self, tables: dict[tuple[str, str], postgres.TableInfo], rows: list[dict[str, Any]], total: int
     ) -> None:
         self.tables, self.rows, self.total, self.saved = tables, rows, total, []
+        self.touched: list[str] = []
 
     def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
         return self.tables[(schema, table)]
@@ -41,9 +42,12 @@ class _Repo:
         return [] if start_page > 0 else self.rows
 
     def save_structured_data(
-        self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
+        self, table_name: str, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
     ) -> None:
         self.saved.append((catalog, columns, ids, data))
+
+    def touch_table_pgcs(self, table_name: str) -> None:
+        self.touched.append(table_name)
 
 
 def _run(
@@ -126,7 +130,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         {"table_name": "raw_design", "design": 'col("design")', "write": False, "batch_size": 10},
         monkeypatch,
     )
-    assert text_repo.saved == []
+    assert text_repo.saved == [] and text_repo.touched == []
     assert previews == [[{"id": "r1", "design": "NGC 1"}, {"id": "r3", "design": "IC 10"}]]
     assert progress == [0, 99, 100]
 
@@ -151,6 +155,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10},
         monkeypatch,
     )
+    assert num_repo.touched == ["raw_icrs"]
     catalog, columns, ids, data = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]

@@ -88,6 +88,7 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             progress.update(100, "Finished")
             return
         processed = 0
+        rows_written_total = 0
         preview_sent = False
         write = bool(values["write"])
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
@@ -115,8 +116,9 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             rows_dropped = rows_read - rows_kept
             rows_written = 0
             if write and ids:
-                self.repository.save_structured_data(self._catalog, output_columns, ids, data)
+                self.repository.save_structured_data(table_name, self._catalog, output_columns, ids, data)
                 rows_written = rows_kept
+                rows_written_total += rows_written
             elif ids and not write and not preview_sent:
                 artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
                 preview_sent = True
@@ -137,6 +139,8 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 eta_s=eta_s,
             )
             progress.update(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
+        if rows_written_total:
+            self.repository.touch_table_pgcs(table_name)
         progress.update(100, "Finished")
 
 
