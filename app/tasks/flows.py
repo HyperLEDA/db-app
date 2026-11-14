@@ -347,9 +347,9 @@ def _catalog_deployment(schema: spec.CatalogSchema, environ: Mapping[str, str] |
     name = f"upload-{schema.catalog}"
     cron = cron_from_env(name, environ)
     if cron is None:
-        deployment = flow_fn.to_deployment(name=name)
+        deployment = flow_fn.to_deployment(name=name, enforce_parameter_schema=True)
     else:
-        deployment = flow_fn.to_deployment(name=name, cron=cron)
+        deployment = flow_fn.to_deployment(name=name, cron=cron, enforce_parameter_schema=True)
     parameter_schema_doc = _openapi_for_params(structured_upload.build_catalog_params_model(schema))
     deployment._parameter_openapi_schema = parameter_schema_doc  # noqa: SLF001
     if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
