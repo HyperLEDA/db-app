@@ -60,8 +60,8 @@ class Layer1Writer:
             raise NotFoundError(entity_name="catalog", entity=request.catalog) from exc
 
         object_cls = layer1.get_catalog_object_type(catalog)
-        flow_run_id = self._prefect.create_flow_run(
+        task_id = self._prefect.create_flow_run(
             name=f"{object_cls.title()}/upload-{catalog.value}",
             parameters={"params": request.params},
         )
-        return spec.StartStructuredUploadResponse(flow_run_id=flow_run_id)
+        return spec.StartStructuredUploadResponse(task_id=task_id)

@@ -165,7 +165,7 @@ class StartStructuredUploadRequest(WriteRequest):
 
 
 class StartStructuredUploadResponse(pydantic.BaseModel):
-    flow_run_id: str
+    task_id: str
 
 
 class PatchColumnSpec(pydantic.BaseModel):
