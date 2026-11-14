@@ -1,6 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, final
 
+import numpy as np
 import psycopg
 from astropy import units as u
 
@@ -15,6 +16,8 @@ from app.specs import adminapi as spec
 def _json_value(value: object) -> object:
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
+    if isinstance(value, np.generic):
+        return value.item()
     return str(value)
 
 
