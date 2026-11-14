@@ -46,7 +46,7 @@ def _log_response(r: fastapi.Response) -> dict[str, Any]:
 
 def _username(request: fastapi.Request) -> str | None:
     auth_ctx = identity_from_request(request)
-    return auth_ctx.user.login if auth_ctx is not None else None
+    return auth_ctx.login if auth_ctx is not None else None
 
 
 class LoggingMiddleware(middlewares.BaseHTTPMiddleware):

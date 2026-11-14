@@ -15,7 +15,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.lib import audit, auth
+from app.lib import audit
 from app.lib.web import errors, middlewares
 from app.lib.web.server import config
 
@@ -31,7 +31,7 @@ class Route[ReqT: pydantic.BaseModel, RespT: pydantic.BaseModel]:
     handler: Callable[..., APIOkResponse[RespT]]
     summary: str
     description: str = ""
-    allowed_roles: list[auth.Role] | None = None
+    requires_auth: bool = False
     rate_limit: str | None = None
     audit_action: bool = False
     log_request_body: bool = True
@@ -48,15 +48,13 @@ async def rate_limit_exception_handler(_request, exc: RateLimitExceeded):
     return responses.JSONResponse(err.dict(), status_code=err.status())
 
 
-def _secured_roles_map(
+def _secured_routes(
     routes: list[Route[Any, Any]],
     path_prefix: str,
-) -> dict[tuple[str, str], frozenset[auth.Role]]:
-    return {
-        (f"{path_prefix}{route.path}", route.method.value.lower()): frozenset(route.allowed_roles)
-        for route in routes
-        if route.allowed_roles is not None
-    }
+) -> frozenset[tuple[str, str]]:
+    return frozenset(
+        (f"{path_prefix}{route.path}", route.method.value.lower()) for route in routes if route.requires_auth
+    )
 
 
 def _audit_actions_map(
@@ -79,7 +77,7 @@ def _log_body_routes(
     )
 
 
-def _make_openapi(app: fastapi.FastAPI, secured: frozenset[tuple[str, str]]) -> Callable[[], dict[str, Any]]:
+def _make_openapi(app: fastapi.FastAPI) -> Callable[[], dict[str, Any]]:
     def openapi() -> dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
@@ -90,16 +88,6 @@ def _make_openapi(app: fastapi.FastAPI, secured: frozenset[tuple[str, str]]) -> 
             description=app.description,
             routes=app.routes,
         )
-        components = openapi_schema.setdefault("components", {})
-        schemes = components.setdefault("securitySchemes", {})
-        schemes.setdefault("HTTPBearer", {"type": "http", "scheme": "bearer"})
-        http_methods = frozenset({"get", "post", "put", "patch", "delete", "head", "options", "trace"})
-        for path, path_item in (openapi_schema.get("paths") or {}).items():
-            for method, operation in path_item.items():
-                if method not in http_methods:
-                    continue
-                if (path, method) in secured:
-                    operation["security"] = [{"HTTPBearer": []}]
         app.openapi_schema = openapi_schema
         return app.openapi_schema
 
@@ -112,7 +100,6 @@ class WebServer:
         routes: list[Route],
         cfg: config.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
-        authenticator: auth.Authenticator,
         auth_enabled: bool = True,
         action_recorder: audit.ActionRecorder | None = None,
     ) -> None:
@@ -129,10 +116,9 @@ class WebServer:
         )
         self.limiter = Limiter(key_func=get_remote_address)
         app.state.limiter = self.limiter
-        app.state.authenticator = authenticator
         app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
-        secured_roles = _secured_roles_map(routes, cfg.path_prefix) if auth_enabled else {}
+        secured_routes = _secured_routes(routes, cfg.path_prefix) if auth_enabled else frozenset()
         audit_actions = _audit_actions_map(routes, cfg.path_prefix)
         log_bodies = _log_body_routes(routes, cfg.path_prefix)
 
@@ -151,11 +137,11 @@ class WebServer:
                 run_id=audit.run_id,
             )
         if auth_enabled:
-            app.add_middleware(middlewares.AuthMiddleware, secured_roles=secured_roles)
+            app.add_middleware(middlewares.AuthMiddleware, secured_routes=secured_routes)
         app.add_middleware(
             cors.CORSMiddleware,
             allow_origins=cfg.allowed_origins,
-            allow_credentials=False,
+            allow_credentials=True,
             allow_headers=["Content-Type", "Authorization"],
             allow_methods=[
                 http.HTTPMethod.GET,
@@ -193,7 +179,7 @@ class WebServer:
 
         FastAPIInstrumentor.instrument_app(app)
 
-        app.openapi = _make_openapi(app, frozenset(secured_roles.keys()))
+        app.openapi = _make_openapi(app)
 
         self.app = app
         self.config = cfg

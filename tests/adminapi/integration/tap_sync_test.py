@@ -5,7 +5,7 @@ from starlette import testclient
 
 from app.adminapi import clients, domain, repository
 from app.adminapi.presentation.server import Server
-from app.lib import audit, auth
+from app.lib import audit
 from app.lib.web import server
 from tests.lib.postgres import PostgresTestStorage
 
@@ -18,8 +18,6 @@ def client(cleared_pg_storage: PostgresTestStorage) -> testclient.TestClient:
     log = structlog.get_logger()
     actions = domain.Actions(
         repo=repository.Repository(pg, log),
-        authenticator=auth.NoopAuthenticator(),
-        storage=pg,
         clients=clients.Clients(ads_token="test", prefect_api_url="http://localhost:4200/api"),
     )
     cfg = server.ServerConfig(host="127.0.0.1", port=0, path_prefix="/admin/api")
@@ -28,7 +26,6 @@ def client(cleared_pg_storage: PostgresTestStorage) -> testclient.TestClient:
             actions,
             cfg,
             log,
-            auth.NoopAuthenticator(),
             audit.NoopActionRecorder(),
             auth_enabled=False,
         ).app

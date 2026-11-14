@@ -1,5 +1,4 @@
 import http
-from typing import cast
 from unittest import mock
 
 import pydantic
@@ -7,7 +6,6 @@ import pytest
 import structlog
 from fastapi import testclient
 
-from app.lib import auth
 from app.lib.web.server.config import ServerConfig
 from app.lib.web.server.server import APIOkResponse, Route, WebServer
 
@@ -49,7 +47,7 @@ def routes(test_route: Route) -> list[Route]:
 
 
 def test_ping_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
-    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    server = WebServer(routes, config, logger)
     client = testclient.TestClient(server.app)
 
     response = client.get("/ping")
@@ -59,7 +57,7 @@ def test_ping_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[Rou
 
 
 def test_custom_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
-    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    server = WebServer(routes, config, logger)
     client = testclient.TestClient(server.app)
 
     test_data = {"message": "Hello, World!"}
@@ -70,27 +68,13 @@ def test_custom_endpoint(config: ServerConfig, logger: mock.Mock, routes: list[R
 
 
 def test_custom_endpoint_validation_error(config: ServerConfig, logger: mock.Mock, routes: list[Route]) -> None:
-    server = WebServer(routes, config, logger, auth.NoopAuthenticator())
+    server = WebServer(routes, config, logger)
     client = testclient.TestClient(server.app)
 
     invalid_data = {"invalid_field": "value"}
     response = client.post("/api/test", json=invalid_data)
 
     assert response.status_code == 400
-
-
-class _FakeAuthenticator(auth.Authenticator):
-    def __init__(self, by_token: dict[str, tuple[auth.User, bool]]) -> None:
-        self._by_token = by_token
-
-    def login(self, username: str, password: str) -> tuple[str, bool]:
-        return "", False
-
-    def authenticate(self, token: str) -> tuple[auth.User, bool]:
-        return cast(tuple[auth.User, bool], self._by_token.get(token, (None, False)))
-
-    def revoke(self, token: str) -> None:
-        pass
 
 
 @pytest.fixture
@@ -113,53 +97,30 @@ def auth_routes() -> list[Route]:
             method=http.HTTPMethod.POST,
             handler=secured_post,
             summary="secured",
-            allowed_roles=[auth.Role.ADMIN],
-        ),
-        Route(
-            path="/closed",
-            method=http.HTTPMethod.POST,
-            handler=secured_post,
-            summary="closed",
-            allowed_roles=[],
+            requires_auth=True,
         ),
     ]
 
 
-def test_public_and_role_gates(
+def test_public_and_remote_user_gates(
     config: ServerConfig,
     logger: mock.Mock,
     auth_routes: list[Route],
 ) -> None:
-    authenticator = _FakeAuthenticator(
-        {
-            "good": (auth.User(1, auth.Role.ADMIN, "admin"), True),
-        }
-    )
-    srv = WebServer(auth_routes, config, logger, authenticator, auth_enabled=True)
+    srv = WebServer(auth_routes, config, logger, auth_enabled=True)
     client = testclient.TestClient(srv.app)
 
     assert client.get("/api/pub").status_code == 200
 
     assert client.post("/api/sec", json={"message": "x"}).status_code == 401
-    assert client.post("/api/sec", json={"message": "x"}).json()["message"] == "No authorization header"
-    bad_scheme = client.post(
-        "/api/sec",
-        json={"message": "x"},
-        headers={"Authorization": "Basic abc"},
-    )
-    assert bad_scheme.status_code == 401
-    assert bad_scheme.json()["message"] == "Invalid authorization header"
-    assert client.post("/api/sec", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code == 200
-    invalid = client.post(
-        "/api/sec",
-        json={"message": "x"},
-        headers={"Authorization": "Bearer invalid"},
-    )
-    assert invalid.status_code == 401
-    assert invalid.json()["message"] == "Invalid token"
-
+    assert client.post("/api/sec", json={"message": "x"}).json()["message"] == "No authenticated user"
     assert (
-        client.post("/api/closed", json={"message": "x"}, headers={"Authorization": "Bearer good"}).status_code == 403
+        client.post(
+            "/api/sec",
+            json={"message": "x"},
+            headers={"Remote-User": "alice"},
+        ).status_code
+        == 200
     )
 
 
@@ -168,8 +129,7 @@ def test_auth_disabled_skips_middleware_gate(
     logger: mock.Mock,
     auth_routes: list[Route],
 ) -> None:
-    authenticator = _FakeAuthenticator({})
-    srv = WebServer(auth_routes, config, logger, authenticator, auth_enabled=False)
+    srv = WebServer(auth_routes, config, logger, auth_enabled=False)
     client = testclient.TestClient(srv.app)
 
     assert client.post("/api/sec", json={"message": "x"}).status_code == 200

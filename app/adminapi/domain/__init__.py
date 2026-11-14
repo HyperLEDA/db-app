@@ -1,5 +1,4 @@
 from app.adminapi.domain.actions import Actions
-from app.adminapi.domain.auth import AuthManager
 from app.adminapi.domain.crossmatch import CrossmatchManager
 from app.adminapi.domain.mock import get_mock_actions
 from app.adminapi.domain.references import ReferencesManager
@@ -11,7 +10,6 @@ __all__ = [
     "CrossmatchManager",
     "ReferencesManager",
     "get_mock_actions",
-    "AuthManager",
     "TableUploadManager",
     "SourceManager",
 ]

@@ -3,7 +3,6 @@ import http
 import structlog
 
 from app.fieldapi.presentation import interface
-from app.lib import auth
 from app.lib.web import server
 from app.specs import fieldapi as spec
 
@@ -27,7 +26,6 @@ class Server(server.WebServer):
         actions: interface.Actions,
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
-        authenticator: auth.Authenticator,
         auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
@@ -48,4 +46,4 @@ class Server(server.WebServer):
             ),
         ]
 
-        super().__init__(routes, config, logger, authenticator, auth_enabled=auth_enabled)
+        super().__init__(routes, config, logger, auth_enabled=auth_enabled)

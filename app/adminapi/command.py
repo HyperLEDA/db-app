@@ -7,7 +7,7 @@ import structlog
 import yaml
 
 from app.adminapi import clients, domain, presentation, repository
-from app.lib import audit, auth, commands, config, tracing
+from app.lib import audit, commands, config, tracing
 from app.lib.storage import enums, postgres
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
@@ -34,9 +34,6 @@ class AdminAPICommand(commands.Command):
         self.pg_storage = postgres.PgStorage(cfg.storage, log, enums.PG_ENUM_REGISTRY)
         self.pg_storage.connect()
 
-        authenticator: auth.Authenticator = (
-            auth.PostgresAuthenticator(self.pg_storage) if cfg.auth_enabled else auth.NoopAuthenticator()
-        )
         action_recorder: audit.ActionRecorder = (
             audit.PostgresActionRecorder(self.pg_storage) if cfg.auth_enabled else audit.NoopActionRecorder()
         )
@@ -45,8 +42,6 @@ class AdminAPICommand(commands.Command):
 
         actions = domain.Actions(
             repo=repo,
-            authenticator=authenticator,
-            storage=self.pg_storage,
             clients=clients.Clients(cfg.clients.ads_token, cfg.prefect.api_url),
         )
 
@@ -54,7 +49,6 @@ class AdminAPICommand(commands.Command):
             actions,
             cfg.server,
             log,
-            authenticator,
             action_recorder,
             auth_enabled=cfg.auth_enabled,
         )

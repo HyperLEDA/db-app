@@ -29,7 +29,6 @@ def client() -> testclient.TestClient:
         routes,
         ServerConfig(port=8000, host="127.0.0.1"),
         structlog.get_logger(),
-        authenticator=None,
         auth_enabled=False,
     )
     return testclient.TestClient(srv.app)

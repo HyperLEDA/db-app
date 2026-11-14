@@ -59,8 +59,8 @@ class ActionMiddleware(middlewares.BaseHTTPMiddleware):
         self,
         app: types.ASGIApp,
         tracked_actions: Mapping[tuple[str, str], str],
-        record_action: Callable[[int, str, str | None, dict[str, object] | None], None],
-        run_id: Callable[[int, str, str], str],
+        record_action: Callable[[str, str, str | None, dict[str, object] | None], None],
+        run_id: Callable[[str, str, str], str],
     ) -> None:
         self._tracked_actions = tracked_actions
         self._record_action = record_action
@@ -77,21 +77,21 @@ class ActionMiddleware(middlewares.BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_ctx = identity_from_request(request)
-        user_id = auth_ctx.user.user_id if auth_ctx is not None else None
+        username = auth_ctx.login if auth_ctx is not None else None
 
         parsed_body = _parsed_body(await request.body())
         action_description = _action_description_from_body(parsed_body)
         truncated_request = _truncated_request_from_body(parsed_body)
         resolved_run_id = (
-            self._run_id(user_id, method_name, action_description)
-            if user_id is not None and action_description
+            self._run_id(username, method_name, action_description)
+            if username is not None and action_description
             else None
         )
 
         with run_span(resolved_run_id, method_name):
             response = await call_next(request)
 
-        if user_id is not None:
-            self._record_action(user_id, method_name, action_description, truncated_request)
+        if username is not None:
+            self._record_action(username, method_name, action_description, truncated_request)
 
         return response
