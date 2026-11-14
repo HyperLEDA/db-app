@@ -159,6 +159,15 @@ class SaveStructuredDataResponse(pydantic.BaseModel):
     pass
 
 
+class StartStructuredUploadRequest(WriteRequest):
+    catalog: str
+    params: dict[str, Any]
+
+
+class StartStructuredUploadResponse(pydantic.BaseModel):
+    flow_run_id: str
+
+
 class PatchColumnSpec(pydantic.BaseModel):
     ucd: str | None = None
     unit: str | None = None
@@ -354,15 +363,6 @@ class MergePgcsResponse(pydantic.BaseModel):
     target_pgc: int
     merged_pgcs: list[int]
     reassigned_records: int
-
-
-class StartStructuredUploadRequest(WriteRequest):
-    catalog: str
-    params: dict[str, Any]
-
-
-class StartStructuredUploadResponse(pydantic.BaseModel):
-    flow_run_id: str
 
 
 class CatalogField(pydantic.BaseModel):

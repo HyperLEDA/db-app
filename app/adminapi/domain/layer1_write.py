@@ -1,15 +1,20 @@
+from typing import final
+
 import psycopg
 from astropy import units as u
 
 from app.adminapi import repository
+from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer1
-from app.lib.web.errors import RuleValidationError
+from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
 
+@final
 class Layer1Writer:
-    def __init__(self, repo: repository.Repository) -> None:
+    def __init__(self, repo: repository.Repository, prefect: PrefectClient) -> None:
         self._repo = repo
+        self._prefect = prefect
 
     def save_data(self, request: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         catalog = layer1.Catalog(request.catalog)
@@ -47,3 +52,16 @@ class Layer1Writer:
             raise RuleValidationError(layer1.format_foreign_key_violation(e)) from e
 
         return spec.SaveStructuredDataResponse()
+
+    def start_upload(self, request: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        try:
+            catalog = layer1.Catalog(request.catalog)
+        except ValueError as exc:
+            raise NotFoundError(entity_name="catalog", entity=request.catalog) from exc
+
+        object_cls = layer1.get_catalog_object_type(catalog)
+        flow_run_id = self._prefect.create_flow_run(
+            name=f"{object_cls.title()}/upload-{catalog.value}",
+            parameters={"params": request.params},
+        )
+        return spec.StartStructuredUploadResponse(flow_run_id=flow_run_id)

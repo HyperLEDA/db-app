@@ -9,7 +9,6 @@ from app.adminapi.domain import (
     pgc,
     references,
     sources,
-    structured_upload,
     table_upload,
 )
 from app.adminapi.presentation import interface
@@ -45,9 +44,8 @@ class Actions(interface.Actions):
         )
         self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
         self.pgc_manager = pgc.PgcManager(repo)
-        self.layer1_writer = layer1_write.Layer1Writer(repo)
+        self.layer1_writer = layer1_write.Layer1Writer(repo, clients.prefect)
         self.catalog_manager = catalogs.CatalogManager(repo)
-        self.structured_upload_manager = structured_upload.StructuredUploadManager(clients.prefect)
         self.references_manager = references.ReferencesManager(repo)
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
@@ -86,6 +84,9 @@ class Actions(interface.Actions):
     def save_structured_data(self, r: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         return self.layer1_writer.save_data(r)
 
+    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        return self.layer1_writer.start_upload(r)
+
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)
 
@@ -94,9 +95,6 @@ class Actions(interface.Actions):
 
     def merge_pgcs(self, r: spec.MergePgcsRequest) -> spec.MergePgcsResponse:
         return self.pgc_manager.merge_pgcs(r)
-
-    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
-        return self.structured_upload_manager.start(r)
 
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         result = self._repo.query_with_metadata(
