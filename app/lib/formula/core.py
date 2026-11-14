@@ -5,10 +5,10 @@ from typing import final
 
 from astropy import units as u
 
-from app.tasks.formula.errors import ExpressionEvaluationError, ExpressionSyntaxError
-from app.tasks.formula.namespace import build_namespace
-from app.tasks.formula.validate import diagnose_expression
-from app.tasks.formula.values import Value
+from app.lib.formula.errors import ExpressionEvaluationError, ExpressionSyntaxError
+from app.lib.formula.namespace import build_namespace
+from app.lib.formula.validate import diagnose_expression
+from app.lib.formula.values import Value
 
 
 @final

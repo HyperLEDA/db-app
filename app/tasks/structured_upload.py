@@ -2,30 +2,14 @@ import time
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import numpy as np
 import pydantic
 import structlog
-from astropy import units as u
 
 from app.catalogs import layer0, layer1
+from app.lib import formula
 from app.specs import adminapi as spec
-from app.tasks import artifacts, formula, layer2_common, repository
+from app.tasks import artifacts, layer2_common, repository
 
-_FLOAT_TYPES = frozenset({"float", "double", "double precision", "real", "number"})
-_INT_TYPES = frozenset(
-    {
-        "short",
-        "int",
-        "long",
-        "integer",
-        "smallint",
-        "unsignedLong",
-        "unsignedInt",
-        "unsignedShort",
-        "unsignedByte",
-        "positiveInteger",
-    }
-)
 _RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size"})
 _PREVIEW_ROWS = 5
 
@@ -94,7 +78,9 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         _require_columns(table_name, needed, set(raw_info.columns))
         column_units = {name: col.unit for name, col in raw_info.columns.items() if col.unit}
         output_columns = [field.name for field in schema.fields if field.name in expressions]
-        fields_by_name = {field.name: field for field in schema.fields}
+        fields_by_name = {
+            field.name: formula.OutputField(field.name, field.data_type.value, field.unit) for field in schema.fields
+        }
         progress = artifacts.ProgressTracker()
         progress.update(0, "Reading raw data")
         total = self.repository.get_table_record_count(table_name)
@@ -115,13 +101,14 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 table_name, fetch_columns, start_page, start_page + pages_per_batch
             )
             processed += len(rows)
-            ids, data = _evaluate_batch(
+            ids, data = formula.evaluate_batch(
                 rows,
                 output_columns,
                 expressions,
                 parsed,
                 fields_by_name,
                 column_units,
+                layer0.INTERNAL_ID_COLUMN_NAME,
             )
             rows_read = len(rows)
             rows_kept = len(ids)
@@ -190,131 +177,3 @@ def _require_columns(table_name: str, needed: set[str], available: set[str]) -> 
     missing = sorted(needed - available)
     if missing:
         raise RuntimeError(f"columns not found in {table_name}: {', '.join(missing)}")
-
-
-def _evaluate_batch(
-    rows: Sequence[Mapping[str, Any]],
-    output_columns: Sequence[str],
-    expressions: Mapping[str, str],
-    parsed: Mapping[str, formula.Expression],
-    fields_by_name: Mapping[str, spec.CatalogField],
-    column_units: Mapping[str, str],
-) -> tuple[list[str], list[list[Any]]]:
-    referenced = sorted(set().union(*(expr.referenced_columns for expr in parsed.values())))
-    keep = np.ones(len(rows), dtype=bool)
-    for column in referenced:
-        keep &= np.fromiter((row.get(column) is not None for row in rows), dtype=bool, count=len(rows))
-    kept = [row for row, flag in zip(rows, keep, strict=True) if flag]
-    if not kept:
-        return [], []
-
-    ids = [str(row[layer0.INTERNAL_ID_COLUMN_NAME]) for row in kept]
-    columns = {
-        column: formula.column_quantity([row[column] for row in kept], column_units.get(column, ""))
-        for column in referenced
-    }
-    results = [
-        _evaluate_field(fields_by_name[name], expressions[name], parsed[name], columns, column_units, kept, ids)
-        for name in output_columns
-    ]
-    return ids, [list(row) for row in zip(*results, strict=True)]
-
-
-def _evaluate_field(
-    field: spec.CatalogField,
-    source: str,
-    expression: formula.Expression,
-    columns: Mapping[str, formula.Value],
-    column_units: Mapping[str, str],
-    rows: Sequence[Mapping[str, Any]],
-    ids: Sequence[str],
-) -> list[Any]:
-    if field.data_type.value in _FLOAT_TYPES or field.data_type.value in _INT_TYPES:
-        return _evaluate_numeric(field, source, expression, columns, column_units, rows, ids)
-    return _evaluate_text(field, source, expression, columns, column_units, len(rows))
-
-
-def _evaluate_numeric(
-    field: spec.CatalogField,
-    source: str,
-    expression: formula.Expression,
-    columns: Mapping[str, formula.Value],
-    column_units: Mapping[str, str],
-    rows: Sequence[Mapping[str, Any]],
-    ids: Sequence[str],
-) -> list[Any]:
-    size = len(rows)
-    try:
-        with np.errstate(all="ignore"):
-            quantity = _as_quantity(formula.evaluate(expression, columns))
-    except (formula.ExpressionEvaluationError, ValueError, u.UnitConversionError) as e:
-        raise RuntimeError(
-            f"failed to evaluate {field.name!r} ({source!r}){_context(expression, column_units)}: {e}"
-        ) from e
-    target = u.Unit(field.unit) if field.unit else u.Unit("")
-    try:
-        converted = np.asarray(quantity.to_value(target), dtype=float)
-        if converted.shape == ():
-            converted = np.full(size, converted.item())
-        elif converted.shape != (size,):
-            raise ValueError("expression must evaluate to a scalar value per row")
-    except (ValueError, u.UnitConversionError) as e:
-        raise RuntimeError(
-            f"failed to convert {field.name!r} ({source!r}) to {field.unit or 'dimensionless'}"
-            f"{_context(expression, column_units)}: {e}"
-        ) from e
-    _check_finite(field, source, expression, converted, rows, ids)
-    if field.data_type.value in _INT_TYPES:
-        return converted.astype(np.int64).tolist()
-    return converted.tolist()
-
-
-def _check_finite(
-    field: spec.CatalogField,
-    source: str,
-    expression: formula.Expression,
-    values: np.ndarray,
-    rows: Sequence[Mapping[str, Any]],
-    ids: Sequence[str],
-) -> None:
-    bad = np.flatnonzero(~np.isfinite(values))
-    if len(bad) == 0:
-        return
-    first = int(bad[0])
-    inputs = ", ".join(f"{column}={rows[first][column]!r}" for column in sorted(expression.referenced_columns))
-    raise RuntimeError(
-        f"{field.name!r} ({source!r}) produced {len(bad)} non-finite value(s) out of {len(values)} rows; "
-        f"first at record {ids[first]}, value {values[first]!r}" + (f", inputs: {inputs}" if inputs else "")
-    )
-
-
-def _evaluate_text(
-    field: spec.CatalogField,
-    source: str,
-    expression: formula.Expression,
-    columns: Mapping[str, formula.Value],
-    column_units: Mapping[str, str],
-    size: int,
-) -> list[str]:
-    try:
-        with np.errstate(all="ignore"):
-            return formula.value_to_str_list(formula.evaluate(expression, columns), size)
-    except (formula.ExpressionEvaluationError, ValueError, TypeError) as e:
-        raise RuntimeError(
-            f"failed to evaluate {field.name!r} ({source!r}){_context(expression, column_units)}: {e}"
-        ) from e
-
-
-def _context(expression: formula.Expression, column_units: Mapping[str, str]) -> str:
-    if not expression.referenced_columns:
-        return ""
-    parts = [f"{column}={column_units.get(column, '')!r}" for column in sorted(expression.referenced_columns)]
-    return f"; columns: {', '.join(parts)}"
-
-
-def _as_quantity(value: object) -> u.Quantity:
-    if isinstance(value, u.Quantity):
-        return value
-    if isinstance(value, (np.ndarray, np.number, int, float)) and np.asarray(value).dtype.kind in "fiu":
-        return np.asarray(value, dtype=float) * u.Unit("")
-    raise ValueError(f"numeric expression must evaluate to a quantity, got {type(value).__name__}")

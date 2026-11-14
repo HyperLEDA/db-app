@@ -25,6 +25,8 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 _INTEGER_TYPE_NAMES = {"int2", "int4", "int8"}
+_TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
+_TABLESAMPLE_OVERSAMPLING = 3
 
 
 def _copy_column(series: pandas.Series, pg_type_name: str) -> list[Any]:
@@ -389,6 +391,42 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
             for raw in raw_rows:
                 original_by_id[str(raw[id_col])] = _row_to_serializable_dict(raw, drop=[id_col])
         return original_by_id
+
+    def sample_rawdata(
+        self,
+        table_name: str,
+        columns: Sequence[str],
+        limit: int,
+        random: bool,
+    ) -> list[dict[str, Any]]:
+        select = sql.SQL("SELECT {} FROM {}.{}")
+        fields = sql.SQL(", ").join(sql.Identifier(c) for c in [INTERNAL_ID_COLUMN_NAME, *columns])
+        table_ident = sql.Identifier(RAWDATA_SCHEMA)
+        name_ident = sql.Identifier(table_name)
+
+        if not random:
+            query = (select + sql.SQL(" ORDER BY {} LIMIT %s")).format(
+                fields, table_ident, name_ident, sql.Identifier(INTERNAL_ID_COLUMN_NAME)
+            )
+            return list(self._storage.query(query, params=[limit], read_only=True))
+
+        estimate = self._storage.query_one(
+            """
+            SELECT reltuples FROM pg_class
+            WHERE oid = to_regclass(format('%%I.%%I', %s::text, %s::text))
+            """,
+            params=[RAWDATA_SCHEMA, table_name],
+        )
+        reltuples = float(estimate["reltuples"])
+        if reltuples < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
+            query = (select + sql.SQL(" ORDER BY random() LIMIT %s")).format(fields, table_ident, name_ident)
+            return list(self._storage.query(query, params=[limit], read_only=True))
+
+        percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / reltuples)
+        query = (select + sql.SQL(" TABLESAMPLE SYSTEM (%s) ORDER BY random() LIMIT %s")).format(
+            fields, table_ident, name_ident
+        )
+        return list(self._storage.query(query, params=[percent, limit], read_only=True))
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self.fetch_metadata_by_name(table_name)

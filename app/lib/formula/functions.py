@@ -8,7 +8,7 @@ import numpy as np
 from astropy import coordinates
 from astropy import units as u
 
-from app.tasks.formula import values
+from app.lib.formula import values
 
 
 @final

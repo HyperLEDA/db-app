@@ -111,6 +111,13 @@ class API:
         response = self.actions.start_structured_upload(request)
         return server.APIOkResponse(data=response)
 
+    def preview_structured_upload(
+        self,
+        request: spec.PreviewStructuredUploadRequest,
+    ) -> server.APIOkResponse[spec.PreviewStructuredUploadResponse]:
+        response = self.actions.preview_structured_upload(request)
+        return server.APIOkResponse(data=response)
+
     def set_crossmatch_results(
         self,
         request: spec.SetCrossmatchResultsRequest,
@@ -458,6 +465,15 @@ For every column that has unit metadata in the database, the request must includ
                 """Start a Prefect task to upload data from a layer 0 table into a layer 1 catalog.""",
                 allowed_roles=admin_only,
                 audit_action=True,
+            ),
+            server.Route(
+                "/v1/data/structured/preview",
+                http.HTTPMethod.POST,
+                api.preview_structured_upload,
+                "Preview structured catalog upload",
+                """Evaluate catalog field expressions on a sample of rows of a layer 0 table without writing anything.
+Syntax errors and missing columns are reported per field in `errors`; other fields are still evaluated.""",
+                allowed_roles=admin_only,
             ),
             server.Route(
                 "/v1/tap/sync",

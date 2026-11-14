@@ -5,8 +5,8 @@ from typing import Annotated, final
 import pydantic
 from pydantic_core import PydanticCustomError
 
-from app.tasks.formula.constants import NAMED_CONSTANTS
-from app.tasks.formula.functions import COL_FUNCTION, FUNCTIONS
+from app.lib.formula.constants import NAMED_CONSTANTS
+from app.lib.formula.functions import COL_FUNCTION, FUNCTIONS
 
 
 @final

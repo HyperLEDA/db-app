@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 
-from app.tasks.formula.constants import NAMED_CONSTANTS
-from app.tasks.formula.functions import COL_FUNCTION, FUNCTIONS
-from app.tasks.formula.operators import OPERATORS
-from app.tasks.formula.values import Value
+from app.lib.formula.constants import NAMED_CONSTANTS
+from app.lib.formula.functions import COL_FUNCTION, FUNCTIONS
+from app.lib.formula.operators import OPERATORS
+from app.lib.formula.values import Value
 
 
 def build_namespace(columns: Mapping[str, Value]) -> dict[str, object]:

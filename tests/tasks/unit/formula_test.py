@@ -5,7 +5,7 @@ import pydantic
 import pytest
 from astropy import units as u
 
-from app.tasks import formula
+from app.lib import formula
 
 
 def test_parse_validation_and_helpers() -> None:
