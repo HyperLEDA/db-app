@@ -104,6 +104,13 @@ class API:
         response = self.actions.save_structured_data(request)
         return server.APIOkResponse(data=response)
 
+    def start_structured_upload(
+        self,
+        request: spec.StartStructuredUploadRequest,
+    ) -> server.APIOkResponse[spec.StartStructuredUploadResponse]:
+        response = self.actions.start_structured_upload(request)
+        return server.APIOkResponse(data=response)
+
     def set_crossmatch_results(
         self,
         request: spec.SetCrossmatchResultsRequest,
@@ -440,6 +447,15 @@ For every column that has unit metadata in the database, the request must includ
 }
 ```
 """,
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/data/structured/upload",
+                http.HTTPMethod.POST,
+                api.start_structured_upload,
+                "Start structured catalog upload",
+                """Start a Prefect task to upload data from a layer 0 table into a layer 1 catalog.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

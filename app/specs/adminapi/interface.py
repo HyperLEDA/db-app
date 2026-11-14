@@ -159,6 +159,15 @@ class SaveStructuredDataResponse(pydantic.BaseModel):
     pass
 
 
+class StartStructuredUploadRequest(WriteRequest):
+    catalog: str
+    params: dict[str, Any]
+
+
+class StartStructuredUploadResponse(pydantic.BaseModel):
+    task_id: str
+
+
 class PatchColumnSpec(pydantic.BaseModel):
     ucd: str | None = None
     unit: str | None = None

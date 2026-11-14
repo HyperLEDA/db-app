@@ -2,7 +2,15 @@ from typing import final
 
 from app.adminapi import clients, repository
 from app.adminapi.domain import auth as admin_auth
-from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, references, sources, table_upload
+from app.adminapi.domain import (
+    catalogs,
+    crossmatch,
+    layer1_write,
+    pgc,
+    references,
+    sources,
+    table_upload,
+)
 from app.adminapi.presentation import interface
 from app.lib import auth
 from app.lib.storage import postgres
@@ -36,7 +44,7 @@ class Actions(interface.Actions):
         )
         self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
         self.pgc_manager = pgc.PgcManager(repo)
-        self.layer1_writer = layer1_write.Layer1Writer(repo)
+        self.layer1_writer = layer1_write.Layer1Writer(repo, clients.prefect)
         self.catalog_manager = catalogs.CatalogManager(repo)
         self.references_manager = references.ReferencesManager(repo)
 
@@ -75,6 +83,9 @@ class Actions(interface.Actions):
 
     def save_structured_data(self, r: spec.SaveStructuredDataRequest) -> spec.SaveStructuredDataResponse:
         return self.layer1_writer.save_data(r)
+
+    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        return self.layer1_writer.start_upload(r)
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)

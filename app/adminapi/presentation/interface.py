@@ -53,6 +53,10 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        pass
+
+    @abc.abstractmethod
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         pass
 
