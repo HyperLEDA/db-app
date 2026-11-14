@@ -1,4 +1,5 @@
-from collections.abc import Callable, Mapping, Sequence
+import time
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -8,7 +9,7 @@ from astropy import units as u
 
 from app.catalogs import layer0, layer1
 from app.specs import adminapi as spec
-from app.tasks import formula, layer2_common, repository
+from app.tasks import artifacts, formula, layer2_common, repository
 
 _FLOAT_TYPES = frozenset({"float", "double", "double precision", "real", "number"})
 _INT_TYPES = frozenset(
@@ -27,9 +28,6 @@ _INT_TYPES = frozenset(
 )
 _RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size"})
 _PREVIEW_ROWS = 5
-
-ProgressCallback = Callable[[float, str], None]
-PreviewCallback = Callable[[list[dict[str, Any]], str], None]
 
 
 def build_catalog_schema(repo: repository.Repository, catalog: layer1.Catalog) -> spec.CatalogSchema:
@@ -60,7 +58,7 @@ def build_catalog_params_model(schema: spec.CatalogSchema) -> type[pydantic.Base
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(description=description))
         else:
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(default="", description=description))
-    field_defs["write"] = (bool, pydantic.Field(default=False, description="Write rows into the catalog"))
+    field_defs["write"] = (bool, pydantic.Field(default=True, description="Write rows into the catalog"))
     field_defs["batch_size"] = (
         int,
         pydantic.Field(default=10_000, ge=1, le=500_000, description="Rows read per batch"),
@@ -75,14 +73,10 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         logger: structlog.stdlib.BoundLogger,
         catalog: layer1.Catalog,
         params: Mapping[str, Any],
-        on_progress: ProgressCallback | None = None,
-        on_preview_table: PreviewCallback | None = None,
     ) -> None:
         super().__init__(logger)
         self._catalog = catalog
         self._params = dict(params)
-        self._on_progress = on_progress
-        self._on_preview_table = on_preview_table
 
     @classmethod
     def name(cls) -> str:
@@ -101,17 +95,22 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         column_units = {name: col.unit for name, col in raw_info.columns.items() if col.unit}
         output_columns = [field.name for field in schema.fields if field.name in expressions]
         fields_by_name = {field.name: field for field in schema.fields}
-        self._report(0, "Reading raw data")
+        progress = artifacts.ProgressTracker()
+        progress.update(0, "Reading raw data")
         total = self.repository.get_table_record_count(table_name)
         if total == 0:
-            self._report(100, "Finished")
+            progress.update(100, "Finished")
             return
         processed = 0
         preview_sent = False
+        write = bool(values["write"])
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
         total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
         pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
+        run_started = time.perf_counter()
         for start_page in range(0, total_pages, pages_per_batch):
+            pages = min(pages_per_batch, total_pages - start_page)
+            batch_started = time.perf_counter()
             rows = self.repository.fetch_rawdata_pages(
                 table_name, fetch_columns, start_page, start_page + pages_per_batch
             )
@@ -124,29 +123,44 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 fields_by_name,
                 column_units,
             )
-            if values["write"] and ids:
+            rows_read = len(rows)
+            rows_kept = len(ids)
+            rows_dropped = rows_read - rows_kept
+            rows_written = 0
+            if write and ids:
                 self.repository.save_structured_data(self._catalog, output_columns, ids, data)
-            elif ids and not values["write"] and not preview_sent:
-                self._emit_preview(output_columns, ids, data)
+                rows_written = rows_kept
+            elif ids and not write and not preview_sent:
+                artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
                 preview_sent = True
             pages_done = min(start_page + pages_per_batch, total_pages)
-            self._report(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
-        self._report(100, "Finished")
+            elapsed_s = time.perf_counter() - run_started
+            eta_s = round(elapsed_s * (total_pages - pages_done) / pages_done) if pages_done < total_pages else 0
+            self.log.info(
+                "Processed batch",
+                start_page=start_page,
+                pages=pages,
+                rows_read=rows_read,
+                rows_kept=rows_kept,
+                rows_dropped=rows_dropped,
+                rows_written=rows_written,
+                processed=processed,
+                total=total,
+                duration_ms=round((time.perf_counter() - batch_started) * 1000, 1),
+                eta_s=eta_s,
+            )
+            progress.update(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
+        progress.update(100, "Finished")
 
-    def _report(self, progress: float, description: str) -> None:
-        if self._on_progress is not None:
-            self._on_progress(progress, description)
 
-    def _emit_preview(self, columns: Sequence[str], ids: Sequence[str], data: Sequence[Sequence[Any]]) -> None:
-        if self._on_preview_table is None:
-            return
-        rows: list[dict[str, Any]] = []
-        for index in range(min(_PREVIEW_ROWS, len(ids))):
-            row: dict[str, Any] = {"id": ids[index]}
-            for name, value in zip(columns, data[index], strict=True):
-                row[name] = value
-            rows.append(row)
-        self._on_preview_table(rows, "Dry-run preview")
+def _preview_rows(columns: Sequence[str], ids: Sequence[str], data: Sequence[Sequence[Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index in range(min(_PREVIEW_ROWS, len(ids))):
+        row: dict[str, Any] = {"id": ids[index]}
+        for name, value in zip(columns, data[index], strict=True):
+            row[name] = value
+        rows.append(row)
+    return rows
 
 
 def _field_description(field: spec.CatalogField) -> str:

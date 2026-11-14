@@ -17,7 +17,7 @@ from app import tasks
 from app.catalogs import layer1
 from app.lib import structlog_config, tracing
 from app.specs import adminapi as spec
-from app.tasks import artifacts, formula, structured_upload
+from app.tasks import formula, structured_upload
 
 _tracer = trace.get_tracer("tasks")
 
@@ -289,14 +289,7 @@ def refresh_table_stats() -> None:
 
 def run_structured_upload(catalog: layer1.Catalog, params: Mapping[str, Any]) -> None:
     log = _flow_logger()
-    tracker = artifacts.ProgressTracker()
-    task = structured_upload.StructuredCatalogUploadTask(
-        log,
-        catalog,
-        params,
-        on_progress=tracker.update,
-        on_preview_table=artifacts.emit_preview_table,
-    )
+    task = structured_upload.StructuredCatalogUploadTask(log, catalog, params)
     _execute_task(task, "tasks.structured_upload", {"task.catalog": catalog.value})
 
 

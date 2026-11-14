@@ -46,17 +46,16 @@ class _Repo:
 
 
 def _run(
-    catalog: layer1.Catalog, repo: _Repo, params: dict[str, Any]
+    catalog: layer1.Catalog,
+    repo: _Repo,
+    params: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[list[float], list[list[dict[str, Any]]]]:
     progress: list[float] = []
     previews: list[list[dict[str, Any]]] = []
-    task = structured_upload.StructuredCatalogUploadTask(
-        structlog.get_logger(),
-        catalog,
-        params,
-        on_progress=lambda value, _: progress.append(value),
-        on_preview_table=lambda rows, _: previews.append(rows),
-    )
+    monkeypatch.setattr(artifacts.ProgressTracker, "update", lambda self, value, _: progress.append(value))
+    monkeypatch.setattr(artifacts, "emit_preview_table", lambda rows, _: previews.append(rows))
+    task = structured_upload.StructuredCatalogUploadTask(structlog.get_logger(), catalog, params)
     task.repository = repo
     task.run()
     return progress, previews
@@ -87,7 +86,7 @@ def _evaluate(
     )
 
 
-def test_params_model_and_upload_paths() -> None:
+def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     schema = spec.CatalogSchema(
         catalog="icrs",
         title="ICRS",
@@ -101,7 +100,7 @@ def test_params_model_and_upload_paths() -> None:
     with pytest.raises(pydantic.ValidationError):
         model.model_validate({"table_name": "raw", "ra": "col("})
     form = model.model_validate({"table_name": "raw", "ra": 'col("ra")'})
-    assert form.note == "" and form.write is False and form.batch_size == 10_000
+    assert form.note == "" and form.write is True and form.batch_size == 10_000
 
     text_repo = _Repo(
         {
@@ -123,6 +122,7 @@ def test_params_model_and_upload_paths() -> None:
         layer1.Catalog.DESIGNATION,
         text_repo,
         {"table_name": "raw_design", "design": 'col("design")', "write": False, "batch_size": 10},
+        monkeypatch,
     )
     assert text_repo.saved == []
     assert previews == [[{"id": "r1", "design": "NGC 1"}, {"id": "r3", "design": "IC 10"}]]
@@ -144,7 +144,10 @@ def test_params_model_and_upload_paths() -> None:
         2,
     )
     progress, previews = _run(
-        layer1.Catalog.ICRS, num_repo, {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10}
+        layer1.Catalog.ICRS,
+        num_repo,
+        {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10},
+        monkeypatch,
     )
     catalog, columns, ids, data = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])

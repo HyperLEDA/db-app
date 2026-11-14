@@ -71,26 +71,26 @@ def _run(
     *,
     write: bool,
     batch_size: int = 10,
-    monkeypatch: pytest.MonkeyPatch | None = None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[list[list[dict[str, object]]], list[list[str]]]:
     batches: list[list[str]] = []
-    if monkeypatch is not None:
-        original = repository.Repository.fetch_rawdata_pages
+    original = repository.Repository.fetch_rawdata_pages
 
-        def spy(self: repository.Repository, *args: object, **kwargs: object) -> list[dict[str, object]]:
-            rows = original(self, *args, **kwargs)
-            batches.append([str(row["hyperleda_internal_id"]) for row in rows])
-            return rows
+    def spy(self: repository.Repository, *args: object, **kwargs: object) -> list[dict[str, object]]:
+        rows = original(self, *args, **kwargs)
+        batches.append([str(row["hyperleda_internal_id"]) for row in rows])
+        return rows
 
-        monkeypatch.setattr(repository.Repository, "fetch_rawdata_pages", spy)
+    monkeypatch.setattr(repository.Repository, "fetch_rawdata_pages", spy)
 
     repo = repository.Repository(pg_storage.storage, structlog.get_logger())
     previews: list[list[dict[str, object]]] = []
+    monkeypatch.setattr("app.tasks.artifacts.ProgressTracker.update", lambda self, value, description: None)
+    monkeypatch.setattr("app.tasks.artifacts.emit_preview_table", lambda rows, _: previews.append(rows))
     task = structured_upload.StructuredCatalogUploadTask(
         structlog.get_logger(),
         layer1.Catalog.DESIGNATION,
         _params(repo, table_name, write=write, batch_size=batch_size),
-        on_preview_table=lambda rows, _: previews.append(rows),
     )
     task.prepare(tasks.Config(storage=pg_storage.config))
     try:
@@ -101,7 +101,9 @@ def _run(
 
 
 @pytest.mark.parametrize("write", [False, True])
-def test_schema_dry_run_and_write(pg_storage: PostgresTestStorage, write: bool) -> None:
+def test_schema_dry_run_and_write(
+    pg_storage: PostgresTestStorage, write: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
     if not write:
         repo = repository.Repository(pg_storage.storage, structlog.get_logger())
         names = [f.name for f in structured_upload.build_catalog_schema(repo, layer1.Catalog.DESIGNATION).fields]
@@ -109,7 +111,7 @@ def test_schema_dry_run_and_write(pg_storage: PostgresTestStorage, write: bool) 
 
     table_name = f"upload_{'write' if write else 'dry'}"
     pgc = _seed(pg_storage, table_name)
-    previews, _ = _run(pg_storage, table_name, write=write)
+    previews, _ = _run(pg_storage, table_name, write=write, monkeypatch=monkeypatch)
     stored = pg_storage.storage.query("SELECT record_id, design FROM designation.data ORDER BY record_id")
     modified = pg_storage.storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s", params=[table_name]
