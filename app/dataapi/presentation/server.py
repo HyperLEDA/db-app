@@ -5,7 +5,6 @@ import fastapi
 import structlog
 
 from app.dataapi.presentation import interface
-from app.lib import auth
 from app.lib.web import server
 from app.specs import dataapi as spec
 
@@ -106,4 +105,4 @@ When coordinates are specified, results are sorted by increasing distance to the
             ),
         ]
 
-        super().__init__(routes, config, logger, auth.NoopAuthenticator(), auth_enabled=False)
+        super().__init__(routes, config, logger, auth_enabled=False)

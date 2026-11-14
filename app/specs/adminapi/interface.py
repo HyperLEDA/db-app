@@ -238,35 +238,6 @@ class CreateSourceResponse(pydantic.BaseModel):
     code: str
 
 
-class LoginRequest(pydantic.BaseModel):
-    username: str
-    password: str
-
-
-class LoginResponse(pydantic.BaseModel):
-    token: str = pydantic.Field(
-        description="Token used to authenticate user in handlers that require a specific role to access",
-    )
-
-
-class LogoutRequest(pydantic.BaseModel):
-    pass
-
-
-class LogoutResponse(pydantic.BaseModel):
-    pass
-
-
-class RegisterRequest(pydantic.BaseModel):
-    username: str
-    email: str
-    password: str
-
-
-class RegisterResponse(pydantic.BaseModel):
-    pass
-
-
 class NewStatusPayload(pydantic.BaseModel):
     record_ids: list[str]
     triage_statuses: list[enums.RecordTriageStatus | None] = []

@@ -6,7 +6,6 @@ import structlog
 from fastapi import testclient
 from starlette.middleware import base as middlewares
 
-from app.lib import auth
 from app.lib.web.middlewares.auth import AUTH_CTX_STATE_ATTR, AuthContext
 from app.lib.web.middlewares.log import LoggingMiddleware
 
@@ -151,12 +150,12 @@ def test_logs_request_body_only_for_configured_routes() -> None:
         log_bodies={("/admin/api/v1/source", "post")},
     )
 
-    app.add_api_route("/admin/api/v1/login", endpoint=lambda: {"ok": True}, methods=["POST"])
+    app.add_api_route("/admin/api/v1/ping-body", endpoint=lambda: {"ok": True}, methods=["POST"])
     app.add_api_route("/admin/api/v1/source", endpoint=lambda: {"ok": True}, methods=["POST"])
 
     client = testclient.TestClient(app)
-    login_response = client.post(
-        "/admin/api/v1/login",
+    ping_response = client.post(
+        "/admin/api/v1/ping-body",
         json={"username": "alice", "password": "secret"},
     )
     source_response = client.post(
@@ -164,11 +163,11 @@ def test_logs_request_body_only_for_configured_routes() -> None:
         json={"title": "t"},
     )
 
-    assert login_response.status_code == 200
+    assert ping_response.status_code == 200
     assert source_response.status_code == 200
-    login_log = logger.info.call_args_list[0].kwargs
+    ping_log = logger.info.call_args_list[0].kwargs
     source_log = logger.info.call_args_list[2].kwargs
-    assert "body" not in login_log
+    assert "body" not in ping_log
     assert "body" in source_log
 
 
@@ -181,6 +180,6 @@ class _AuthStubMiddleware(middlewares.BaseHTTPMiddleware):
         setattr(
             request.state,
             AUTH_CTX_STATE_ATTR,
-            AuthContext(user=auth.User(1, auth.Role.ADMIN, "alice"), token="token"),
+            AuthContext(login="alice"),
         )
         return await call_next(request)

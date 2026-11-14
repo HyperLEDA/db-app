@@ -33,18 +33,6 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def login(self, r: spec.LoginRequest) -> spec.LoginResponse:
-        pass
-
-    @abc.abstractmethod
-    def logout(self, token: str) -> spec.LogoutResponse:
-        pass
-
-    @abc.abstractmethod
-    def register(self, r: spec.RegisterRequest) -> spec.RegisterResponse:
-        pass
-
-    @abc.abstractmethod
     def get_records(self, r: spec.GetRecordsRequest) -> spec.GetRecordsResponse:
         pass
 

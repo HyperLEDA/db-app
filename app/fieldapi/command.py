@@ -8,7 +8,7 @@ import yaml
 from app.fieldapi import config as fieldapi_config
 from app.fieldapi import domain, presentation
 from app.fieldapi.providers import registry
-from app.lib import auth, commands, config, tracing
+from app.lib import commands, config, tracing
 from app.lib.tracing import TracingConfig
 from app.lib.web import server
 
@@ -48,7 +48,6 @@ class FieldAPICommand(commands.Command):
             actions,
             self.config.server,
             log,
-            auth.NoopAuthenticator(),
             auth_enabled=False,
         )
 

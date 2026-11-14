@@ -5,21 +5,9 @@ import fastapi
 import structlog
 
 from app.adminapi.presentation import interface
-from app.lib import audit, auth
+from app.lib import audit
 from app.lib.web import server
-from app.lib.web.middlewares import identity_from_request
 from app.specs import adminapi as spec
-
-
-def _logout_token(request: fastapi.Request) -> str:
-    ctx = identity_from_request(request)
-    if ctx is not None:
-        return ctx.token
-    raw = request.headers.get("Authorization", "").strip()
-    parts = raw.split(None, 1)
-    if len(parts) == 2 and parts[0].lower() == "bearer":
-        return parts[1].strip()
-    return ""
 
 
 class API:
@@ -74,27 +62,6 @@ class API:
         request: spec.PatchTableRequest,
     ) -> server.APIOkResponse[spec.PatchTableResponse]:
         response = self.actions.patch_table(request)
-        return server.APIOkResponse(data=response)
-
-    def login(self, request: fastapi.Request, body: spec.LoginRequest) -> server.APIOkResponse[spec.LoginResponse]:
-        _ = request
-        response = self.actions.login(body)
-        return server.APIOkResponse(data=response)
-
-    def logout(
-        self,
-        request: fastapi.Request,
-        _body: spec.LogoutRequest,
-    ) -> server.APIOkResponse[spec.LogoutResponse]:
-        return server.APIOkResponse(data=self.actions.logout(_logout_token(request)))
-
-    def register(
-        self,
-        request: fastapi.Request,
-        body: spec.RegisterRequest,
-    ) -> server.APIOkResponse[spec.RegisterResponse]:
-        _ = request
-        response = self.actions.register(body)
         return server.APIOkResponse(data=response)
 
     def save_structured_data(
@@ -196,12 +163,10 @@ class Server(server.WebServer):
         actions: interface.Actions,
         config: server.ServerConfig,
         logger: structlog.stdlib.BoundLogger,
-        authenticator: auth.Authenticator,
         action_recorder: audit.ActionRecorder,
         auth_enabled: bool = True,
     ) -> None:
         api = API(actions)
-        admin_only = [auth.Role.ADMIN]
 
         routes: list[server.Route] = [
             server.Route(
@@ -212,7 +177,7 @@ class Server(server.WebServer):
                 """Inserts new data to the table.
 Deduplicates rows based on their contents.
 If two rows were identical this method will only insert the last one.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
                 log_request_body=False,
             ),
@@ -222,7 +187,7 @@ If two rows were identical this method will only insert the last one.""",
                 api.create_source,
                 "New internal source entry",
                 "Creates new source entry in the database for internal communication and unpublished articles.",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -234,7 +199,7 @@ If two rows were identical this method will only insert the last one.""",
 **Important**: If the table with the specified name already exists, returns the ID of the
 previously created table without altering its schema. The bibliography for the provided
 bibcode may still be created or updated.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -243,7 +208,7 @@ bibcode may still be created or updated.""",
                 api.get_table,
                 "Retrieve table information",
                 "Fetches details about a specific table using the provided table name",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/tables",
@@ -251,7 +216,7 @@ bibcode may still be created or updated.""",
                 api.get_table_list,
                 "List tables",
                 "Returns a paginated list of tables matching the search query by name or description",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/catalogs",
@@ -266,7 +231,7 @@ bibcode may still be created or updated.""",
                 api.get_records,
                 "List records",
                 "Returns a paginated list of records for a table with their original data.",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/table",
@@ -329,36 +294,7 @@ Only provided fields will be updated; omitted fields will remain unchanged.
     "new_table_name": "my_table_v2"
 }
 ```""",
-                allowed_roles=admin_only,
-                audit_action=True,
-            ),
-            server.Route(
-                "/v1/login",
-                http.HTTPMethod.POST,
-                api.login,
-                "Login",
-                "Authenticates user and returns token",
-                rate_limit="10/minute",
-                log_request_body=False,
-            ),
-            server.Route(
-                "/v1/logout",
-                http.HTTPMethod.POST,
-                api.logout,
-                "Logout",
-                "Revokes the bearer token used for this request.",
-                allowed_roles=admin_only,
-                rate_limit="10/minute",
-            ),
-            server.Route(
-                "/v1/register",
-                http.HTTPMethod.POST,
-                api.register,
-                "Register user",
-                "Creates a backend user and a database reader role.",
-                allowed_roles=admin_only,
-                rate_limit="10/minute",
-                log_request_body=False,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -392,7 +328,7 @@ At least one status block must be present.
   }
 }
 ```""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -408,7 +344,7 @@ At least one status block must be present.
 - `assignments`: explicit `{record_id, pgc}` mappings. Overwrites existing assignments.
   Non-null target PGCs must already exist. Null `pgc` values mint one shared new PGC
   for all such records in the request. No crossmatch precondition.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -418,7 +354,7 @@ At least one status block must be present.
                 "Merge PGC objects",
                 """Reassigns all layer0 records from one or more source PGCs to a target PGC.
 Source PGC identifiers themselves are not removed.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -454,7 +390,7 @@ For every column that has unit metadata in the database, the request must includ
 }
 ```
 """,
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -463,7 +399,7 @@ For every column that has unit metadata in the database, the request must includ
                 api.start_structured_upload,
                 "Start structured catalog upload",
                 """Start a Prefect task to upload data from a layer 0 table into a layer 1 catalog.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -473,7 +409,7 @@ For every column that has unit metadata in the database, the request must includ
                 "Preview structured catalog upload",
                 """Evaluate catalog field expressions on a sample of rows of a layer 0 table without writing anything.
 Syntax errors and missing columns are reported per field in `errors`; other fields are still evaluated.""",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/tap/sync",
@@ -481,7 +417,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.tap_sync,
                 "Execute an arbitrary SQL query (TAP /sync).",
                 "Runs a read-only SQL query and returns a VOTable-like JSON payload.",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 rate_limit="60/minute",
             ),
             server.Route(
@@ -490,7 +426,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.list_references,
                 "List editable reference tables",
                 "Returns metadata for allowlisted reference tables used to render admin forms.",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/references/{schema}/{table}/rows",
@@ -498,7 +434,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.list_reference_rows,
                 "List reference table rows",
                 "Returns paginated rows from an allowlisted reference table.",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/references/{schema}/{table}/rows",
@@ -506,7 +442,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.create_reference_row,
                 "Create a reference table row",
                 "Creates a row in an allowlisted reference table.",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -515,7 +451,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.patch_reference_row,
                 "Update a reference table row",
                 "Partially updates a row in an allowlisted reference table.",
-                allowed_roles=admin_only,
+                requires_auth=True,
                 audit_action=True,
             ),
             server.Route(
@@ -524,7 +460,7 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
                 api.list_reference_field_options,
                 "List reference field options",
                 "Returns paginated options for a foreign-key reference field.",
-                allowed_roles=admin_only,
+                requires_auth=True,
             ),
         ]
 
@@ -532,7 +468,6 @@ Syntax errors and missing columns are reported per field in `errors`; other fiel
             routes,
             config,
             logger,
-            authenticator,
             auth_enabled=auth_enabled,
             action_recorder=action_recorder,
         )

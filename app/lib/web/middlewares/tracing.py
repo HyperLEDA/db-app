@@ -29,6 +29,6 @@ class TracingMiddleware(middlewares.BaseHTTPMiddleware):
 
         span = trace.get_current_span()
         if span.is_recording():
-            span.set_attribute(_USERNAME_ATTR, auth_ctx.user.login)
+            span.set_attribute(_USERNAME_ATTR, auth_ctx.login)
 
         return response

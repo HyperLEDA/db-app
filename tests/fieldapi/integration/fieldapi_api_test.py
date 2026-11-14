@@ -5,7 +5,6 @@ from starlette import testclient
 from app.fieldapi import domain
 from app.fieldapi.presentation import server
 from app.fieldapi.providers import registry
-from app.lib import auth
 from app.lib.web import server as web_server
 from app.specs import fieldapi
 
@@ -36,9 +35,7 @@ def client() -> testclient.TestClient:
     )
     actions = domain.Actions(dataset_registry)
     server_config = web_server.ServerConfig(host="127.0.0.1", port=8082)
-    return testclient.TestClient(
-        server.Server(actions, server_config, log, auth.NoopAuthenticator(), auth_enabled=False).app
-    )
+    return testclient.TestClient(server.Server(actions, server_config, log, auth_enabled=False).app)
 
 
 def test_list_datasets(client: testclient.TestClient) -> None:

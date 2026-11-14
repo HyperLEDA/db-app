@@ -1,7 +1,6 @@
 from typing import final
 
 from app.adminapi import clients, repository
-from app.adminapi.domain import auth as admin_auth
 from app.adminapi.domain import (
     catalogs,
     crossmatch,
@@ -12,8 +11,6 @@ from app.adminapi.domain import (
     table_upload,
 )
 from app.adminapi.presentation import interface
-from app.lib import auth
-from app.lib.storage import postgres
 from app.lib.tap import types as tap_types
 from app.specs import adminapi as spec
 
@@ -31,13 +28,10 @@ class Actions(interface.Actions):
     def __init__(
         self,
         repo: repository.Repository,
-        authenticator: auth.Authenticator,
-        storage: postgres.PgStorage,
         clients: clients.Clients,
     ):
         self._repo = repo
         self.source_manager = sources.SourceManager(repo)
-        self.auth_manager = admin_auth.AuthManager(authenticator, storage)
         self.table_upload_manager = table_upload.TableUploadManager(
             repo,
             clients,
@@ -50,15 +44,6 @@ class Actions(interface.Actions):
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
         return self.source_manager.create_source(r)
-
-    def login(self, r: spec.LoginRequest) -> spec.LoginResponse:
-        return self.auth_manager.login(r)
-
-    def logout(self, token: str) -> spec.LogoutResponse:
-        return self.auth_manager.logout(token)
-
-    def register(self, r: spec.RegisterRequest) -> spec.RegisterResponse:
-        return self.auth_manager.register(r)
 
     def add_data(self, r: spec.AddDataRequest) -> spec.AddDataResponse:
         return self.table_upload_manager.add_data(r)
