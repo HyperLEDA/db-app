@@ -107,6 +107,7 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
         total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
         pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
+        run_started = time.perf_counter()
         for start_page in range(0, total_pages, pages_per_batch):
             pages = min(pages_per_batch, total_pages - start_page)
             batch_started = time.perf_counter()
@@ -132,6 +133,9 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             elif ids and not write and not preview_sent:
                 artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
                 preview_sent = True
+            pages_done = min(start_page + pages_per_batch, total_pages)
+            elapsed_s = time.perf_counter() - run_started
+            eta_s = round(elapsed_s * (total_pages - pages_done) / pages_done) if pages_done < total_pages else 0
             self.log.info(
                 "Processed batch",
                 start_page=start_page,
@@ -143,8 +147,8 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 processed=processed,
                 total=total,
                 duration_ms=round((time.perf_counter() - batch_started) * 1000, 1),
+                eta_s=eta_s,
             )
-            pages_done = min(start_page + pages_per_batch, total_pages)
             progress.update(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
         progress.update(100, "Finished")
 
