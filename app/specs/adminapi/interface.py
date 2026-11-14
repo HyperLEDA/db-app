@@ -356,6 +356,15 @@ class MergePgcsResponse(pydantic.BaseModel):
     reassigned_records: int
 
 
+class StartStructuredUploadRequest(WriteRequest):
+    catalog: str
+    params: dict[str, Any]
+
+
+class StartStructuredUploadResponse(pydantic.BaseModel):
+    flow_run_id: str
+
+
 class CatalogField(pydantic.BaseModel):
     name: str
     data_type: DatatypeEnum

@@ -125,6 +125,13 @@ class API:
         response = self.actions.merge_pgcs(request)
         return server.APIOkResponse(data=response)
 
+    def start_structured_upload(
+        self,
+        request: spec.StartStructuredUploadRequest,
+    ) -> server.APIOkResponse[spec.StartStructuredUploadResponse]:
+        response = self.actions.start_structured_upload(request)
+        return server.APIOkResponse(data=response)
+
     def tap_sync(
         self,
         request: fastapi.Request,
@@ -404,6 +411,15 @@ At least one status block must be present.
                 "Merge PGC objects",
                 """Reassigns all layer0 records from one or more source PGCs to a target PGC.
 Source PGC identifiers themselves are not removed.""",
+                allowed_roles=admin_only,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/tasks/structured-upload",
+                http.HTTPMethod.POST,
+                api.start_structured_upload,
+                "Start structured catalog upload",
+                """Start a task to upload data from layer 0 tables to layer 1.""",
                 allowed_roles=admin_only,
                 audit_action=True,
             ),

@@ -65,6 +65,10 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        pass
+
+    @abc.abstractmethod
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         pass
 

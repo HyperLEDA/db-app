@@ -2,7 +2,16 @@ from typing import final
 
 from app.adminapi import clients, repository
 from app.adminapi.domain import auth as admin_auth
-from app.adminapi.domain import catalogs, crossmatch, layer1_write, pgc, references, sources, table_upload
+from app.adminapi.domain import (
+    catalogs,
+    crossmatch,
+    layer1_write,
+    pgc,
+    references,
+    sources,
+    structured_upload,
+    table_upload,
+)
 from app.adminapi.presentation import interface
 from app.lib import auth
 from app.lib.storage import postgres
@@ -38,6 +47,7 @@ class Actions(interface.Actions):
         self.pgc_manager = pgc.PgcManager(repo)
         self.layer1_writer = layer1_write.Layer1Writer(repo)
         self.catalog_manager = catalogs.CatalogManager(repo)
+        self.structured_upload_manager = structured_upload.StructuredUploadManager(repo)
         self.references_manager = references.ReferencesManager(repo)
 
     def create_source(self, r: spec.CreateSourceRequest) -> spec.CreateSourceResponse:
@@ -84,6 +94,9 @@ class Actions(interface.Actions):
 
     def merge_pgcs(self, r: spec.MergePgcsRequest) -> spec.MergePgcsResponse:
         return self.pgc_manager.merge_pgcs(r)
+
+    def start_structured_upload(self, r: spec.StartStructuredUploadRequest) -> spec.StartStructuredUploadResponse:
+        return self.structured_upload_manager.start(r)
 
     def tap_sync(self, request: spec.TAPSyncRequest) -> spec.TAPSyncResponse:
         result = self._repo.query_with_metadata(
