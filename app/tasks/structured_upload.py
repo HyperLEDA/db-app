@@ -58,7 +58,7 @@ def build_catalog_params_model(schema: spec.CatalogSchema) -> type[pydantic.Base
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(description=description))
         else:
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(default="", description=description))
-    field_defs["write"] = (bool, pydantic.Field(default=False, description="Write rows into the catalog"))
+    field_defs["write"] = (bool, pydantic.Field(default=True, description="Write rows into the catalog"))
     field_defs["batch_size"] = (
         int,
         pydantic.Field(default=10_000, ge=1, le=500_000, description="Rows read per batch"),

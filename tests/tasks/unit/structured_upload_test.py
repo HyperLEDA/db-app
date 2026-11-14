@@ -100,7 +100,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(pydantic.ValidationError):
         model.model_validate({"table_name": "raw", "ra": "col("})
     form = model.model_validate({"table_name": "raw", "ra": 'col("ra")'})
-    assert form.note == "" and form.write is False and form.batch_size == 10_000
+    assert form.note == "" and form.write is True and form.batch_size == 10_000
 
     text_repo = _Repo(
         {
