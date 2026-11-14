@@ -1,3 +1,4 @@
+import time
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -102,10 +103,13 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             return
         processed = 0
         preview_sent = False
+        write = bool(values["write"])
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
         total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
         pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
         for start_page in range(0, total_pages, pages_per_batch):
+            pages = min(pages_per_batch, total_pages - start_page)
+            batch_started = time.perf_counter()
             rows = self.repository.fetch_rawdata_pages(
                 table_name, fetch_columns, start_page, start_page + pages_per_batch
             )
@@ -118,11 +122,28 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 fields_by_name,
                 column_units,
             )
-            if values["write"] and ids:
+            rows_read = len(rows)
+            rows_kept = len(ids)
+            rows_dropped = rows_read - rows_kept
+            rows_written = 0
+            if write and ids:
                 self.repository.save_structured_data(self._catalog, output_columns, ids, data)
-            elif ids and not values["write"] and not preview_sent:
+                rows_written = rows_kept
+            elif ids and not write and not preview_sent:
                 artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
                 preview_sent = True
+            self.log.info(
+                "Processed batch",
+                start_page=start_page,
+                pages=pages,
+                rows_read=rows_read,
+                rows_kept=rows_kept,
+                rows_dropped=rows_dropped,
+                rows_written=rows_written,
+                processed=processed,
+                total=total,
+                duration_ms=round((time.perf_counter() - batch_started) * 1000, 1),
+            )
             pages_done = min(start_page + pages_per_batch, total_pages)
             progress.update(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
         progress.update(100, "Finished")
