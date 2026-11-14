@@ -15,11 +15,11 @@ def test_request_headers_are_redacted() -> None:
     app = fastapi.FastAPI()
     app.add_middleware(LoggingMiddleware, logger=logger)
 
-    app.add_api_route("/ping", endpoint=lambda: {"ping": "pong"}, methods=["GET"])
+    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
 
     client = testclient.TestClient(app)
     response = client.get(
-        "/ping",
+        "/echo",
         headers={
             "Authorization": "Bearer secret",
             "Cookie": "session=abc",
@@ -43,10 +43,10 @@ def test_logs_username_when_authenticated() -> None:
     app.add_middleware(LoggingMiddleware, logger=logger)
     app.add_middleware(_AuthStubMiddleware)
 
-    app.add_api_route("/ping", endpoint=lambda: {"ping": "pong"}, methods=["GET"])
+    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
 
     client = testclient.TestClient(app)
-    response = client.get("/ping")
+    response = client.get("/echo")
 
     assert response.status_code == 200
     request_log = logger.info.call_args_list[0].kwargs
@@ -66,12 +66,12 @@ def test_binds_request_id_for_handler() -> None:
         request_id = ctx.get("request_id")
         assert isinstance(request_id, str)
         seen["request_id"] = request_id
-        return {"ping": "pong"}
+        return {"ok": "true"}
 
-    app.add_api_route("/ping", endpoint=handler, methods=["GET"])
+    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
 
     client = testclient.TestClient(app)
-    response = client.get("/ping")
+    response = client.get("/echo")
 
     assert response.status_code == 200
     assert "request_id" in seen
@@ -89,13 +89,13 @@ def test_request_id_differs_across_requests() -> None:
         request_id = structlog.contextvars.get_contextvars()["request_id"]
         assert isinstance(request_id, str)
         seen.append(request_id)
-        return {"ping": "pong"}
+        return {"ok": "true"}
 
-    app.add_api_route("/ping", endpoint=handler, methods=["GET"])
+    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
 
     client = testclient.TestClient(app)
-    assert client.get("/ping").status_code == 200
-    assert client.get("/ping").status_code == 200
+    assert client.get("/echo").status_code == 200
+    assert client.get("/echo").status_code == 200
 
     assert len(seen) == 2
     assert seen[0] != seen[1]
@@ -111,12 +111,12 @@ def test_logs_client_ip_from_x_forwarded_for() -> None:
         client_ip = structlog.contextvars.get_contextvars().get("client_ip")
         assert isinstance(client_ip, str)
         seen["client_ip"] = client_ip
-        return {"ping": "pong"}
+        return {"ok": "true"}
 
-    app.add_api_route("/ping", endpoint=handler, methods=["GET"])
+    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
 
     client = testclient.TestClient(app)
-    response = client.get("/ping", headers={"X-Forwarded-For": "203.0.113.10, 10.0.0.1"})
+    response = client.get("/echo", headers={"X-Forwarded-For": "203.0.113.10, 10.0.0.1"})
 
     assert response.status_code == 200
     assert seen["client_ip"] == "203.0.113.10"
@@ -131,10 +131,10 @@ def test_logs_client_ip_from_x_real_ip() -> None:
     app = fastapi.FastAPI()
     app.add_middleware(LoggingMiddleware, logger=logger)
 
-    app.add_api_route("/ping", endpoint=lambda: {"ping": "pong"}, methods=["GET"])
+    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
 
     client = testclient.TestClient(app)
-    response = client.get("/ping", headers={"X-Real-IP": "198.51.100.7"})
+    response = client.get("/echo", headers={"X-Real-IP": "198.51.100.7"})
 
     assert response.status_code == 200
     request_log = logger.info.call_args_list[0].kwargs
