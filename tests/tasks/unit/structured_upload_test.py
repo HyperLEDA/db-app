@@ -42,11 +42,11 @@ class _Repo:
         return [] if start_page > 0 else self.rows
 
     def save_structured_data(
-        self, table_name: str, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
+        self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
     ) -> None:
         self.saved.append((catalog, columns, ids, data))
 
-    def touch_table_pgcs(self, table_name: str) -> None:
+    def touch_table(self, table_name: str) -> None:
         self.touched.append(table_name)
 
 

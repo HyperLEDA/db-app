@@ -391,7 +391,7 @@ def test_save_structured_data_logs_pgc_change(
     assert len(repo.get_new_nature_records(future, 10, 0)) == 0
 
 
-def test_tasks_save_structured_data_touches_table_without_pgc_changes(
+def test_tasks_save_structured_data_skips_change_tracking(
     repo: repository.Repository,
     storage: postgres.PgStorage,
 ) -> None:
@@ -400,25 +400,29 @@ def test_tasks_save_structured_data_touches_table_without_pgc_changes(
     old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
     storage.exec("UPDATE layer0.tables SET modification_dt = %s WHERE table_name = 't_task_save'", params=[old_dt])
 
-    repo.save_structured_data("t_task_save", layer1.Catalog.NATURE, ["type_name"], ["tr1"], [["QSO"]])
+    repo.save_structured_data(layer1.Catalog.NATURE, ["type_name"], ["tr1"], [["QSO"]])
 
     row = storage.query_one("SELECT modification_dt FROM layer0.tables WHERE table_name = 't_task_save'")
-    assert row["modification_dt"].replace(tzinfo=datetime.UTC) > old_dt
+    assert row["modification_dt"].replace(tzinfo=datetime.UTC) == old_dt
     assert storage.query("SELECT pgc FROM common.pgc_changes") == []
     saved = storage.query("SELECT type_name FROM nature.data WHERE record_id = 'tr1'")
     assert [r["type_name"] for r in saved] == ["QSO"]
 
 
-def test_touch_table_pgcs_logs_non_null_pgcs(
+def test_touch_table_bumps_modification_dt_and_logs_non_null_pgcs(
     repo: repository.Repository,
     storage: postgres.PgStorage,
 ) -> None:
     _insert_nature_data(storage, "t_touch_pgcs", ["tp1", "tp2"], {"tp1": 7001, "tp2": 7002}, [["G"], ["G"]])
     layer_seed.register_records(storage, "t_touch_pgcs", ["tp3"])
     storage.exec("DELETE FROM common.pgc_changes")
+    old_dt = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+    storage.exec("UPDATE layer0.tables SET modification_dt = %s WHERE table_name = 't_touch_pgcs'", params=[old_dt])
 
-    repo.touch_table_pgcs("t_touch_pgcs")
+    repo.touch_table("t_touch_pgcs")
 
+    row = storage.query_one("SELECT modification_dt FROM layer0.tables WHERE table_name = 't_touch_pgcs'")
+    assert row["modification_dt"].replace(tzinfo=datetime.UTC) > old_dt
     rows = storage.query("SELECT pgc FROM common.pgc_changes ORDER BY pgc")
     assert [r["pgc"] for r in rows] == [7001, 7002]
 
