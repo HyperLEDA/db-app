@@ -3,12 +3,9 @@ from typing import Any
 import structlog
 
 from app.tasks import (
-    designation,
     interface,
     layer2_import,
-    layer2_import_icrs,
     layer2_import_morphology,
-    layer2_import_nature,
     layer2_import_objects,
     layer2_import_redshift,
     layer2_orphan_cleanup,
@@ -17,10 +14,7 @@ from app.tasks import (
 
 tasks: list[type[interface.Task]] = [
     layer2_import.Layer2ImportTask,
-    designation.Layer2ImportDesignationTask,
-    layer2_import_icrs.Layer2ImportICRSTask,
     layer2_import_morphology.Layer2ImportMorphologyTask,
-    layer2_import_nature.Layer2ImportNatureTask,
     layer2_import_objects.Layer2ImportObjectsTask,
     layer2_import_redshift.Layer2ImportRedshiftTask,
     layer2_orphan_cleanup.Layer2OrphanCleanupTask,

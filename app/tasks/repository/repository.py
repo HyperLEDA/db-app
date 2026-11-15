@@ -362,16 +362,20 @@ class Repository(postgres.TransactionalPGRepository):
         rows = self._storage.query(
             """
             SELECT pgc, ra, e_ra, dec, e_dec
-            FROM layer2.icrs
+            FROM layer2.objects
             WHERE pgc = ANY(%s)
+              AND ra IS NOT NULL
+              AND dec IS NOT NULL
+              AND e_ra IS NOT NULL
+              AND e_dec IS NOT NULL
             ORDER BY pgc
             """,
             params=[pgcs],
         )
         if not rows:
             return empty
-        icrs_info = self.get_table_metadata("layer2", "icrs")
-        units = {name: col.unit for name, col in icrs_info.columns.items() if col.unit}
+        objects_info = self.get_table_metadata("layer2", "objects")
+        units = {name: col.unit for name, col in objects_info.columns.items() if col.unit}
         return table.QTable(
             {
                 "pgc": [int(row["pgc"]) for row in rows],

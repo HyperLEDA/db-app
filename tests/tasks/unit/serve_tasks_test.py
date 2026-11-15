@@ -5,7 +5,7 @@ from app.tasks import flows
 
 def test_schedules_and_structured_upload_deployments() -> None:
     assert flows.schedule_env_var("layer2-import") == "TASK_SCHEDULE_LAYER2_IMPORT"
-    assert flows.schedule_env_var("layer2-import-designation") == "TASK_SCHEDULE_LAYER2_IMPORT_DESIGNATION"
+    assert flows.schedule_env_var("layer2-import-objects") == "TASK_SCHEDULE_LAYER2_IMPORT_OBJECTS"
     assert flows.cron_from_env("layer2-import", {}) is None
     assert flows.cron_from_env("layer2-import", {"TASK_SCHEDULE_LAYER2_IMPORT": ""}) is None
     assert flows.cron_from_env("layer2-import", {"TASK_SCHEDULE_LAYER2_IMPORT": "  "}) is None
@@ -14,12 +14,12 @@ def test_schedules_and_structured_upload_deployments() -> None:
     by_name = {
         d.name: d
         for d in flows.build_deployments(
-            {"TASK_SCHEDULE_LAYER2_IMPORT": "0 12 * * *", "TASK_SCHEDULE_LAYER2_IMPORT_ICRS": "0 0 * * 0"}
+            {"TASK_SCHEDULE_LAYER2_IMPORT": "0 12 * * *", "TASK_SCHEDULE_LAYER2_IMPORT_OBJECTS": "0 0 * * 0"}
         )
     }
     assert len(by_name["layer2-import"].schedules or []) == 1
-    assert len(by_name["layer2-import-icrs"].schedules or []) == 1
-    assert len(by_name["layer2-import-designation"].schedules or []) == 0
+    assert len(by_name["layer2-import-objects"].schedules or []) == 1
+    assert len(by_name["layer2-import-redshift"].schedules or []) == 0
     for catalog in layer1.Catalog:
         assert callable(getattr(flows, f"structured_upload_{catalog.value}"))
 

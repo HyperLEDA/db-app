@@ -6,12 +6,9 @@ from app.catalogs.layer1 import Catalog as Layer1Catalog
 
 
 class Catalog(enum.Enum):
-    ICRS = "icrs"
-    DESIGNATION = "designation"
     ADDITIONAL_DESIGNATIONS = "additional_designations"
     REDSHIFT = "redshift"
     VELOCITY = "velocity"
-    NATURE = "nature"
     MORPHOLOGY = "morphology"
     OBJECTS = "objects"
     PHOTOMETRY__TOTAL = "photometry_total"

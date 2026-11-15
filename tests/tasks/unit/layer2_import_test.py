@@ -8,86 +8,11 @@ from astropy import units as u
 
 from app.tasks import (
     interface,
+    layer2_common,
     layer2_import,
-    layer2_import_icrs,
     layer2_import_morphology,
-    layer2_import_nature,
     layer2_import_redshift,
 )
-
-
-def test_weighted_mean_ra_dec() -> None:
-    deg = u.Unit("deg")
-    tbl = table.QTable(
-        {
-            "pgc": [1, 1],
-            "ra": [10.0, 20.0] * deg,
-            "e_ra": [1.0, 2.0] * deg,
-            "dec": [30.0, 40.0] * deg,
-            "e_dec": [1.0, 2.0] * deg,
-            "datatype": ["regular", "regular"],
-        }
-    )
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
-    assert float(agg["ra"][0].to_value(deg)) == pytest.approx(12.0)
-    assert float(agg["dec"][0].to_value(deg)) == pytest.approx(32.0)
-    formal_err = (1.0 / 1.0**2 + 1.0 / 2.0**2) ** (-0.5)
-    assert float(agg["e_ra"][0].to_value(deg)) == pytest.approx(formal_err)
-    assert float(agg["e_dec"][0].to_value(deg)) == pytest.approx(formal_err)
-
-
-def test_ignores_compilations_when_primary_data_exists() -> None:
-    deg = u.Unit("deg")
-    tbl = table.QTable(
-        {
-            "pgc": [1, 1, 1],
-            "ra": [10.0, 20.0, 100.0] * deg,
-            "e_ra": [1.0, 2.0, 0.1] * deg,
-            "dec": [30.0, 40.0, 0.0] * deg,
-            "e_dec": [1.0, 2.0, 0.1] * deg,
-            "datatype": ["regular", "preliminary", "compilation"],
-        }
-    )
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
-    assert len(agg) == 1
-    assert float(agg["ra"][0].to_value(deg)) == pytest.approx(12.0)
-    assert float(agg["dec"][0].to_value(deg)) == pytest.approx(32.0)
-
-
-def test_aggregates_compilations_when_only_compilations() -> None:
-    deg = u.Unit("deg")
-    tbl = table.QTable(
-        {
-            "pgc": [1, 1],
-            "ra": [10.0, 20.0] * deg,
-            "e_ra": [1.0, 2.0] * deg,
-            "dec": [30.0, 40.0] * deg,
-            "e_dec": [1.0, 2.0] * deg,
-            "datatype": ["compilation", "compilation"],
-        }
-    )
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
-    assert len(agg) == 1
-    assert float(agg["ra"][0].to_value(deg)) == pytest.approx(12.0)
-    assert float(agg["dec"][0].to_value(deg)) == pytest.approx(32.0)
-
-
-def test_per_pgc_compilation_filtering() -> None:
-    deg = u.Unit("deg")
-    tbl = table.QTable(
-        {
-            "pgc": [1, 1, 2, 2],
-            "ra": [10.0, 100.0, 10.0, 20.0] * deg,
-            "e_ra": [1.0, 0.1, 1.0, 2.0] * deg,
-            "dec": [30.0, 0.0, 30.0, 40.0] * deg,
-            "e_dec": [1.0, 0.1, 1.0, 2.0] * deg,
-            "datatype": ["regular", "compilation", "compilation", "compilation"],
-        }
-    )
-    agg = layer2_import_icrs.aggregate_icrs(tbl)
-    by_pgc = {int(pgc): i for i, pgc in enumerate(agg["pgc"])}
-    assert float(agg["ra"][by_pgc[1]].to_value(deg)) == pytest.approx(10.0)
-    assert float(agg["ra"][by_pgc[2]].to_value(deg)) == pytest.approx(12.0)
 
 
 def test_weighted_mean_cz() -> None:
@@ -249,8 +174,8 @@ def test_majority_type_name() -> None:
             "type_name": ["G", "G", "*", "QSO"],
         }
     )
-    agg = layer2_import_nature.aggregate_nature(tbl)
-    by_pgc = {int(pgc): str(type_name) for pgc, type_name in zip(agg["pgc"], agg["type_name"], strict=True)}
+    pgcs, type_names = layer2_common.majority_vote_by_pgc(tbl, "type_name")
+    by_pgc = {int(pgc): str(type_name) for pgc, type_name in zip(pgcs, type_names, strict=True)}
     assert by_pgc[1] == "G"
     assert by_pgc[2] == "QSO"
 
@@ -281,13 +206,13 @@ def test_default_catalogs() -> None:
 
 
 def test_custom_catalogs() -> None:
-    task = layer2_import.Layer2ImportTask(structlog.get_logger(), catalogs=["icrs", "nature"])
-    assert task.catalogs == ["icrs", "nature"]
+    task = layer2_import.Layer2ImportTask(structlog.get_logger(), catalogs=["objects", "redshift"])
+    assert task.catalogs == ["objects", "redshift"]
 
 
 def test_unknown_catalog_raises() -> None:
     with pytest.raises(ValueError):
-        layer2_import.Layer2ImportTask(structlog.get_logger(), catalogs=["icrs", "nope"])
+        layer2_import.Layer2ImportTask(structlog.get_logger(), catalogs=["objects", "nope"])
 
 
 def test_run_passes_params_to_selected_catalogs() -> None:
@@ -298,19 +223,19 @@ def test_run_passes_params_to_selected_catalogs() -> None:
         dry_run=True,
         since=since,
         cleanup_orphans=False,
-        catalogs=["designation"],
+        catalogs=["objects"],
     )
     task.pg_storage = mock.Mock()
     task.repository = mock.Mock()
     task.fieldapi_client = mock.Mock()
 
-    designation_cls = mock.Mock()
+    objects_cls = mock.Mock()
     child = mock.Mock()
-    designation_cls.return_value = child
-    with mock.patch.dict(layer2_import.CATALOG_TASKS, {"designation": designation_cls}):
+    objects_cls.return_value = child
+    with mock.patch.dict(layer2_import.CATALOG_TASKS, {"objects": objects_cls}):
         task.run()
 
-    designation_cls.assert_called_once_with(
+    objects_cls.assert_called_once_with(
         logger=task.log,
         batch_size=10,
         dry_run=True,

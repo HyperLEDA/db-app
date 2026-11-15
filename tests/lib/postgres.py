@@ -157,10 +157,7 @@ class PostgresTestStorage:
                     "truncate skipped", schema=table["table_schema"], table=table["table_name"], error=str(e)
                 )
 
-        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'designation')")
-        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'icrs')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'redshift')")
-        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'nature')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'morphology')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'objects')")
 

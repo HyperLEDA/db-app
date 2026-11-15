@@ -6,12 +6,9 @@ from app.catalogs import layer2
 from app.tasks import layer2_common
 
 RAW_CATALOGS = [
-    layer2.Catalog.ICRS,
-    layer2.Catalog.DESIGNATION,
-    layer2.Catalog.REDSHIFT,
-    layer2.Catalog.NATURE,
-    layer2.Catalog.MORPHOLOGY,
     layer2.Catalog.OBJECTS,
+    layer2.Catalog.REDSHIFT,
+    layer2.Catalog.MORPHOLOGY,
 ]
 
 
