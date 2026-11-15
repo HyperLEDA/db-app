@@ -5,25 +5,19 @@ from typing import final
 import structlog
 
 from app.tasks import (
-    designation,
     layer2_common,
-    layer2_import_icrs,
     layer2_import_morphology,
-    layer2_import_nature,
     layer2_import_objects,
     layer2_import_redshift,
 )
 
 CATALOG_TASKS = {
-    "designation": designation.Layer2ImportDesignationTask,
-    "icrs": layer2_import_icrs.Layer2ImportICRSTask,
-    "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
-    "nature": layer2_import_nature.Layer2ImportNatureTask,
-    "morphology": layer2_import_morphology.Layer2ImportMorphologyTask,
     "objects": layer2_import_objects.Layer2ImportObjectsTask,
+    "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
+    "morphology": layer2_import_morphology.Layer2ImportMorphologyTask,
 }
 
-DEFAULT_CATALOGS: tuple[str, ...] = ("designation", "icrs", "redshift", "nature", "morphology", "objects")
+DEFAULT_CATALOGS: tuple[str, ...] = ("objects", "redshift", "morphology")
 
 
 @final

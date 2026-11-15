@@ -9,7 +9,7 @@ from app import tasks
 from app.catalogs import layer1, layer2
 from app.lib.storage import postgres
 from app.tasks import layer2_common, layer2_import, repository
-from tests.lib import assert_catalog_object_equal, layer_seed
+from tests.lib import layer_seed
 from tests.lib.postgres import PostgresTestStorage
 
 pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
@@ -44,25 +44,14 @@ def _get_table(storage: postgres.PgStorage, table_name: str) -> int:
     return layer_seed.create_table(storage, table_name, bib_id)
 
 
-def _designation(storage: postgres.PgStorage, pgc: int) -> layer2.DesignationCatalogObject | None:
+def _object_row(storage: postgres.PgStorage, pgc: int) -> dict | None:
     rows = storage.query(
-        "SELECT design FROM layer2.designation WHERE pgc = %s",
+        "SELECT name, objtype, ra, e_ra, dec, e_dec FROM layer2.objects WHERE pgc = %s",
         params=[pgc],
     )
     if not rows:
         return None
-    return layer2.DesignationCatalogObject(design=rows[0]["design"])
-
-
-def _icrs(storage: postgres.PgStorage, pgc: int) -> layer2.ICRSCatalogObject | None:
-    rows = storage.query(
-        "SELECT ra, e_ra, dec, e_dec FROM layer2.icrs WHERE pgc = %s",
-        params=[pgc],
-    )
-    if not rows:
-        return None
-    row = rows[0]
-    return layer2.ICRSCatalogObject(ra=row["ra"], e_ra=row["e_ra"], dec=row["dec"], e_dec=row["e_dec"])
+    return rows[0]
 
 
 def _import_two_catalogs(
@@ -102,12 +91,13 @@ def test_import_two_catalogs(
 ) -> None:
     _import_two_catalogs(storage, layer2_import_task)
 
-    icrs = _icrs(storage, 1234)
-    designation = _designation(storage, 1234)
-    assert icrs is not None
-    assert designation is not None
-    assert_catalog_object_equal(icrs, layer2.ICRSCatalogObject(ra=12, e_ra=0.2, dec=13, e_dec=0.2))
-    assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("test1"))
+    obj = _object_row(storage, 1234)
+    assert obj is not None
+    assert obj["name"] == "test1"
+    assert float(obj["ra"]) == pytest.approx(12)
+    assert float(obj["e_ra"]) == pytest.approx(0.2)
+    assert float(obj["dec"]) == pytest.approx(13)
+    assert float(obj["e_dec"]) == pytest.approx(0.2)
 
 
 def test_updated_objects(
@@ -124,7 +114,7 @@ def test_updated_objects(
     )
     layer_seed.upsert_pgc(storage, {"125": 1234, "126": 1234})
 
-    last_update_dt = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
+    last_update_dt = repo.get_last_update_time(layer2.Catalog.OBJECTS)
 
     layer_seed.save_structured_data(
         storage,
@@ -137,12 +127,12 @@ def test_updated_objects(
 
     layer2_import_task.run()
 
-    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
+    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.OBJECTS)
     assert new_last_update_dt > last_update_dt
 
-    designation = _designation(storage, 1234)
-    assert designation is not None
-    assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("test3"))
+    obj = _object_row(storage, 1234)
+    assert obj is not None
+    assert obj["name"] == "test3"
 
 
 def test_layer1_only_update_recalculates_layer2(
@@ -152,7 +142,7 @@ def test_layer1_only_update_recalculates_layer2(
 ) -> None:
     _import_two_catalogs(storage, layer2_import_task)
 
-    last_update_dt = repo.get_last_update_time(layer2.Catalog.ICRS)
+    last_update_dt = repo.get_last_update_time(layer2.Catalog.OBJECTS)
 
     layer_seed.save_structured_data(
         storage,
@@ -164,12 +154,16 @@ def test_layer1_only_update_recalculates_layer2(
 
     layer2_import_task.run()
 
-    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.ICRS)
+    new_last_update_dt = repo.get_last_update_time(layer2.Catalog.OBJECTS)
     assert new_last_update_dt > last_update_dt
 
-    icrs = _icrs(storage, 1234)
-    assert icrs is not None
-    assert_catalog_object_equal(icrs, layer2.ICRSCatalogObject(ra=22.0, e_ra=0.2, dec=23.0, e_dec=0.2))
+    obj = _object_row(storage, 1234)
+    assert obj is not None
+    assert obj["name"] == "test1"
+    assert float(obj["ra"]) == pytest.approx(22.0)
+    assert float(obj["e_ra"]) == pytest.approx(0.2)
+    assert float(obj["dec"]) == pytest.approx(23.0)
+    assert float(obj["e_dec"]) == pytest.approx(0.2)
 
 
 def test_watermark_dry_run_and_late_change_log(
@@ -181,10 +175,10 @@ def test_watermark_dry_run_and_late_change_log(
     dry.pg_storage = storage
     dry.repository = repo
     dry.fieldapi_client = _ConstantEbv()
-    before = repo.get_last_update_time(layer2.Catalog.ICRS)
+    before = repo.get_last_update_time(layer2.Catalog.OBJECTS)
     storage.exec("INSERT INTO common.pgc_changes (pgc, changed_at) VALUES (1, TIMESTAMP '1971-01-01')")
     dry.run()
-    assert repo.get_last_update_time(layer2.Catalog.ICRS) == before
+    assert repo.get_last_update_time(layer2.Catalog.OBJECTS) == before
     assert storage.query_one("SELECT count(*) AS n FROM common.pgc_changes WHERE pgc = 1")["n"] == 1
 
     run_start = datetime.datetime(2030, 5, 1, 12, 0, 0, tzinfo=datetime.UTC)
@@ -194,7 +188,7 @@ def test_watermark_dry_run_and_late_change_log(
     for catalog in layer2_import.DEFAULT_CATALOGS:
         assert repo.get_last_update_time(layer2.Catalog(catalog)) == expected
 
-    watermark = repo.get_last_update_time(layer2.Catalog.DESIGNATION)
+    watermark = repo.get_last_update_time(layer2.Catalog.OBJECTS)
     _ = _get_table(storage, "test_race")
     layer_seed.register_records(storage, "test_race", ["race1"])
     layer_seed.register_pgcs(storage, [7777])
@@ -212,6 +206,6 @@ def test_watermark_dry_run_and_late_change_log(
         params=[watermark + datetime.timedelta(minutes=1)],
     )
     layer2_import_task.run()
-    designation = _designation(storage, 7777)
-    assert designation is not None
-    assert_catalog_object_equal(designation, layer2.DesignationCatalogObject("race"))
+    obj = _object_row(storage, 7777)
+    assert obj is not None
+    assert obj["name"] == "race"

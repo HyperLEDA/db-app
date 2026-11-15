@@ -23,10 +23,7 @@ _tracer = trace.get_tracer("tasks")
 
 LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import",
-    "layer2-import-designation",
-    "layer2-import-icrs",
     "layer2-import-redshift",
-    "layer2-import-nature",
     "layer2-import-morphology",
     "layer2-import-objects",
     "layer2-orphan-cleanup",
@@ -45,9 +42,7 @@ CLEANUP_ORPHANS_DESCRIPTION = (
     "Remove PGC objects that were left without corresponding records. "
     "Useful if any records were deleted or changed PGC numbers since the last update."
 )
-CATALOGS_DESCRIPTION = (
-    "Catalogs to import: designation, icrs, redshift, nature, morphology, objects. If not set, imports all."
-)
+CATALOGS_DESCRIPTION = "Catalogs to import: objects, redshift, morphology. If not set, imports all."
 WRITE_ORPHANS_DESCRIPTION = (
     "If true, remove orphaned PGC objects from layer 2 tables. If false, only report how many orphans would be removed."
 )
@@ -150,7 +145,7 @@ def run_task(
 @flow(
     log_prints=False,
     name="Layer 2 import (all catalogs)",
-    description="Aggregates designation, ICRS, redshift, nature, morphology, and objects from layer 1 into layer 2.",
+    description="Aggregates objects, redshift, and morphology from layer 1 into layer 2.",
 )
 def layer2_import(params: Layer2ImportParams = DEFAULT_LAYER2_IMPORT_PARAMS) -> None:
     run_task(
@@ -165,38 +160,6 @@ def layer2_import(params: Layer2ImportParams = DEFAULT_LAYER2_IMPORT_PARAMS) -> 
 
 @flow(
     log_prints=False,
-    name="Layer 2 import — designation",
-    description="Majority-vote designations from layer 1 into layer 2.",
-)
-def layer2_import_designation(
-    params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS,
-) -> None:
-    run_task(
-        "layer2-import-designation",
-        batch_size=params.batch_size,
-        dry_run=params.dry_run,
-        since=params.since,
-        cleanup_orphans=params.cleanup_orphans,
-    )
-
-
-@flow(
-    log_prints=False,
-    name="Layer 2 import — ICRS",
-    description="Aggregates ICRS coordinates from layer 1 into layer 2.",
-)
-def layer2_import_icrs(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
-    run_task(
-        "layer2-import-icrs",
-        batch_size=params.batch_size,
-        dry_run=params.dry_run,
-        since=params.since,
-        cleanup_orphans=params.cleanup_orphans,
-    )
-
-
-@flow(
-    log_prints=False,
     name="Layer 2 import — redshift",
     description="Aggregates redshifts (cz) from layer 1 into layer 2.",
 )
@@ -205,21 +168,6 @@ def layer2_import_redshift(
 ) -> None:
     run_task(
         "layer2-import-redshift",
-        batch_size=params.batch_size,
-        dry_run=params.dry_run,
-        since=params.since,
-        cleanup_orphans=params.cleanup_orphans,
-    )
-
-
-@flow(
-    log_prints=False,
-    name="Layer 2 import — nature",
-    description="Majority-vote object nature/type from layer 1 into layer 2.",
-)
-def layer2_import_nature(params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS) -> None:
-    run_task(
-        "layer2-import-nature",
         batch_size=params.batch_size,
         dry_run=params.dry_run,
         since=params.since,
@@ -314,10 +262,7 @@ for _catalog in layer1.Catalog:
 
 FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import": layer2_import,
-    "layer2-import-designation": layer2_import_designation,
-    "layer2-import-icrs": layer2_import_icrs,
     "layer2-import-redshift": layer2_import_redshift,
-    "layer2-import-nature": layer2_import_nature,
     "layer2-import-morphology": layer2_import_morphology,
     "layer2-import-objects": layer2_import_objects,
     "layer2-orphan-cleanup": layer2_orphan_cleanup,

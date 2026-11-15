@@ -128,6 +128,30 @@ def test_assign_ebv_samples_coordinates_and_clamps_negatives() -> None:
     assert sent[0] == fieldapi_spec.SkyCoordinate(ra_deg=10.0, dec_deg=20.0)
 
 
+def test_aggregate_designation() -> None:
+    priority_masks = [r"HIGH \d+", r"LOW \d+"]
+    tbl = table.QTable(
+        {
+            "pgc": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "design": [
+                "LOW 1",
+                "LOW 1",
+                "HIGH 1",
+                "HIGH 1",
+                "HIGH 2",
+                "HIGH 2",
+                "OTHER 1",
+                "OTHER 1",
+                "OTHER 2",
+            ],
+        }
+    )
+
+    result = layer2_import_objects.aggregate_designation(tbl, priority_masks)
+
+    assert list(result["design"]) == ["HIGH 1", "HIGH 2", "OTHER 1"]
+
+
 def test_sample_ebv_deduplicates_and_chunks() -> None:
     coordinates = [(i * 0.01, 0.0) for i in range(layer2_import_objects.EBV_CHUNK_SIZE + 1)]
     coordinates.append(coordinates[0])

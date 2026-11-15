@@ -1,10 +1,7 @@
 from app.catalogs.layer2 import (
     additional_designations,
-    designation,
-    icrs,
     interface,
     morphology,
-    nature,
     note,
     objects,
     photometry_total,
@@ -13,13 +10,10 @@ from app.catalogs.layer2 import (
 )
 
 _CATALOG_OBJECT_TYPES: dict[interface.Catalog, type[interface.CatalogObject]] = {
-    interface.Catalog.DESIGNATION: designation.DesignationCatalogObject,
     interface.Catalog.ADDITIONAL_DESIGNATIONS: additional_designations.AdditionalDesignationsCatalogObject,
-    interface.Catalog.ICRS: icrs.ICRSCatalogObject,
     interface.Catalog.REDSHIFT: redshift.RedshiftCatalogObject,
     interface.Catalog.VELOCITY: velocity.VelocityCatalogObject,
     interface.Catalog.MORPHOLOGY: morphology.MorphologyCatalogObject,
-    interface.Catalog.NATURE: nature.NatureCatalogObject,
     interface.Catalog.OBJECTS: objects.ObjectsCatalogObject,
     interface.Catalog.NOTE: note.NoteCatalogObject,
     interface.Catalog.PHOTOMETRY__TOTAL: photometry_total.PhotometryTotalCatalogObject,
