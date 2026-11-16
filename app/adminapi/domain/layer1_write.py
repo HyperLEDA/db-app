@@ -9,6 +9,7 @@ from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0, layer1
 from app.lib import formula
+from app.lib.storage import sql_row_filter
 from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
@@ -147,7 +148,9 @@ class Layer1Writer:
 
         referenced = sorted(set().union(*(expr.referenced_columns for expr in parsed.values())))
         fetch_columns = [name for name in referenced if name != layer0.INTERNAL_ID_COLUMN_NAME]
-        rows = self._repo.sample_rawdata(request.table_name, fetch_columns, request.limit)
+        row_filter = sql_row_filter.row_filter_clause(request.row_filter)
+        eligible_count, total_count = self._repo.count_rawdata(request.table_name, row_filter)
+        rows = self._repo.sample_rawdata(request.table_name, fetch_columns, request.limit, row_filter)
 
         kept, ids, columns = formula.prepare_batch(rows, referenced, column_units, layer0.INTERNAL_ID_COLUMN_NAME)
         outputs: dict[str, list[Any]] = {}
@@ -179,4 +182,9 @@ class Layer1Writer:
                     skipped_reason=skipped_reason,
                 )
             )
-        return spec.PreviewStructuredUploadResponse(rows=preview_rows, errors=errors)
+        return spec.PreviewStructuredUploadResponse(
+            rows=preview_rows,
+            errors=errors,
+            eligible_count=eligible_count,
+            total_count=total_count,
+        )

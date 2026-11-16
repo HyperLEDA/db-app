@@ -393,15 +393,28 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
                 original_by_id[str(raw[id_col])] = _row_to_serializable_dict(raw, drop=[id_col])
         return original_by_id
 
+    def count_rawdata(self, table_name: str, row_filter: sql.Composable | None = None) -> tuple[int, int]:
+        table = sql.SQL("{}.{}").format(sql.Identifier(RAWDATA_SCHEMA), sql.Identifier(table_name))
+        if row_filter is None:
+            query = sql.SQL("SELECT COUNT(*) AS total, COUNT(*) AS eligible FROM {}").format(table)
+        else:
+            query = sql.SQL("SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE {}) AS eligible FROM {}").format(
+                row_filter, table
+            )
+        row = self._storage.query(query, read_only=True)[0]
+        return int(row["eligible"]), int(row["total"])
+
     def sample_rawdata(
         self,
         table_name: str,
         columns: Sequence[str],
         limit: int,
+        row_filter: sql.Composable | None = None,
     ) -> list[dict[str, Any]]:
         fields = sql.SQL(", ").join(sql.Identifier(c) for c in [INTERNAL_ID_COLUMN_NAME, *columns])
         table_ident = sql.Identifier(RAWDATA_SCHEMA)
         name_ident = sql.Identifier(table_name)
+        where = sql.SQL("") if row_filter is None else sql.SQL(" WHERE {}").format(row_filter)
 
         estimate = self._storage.query_one(
             """
@@ -412,12 +425,14 @@ class Layer0TableRepository(postgres.TransactionalPGRepository):
         )
         reltuples = float(estimate["reltuples"])
         if reltuples < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
-            query = sql.SQL("SELECT {} FROM {}.{} ORDER BY random() LIMIT %s").format(fields, table_ident, name_ident)
+            query = sql.SQL("SELECT {} FROM {}.{}{} ORDER BY random() LIMIT %s").format(
+                fields, table_ident, name_ident, where
+            )
             return list(self._storage.query(query, params=[limit], read_only=True))
 
         percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / reltuples)
-        query = sql.SQL("SELECT {} FROM {}.{} TABLESAMPLE SYSTEM (%s) ORDER BY random() LIMIT %s").format(
-            fields, table_ident, name_ident
+        query = sql.SQL("SELECT {} FROM {}.{} TABLESAMPLE SYSTEM (%s){} ORDER BY random() LIMIT %s").format(
+            fields, table_ident, name_ident, where
         )
         while True:
             result = list(self._storage.query(query, params=[percent, limit], read_only=True))

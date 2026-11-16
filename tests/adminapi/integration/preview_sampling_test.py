@@ -103,6 +103,7 @@ def test_preview_upload_end_to_end(repo: repository.Repository, raw_table: str) 
         )
     )
 
+    assert response.eligible_count == ROW_COUNT and response.total_count == ROW_COUNT
     assert len(response.rows) == ROW_COUNT
     skipped = [row for row in response.rows if row.skipped_reason is not None]
     assert len(skipped) == ROW_COUNT // 10
@@ -126,5 +127,26 @@ def test_preview_upload_text_expression(repo: repository.Repository, raw_table: 
     )
 
     assert not response.errors
+    assert response.eligible_count == ROW_COUNT and response.total_count == ROW_COUNT
     assert len(response.rows) == 3
     assert all(str(row.outputs["design"]).startswith("SDSS J") for row in response.rows)
+
+
+def test_preview_upload_row_filter(repo: repository.Repository, raw_table: str) -> None:
+    writer = layer1_write.Layer1Writer(repo, mock.Mock())
+
+    response = writer.preview_upload(
+        adminapi.PreviewStructuredUploadRequest(
+            catalog="icrs",
+            table_name=raw_table,
+            limit=50,
+            row_filter="type = 'G' AND ra < 10",
+            expressions={"ra": 'col("ra")', "dec": 'col("dec")'},
+        )
+    )
+
+    assert response.total_count == ROW_COUNT
+    assert response.eligible_count == 10
+    assert len(response.rows) == 10
+    assert response.errors == []
+    assert all(float(row.outputs["ra"]) < 10 for row in response.rows if row.skipped_reason is None)

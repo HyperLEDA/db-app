@@ -109,7 +109,10 @@ def _preview_col(name: str, data_type: str, unit: str | None = None, not_null: b
 def _run_preview(
     expressions: dict[str, str],
     rows: list[dict[str, Any]],
-) -> adminapi.PreviewStructuredUploadResponse:
+    *,
+    row_filter: str | None = None,
+    counts: tuple[int, int] = (0, 0),
+) -> tuple[adminapi.PreviewStructuredUploadResponse, mock.Mock]:
     tables = {
         ("icrs", "data"): _preview_table(
             "icrs",
@@ -135,8 +138,11 @@ def _run_preview(
         (schema, table), _preview_table(schema, table, [])
     )
     repo.sample_rawdata.return_value = rows
-    request = adminapi.PreviewStructuredUploadRequest(catalog="icrs", table_name="raw", expressions=expressions)
-    return Layer1Writer(repo, mock.Mock()).preview_upload(request)
+    repo.count_rawdata.return_value = counts
+    request = adminapi.PreviewStructuredUploadRequest(
+        catalog="icrs", table_name="raw", expressions=expressions, row_filter=row_filter
+    )
+    return Layer1Writer(repo, mock.Mock()).preview_upload(request), repo
 
 
 def _preview_row(record_id: str, ra_h: float | None, dec_d: float | None) -> dict[str, Any]:
@@ -144,11 +150,15 @@ def _preview_row(record_id: str, ra_h: float | None, dec_d: float | None) -> dic
 
 
 def test_preview_success() -> None:
-    response = _run_preview(
+    response, repo = _run_preview(
         {"ra": 'col("ra_h")', "dec": 'col("dec_d")', "e_ra": ""},
         [_preview_row("r1", 12.0, 30.0), _preview_row("r2", 6.0, -10.0)],
+        counts=(2, 4),
     )
 
+    assert response.eligible_count == 2 and response.total_count == 4
+    assert repo.count_rawdata.call_args.args == ("raw", None)
+    assert repo.sample_rawdata.call_args.args[-1] is None
     assert response.errors == []
     assert [r.record_id for r in response.rows] == ["r1", "r2"]
     assert response.rows[0].inputs == {"dec_d": 30.0, "ra_h": 12.0}
@@ -157,14 +167,14 @@ def test_preview_success() -> None:
 
 
 def test_preview_syntax_error_does_not_affect_other_fields() -> None:
-    response = _run_preview({"ra": 'col("ra_h")', "dec": "col("}, [_preview_row("r1", 12.0, 30.0)])
+    response, _ = _run_preview({"ra": 'col("ra_h")', "dec": "col("}, [_preview_row("r1", 12.0, 30.0)])
 
     assert [e.field for e in response.errors] == ["dec"]
     assert response.rows[0].outputs == pytest.approx({"ra": 180.0})
 
 
 def test_preview_missing_column() -> None:
-    response = _run_preview({"ra": 'col("ra_h")', "dec": 'col("nope")'}, [_preview_row("r1", 12.0, 30.0)])
+    response, _ = _run_preview({"ra": 'col("ra_h")', "dec": 'col("nope")'}, [_preview_row("r1", 12.0, 30.0)])
 
     assert len(response.errors) == 1
     assert response.errors[0].field == "dec"
@@ -173,7 +183,7 @@ def test_preview_missing_column() -> None:
 
 
 def test_preview_row_failure_locates_record() -> None:
-    response = _run_preview(
+    response, _ = _run_preview(
         {"ra": 'col("ra_h")', "dec": 'col("dec_d") / (col("dec_d") - 20 * deg) * deg'},
         [_preview_row("r1", 12.0, 30.0), _preview_row("r2", 6.0, 20.0), _preview_row("r3", 3.0, 40.0)],
     )
@@ -187,7 +197,7 @@ def test_preview_row_failure_locates_record() -> None:
 
 
 def test_preview_skips_rows_with_nulls() -> None:
-    response = _run_preview(
+    response, _ = _run_preview(
         {"ra": 'col("ra_h")', "dec": 'col("dec_d")'},
         [_preview_row("r1", 12.0, 30.0), _preview_row("r2", 6.0, None)],
     )
@@ -206,3 +216,17 @@ def test_preview_unknown_catalog_and_field() -> None:
         )
     with pytest.raises(RuleValidationError):
         _run_preview({"bogus": "1"}, [])
+
+
+def test_preview_row_filter_is_applied() -> None:
+    response, repo = _run_preview(
+        {"ra": 'col("ra_h")', "dec": 'col("dec_d")'},
+        [_preview_row("r1", 12.0, 30.0)],
+        row_filter="  type = 'STAR'  ",
+        counts=(1, 9),
+    )
+
+    assert response.eligible_count == 1 and response.total_count == 9
+    clause = repo.count_rawdata.call_args.args[1]
+    assert clause is not None
+    assert repo.sample_rawdata.call_args.args[-1] is clause

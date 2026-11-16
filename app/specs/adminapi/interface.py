@@ -172,6 +172,7 @@ class PreviewStructuredUploadRequest(pydantic.BaseModel):
     catalog: str
     table_name: str
     expressions: dict[str, str]
+    row_filter: str | None = None
     limit: int = pydantic.Field(default=20, ge=1, le=200)
 
 
@@ -191,6 +192,8 @@ class PreviewRow(pydantic.BaseModel):
 class PreviewStructuredUploadResponse(pydantic.BaseModel):
     rows: list[PreviewRow]
     errors: list[PreviewFieldError]
+    eligible_count: int
+    total_count: int
 
 
 class PatchColumnSpec(pydantic.BaseModel):

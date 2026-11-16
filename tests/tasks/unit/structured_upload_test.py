@@ -26,6 +26,9 @@ class _Repo:
     ) -> None:
         self.tables, self.rows, self.total, self.saved = tables, rows, total, []
         self.touched: list[str] = []
+        self.page_calls = 0
+        self.keyset_calls: list[str] = []
+        self.eligible: int | None = None
 
     def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
         return self.tables[(schema, table)]
@@ -39,7 +42,22 @@ class _Repo:
     def fetch_rawdata_pages(
         self, table_name: str, columns: list[str], start_page: int, end_page: int
     ) -> list[dict[str, Any]]:
+        self.page_calls += 1
         return [] if start_page > 0 else self.rows
+
+    def count_rawdata(self, table_name: str, row_filter: object = None) -> int:
+        assert row_filter is not None
+        assert self.eligible is not None
+        return self.eligible
+
+    def fetch_rawdata_keyset(
+        self, table_name: str, columns: list[str], after_id: str, limit: int, row_filter: object
+    ) -> list[dict[str, Any]]:
+        assert row_filter is not None
+        self.keyset_calls.append(after_id)
+        if after_id:
+            return []
+        return self.rows
 
     def save_structured_data(
         self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
@@ -106,7 +124,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(pydantic.ValidationError):
         model.model_validate({"table_name": "raw", "ra": "col("})
     form = model.model_validate({"table_name": "raw", "ra": 'col("ra")'})
-    assert form.note == "" and form.write is True and form.batch_size == 10_000
+    assert form.note == "" and form.write is True and form.batch_size == 10_000 and form.row_filter == ""
 
     text_repo = _Repo(
         {
@@ -159,6 +177,37 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     catalog, columns, ids, data = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]
+    assert num_repo.page_calls == 1 and num_repo.keyset_calls == []
+
+
+def test_row_filter_uses_keyset_and_eligible_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = _Repo(
+        {
+            ("designation", "data"): _table("designation", "data", [_col("record_id", "text"), _col("design", "text")]),
+            ("rawdata", "raw_design"): _table(
+                "rawdata",
+                "raw_design",
+                [_col(layer0.INTERNAL_ID_COLUMN_NAME, "text"), _col("design", "text", not_null=False)],
+            ),
+        },
+        [{layer0.INTERNAL_ID_COLUMN_NAME: "r1", "design": "NGC 1"}],
+        10,
+    )
+    repo.eligible = 1
+    messages: list[str] = []
+    monkeypatch.setattr(artifacts.ProgressTracker, "update", lambda self, value, message: messages.append(message))
+    monkeypatch.setattr(artifacts, "emit_preview_table", lambda rows, _: None)
+    task = structured_upload.StructuredCatalogUploadTask(
+        structlog.get_logger(),
+        layer1.Catalog.DESIGNATION,
+        {"table_name": "raw_design", "design": 'col("design")', "write": True, "row_filter": "class = 'STAR'"},
+    )
+    task.repository = repo
+    task.run()
+    assert repo.page_calls == 0
+    assert repo.keyset_calls == ["", "r1"]
+    assert repo.saved[0][2] == ["r1"]
+    assert "Processed 1 / 1 rows" in messages
 
 
 def test_progress_and_preview_artifacts(monkeypatch: pytest.MonkeyPatch) -> None:
