@@ -39,7 +39,16 @@ class _Repo:
     def fetch_rawdata_pages(
         self, table_name: str, columns: list[str], start_page: int, end_page: int
     ) -> list[dict[str, Any]]:
+        self.paged = True
         return [] if start_page > 0 else self.rows
+
+    def count_rawdata(self, table_name: str, row_filter: object = None) -> int:
+        return 1
+
+    def fetch_rawdata_keyset(self, *args: object) -> list[dict[str, Any]]:
+        after_id = str(args[2])
+        self.keyset = [*getattr(self, "keyset", []), after_id]
+        return [] if after_id else self.rows
 
     def save_structured_data(
         self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
@@ -159,6 +168,15 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     catalog, columns, ids, data = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]
+    text_repo.paged = False
+    task = structured_upload.StructuredCatalogUploadTask(
+        structlog.get_logger(),
+        layer1.Catalog.DESIGNATION,
+        {"table_name": "raw_design", "design": 'col("design")', "row_filter": "class = 'STAR'", "write": False},
+    )
+    task.repository = text_repo
+    task.run()
+    assert text_repo.keyset == ["", "r3"] and not text_repo.paged
 
 
 def test_progress_and_preview_artifacts(monkeypatch: pytest.MonkeyPatch) -> None:

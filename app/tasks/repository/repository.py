@@ -482,6 +482,33 @@ class Repository(postgres.TransactionalPGRepository):
         )
         return pages, max(1.0, int(count["n"]) / pages)
 
+    def count_rawdata(self, table_name: str, row_filter: sql.Composable | None = None) -> int:
+        table = sql.SQL("{}.{}").format(sql.Identifier(layer0.RAWDATA_SCHEMA), sql.Identifier(table_name))
+        if row_filter is None:
+            query = sql.SQL("SELECT COUNT(*) AS n FROM {}").format(table)
+        else:
+            query = sql.SQL("SELECT COUNT(*) AS n FROM {} WHERE {}").format(table, row_filter)
+        return int(self._storage.query(query, read_only=True)[0]["n"])
+
+    def fetch_rawdata_keyset(
+        self,
+        table_name: str,
+        columns: Sequence[str],
+        after_id: str,
+        limit: int,
+        row_filter: sql.Composable,
+    ) -> list[dict[str, Any]]:
+        id_col = sql.Identifier(layer0.INTERNAL_ID_COLUMN_NAME)
+        query = sql.SQL("SELECT {} FROM {}.{} WHERE {} > %s AND {} ORDER BY {} ASC LIMIT %s").format(
+            sql.SQL(", ").join(sql.Identifier(c) for c in [layer0.INTERNAL_ID_COLUMN_NAME, *columns]),
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+            id_col,
+            row_filter,
+            id_col,
+        )
+        return list(self._storage.query(query, params=[after_id, limit], read_only=True))
+
     def fetch_rawdata_pages(
         self,
         table_name: str,
