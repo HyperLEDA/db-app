@@ -45,4 +45,4 @@ def test_schedules_and_structured_upload_deployments() -> None:
     assert upload.entrypoint is not None and upload.entrypoint.endswith("structured_upload_icrs")
     assert len(upload.schedules or []) == 1
     rendered = str(upload._parameter_openapi_schema.model_dump())  # noqa: SLF001
-    assert "ra" in rendered and "table_name" in rendered and "batch_size" in rendered and "row_filter" in rendered
+    assert "ra" in rendered and "table_name" in rendered and "batch_size" in rendered

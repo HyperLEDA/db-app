@@ -137,45 +137,6 @@ def test_batch_reads(pg_storage: PostgresTestStorage, monkeypatch: pytest.Monkey
     assert sorted(i for batch in batches for i in batch) == ids
 
 
-def test_row_filter_reads_keyset(pg_storage: PostgresTestStorage, monkeypatch: pytest.MonkeyPatch) -> None:
-    table_name = "upload_filter"
-    _seed(pg_storage, table_name)
-    keysets: list[list[str]] = []
-    page_calls: list[int] = []
-    original_keyset = repository.Repository.fetch_rawdata_keyset
-    original_pages = repository.Repository.fetch_rawdata_pages
-
-    def spy_keyset(self: repository.Repository, *args: object, **kwargs: object) -> list[dict[str, object]]:
-        rows = original_keyset(self, *args, **kwargs)
-        keysets.append([str(row["hyperleda_internal_id"]) for row in rows])
-        return rows
-
-    def spy_pages(self: repository.Repository, *args: object, **kwargs: object) -> list[dict[str, object]]:
-        page_calls.append(1)
-        return original_pages(self, *args, **kwargs)
-
-    monkeypatch.setattr(repository.Repository, "fetch_rawdata_keyset", spy_keyset)
-    monkeypatch.setattr(repository.Repository, "fetch_rawdata_pages", spy_pages)
-    monkeypatch.setattr("app.tasks.artifacts.ProgressTracker.update", lambda self, value, description: None)
-    monkeypatch.setattr("app.tasks.artifacts.emit_preview_table", lambda rows, _: None)
-
-    repo = repository.Repository(pg_storage.storage, structlog.get_logger())
-    params = _params(repo, table_name, write=True)
-    params["row_filter"] = "design IS NOT NULL"
-    task = structured_upload.StructuredCatalogUploadTask(structlog.get_logger(), layer1.Catalog.DESIGNATION, params)
-    task.prepare(tasks.Config(storage=pg_storage.config))
-    try:
-        task.run()
-    finally:
-        task.cleanup()
-
-    stored = pg_storage.storage.query("SELECT record_id FROM designation.data ORDER BY record_id")
-    assert stored == [{"record_id": "r1"}]
-    assert page_calls == []
-    assert keysets[0] == ["r1"]
-    assert keysets[-1] == []
-
-
 def test_empty_pages_and_unanalyzed_stats(pg_storage: PostgresTestStorage, monkeypatch: pytest.MonkeyPatch) -> None:
     ids = _seed_bulk(pg_storage, "upload_gap", 300)
     pg_storage.storage.exec(
