@@ -3,6 +3,7 @@ from typing import Any, final
 
 import structlog
 from astropy import table
+from psycopg import sql
 
 from app.adminapi import model
 from app.adminapi.repository import common, layer1, metadata, references
@@ -98,8 +99,17 @@ class Repository(postgres.TransactionalPGRepository):
             table_name, limit, row_offset, order_direction, has_pgc, pgc_value, triage_status, record_id
         )
 
-    def sample_rawdata(self, table_name: str, columns: Sequence[str], limit: int) -> list[dict[str, Any]]:
-        return self._layer0_tables.sample_rawdata(table_name, columns, limit)
+    def count_rawdata(self, table_name: str, row_filter: sql.Composable | None = None) -> tuple[int, int]:
+        return self._layer0_tables.count_rawdata(table_name, row_filter)
+
+    def sample_rawdata(
+        self,
+        table_name: str,
+        columns: Sequence[str],
+        limit: int,
+        row_filter: sql.Composable | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._layer0_tables.sample_rawdata(table_name, columns, limit, row_filter)
 
     def fetch_metadata(self, table_name: str) -> model.Layer0TableMeta:
         return self._layer0_tables.fetch_metadata(table_name)

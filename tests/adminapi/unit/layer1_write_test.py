@@ -109,6 +109,8 @@ def _preview_col(name: str, data_type: str, unit: str | None = None, not_null: b
 def _run_preview(
     expressions: dict[str, str],
     rows: list[dict[str, Any]],
+    row_filter: str | None = None,
+    counts: tuple[int, int] | None = None,
 ) -> adminapi.PreviewStructuredUploadResponse:
     tables = {
         ("icrs", "data"): _preview_table(
@@ -135,7 +137,10 @@ def _run_preview(
         (schema, table), _preview_table(schema, table, [])
     )
     repo.sample_rawdata.return_value = rows
-    request = adminapi.PreviewStructuredUploadRequest(catalog="icrs", table_name="raw", expressions=expressions)
+    repo.count_rawdata.return_value = counts or (len(rows), len(rows))
+    request = adminapi.PreviewStructuredUploadRequest(
+        catalog="icrs", table_name="raw", expressions=expressions, row_filter=row_filter
+    )
     return Layer1Writer(repo, mock.Mock()).preview_upload(request)
 
 
@@ -206,3 +211,10 @@ def test_preview_unknown_catalog_and_field() -> None:
         )
     with pytest.raises(RuleValidationError):
         _run_preview({"bogus": "1"}, [])
+
+
+def test_preview_row_filter_counts() -> None:
+    response = _run_preview(
+        {"ra": 'col("ra_h")', "dec": 'col("dec_d")'}, [_preview_row("r1", 1.0, 2.0)], "class = 'STAR'", (1, 4)
+    )
+    assert (response.eligible_count, response.total_count) == (1, 4)

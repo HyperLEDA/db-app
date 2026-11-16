@@ -7,10 +7,11 @@ import structlog
 
 from app.catalogs import layer0, layer1
 from app.lib import formula
+from app.lib.storage import sql_row_filter
 from app.specs import adminapi as spec
 from app.tasks import artifacts, layer2_common, repository
 
-_RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size"})
+_RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size", "row_filter"})
 _PREVIEW_ROWS = 5
 
 
@@ -47,6 +48,10 @@ def build_catalog_params_model(schema: spec.CatalogSchema) -> type[pydantic.Base
         int,
         pydantic.Field(default=10_000, ge=1, le=500_000, description="Rows read per batch"),
     )
+    field_defs["row_filter"] = (
+        str,
+        pydantic.Field(default="", description="SQL boolean appended to the rawdata query"),
+    )
     model_name = "".join(part.capitalize() for part in schema.catalog.split("_")) + "UploadParams"
     return pydantic.create_model(model_name, **field_defs)
 
@@ -81,9 +86,13 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         fields_by_name = {
             field.name: formula.OutputField(field.name, field.data_type.value, field.unit) for field in schema.fields
         }
+        row_filter = sql_row_filter.row_filter_clause(str(values["row_filter"]))
         progress = artifacts.ProgressTracker()
         progress.update(0, "Reading raw data")
-        total = self.repository.get_table_record_count(table_name)
+        if row_filter is None:
+            total = self.repository.get_table_record_count(table_name)
+        else:
+            total = self.repository.count_rawdata(table_name, row_filter)
         if total == 0:
             progress.update(100, "Finished")
             return
@@ -92,15 +101,11 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         preview_sent = False
         write = bool(values["write"])
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
-        total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
-        pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
         run_started = time.perf_counter()
-        for start_page in range(0, total_pages, pages_per_batch):
-            pages = min(pages_per_batch, total_pages - start_page)
+
+        def consume(rows: list[dict[str, Any]], *, done: int, span: int, **log_fields: Any) -> None:
+            nonlocal processed, rows_written_total, preview_sent
             batch_started = time.perf_counter()
-            rows = self.repository.fetch_rawdata_pages(
-                table_name, fetch_columns, start_page, start_page + pages_per_batch
-            )
             processed += len(rows)
             ids, data = formula.evaluate_batch(
                 rows,
@@ -111,9 +116,7 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 column_units,
                 layer0.INTERNAL_ID_COLUMN_NAME,
             )
-            rows_read = len(rows)
             rows_kept = len(ids)
-            rows_dropped = rows_read - rows_kept
             rows_written = 0
             if write and ids:
                 self.repository.save_structured_data(self._catalog, output_columns, ids, data)
@@ -122,23 +125,41 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             elif ids and not write and not preview_sent:
                 artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
                 preview_sent = True
-            pages_done = min(start_page + pages_per_batch, total_pages)
             elapsed_s = time.perf_counter() - run_started
-            eta_s = round(elapsed_s * (total_pages - pages_done) / pages_done) if pages_done < total_pages else 0
+            eta_s = round(elapsed_s * (span - done) / done) if 0 < done < span else 0
             self.log.info(
                 "Processed batch",
-                start_page=start_page,
-                pages=pages,
-                rows_read=rows_read,
+                rows_read=len(rows),
                 rows_kept=rows_kept,
-                rows_dropped=rows_dropped,
+                rows_dropped=len(rows) - rows_kept,
                 rows_written=rows_written,
                 processed=processed,
                 total=total,
                 duration_ms=round((time.perf_counter() - batch_started) * 1000, 1),
                 eta_s=eta_s,
+                **log_fields,
             )
-            progress.update(min(99, int(100 * pages_done / total_pages)), f"Processed {processed} / {total} rows")
+            progress.update(min(99, int(100 * done / span)) if span else 99, f"Processed {processed} / {total} rows")
+
+        if row_filter is None:
+            total_pages, rows_per_page = self.repository.get_rawdata_page_stats(table_name)
+            pages_per_batch = max(1, round(int(values["batch_size"]) / rows_per_page))
+            for start_page in range(0, total_pages, pages_per_batch):
+                pages = min(pages_per_batch, total_pages - start_page)
+                rows = self.repository.fetch_rawdata_pages(
+                    table_name, fetch_columns, start_page, start_page + pages_per_batch
+                )
+                pages_done = min(start_page + pages_per_batch, total_pages)
+                consume(rows, done=pages_done, span=total_pages, start_page=start_page, pages=pages)
+        else:
+            after_id = ""
+            batch_size = int(values["batch_size"])
+            while True:
+                rows = self.repository.fetch_rawdata_keyset(table_name, fetch_columns, after_id, batch_size, row_filter)
+                if not rows:
+                    break
+                consume(rows, done=min(processed + len(rows), total), span=total)
+                after_id = str(rows[-1][layer0.INTERNAL_ID_COLUMN_NAME])
         if rows_written_total:
             self.repository.touch_table(table_name)
         progress.update(100, "Finished")
