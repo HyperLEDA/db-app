@@ -49,6 +49,14 @@ class Actions(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def start_crossmatch(self, r: spec.StartCrossmatchRequest) -> spec.StartCrossmatchResponse:
+        pass
+
+    @abc.abstractmethod
+    def preview_crossmatch(self, r: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
+        pass
+
+    @abc.abstractmethod
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         pass
 

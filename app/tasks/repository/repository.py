@@ -11,7 +11,8 @@ from psycopg import sql
 
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
-from app.lib.storage import mapping, postgres
+from app.lib.crossmatch.query import NEIGHBORS_AFTER_ID
+from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
 
@@ -746,6 +747,88 @@ class Repository(postgres.TransactionalPGRepository):
             params=params,
         )
         return {row["table_name"]: table_statistics.CatalogProgress(structured=int(row["structured"])) for row in rows}
+
+    def crossmatch_table(self, table_name: str) -> tuple[int, int]:
+        table_id = layer0.require_table_id(self._storage, table_name)
+        row = self._storage.query_one(
+            "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+            params=[table_id],
+        )
+        return table_id, int(row["cnt"])
+
+    def fetch_crossmatch_neighbors(
+        self,
+        table_id: int,
+        last_id: str,
+        batch_size: int,
+        radius_deg: float,
+    ) -> list[dict[str, Any]]:
+        return list(
+            self._storage.query(
+                NEIGHBORS_AFTER_ID,
+                params=[table_id, last_id, batch_size, radius_deg],
+            )
+        )
+
+    def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
+        if not record_ids:
+            return {}
+        query = sql.SQL(
+            "SELECT hyperleda_internal_id, {col} FROM rawdata.{table} WHERE hyperleda_internal_id = ANY(%s)"
+        ).format(col=sql.Identifier(column), table=sql.Identifier(table_name))
+        claimed: dict[str, int | None] = {}
+        for row in self._storage.query(query, params=[record_ids]):
+            value = row[column]
+            claimed[str(row["hyperleda_internal_id"])] = int(value) if value is not None else None
+        return claimed
+
+    def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
+        if not pgcs:
+            return set()
+        rows = self._storage.query("SELECT pgc FROM layer2.objects WHERE pgc = ANY(%s)", params=[pgcs])
+        return {int(row["pgc"]) for row in rows}
+
+    def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
+        if not designations:
+            return {}
+        grouped: dict[str, set[int]] = {}
+        for row in self._storage.query(
+            "SELECT name AS design, pgc FROM layer2.objects WHERE name = ANY(%s)",
+            params=[designations],
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        for row in self._storage.query(
+            "SELECT design, pgc FROM layer2.designations WHERE design = ANY(%s)",
+            params=[designations],
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        return {design: sorted(grouped.get(design, set())) for design in designations}
+
+    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
+        if not rows:
+            return
+        query = (
+            "INSERT INTO layer0.crossmatch (record_id, triage_status, metadata) "
+            "VALUES (%s, %s, %s) "
+            "ON CONFLICT (record_id) DO UPDATE SET "
+            "triage_status = EXCLUDED.triage_status, metadata = EXCLUDED.metadata"
+        )
+        db_rows = [
+            (record_id, triage.value, json.dumps(_candidates_to_metadata(candidates)))
+            for record_id, triage, candidates in rows
+        ]
+        with self.with_tx():
+            with layer0.rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
+                with self._storage.get_connection().cursor() as cursor:
+                    cursor.executemany(query, db_rows)
+
+
+def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
+    if len(candidates) == 0:
+        return {}
+    if len(candidates) == 1:
+        return {"pgc": candidates[0]}
+    return {"possible_matches": candidates}
 
 
 def _statistics_to_json(progress: table_statistics.TableProgress) -> str:

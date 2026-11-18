@@ -18,6 +18,7 @@ from app.catalogs import layer1
 from app.lib import formula, structlog_config, tracing
 from app.specs import adminapi as spec
 from app.tasks import structured_upload
+from app.tasks.crossmatch.task import CrossmatchTask
 
 _tracer = trace.get_tracer("tasks")
 
@@ -235,6 +236,22 @@ def refresh_table_stats() -> None:
     _execute_task(task, "refresh-table-stats", {"task.name": "refresh-table-stats"})
 
 
+def run_crossmatch(params: Mapping[str, Any]) -> None:
+    log = _flow_logger()
+    task = CrossmatchTask(log, params)
+    _execute_task(task, "tasks.crossmatch", {"task.table_name": str(params.get("table_name", ""))})
+
+
+@flow(
+    log_prints=False,
+    name="Crossmatch",
+    description="Cross-identify records in a layer 0 table against layer 2 objects.",
+    validate_parameters=False,
+)
+def crossmatch(params: dict[str, Any]) -> None:
+    run_crossmatch(params)
+
+
 def run_structured_upload(catalog: layer1.Catalog, params: Mapping[str, Any]) -> None:
     log = _flow_logger()
     task = structured_upload.StructuredCatalogUploadTask(log, catalog, params)
@@ -267,6 +284,7 @@ FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import-objects": layer2_import_objects,
     "layer2-orphan-cleanup": layer2_orphan_cleanup,
     "refresh-table-stats": refresh_table_stats,
+    "crossmatch": crossmatch,
 }
 
 
@@ -284,7 +302,16 @@ def build_deployments(
             deployments.append(flow_fn.to_deployment(name=task_name, cron=cron))
     for schema in catalog_schemas:
         deployments.append(_catalog_deployment(schema, environ))
+    deployments.append(_crossmatch_deployment())
     return deployments
+
+
+def _crossmatch_deployment() -> RunnerDeployment:
+    deployment = crossmatch.to_deployment(name="crossmatch", enforce_parameter_schema=True)
+    deployment._parameter_openapi_schema = _openapi_for_params(spec.CrossmatchParams)  # noqa: SLF001
+    if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
+        raise RuntimeError("parameter schema for crossmatch is empty")
+    return deployment
 
 
 def _catalog_deployment(schema: spec.CatalogSchema, environ: Mapping[str, str] | None) -> RunnerDeployment:

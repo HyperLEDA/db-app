@@ -168,6 +168,69 @@ class StartStructuredUploadResponse(pydantic.BaseModel):
     task_id: str
 
 
+class CrossmatchParams(pydantic.BaseModel):
+    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
+    pgc_column: str = pydantic.Field(
+        default="",
+        description="Raw-table column with a claimed PGC. Empty skips PGC matching.",
+    )
+    redshift_tolerance: float = pydantic.Field(
+        default=0,
+        ge=0,
+        description="Redshift tolerance. 0 disables redshift matching.",
+    )
+    batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records read per batch")
+    print_pending: bool = pydantic.Field(default=False, description="Log records that need manual check")
+    write: bool = pydantic.Field(default=True, description="Write results into layer0.crossmatch")
+
+
+class StartCrossmatchRequest(WriteRequest):
+    params: dict[str, Any]
+
+
+class StartCrossmatchResponse(pydantic.BaseModel):
+    task_id: str
+
+
+class PreviewCrossmatchRequest(pydantic.BaseModel):
+    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
+    pgc_column: str = pydantic.Field(
+        default="",
+        description="Raw-table column with a claimed PGC. Empty skips PGC matching.",
+    )
+    redshift_tolerance: float = pydantic.Field(
+        default=0,
+        ge=0,
+        description="Redshift tolerance. 0 disables redshift matching.",
+    )
+    limit: int = pydantic.Field(default=20, ge=1, le=200, description="Number of random records to crossmatch")
+
+
+class PreviewCrossmatchNeighbor(pydantic.BaseModel):
+    pgc: int
+    distance_arcsec: float
+    design: str | None = None
+
+
+class PreviewCrossmatchRow(pydantic.BaseModel):
+    record_id: str
+    status: str
+    triage: str
+    reason: str
+    candidates: list[int]
+    designation: str | None = None
+    ra: float | None = None
+    dec: float | None = None
+    neighbors: list[PreviewCrossmatchNeighbor]
+
+
+class PreviewCrossmatchResponse(pydantic.BaseModel):
+    rows: list[PreviewCrossmatchRow]
+    total_count: int
+
+
 class PreviewStructuredUploadRequest(pydantic.BaseModel):
     catalog: str
     table_name: str

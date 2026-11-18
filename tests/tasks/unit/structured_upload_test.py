@@ -67,8 +67,23 @@ def _run(
 ) -> tuple[list[float], list[list[dict[str, Any]]]]:
     progress: list[float] = []
     previews: list[list[dict[str, Any]]] = []
-    monkeypatch.setattr(artifacts.ProgressTracker, "update", lambda self, value, _: progress.append(value))
-    monkeypatch.setattr(artifacts, "emit_preview_table", lambda rows, _: previews.append(rows))
+    artifact_id = UUID(int=1)
+
+    def create_progress(**kwargs: Any) -> UUID:
+        progress.append(kwargs["progress"])
+        return artifact_id
+
+    def update_progress(**kwargs: Any) -> UUID:
+        progress.append(kwargs["progress"])
+        return artifact_id
+
+    def create_table(**kwargs: Any) -> UUID:
+        previews.append(kwargs["table"])
+        return UUID(int=2)
+
+    monkeypatch.setattr("prefect.artifacts.create_progress_artifact", create_progress)
+    monkeypatch.setattr("prefect.artifacts.update_progress_artifact", update_progress)
+    monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
     task = structured_upload.StructuredCatalogUploadTask(structlog.get_logger(), catalog, params)
     task.repository = repo
     task.run()
@@ -184,14 +199,14 @@ def test_progress_and_preview_artifacts(monkeypatch: pytest.MonkeyPatch) -> None
     updated: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
     artifact_id = UUID(int=1)
-    monkeypatch.setattr(artifacts.artifacts, "create_progress_artifact", lambda **kw: created.append(kw) or artifact_id)
-    monkeypatch.setattr(artifacts.artifacts, "update_progress_artifact", lambda **kw: updated.append(kw) or artifact_id)
-    monkeypatch.setattr(artifacts.artifacts, "create_table_artifact", lambda **kw: tables.append(kw) or UUID(int=2))
-    tracker = artifacts.ProgressTracker()
+    monkeypatch.setattr("prefect.artifacts.create_progress_artifact", lambda **kw: created.append(kw) or artifact_id)
+    monkeypatch.setattr("prefect.artifacts.update_progress_artifact", lambda **kw: updated.append(kw) or artifact_id)
+    monkeypatch.setattr("prefect.artifacts.create_table_artifact", lambda **kw: tables.append(kw) or UUID(int=2))
+    tracker = artifacts.ProgressTracker("structured-upload-progress")
     tracker.update(0, "start")
     tracker.update(40, "middle")
     assert created[0]["progress"] == 0 and updated[0]["artifact_id"] == artifact_id and updated[0]["progress"] == 40
-    artifacts.emit_preview_table([{"id": "r1", "design": "NGC 1"}], "Dry-run preview")
+    artifacts.emit_table("structured-upload-preview", [{"id": "r1", "design": "NGC 1"}], "Dry-run preview")
     assert tables[0]["table"] == [{"id": "r1", "design": "NGC 1"}] and tables[0]["description"] == "Dry-run preview"
 
 

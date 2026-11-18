@@ -85,6 +85,20 @@ class API:
         response = self.actions.preview_structured_upload(request)
         return server.APIOkResponse(data=response)
 
+    def start_crossmatch(
+        self,
+        request: spec.StartCrossmatchRequest,
+    ) -> server.APIOkResponse[spec.StartCrossmatchResponse]:
+        response = self.actions.start_crossmatch(request)
+        return server.APIOkResponse(data=response)
+
+    def preview_crossmatch(
+        self,
+        request: spec.PreviewCrossmatchRequest,
+    ) -> server.APIOkResponse[spec.PreviewCrossmatchResponse]:
+        response = self.actions.preview_crossmatch(request)
+        return server.APIOkResponse(data=response)
+
     def set_crossmatch_results(
         self,
         request: spec.SetCrossmatchResultsRequest,
@@ -398,9 +412,29 @@ For every column that has unit metadata in the database, the request must includ
                 http.HTTPMethod.POST,
                 api.start_structured_upload,
                 "Start structured catalog upload",
-                """Start a Prefect task to upload data from a layer 0 table into a layer 1 catalog.""",
+                """Start a task to upload data from a layer 0 table into a layer 1 catalog.""",
                 requires_auth=True,
                 audit_action=True,
+            ),
+            server.Route(
+                "/v1/tasks/crossmatch",
+                http.HTTPMethod.POST,
+                api.start_crossmatch,
+                "Start crossmatch",
+                """Start a task to cross-identify records in a layer 0 table against layer 2 objects.""",
+                requires_auth=True,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/tasks/crossmatch/preview",
+                http.HTTPMethod.POST,
+                api.preview_crossmatch,
+                "Preview crossmatch",
+                (
+                    "Cross-identify a random sample of records in a layer 0 table against layer 2 objects "
+                    "without writing anything."
+                ),
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/data/structured/preview",

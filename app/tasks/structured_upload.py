@@ -87,7 +87,7 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             field.name: formula.OutputField(field.name, field.data_type.value, field.unit) for field in schema.fields
         }
         row_filter = sql_row_filter.row_filter_clause(str(values["row_filter"]))
-        progress = artifacts.ProgressTracker()
+        progress = artifacts.ProgressTracker("structured-upload-progress")
         progress.update(0, "Reading raw data")
         if row_filter is None:
             total = self.repository.get_table_record_count(table_name)
@@ -123,7 +123,11 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 rows_written = rows_kept
                 rows_written_total += rows_written
             elif ids and not write and not preview_sent:
-                artifacts.emit_preview_table(_preview_rows(output_columns, ids, data), "Dry-run preview")
+                artifacts.emit_table(
+                    "structured-upload-preview",
+                    _preview_rows(output_columns, ids, data),
+                    "Dry-run preview",
+                )
                 preview_sent = True
             elapsed_s = time.perf_counter() - run_started
             eta_s = round(elapsed_s * (span - done) / done) if 0 < done < span else 0

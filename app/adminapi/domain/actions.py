@@ -36,7 +36,7 @@ class Actions(interface.Actions):
             repo,
             clients,
         )
-        self.crossmatch_manager = crossmatch.CrossmatchManager(repo)
+        self.crossmatch_manager = crossmatch.CrossmatchManager(repo, clients.prefect)
         self.pgc_manager = pgc.PgcManager(repo)
         self.layer1_writer = layer1_write.Layer1Writer(repo, clients.prefect)
         self.catalog_manager = catalogs.CatalogManager(repo)
@@ -74,6 +74,12 @@ class Actions(interface.Actions):
 
     def preview_structured_upload(self, r: spec.PreviewStructuredUploadRequest) -> spec.PreviewStructuredUploadResponse:
         return self.layer1_writer.preview_upload(r)
+
+    def start_crossmatch(self, r: spec.StartCrossmatchRequest) -> spec.StartCrossmatchResponse:
+        return self.crossmatch_manager.start(r)
+
+    def preview_crossmatch(self, r: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
+        return self.crossmatch_manager.preview(r)
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)
