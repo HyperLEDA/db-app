@@ -86,7 +86,7 @@ class CrossmatchManager:
                 record_id=record_id,
                 status=item.result.status.value,
                 triage=item.result.triage_status.value,
-                reason=item.result.pending_reason.value if item.result.pending_reason is not None else "",
+                reason=item.result.reason.value if item.result.reason is not None else "",
                 candidates=written.get(record_id, []),
                 designation=item.designation,
                 ra=item.ra,

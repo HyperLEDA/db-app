@@ -1,4 +1,4 @@
-from app.lib.crossmatch.models import PendingReason, RecordEvidence
+from app.lib.crossmatch.models import CrossmatchReason, RecordEvidence
 from app.lib.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
 
 
@@ -6,7 +6,7 @@ def resolve(
     evidence: RecordEvidence,
     previous: PreliminaryStatus,
     redshift_tolerance: float | None,
-) -> tuple[PreliminaryStatus, PendingReason | None]:
+) -> tuple[PreliminaryStatus, CrossmatchReason | None]:
     if redshift_tolerance is None or evidence.record_redshift is None:
         return previous, None
 
@@ -19,7 +19,7 @@ def resolve(
             return previous, None
         if abs(neighbor.redshift - record_z) < redshift_tolerance:
             return previous, None
-        return previous, PendingReason.REDSHIFT_MISMATCH
+        return previous, CrossmatchReason.REDSHIFT_MISMATCH
 
     neighbors_involved = [n for n in evidence.neighbors if n.pgc in previous.pgcs]
     if any(n.redshift is None for n in neighbors_involved):

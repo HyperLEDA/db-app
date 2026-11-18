@@ -1,4 +1,4 @@
-from app.lib.crossmatch.models import PendingReason, RecordEvidence
+from app.lib.crossmatch.models import CrossmatchReason, RecordEvidence
 from app.lib.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
 
 SIMILAR_TYPE_MAP = {
@@ -11,7 +11,7 @@ def _types_match(record_type: str, other_type: str) -> bool:
     return record_type == other_type or other_type in SIMILAR_TYPE_MAP.get(record_type, set())
 
 
-def resolve(evidence: RecordEvidence, previous: PreliminaryStatus) -> tuple[PreliminaryStatus, PendingReason | None]:
+def resolve(evidence: RecordEvidence, previous: PreliminaryStatus) -> tuple[PreliminaryStatus, CrossmatchReason | None]:
     if evidence.record_type_name is None:
         return previous, None
     if isinstance(previous, PreliminaryNew):
@@ -22,7 +22,7 @@ def resolve(evidence: RecordEvidence, previous: PreliminaryStatus) -> tuple[Prel
         neighbor = next((n for n in evidence.neighbors if n.pgc == previous.pgc), None)
         existing_type = neighbor.type_name if neighbor is not None else None
         if existing_type is not None and not _types_match(record_type, existing_type):
-            return previous, PendingReason.TYPE_MISMATCH
+            return previous, CrossmatchReason.TYPE_MISMATCH
         return previous, None
 
     same_type_neighbors = [

@@ -45,10 +45,12 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     by_id = {row.record_id: row for row in response.rows}
     assert response.total_count == 8
     assert by_id["near"].status == "existing" and by_id["near"].triage == "resolved"
+    assert by_id["near"].reason == "MATCHED_COORDINATES"
     assert by_id["near"].candidates == [100] and by_id["near"].neighbors[0].pgc == 100
     assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
     assert by_id["near"].neighbors[0].distance_arcsec == 0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
+    assert by_id["far"].reason == ""
     repo.fetch_claimed_pgcs.assert_not_called()
     repo.sample_crossmatch_records.assert_called_once_with("raw", 2)
 

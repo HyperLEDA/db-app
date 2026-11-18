@@ -1,4 +1,4 @@
-from app.lib.crossmatch.models import PendingReason, RecordEvidence
+from app.lib.crossmatch.models import CrossmatchReason, RecordEvidence
 from app.lib.crossmatch.preliminary import (
     PreliminaryColliding,
     PreliminaryExisting,
@@ -7,7 +7,7 @@ from app.lib.crossmatch.preliminary import (
 )
 
 
-def resolve(evidence: RecordEvidence, radius_deg: float) -> tuple[PreliminaryStatus, PendingReason | None]:
+def resolve(evidence: RecordEvidence, radius_deg: float) -> tuple[PreliminaryStatus, CrossmatchReason | None]:
     neighbors_within_radius = [n for n in evidence.neighbors if n.distance_deg <= radius_deg]
     if len(neighbors_within_radius) == 0:
         return PreliminaryNew(), None

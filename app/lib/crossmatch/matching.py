@@ -5,11 +5,11 @@ from typing import Any
 import structlog
 
 from app.lib.crossmatch.models import (
+    CrossmatchReason,
     CrossmatchResult,
     CrossmatchStatus,
     MatchedRecord,
     Neighbor,
-    PendingReason,
     RecordEvidence,
     TriageStatus,
 )
@@ -20,7 +20,7 @@ C_M_S = 299792458
 
 
 def distribution_rows(
-    counts: Mapping[tuple[CrossmatchStatus, TriageStatus, PendingReason | None], int],
+    counts: Mapping[tuple[CrossmatchStatus, TriageStatus, CrossmatchReason | None], int],
     total: int,
 ) -> list[dict[str, Any]]:
     def pct(n: int) -> float:
@@ -159,7 +159,7 @@ def resolve_batch(
             )
         )
         if print_pending and log is not None and result.triage_status == TriageStatus.PENDING:
-            reason = result.pending_reason.value if result.pending_reason is not None else "unknown"
+            reason = result.reason.value if result.reason is not None else "unknown"
             log.warning("pending crossmatch", record_id=record_id, reason=reason)
     return matched
 
