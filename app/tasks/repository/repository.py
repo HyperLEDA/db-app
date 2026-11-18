@@ -765,7 +765,7 @@ class Repository(postgres.TransactionalPGRepository):
     ) -> list[dict[str, Any]]:
         return list(
             self._storage.query(
-                _CROSSMATCH_NEIGHBOR_SQL,
+                NEIGHBORS_AFTER_ID,
                 params=[table_id, last_id, batch_size, radius_deg],
             )
         )

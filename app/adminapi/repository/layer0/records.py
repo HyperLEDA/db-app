@@ -202,3 +202,80 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         with rawdata_table(self._storage, record_ids=[row["id"] for row in rows]):
             touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
+
+    def sample_crossmatch_records(self, table_name: str, limit: int) -> tuple[list[str], int]:
+        table_id = require_table_id(self._storage, table_name)
+        total = int(
+            self._storage.query_one(
+                "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+                params=[table_id],
+            )["cnt"]
+        )
+        if total == 0:
+            return [], 0
+        if total < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
+            rows = self._storage.query(
+                "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
+                params=[table_id, limit],
+                read_only=True,
+            )
+            return [str(row["id"]) for row in rows], total
+
+        percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / total)
+        query = """
+            SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
+            WHERE table_id = %s
+            ORDER BY random()
+            LIMIT %s
+        """
+        while True:
+            rows = self._storage.query(query, params=[percent, table_id, limit], read_only=True)
+            if len(rows) >= limit or percent >= 100.0:
+                return [str(row["id"]) for row in rows], total
+            # SYSTEM sampling picks whole pages, so a small percentage can yield fewer rows than requested.
+            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
+
+    def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
+        if not record_ids:
+            return []
+        return list(self._storage.query(NEIGHBORS_FOR_IDS, params=[record_ids, radius_deg], read_only=True))
+
+    def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
+        if not record_ids:
+            return {}
+        query = sql.SQL(
+            "SELECT hyperleda_internal_id, {col} FROM rawdata.{table} WHERE hyperleda_internal_id = ANY(%s)"
+        ).format(col=sql.Identifier(column), table=sql.Identifier(table_name))
+        claimed: dict[str, int | None] = {}
+        for row in self._storage.query(query, params=[record_ids], read_only=True):
+            value = row[column]
+            claimed[str(row["hyperleda_internal_id"])] = int(value) if value is not None else None
+        return claimed
+
+    def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
+        if not pgcs:
+            return set()
+        rows = self._storage.query(
+            "SELECT pgc FROM layer2.objects WHERE pgc = ANY(%s)",
+            params=[pgcs],
+            read_only=True,
+        )
+        return {int(row["pgc"]) for row in rows}
+
+    def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
+        if not designations:
+            return {}
+        grouped: dict[str, set[int]] = {}
+        for row in self._storage.query(
+            "SELECT name AS design, pgc FROM layer2.objects WHERE name = ANY(%s)",
+            params=[designations],
+            read_only=True,
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        for row in self._storage.query(
+            "SELECT design, pgc FROM layer2.designations WHERE design = ANY(%s)",
+            params=[designations],
+            read_only=True,
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        return {design: sorted(grouped.get(design, set())) for design in designations}
