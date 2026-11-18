@@ -1,5 +1,5 @@
-from app.tasks.crossmatch.models import PendingReason, RecordEvidence
-from app.tasks.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
+from app.lib.crossmatch.models import PendingReason, RecordEvidence
+from app.lib.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
 
 
 def resolve(

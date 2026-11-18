@@ -1,6 +1,5 @@
-from app.lib.storage import enums
-from app.tasks.crossmatch.engine import distribution_rows, results_to_rows
-from app.tasks.crossmatch.models import (
+from app.lib.crossmatch.matching import distribution_rows, results_to_rows
+from app.lib.crossmatch.models import (
     CrossmatchResult,
     CrossmatchStatus,
     Neighbor,
@@ -8,7 +7,8 @@ from app.tasks.crossmatch.models import (
     RecordEvidence,
     TriageStatus,
 )
-from app.tasks.crossmatch.resolver import Resolver
+from app.lib.crossmatch.resolver import Resolver
+from app.lib.storage import enums
 
 
 def _neighbor(

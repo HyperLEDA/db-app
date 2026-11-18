@@ -78,6 +78,9 @@ class Actions(interface.Actions):
     def start_crossmatch(self, r: spec.StartCrossmatchRequest) -> spec.StartCrossmatchResponse:
         return self.crossmatch_manager.start(r)
 
+    def preview_crossmatch(self, r: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
+        return self.crossmatch_manager.preview(r)
+
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         return self.crossmatch_manager.set_crossmatch_results(r)
 

@@ -1,6 +1,6 @@
-from app.tasks.crossmatch import icrs, name, object_type, pgc, redshift
-from app.tasks.crossmatch.models import CrossmatchResult, CrossmatchStatus, PendingReason, RecordEvidence, TriageStatus
-from app.tasks.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
+from app.lib.crossmatch import icrs, name, object_type, pgc, redshift
+from app.lib.crossmatch.models import CrossmatchResult, CrossmatchStatus, PendingReason, RecordEvidence, TriageStatus
+from app.lib.crossmatch.preliminary import PreliminaryExisting, PreliminaryNew, PreliminaryStatus
 
 
 def _pending(result: PreliminaryStatus, reason: PendingReason) -> CrossmatchResult:

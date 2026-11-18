@@ -1,8 +1,15 @@
 import json
 from typing import Any
 
-from app.catalogs.layer0 import rawdata_table, touch_pgcs
+from psycopg import sql
+
+from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
+from app.lib.crossmatch.query import NEIGHBORS_FOR_IDS
 from app.lib.storage import enums, postgres
+
+_TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
+_TABLESAMPLE_OVERSAMPLING = 3
+_TABLESAMPLE_RETRY_FACTOR = 4
 
 
 def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:

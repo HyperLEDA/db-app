@@ -92,6 +92,13 @@ class API:
         response = self.actions.start_crossmatch(request)
         return server.APIOkResponse(data=response)
 
+    def preview_crossmatch(
+        self,
+        request: spec.PreviewCrossmatchRequest,
+    ) -> server.APIOkResponse[spec.PreviewCrossmatchResponse]:
+        response = self.actions.preview_crossmatch(request)
+        return server.APIOkResponse(data=response)
+
     def set_crossmatch_results(
         self,
         request: spec.SetCrossmatchResultsRequest,
@@ -417,6 +424,17 @@ For every column that has unit metadata in the database, the request must includ
                 """Start a task to cross-identify records in a layer 0 table against layer 2 objects.""",
                 requires_auth=True,
                 audit_action=True,
+            ),
+            server.Route(
+                "/v1/tasks/crossmatch/preview",
+                http.HTTPMethod.POST,
+                api.preview_crossmatch,
+                "Preview crossmatch",
+                (
+                    "Cross-identify a random sample of records in a layer 0 table against layer 2 objects "
+                    "without writing anything."
+                ),
+                requires_auth=True,
             ),
             server.Route(
                 "/v1/data/structured/preview",

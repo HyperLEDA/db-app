@@ -51,3 +51,13 @@ class CrossmatchResult:
     matched_pgc: int | None = None
     colliding_pgcs: list[int] | None = None
     pending_reason: PendingReason | None = None
+
+
+@dataclass
+class MatchedRecord:
+    record_id: str
+    result: CrossmatchResult
+    designation: str | None
+    ra: float | None
+    dec: float | None
+    neighbors: list[Neighbor]
