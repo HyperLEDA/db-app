@@ -47,6 +47,8 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
     assert response.total_count == 2
     assert set(by_id) == {"near", "far"}
     assert by_id["near"].status == "existing" and by_id["near"].candidates == [100]
+    assert by_id["near"].neighbors[0].pgc == 100
+    assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
     assert storage.query("SELECT record_id FROM layer0.crossmatch") == []
     modified = storage.query_one(

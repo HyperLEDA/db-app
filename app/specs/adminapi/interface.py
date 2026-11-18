@@ -210,6 +210,8 @@ class PreviewCrossmatchRequest(pydantic.BaseModel):
 
 class PreviewCrossmatchNeighbor(pydantic.BaseModel):
     pgc: int
+    ra: float
+    dec: float
     distance_arcsec: float
     design: str | None = None
 

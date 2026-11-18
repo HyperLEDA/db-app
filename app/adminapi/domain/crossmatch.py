@@ -94,6 +94,8 @@ class CrossmatchManager:
                 neighbors=[
                     spec.PreviewCrossmatchNeighbor(
                         pgc=neighbor.pgc,
+                        ra=neighbor.ra,
+                        dec=neighbor.dec,
                         distance_arcsec=round(neighbor.distance_deg * 3600, 2),
                         design=neighbor.design,
                     )
