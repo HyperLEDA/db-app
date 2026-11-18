@@ -133,8 +133,14 @@ adminapi:
 adminapi-dev:
 	set -a && source .env.local && set +a && make adminapi
 
+adminapi-watch:
+	uv run watchfiles --filter python 'uv run adminapi -c configs/dev/adminapi.yaml' app
+
 dataapi:
 	uv run dataapi -c configs/dev/dataapi.yaml
+
+dataapi-watch:
+	SERVER_PORT=8081 uv run watchfiles --filter python 'uv run dataapi -c configs/dev/dataapi.yaml' app
 
 fieldapi:
 	uv run fieldapi -c configs/dev/fieldapi.yaml
