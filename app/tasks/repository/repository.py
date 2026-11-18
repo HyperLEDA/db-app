@@ -11,7 +11,7 @@ from psycopg import sql
 
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
-from app.lib.storage import mapping, postgres
+from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
 
@@ -746,6 +746,132 @@ class Repository(postgres.TransactionalPGRepository):
             params=params,
         )
         return {row["table_name"]: table_statistics.CatalogProgress(structured=int(row["structured"])) for row in rows}
+
+    def crossmatch_table(self, table_name: str) -> tuple[int, int]:
+        table_id = layer0.require_table_id(self._storage, table_name)
+        row = self._storage.query_one(
+            "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+            params=[table_id],
+        )
+        return table_id, int(row["cnt"])
+
+    def fetch_crossmatch_neighbors(
+        self,
+        table_id: int,
+        last_id: str,
+        batch_size: int,
+        radius_deg: float,
+    ) -> list[dict[str, Any]]:
+        return list(
+            self._storage.query(
+                _CROSSMATCH_NEIGHBOR_SQL,
+                params=[table_id, last_id, batch_size, radius_deg],
+            )
+        )
+
+    def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
+        if not record_ids:
+            return {}
+        query = sql.SQL(
+            "SELECT hyperleda_internal_id, {col} FROM rawdata.{table} WHERE hyperleda_internal_id = ANY(%s)"
+        ).format(col=sql.Identifier(column), table=sql.Identifier(table_name))
+        claimed: dict[str, int | None] = {}
+        for row in self._storage.query(query, params=[record_ids]):
+            value = row[column]
+            claimed[str(row["hyperleda_internal_id"])] = int(value) if value is not None else None
+        return claimed
+
+    def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
+        if not pgcs:
+            return set()
+        rows = self._storage.query("SELECT pgc FROM layer2.objects WHERE pgc = ANY(%s)", params=[pgcs])
+        return {int(row["pgc"]) for row in rows}
+
+    def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
+        if not designations:
+            return {}
+        grouped: dict[str, set[int]] = {}
+        for row in self._storage.query(
+            "SELECT name AS design, pgc FROM layer2.objects WHERE name = ANY(%s)",
+            params=[designations],
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        for row in self._storage.query(
+            "SELECT design, pgc FROM layer2.designations WHERE design = ANY(%s)",
+            params=[designations],
+        ):
+            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
+        return {design: sorted(grouped.get(design, set())) for design in designations}
+
+    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
+        if not rows:
+            return
+        query = (
+            "INSERT INTO layer0.crossmatch (record_id, triage_status, metadata) "
+            "VALUES (%s, %s, %s) "
+            "ON CONFLICT (record_id) DO UPDATE SET "
+            "triage_status = EXCLUDED.triage_status, metadata = EXCLUDED.metadata"
+        )
+        db_rows = [
+            (record_id, triage.value, json.dumps(_candidates_to_metadata(candidates)))
+            for record_id, triage, candidates in rows
+        ]
+        with self.with_tx():
+            with layer0.rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
+                with self._storage.get_connection().cursor() as cursor:
+                    cursor.executemany(query, db_rows)
+
+
+def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
+    if len(candidates) == 0:
+        return {}
+    if len(candidates) == 1:
+        return {"pgc": candidates[0]}
+    return {"possible_matches": candidates}
+
+
+_CROSSMATCH_NEIGHBOR_SQL = """
+    WITH batch AS (
+        SELECT rec.id
+        FROM layer0.records rec
+        WHERE rec.table_id = %s AND rec.id > %s
+        ORDER BY rec.id ASC
+        LIMIT %s
+    )
+    SELECT
+        b.id AS new_id,
+        nc.ra AS new_ra,
+        nc.dec AS new_dec,
+        new_desig.design AS new_design,
+        new_cz.cz AS new_cz,
+        rec_nat.type_name AS new_type,
+        l2.pgc AS existing_pgc,
+        l2.ra AS existing_ra,
+        l2.dec AS existing_dec,
+        l2.name AS existing_design,
+        l2_cz.cz AS existing_cz,
+        l2.objtype AS existing_type
+    FROM batch b
+    LEFT JOIN icrs.data nc ON b.id = nc.record_id
+    LEFT JOIN designation.data new_desig ON b.id = new_desig.record_id
+    LEFT JOIN cz.data new_cz ON b.id = new_cz.record_id
+    LEFT JOIN nature.data rec_nat ON b.id = rec_nat.record_id
+    LEFT JOIN LATERAL (
+        SELECT l2.*
+        FROM layer2.objects l2
+        WHERE nc.record_id IS NOT NULL
+          AND l2.ra IS NOT NULL
+          AND l2.dec IS NOT NULL
+          AND ST_DWithin(
+              ST_MakePoint(nc.ra, nc.dec)::geography,
+              ST_MakePoint(l2.ra, l2.dec)::geography,
+              RADIANS(%s) * 6371008.7714,
+              false
+          )
+    ) l2 ON true
+    LEFT JOIN layer2.cz l2_cz ON l2.pgc = l2_cz.pgc
+    ORDER BY b.id ASC
+"""
 
 
 def _statistics_to_json(progress: table_statistics.TableProgress) -> str:

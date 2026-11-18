@@ -1,9 +1,12 @@
 from collections.abc import Callable
 from typing import final
 
+import pydantic
+
 from app.adminapi import repository
+from app.adminapi.clients.prefect import PrefectClient
 from app.lib.storage import enums
-from app.lib.web.errors import ConflictError, NotFoundError
+from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
 
@@ -22,8 +25,22 @@ def _append_crossmatch_rows(
 
 @final
 class CrossmatchManager:
-    def __init__(self, repo: repository.Repository) -> None:
+    def __init__(self, repo: repository.Repository, prefect: PrefectClient | None = None) -> None:
         self._repo = repo
+        self._prefect = prefect
+
+    def start(self, request: spec.StartCrossmatchRequest) -> spec.StartCrossmatchResponse:
+        if self._prefect is None:
+            raise InternalError("prefect client is not configured")
+        try:
+            params = spec.CrossmatchParams.model_validate(request.params)
+        except pydantic.ValidationError as exc:
+            raise RuleValidationError(str(exc)) from exc
+        task_id = self._prefect.create_flow_run(
+            name="Crossmatch/crossmatch",
+            parameters={"params": params.model_dump()},
+        )
+        return spec.StartCrossmatchResponse(task_id=task_id)
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []

@@ -1,3 +1,6 @@
+from typing import Any
+from uuid import UUID
+
 import pytest
 import structlog
 from psycopg import sql
@@ -85,8 +88,18 @@ def _run(
 
     repo = repository.Repository(pg_storage.storage, structlog.get_logger())
     previews: list[list[dict[str, object]]] = []
-    monkeypatch.setattr("app.tasks.artifacts.ProgressTracker.update", lambda self, value, description: None)
-    monkeypatch.setattr("app.tasks.artifacts.emit_preview_table", lambda rows, _: previews.append(rows))
+    artifact_id = UUID(int=1)
+
+    def create_progress(**_kwargs: Any) -> UUID:
+        return artifact_id
+
+    def create_table(**kwargs: Any) -> UUID:
+        previews.append(kwargs["table"])
+        return UUID(int=2)
+
+    monkeypatch.setattr("prefect.artifacts.create_progress_artifact", create_progress)
+    monkeypatch.setattr("prefect.artifacts.update_progress_artifact", create_progress)
+    monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
     task = structured_upload.StructuredCatalogUploadTask(
         structlog.get_logger(),
         layer1.Catalog.DESIGNATION,
