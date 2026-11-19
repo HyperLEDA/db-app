@@ -10,7 +10,6 @@ PARAMETER_ORDER: tuple[Parameter, ...] = (
     Parameter.TYPE,
 )
 
-_AUTO_MATCH_PARAMETERS: frozenset[Parameter] = frozenset({Parameter.COORDINATES, Parameter.REDSHIFT, Parameter.TYPE})
 _PREFERENCE_PARAMETERS: tuple[Parameter, ...] = (Parameter.PGC, Parameter.NAME)
 
 _SIMILAR_TYPE_MAP = {
@@ -52,10 +51,9 @@ def parameters_payload(matches: Mapping[Parameter, bool]) -> dict[str, bool | No
 
 
 def decide_matched(matches: Mapping[Parameter, bool]) -> bool:
-    required = [name for name in _AUTO_MATCH_PARAMETERS if name in matches]
-    if not required:
-        required = list(matches)
-    return bool(required) and all(matches[name] for name in required)
+    if not matches.get(Parameter.COORDINATES, False):
+        return False
+    return any(matched for name, matched in matches.items() if name != Parameter.COORDINATES)
 
 
 def prefer_candidates(

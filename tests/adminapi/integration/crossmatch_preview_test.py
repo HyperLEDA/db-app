@@ -41,22 +41,20 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
 
     response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name=table_name, radius=30))
 
-    resolved_by_id = {row.record_id: row for row in response.resolved_rows}
+    by_status = {stat.status: stat for stat in response.statistics}
     assert response.total_count == 2
     assert response.eligible_count == 2
     assert response.sample_count == 2
-    assert response.pending_rows == []
-    assert set(resolved_by_id) == {"near", "far"}
-    assert resolved_by_id["near"].status == "existing" and resolved_by_id["near"].candidates == [100]
-    assert resolved_by_id["near"].neighbors[0].pgc == 100
-    assert resolved_by_id["near"].neighbors[0].ra == 10.0 and resolved_by_id["near"].neighbors[0].dec == 20.0
-    assert resolved_by_id["far"].status == "new" and resolved_by_id["far"].candidates == []
-    assert {(stat.status, stat.triage, stat.count) for stat in response.statistics} == {
-        ("existing", "resolved", 1),
-        ("new", "resolved", 1),
-    }
-    existing_stat = next(stat for stat in response.statistics if stat.status == "existing")
-    assert existing_stat.parameters.coordinates is True
+    assert set(by_status) == {"existing", "new"}
+    assert by_status["existing"].triage == "pending" and by_status["existing"].count == 1
+    assert by_status["new"].triage == "resolved" and by_status["new"].count == 1
+    existing_row = by_status["existing"].rows[0]
+    assert existing_row.record_id == "near" and existing_row.candidates == [100]
+    assert existing_row.neighbors[0].pgc == 100
+    assert existing_row.neighbors[0].ra == 10.0 and existing_row.neighbors[0].dec == 20.0
+    assert by_status["new"].rows[0].record_id == "far" and by_status["new"].rows[0].candidates == []
+    assert by_status["existing"].parameters.coordinates is True
+    assert by_status["existing"].parameters.name is False
     assert storage.query("SELECT record_id FROM layer0.crossmatch") == []
     modified = storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",

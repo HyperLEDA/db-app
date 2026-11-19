@@ -44,36 +44,31 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
 
     response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
 
-    pending_by_id = {row.record_id: row for row in response.pending_rows}
-    resolved_by_id = {row.record_id: row for row in response.resolved_rows}
+    by_status = {stat.status: stat for stat in response.statistics}
     assert response.total_count == 8
     assert response.eligible_count == 8
     assert response.sample_count == 3
-    assert set(pending_by_id) == {"hit"}
-    assert set(resolved_by_id) == {"near", "far"}
-    assert pending_by_id["hit"].status == "colliding"
-    assert pending_by_id["hit"].triage == "pending"
-    assert set(pending_by_id["hit"].candidates) == {200, 201}
-    assert resolved_by_id["near"].status == "existing"
-    assert resolved_by_id["near"].triage == "resolved"
-    assert resolved_by_id["near"].parameters == adminapi.PreviewCrossmatchParameters(
-        coordinates=True,
-        name=True,
-    )
-    assert resolved_by_id["near"].candidates == [100] and resolved_by_id["near"].neighbors[0].pgc == 100
-    assert resolved_by_id["far"].status == "new" and resolved_by_id["far"].candidates == []
-    assert resolved_by_id["far"].parameters == adminapi.PreviewCrossmatchParameters(
-        coordinates=False,
-        name=False,
-    )
-    existing_stat = next(stat for stat in response.statistics if stat.status == "existing")
-    assert existing_stat.parameters == adminapi.PreviewCrossmatchParameters(
-        coordinates=True,
-        name=True,
-    )
-    colliding_stat = next(stat for stat in response.statistics if stat.status == "colliding")
-    assert colliding_stat.triage == "pending"
-    assert colliding_stat.count == 1
+    assert set(by_status) == {"existing", "new", "colliding"}
+
+    existing = by_status["existing"]
+    assert existing.triage == "resolved"
+    assert existing.count == 1
+    assert existing.parameters == adminapi.PreviewCrossmatchParameters(coordinates=True, name=True)
+    assert [row.record_id for row in existing.rows] == ["near"]
+    assert existing.rows[0].candidates == [100]
+    assert existing.rows[0].neighbors[0].pgc == 100
+
+    new = by_status["new"]
+    assert new.triage == "resolved"
+    assert [row.record_id for row in new.rows] == ["far"]
+    assert new.rows[0].candidates == []
+    assert new.parameters == adminapi.PreviewCrossmatchParameters(coordinates=False, name=False)
+
+    colliding = by_status["colliding"]
+    assert colliding.triage == "pending"
+    assert colliding.count == 1
+    assert [row.record_id for row in colliding.rows] == ["hit"]
+    assert set(colliding.rows[0].candidates) == {200, 201}
     repo.fetch_claimed_pgcs.assert_not_called()
     repo.sample_crossmatch_records.assert_called_once_with("raw", 1000, None)
 
@@ -100,16 +95,16 @@ def test_preview_crossmatch_returns_subset_of_sample() -> None:
     response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
 
     assert response.sample_count == 40
-    assert len(response.pending_rows) == 10
-    assert len(response.resolved_rows) == 10
-    assert {row.record_id for row in response.pending_rows} <= set(pending_ids)
-    assert {row.record_id for row in response.resolved_rows} <= set(resolved_ids)
-    assert all(row.triage == "pending" for row in response.pending_rows)
-    assert all(row.triage == "resolved" for row in response.resolved_rows)
-    assert {(stat.status, stat.triage, stat.count, stat.percent) for stat in response.statistics} == {
-        ("new", "resolved", 25, 62.5),
-        ("colliding", "pending", 15, 37.5),
-    }
+    by_status = {stat.status: stat for stat in response.statistics}
+    assert set(by_status) == {"new", "colliding"}
+    assert by_status["new"].count == 25 and by_status["new"].percent == 62.5
+    assert by_status["colliding"].count == 15 and by_status["colliding"].percent == 37.5
+    assert len(by_status["new"].rows) == 10
+    assert len(by_status["colliding"].rows) == 10
+    assert {row.record_id for row in by_status["new"].rows} <= set(resolved_ids)
+    assert {row.record_id for row in by_status["colliding"].rows} <= set(pending_ids)
+    assert all(row.triage == "resolved" for row in by_status["new"].rows)
+    assert all(row.triage == "pending" for row in by_status["colliding"].rows)
 
 
 def test_preview_crossmatch_missing_table() -> None:

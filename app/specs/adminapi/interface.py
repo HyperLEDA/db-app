@@ -252,11 +252,10 @@ class PreviewCrossmatchStat(pydantic.BaseModel):
     parameters: PreviewCrossmatchParameters
     count: int
     percent: float
+    rows: list[PreviewCrossmatchRow]
 
 
 class PreviewCrossmatchResponse(pydantic.BaseModel):
-    pending_rows: list[PreviewCrossmatchRow]
-    resolved_rows: list[PreviewCrossmatchRow]
     total_count: int
     eligible_count: int
     sample_count: int

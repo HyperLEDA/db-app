@@ -1,5 +1,5 @@
 import random
-from collections import Counter
+from collections import defaultdict
 from collections.abc import Callable
 from typing import final
 
@@ -11,11 +11,10 @@ from app.catalogs import layer0
 from app.lib.crossmatch.matching import (
     DistributionKey,
     distribution_key,
-    distribution_rows,
     match_records,
     results_to_rows,
 )
-from app.lib.crossmatch.models import MatchedRecord, TriageStatus
+from app.lib.crossmatch.models import MatchedRecord
 from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.storage import enums, sql_row_filter
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
@@ -61,15 +60,47 @@ def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCros
     )
 
 
-def _sample_by_triage(
+def _sample_items(items: list[MatchedRecord], limit: int) -> list[MatchedRecord]:
+    if len(items) > limit:
+        return random.sample(items, limit)
+    return items
+
+
+def _statistics(
     matched: list[MatchedRecord],
-    triage: TriageStatus,
-    limit: int,
-) -> list[MatchedRecord]:
-    pool = [item for item in matched if item.result.triage_status == triage]
-    if len(pool) > limit:
-        return random.sample(pool, limit)
-    return pool
+    written: dict[str, list[int]],
+) -> list[spec.PreviewCrossmatchStat]:
+    grouped: dict[DistributionKey, list[MatchedRecord]] = defaultdict(list)
+    for item in matched:
+        grouped[distribution_key(item.result)].append(item)
+    total = len(matched)
+
+    def percent(count: int) -> float:
+        return round((100.0 * count / total) if total else 0.0, 1)
+
+    ordered = sorted(
+        grouped,
+        key=lambda key: (-len(grouped[key]), key[0].value, key[1].value, tuple(key[2])),
+    )
+    statistics: list[spec.PreviewCrossmatchStat] = []
+    for status, triage, parameter_items in ordered:
+        items = grouped[(status, triage, parameter_items)]
+        statistics.append(
+            spec.PreviewCrossmatchStat(
+                status=status.value,
+                triage=triage.value,
+                parameters=spec.PreviewCrossmatchParameters.model_validate(
+                    parameters_payload(dict(parameter_items))
+                ),
+                count=len(items),
+                percent=percent(len(items)),
+                rows=[
+                    _preview_row(item, written.get(item.record_id, []))
+                    for item in _sample_items(items, _PREVIEW_RETURN_SIZE)
+                ],
+            )
+        )
+    return statistics
 
 
 @final
@@ -141,26 +172,11 @@ class CrossmatchManager:
             record_id: candidates
             for record_id, _triage, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
         }
-        counts: Counter[DistributionKey] = Counter()
-        for item in matched:
-            counts[distribution_key(item.result)] += 1
-        sample_count = len(matched)
-        pending_rows = [
-            _preview_row(item, written.get(item.record_id, []))
-            for item in _sample_by_triage(matched, TriageStatus.PENDING, _PREVIEW_RETURN_SIZE)
-        ]
-        resolved_rows = [
-            _preview_row(item, written.get(item.record_id, []))
-            for item in _sample_by_triage(matched, TriageStatus.RESOLVED, _PREVIEW_RETURN_SIZE)
-        ]
-        statistics = [spec.PreviewCrossmatchStat.model_validate(row) for row in distribution_rows(counts, sample_count)]
         return spec.PreviewCrossmatchResponse(
-            pending_rows=pending_rows,
-            resolved_rows=resolved_rows,
             total_count=total,
             eligible_count=eligible,
-            sample_count=sample_count,
-            statistics=statistics,
+            sample_count=len(matched),
+            statistics=_statistics(matched, written),
         )
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:

@@ -107,23 +107,21 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_name.matched_pgc == 7
     assert by_name.parameters["name"] is True
 
-    by_redshift = Resolver(
-        radius_deg=1.0, redshift_tolerance=0.001, include_redshift=True, include_nature=True
-    ).resolve(
+    by_redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001, include_redshift=True).resolve(
         _evidence(
             neighbors=[
-                _neighbor(7, redshift=0.1, type_name="G"),
-                _neighbor(8, distance_deg=0.1, redshift=0.2, type_name="G"),
+                _neighbor(7, redshift=0.1),
+                _neighbor(8, distance_deg=0.1, redshift=0.2),
             ],
             record_redshift=0.1005,
-            record_type_name="G",
         )
     )
     assert by_redshift.status == CrossmatchStatus.EXISTING
     assert by_redshift.triage_status == TriageStatus.RESOLVED
     assert by_redshift.matched_pgc == 7
+    assert by_redshift.parameters["coordinates"] is True
     assert by_redshift.parameters["redshift"] is True
-    assert by_redshift.parameters["type"] is True
+    assert by_redshift.parameters["name"] is False
 
     by_type = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(
@@ -178,7 +176,7 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
         )
     )
     assert redshift.status == CrossmatchStatus.EXISTING
-    assert redshift.triage_status == TriageStatus.PENDING
+    assert redshift.triage_status == TriageStatus.RESOLVED
     assert redshift.matched_pgc == 7
     assert redshift.parameters["coordinates"] is True
     assert redshift.parameters["redshift"] is False
@@ -195,7 +193,10 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
 
 def test_decide_matched() -> None:
     assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: True})
+    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: True, Parameter.TYPE: False})
     assert not decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: False})
+    assert not decide_matched({Parameter.COORDINATES: False, Parameter.NAME: True, Parameter.TYPE: True})
+    assert not decide_matched({Parameter.COORDINATES: True})
 
 
 def test_results_to_rows_and_distribution() -> None:
