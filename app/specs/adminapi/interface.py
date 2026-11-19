@@ -215,11 +215,19 @@ class PreviewCrossmatchNeighbor(pydantic.BaseModel):
     design: str | None = None
 
 
+class PreviewCrossmatchParameters(pydantic.BaseModel):
+    coordinates: bool | None = None
+    name: bool | None = None
+    pgc: bool | None = None
+    redshift: bool | None = None
+    type: bool | None = None
+
+
 class PreviewCrossmatchRow(pydantic.BaseModel):
     record_id: str
     status: str
     triage: str
-    reason: str
+    parameters: PreviewCrossmatchParameters
     candidates: list[int]
     designation: str | None = None
     ra: float | None = None
@@ -230,7 +238,7 @@ class PreviewCrossmatchRow(pydantic.BaseModel):
 class PreviewCrossmatchStat(pydantic.BaseModel):
     status: str
     triage: str
-    reason: str
+    parameters: PreviewCrossmatchParameters
     count: int
     percent: float
 

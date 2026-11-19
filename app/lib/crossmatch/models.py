@@ -1,5 +1,5 @@
 import enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -35,18 +35,15 @@ class TriageStatus(enum.StrEnum):
     PENDING = "pending"
 
 
-class CrossmatchReason(enum.StrEnum):
-    MULTIPLE_OBJECTS_MATCHED = "MULTIPLE_OBJECTS_MATCHED"
-    MATCHED_COORDINATES = "MATCHED_COORDINATES"
-    MATCHED_PGC = "MATCHED_PGC"
-    MATCHED_NAME = "MATCHED_NAME"
-    MATCHED_REDSHIFT = "MATCHED_REDSHIFT"
-    MATCHED_TYPE = "MATCHED_TYPE"
-    MATCHED_NAME_OUTSIDE_CIRCLE = "MATCHED_NAME_OUTSIDE_CIRCLE"
-    MATCHED_PGC_OUTSIDE_CIRCLE = "MATCHED_PGC_OUTSIDE_CIRCLE"
-    UNKNOWN_PGC = "UNKNOWN_PGC"
-    REDSHIFT_MISMATCH = "REDSHIFT_MISMATCH"
-    TYPE_MISMATCH = "TYPE_MISMATCH"
+class Parameter(enum.StrEnum):
+    COORDINATES = "coordinates"
+    NAME = "name"
+    PGC = "pgc"
+    REDSHIFT = "redshift"
+    TYPE = "type"
+
+
+type ParameterMatches = dict[Parameter, bool]
 
 
 @dataclass
@@ -55,7 +52,7 @@ class CrossmatchResult:
     triage_status: TriageStatus
     matched_pgc: int | None = None
     colliding_pgcs: list[int] | None = None
-    reason: CrossmatchReason | None = None
+    parameters: ParameterMatches = field(default_factory=dict)
 
 
 @dataclass

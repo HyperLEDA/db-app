@@ -1,12 +1,13 @@
-from app.lib.crossmatch.matching import distribution_rows, results_to_rows
+from app.lib.crossmatch.matching import distribution_key, distribution_rows, results_to_rows
 from app.lib.crossmatch.models import (
-    CrossmatchReason,
     CrossmatchResult,
     CrossmatchStatus,
     Neighbor,
+    Parameter,
     RecordEvidence,
     TriageStatus,
 )
+from app.lib.crossmatch.parameters import decide_matched
 from app.lib.crossmatch.resolver import Resolver
 from app.lib.storage import enums
 
@@ -44,58 +45,83 @@ def test_resolver_new_and_existing() -> None:
     resolver = Resolver(radius_deg=1.0)
     new = resolver.resolve(_evidence())
     assert new.status == CrossmatchStatus.NEW and new.triage_status == TriageStatus.RESOLVED
-    assert new.reason is None
+    assert new.parameters == {"coordinates": False, "name": False, "type": False}
 
-    existing = resolver.resolve(_evidence(neighbors=[_neighbor(7)]))
+    existing = resolver.resolve(_evidence(neighbors=[_neighbor(7, type_name="G")], record_type_name="G"))
     assert existing.status == CrossmatchStatus.EXISTING
     assert existing.triage_status == TriageStatus.RESOLVED
     assert existing.matched_pgc == 7
-    assert existing.reason == CrossmatchReason.MATCHED_COORDINATES
+    assert existing.parameters == {"coordinates": True, "name": False, "type": True}
 
-    colliding = resolver.resolve(_evidence(neighbors=[_neighbor(7), _neighbor(8, distance_deg=0.1)]))
+    missing_type = resolver.resolve(_evidence(neighbors=[_neighbor(7)]))
+    assert missing_type.status == CrossmatchStatus.EXISTING
+    assert missing_type.triage_status == TriageStatus.PENDING
+    assert missing_type.parameters == {"coordinates": True, "name": False, "type": False}
+
+    colliding = resolver.resolve(
+        _evidence(
+            neighbors=[
+                _neighbor(7, type_name="G"),
+                _neighbor(8, distance_deg=0.1, type_name="G"),
+            ],
+            record_type_name="G",
+        )
+    )
     assert colliding.status == CrossmatchStatus.COLLIDING
     assert colliding.triage_status == TriageStatus.PENDING
-    assert colliding.reason == CrossmatchReason.MULTIPLE_OBJECTS_MATCHED
+    assert colliding.colliding_pgcs == [7, 8]
 
 
-def test_resolver_matched_by_first_narrowing_rule() -> None:
+def test_resolver_matched_by_identifier_and_filters() -> None:
     by_pgc = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
         _evidence(
-            neighbors=[_neighbor(7), _neighbor(8, distance_deg=0.1)],
+            neighbors=[
+                _neighbor(7, type_name="G"),
+                _neighbor(8, distance_deg=0.1, type_name="G"),
+            ],
             record_pgc=7,
             claimed_pgc_exists_in_layer2=True,
+            record_type_name="G",
         )
     )
     assert by_pgc.status == CrossmatchStatus.EXISTING
     assert by_pgc.triage_status == TriageStatus.RESOLVED
     assert by_pgc.matched_pgc == 7
-    assert by_pgc.reason == CrossmatchReason.MATCHED_PGC
+    assert by_pgc.parameters["coordinates"] is True
+    assert by_pgc.parameters["pgc"] is True
+    assert by_pgc.parameters["type"] is True
 
     by_name = Resolver(radius_deg=1.0).resolve(
         _evidence(
-            neighbors=[_neighbor(7), _neighbor(8, distance_deg=0.1)],
+            neighbors=[
+                _neighbor(7, type_name="G"),
+                _neighbor(8, distance_deg=0.1, type_name="G"),
+            ],
             record_designation="NGC 1",
             same_name_pgcs=[7],
+            record_type_name="G",
         )
     )
     assert by_name.status == CrossmatchStatus.EXISTING
     assert by_name.triage_status == TriageStatus.RESOLVED
     assert by_name.matched_pgc == 7
-    assert by_name.reason == CrossmatchReason.MATCHED_NAME
+    assert by_name.parameters["name"] is True
 
     by_redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001).resolve(
         _evidence(
             neighbors=[
-                _neighbor(7, redshift=0.1),
-                _neighbor(8, distance_deg=0.1, redshift=0.2),
+                _neighbor(7, redshift=0.1, type_name="G"),
+                _neighbor(8, distance_deg=0.1, redshift=0.2, type_name="G"),
             ],
             record_redshift=0.1005,
+            record_type_name="G",
         )
     )
     assert by_redshift.status == CrossmatchStatus.EXISTING
     assert by_redshift.triage_status == TriageStatus.RESOLVED
     assert by_redshift.matched_pgc == 7
-    assert by_redshift.reason == CrossmatchReason.MATCHED_REDSHIFT
+    assert by_redshift.parameters["redshift"] is True
+    assert by_redshift.parameters["type"] is True
 
     by_type = Resolver(radius_deg=1.0).resolve(
         _evidence(
@@ -109,52 +135,65 @@ def test_resolver_matched_by_first_narrowing_rule() -> None:
     assert by_type.status == CrossmatchStatus.EXISTING
     assert by_type.triage_status == TriageStatus.RESOLVED
     assert by_type.matched_pgc == 7
-    assert by_type.reason == CrossmatchReason.MATCHED_TYPE
-
-    first_wins = Resolver(radius_deg=1.0, pgc_column="pgc", redshift_tolerance=0.001).resolve(
-        _evidence(
-            neighbors=[
-                _neighbor(7, redshift=0.1, type_name="G"),
-                _neighbor(8, distance_deg=0.1, redshift=0.2, type_name="Star"),
-            ],
-            record_pgc=7,
-            claimed_pgc_exists_in_layer2=True,
-            record_designation="NGC 1",
-            same_name_pgcs=[7],
-            record_redshift=0.1005,
-            record_type_name="G",
-        )
-    )
-    assert first_wins.reason == CrossmatchReason.MATCHED_PGC
-    assert first_wins.matched_pgc == 7
+    assert by_type.parameters["type"] is True
 
 
 def test_resolver_pgc_name_redshift_and_type() -> None:
     outside = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
-        _evidence(record_pgc=9, claimed_pgc_exists_in_layer2=True)
+        _evidence(record_pgc=9, claimed_pgc_exists_in_layer2=True, record_type_name="G")
     )
-    assert outside.reason == CrossmatchReason.MATCHED_PGC_OUTSIDE_CIRCLE
+    assert outside.status == CrossmatchStatus.EXISTING
+    assert outside.triage_status == TriageStatus.PENDING
     assert outside.matched_pgc == 9
+    assert outside.parameters == {
+        "coordinates": False,
+        "name": False,
+        "pgc": True,
+        "type": False,
+    }
 
     unknown = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
         _evidence(record_pgc=9, claimed_pgc_exists_in_layer2=False)
     )
-    assert unknown.reason == CrossmatchReason.UNKNOWN_PGC
+    assert unknown.status == CrossmatchStatus.NEW
+    assert unknown.triage_status == TriageStatus.PENDING
+    assert unknown.parameters["pgc"] is False
 
-    named = Resolver(radius_deg=1.0).resolve(_evidence(record_designation="NGC 1", same_name_pgcs=[4]))
-    assert named.reason == CrossmatchReason.MATCHED_NAME_OUTSIDE_CIRCLE
+    named = Resolver(radius_deg=1.0).resolve(
+        _evidence(record_designation="NGC 1", same_name_pgcs=[4], record_type_name="G")
+    )
+    assert named.status == CrossmatchStatus.EXISTING
+    assert named.triage_status == TriageStatus.PENDING
     assert named.matched_pgc == 4
+    assert named.parameters["coordinates"] is False
+    assert named.parameters["name"] is True
 
     redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001).resolve(
-        _evidence(neighbors=[_neighbor(7, redshift=0.1)], record_redshift=0.2)
+        _evidence(
+            neighbors=[_neighbor(7, redshift=0.1, type_name="G")],
+            record_redshift=0.2,
+            record_type_name="G",
+        )
     )
-    assert redshift.reason == CrossmatchReason.REDSHIFT_MISMATCH
+    assert redshift.status == CrossmatchStatus.EXISTING
+    assert redshift.triage_status == TriageStatus.PENDING
     assert redshift.matched_pgc == 7
+    assert redshift.parameters["coordinates"] is True
+    assert redshift.parameters["redshift"] is False
+    assert redshift.parameters["type"] is True
 
     typed = Resolver(radius_deg=1.0).resolve(
         _evidence(neighbors=[_neighbor(7, type_name="G")], record_type_name="Star")
     )
-    assert typed.reason == CrossmatchReason.TYPE_MISMATCH
+    assert typed.status == CrossmatchStatus.EXISTING
+    assert typed.triage_status == TriageStatus.PENDING
+    assert typed.parameters["coordinates"] is True
+    assert typed.parameters["type"] is False
+
+
+def test_decide_matched() -> None:
+    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: True})
+    assert not decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: False})
 
 
 def test_results_to_rows_and_distribution() -> None:
@@ -167,6 +206,11 @@ def test_results_to_rows_and_distribution() -> None:
                     status=CrossmatchStatus.EXISTING,
                     triage_status=TriageStatus.RESOLVED,
                     matched_pgc=3,
+                    parameters={
+                        Parameter.COORDINATES: True,
+                        Parameter.NAME: False,
+                        Parameter.TYPE: True,
+                    },
                 ),
             ),
             (
@@ -175,7 +219,6 @@ def test_results_to_rows_and_distribution() -> None:
                     status=CrossmatchStatus.COLLIDING,
                     triage_status=TriageStatus.PENDING,
                     colliding_pgcs=[8, 2],
-                    reason=CrossmatchReason.MULTIPLE_OBJECTS_MATCHED,
                 ),
             ),
         ]
@@ -185,12 +228,37 @@ def test_results_to_rows_and_distribution() -> None:
         ("b", enums.RecordTriageStatus.RESOLVED, [3]),
         ("c", enums.RecordTriageStatus.PENDING, [2, 8]),
     ]
+    existing = CrossmatchResult(
+        status=CrossmatchStatus.EXISTING,
+        triage_status=TriageStatus.RESOLVED,
+        matched_pgc=3,
+        parameters={
+            Parameter.COORDINATES: True,
+            Parameter.NAME: False,
+            Parameter.TYPE: True,
+        },
+    )
+    new = CrossmatchResult(status=CrossmatchStatus.NEW, triage_status=TriageStatus.RESOLVED, parameters={})
     table = distribution_rows(
         {
-            (CrossmatchStatus.NEW, TriageStatus.RESOLVED, None): 1,
-            (CrossmatchStatus.EXISTING, TriageStatus.RESOLVED, None): 4,
+            distribution_key(new): 1,
+            distribution_key(existing): 4,
         },
         5,
     )
     assert table[0]["status"] == "existing" and table[0]["count"] == 4
+    assert table[0]["parameters"] == {
+        "coordinates": True,
+        "name": False,
+        "pgc": None,
+        "redshift": None,
+        "type": True,
+    }
     assert table[1]["percent"] == 20.0
+    assert table[1]["parameters"] == {
+        "coordinates": None,
+        "name": None,
+        "pgc": None,
+        "redshift": None,
+        "type": None,
+    }

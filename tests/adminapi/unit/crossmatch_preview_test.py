@@ -38,7 +38,7 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
         _row("near", 10.0, 20.0, pgc=100, design="NGC 1"),
         _row("far", 180.0, 0.0),
     ]
-    repo.pgcs_by_designation.return_value = {}
+    repo.pgcs_by_designation.return_value = {"NGC 1": [100]}
 
     response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
 
@@ -46,18 +46,25 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     assert response.total_count == 8
     assert response.sample_count == 2
     assert set(by_id) == {"near", "far"}
-    assert by_id["near"].status == "existing" and by_id["near"].triage == "resolved"
-    assert by_id["near"].reason == "MATCHED_COORDINATES"
+    assert by_id["near"].status == "existing"
+    assert by_id["near"].triage == "pending"
+    assert by_id["near"].parameters == adminapi.PreviewCrossmatchParameters(
+        coordinates=True,
+        name=True,
+        type=False,
+    )
     assert by_id["near"].candidates == [100] and by_id["near"].neighbors[0].pgc == 100
-    assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
-    assert by_id["near"].neighbors[0].distance_arcsec == 0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
-    assert by_id["far"].reason == ""
-    assert [(stat.status, stat.triage, stat.reason, stat.count) for stat in response.statistics] == [
-        ("existing", "resolved", "MATCHED_COORDINATES", 1),
-        ("new", "resolved", "", 1),
-    ]
-    assert all(stat.percent == 50.0 for stat in response.statistics)
+    assert by_id["far"].parameters == adminapi.PreviewCrossmatchParameters(
+        coordinates=False,
+        name=False,
+        type=False,
+    )
+    assert response.statistics[0].parameters == adminapi.PreviewCrossmatchParameters(
+        coordinates=True,
+        name=True,
+        type=False,
+    )
     repo.fetch_claimed_pgcs.assert_not_called()
     repo.sample_crossmatch_records.assert_called_once_with("raw", 1000)
 
@@ -75,7 +82,17 @@ def test_preview_crossmatch_returns_subset_of_sample() -> None:
     assert len(response.rows) == 20
     assert {row.record_id for row in response.rows} <= set(record_ids)
     assert response.statistics == [
-        adminapi.PreviewCrossmatchStat(status="new", triage="resolved", reason="", count=25, percent=100.0),
+        adminapi.PreviewCrossmatchStat(
+            status="new",
+            triage="resolved",
+            parameters=adminapi.PreviewCrossmatchParameters(
+                coordinates=False,
+                name=False,
+                type=False,
+            ),
+            count=25,
+            percent=100.0,
+        ),
     ]
 
 

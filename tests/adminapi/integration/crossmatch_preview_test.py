@@ -49,10 +49,12 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
     assert by_id["near"].neighbors[0].pgc == 100
     assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
-    assert {(stat.status, stat.triage, stat.reason, stat.count) for stat in response.statistics} == {
-        ("existing", "resolved", "MATCHED_COORDINATES", 1),
-        ("new", "resolved", "", 1),
+    assert {(stat.status, stat.triage, stat.count) for stat in response.statistics} == {
+        ("existing", "pending", 1),
+        ("new", "resolved", 1),
     }
+    existing_stat = next(stat for stat in response.statistics if stat.status == "existing")
+    assert existing_stat.parameters.coordinates is True
     assert storage.query("SELECT record_id FROM layer0.crossmatch") == []
     modified = storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",

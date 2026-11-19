@@ -5,22 +5,29 @@ from typing import Any
 import structlog
 
 from app.lib.crossmatch.models import (
-    CrossmatchReason,
     CrossmatchResult,
     CrossmatchStatus,
     MatchedRecord,
     Neighbor,
+    Parameter,
     RecordEvidence,
     TriageStatus,
 )
+from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.crossmatch.resolver import Resolver
 from app.lib.storage import enums
 
 C_M_S = 299792458
 
+DistributionKey = tuple[CrossmatchStatus, TriageStatus, tuple[tuple[Parameter, bool], ...]]
+
+
+def distribution_key(result: CrossmatchResult) -> DistributionKey:
+    return (result.status, result.triage_status, tuple(result.parameters.items()))
+
 
 def distribution_rows(
-    counts: Mapping[tuple[CrossmatchStatus, TriageStatus, CrossmatchReason | None], int],
+    counts: Mapping[DistributionKey, int],
     total: int,
 ) -> list[dict[str, Any]]:
     def pct(n: int) -> float:
@@ -28,18 +35,18 @@ def distribution_rows(
 
     ordered = sorted(
         counts,
-        key=lambda key: (-counts[key], key[0].value, key[1].value, key[2].value if key[2] is not None else ""),
+        key=lambda key: (-counts[key], key[0].value, key[1].value, tuple(key[2])),
     )
     return [
         {
             "status": status.value,
             "triage": triage.value,
-            "reason": reason.value if reason is not None else "",
-            "count": counts[(status, triage, reason)],
-            "percent": pct(counts[(status, triage, reason)]),
+            "parameters": parameters_payload(dict(parameter_items)),
+            "count": counts[(status, triage, parameter_items)],
+            "percent": pct(counts[(status, triage, parameter_items)]),
         }
-        for status, triage, reason in ordered
-        if counts[(status, triage, reason)] > 0
+        for status, triage, parameter_items in ordered
+        if counts[(status, triage, parameter_items)] > 0
     ]
 
 
@@ -159,8 +166,11 @@ def resolve_batch(
             )
         )
         if print_pending and log is not None and result.triage_status == TriageStatus.PENDING:
-            reason = result.reason.value if result.reason is not None else "unknown"
-            log.warning("pending crossmatch", record_id=record_id, reason=reason)
+            log.warning(
+                "pending crossmatch",
+                record_id=record_id,
+                parameters=parameters_payload(result.parameters),
+            )
     return matched
 
 

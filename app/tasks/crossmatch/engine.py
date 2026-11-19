@@ -4,8 +4,14 @@ from typing import Any
 
 import structlog
 
-from app.lib.crossmatch.matching import distribution_rows, group_batch, resolve_batch, results_to_rows
-from app.lib.crossmatch.models import CrossmatchReason, CrossmatchStatus, TriageStatus
+from app.lib.crossmatch.matching import (
+    DistributionKey,
+    distribution_key,
+    distribution_rows,
+    group_batch,
+    resolve_batch,
+    results_to_rows,
+)
 from app.lib.crossmatch.resolver import Resolver
 from app.specs import adminapi as spec
 from app.tasks import repository
@@ -29,7 +35,7 @@ def run(
     table_id, total_records = repo.crossmatch_table(params.table_name)
     on_progress(0, f"Starting crossmatch for {params.table_name} ({total_records} records)")
 
-    counts: dict[tuple[CrossmatchStatus, TriageStatus, CrossmatchReason | None], int] = defaultdict(int)
+    counts: dict[DistributionKey, int] = defaultdict(int)
     total = 0
     last_id = ""
     try:
@@ -59,8 +65,7 @@ def run(
                 log,
             )
             for item in batch:
-                result = item.result
-                counts[(result.status, result.triage_status, result.reason)] += 1
+                counts[distribution_key(item.result)] += 1
                 total += 1
             if params.write and batch:
                 repo.set_crossmatch_results(results_to_rows([(item.record_id, item.result) for item in batch]))

@@ -8,8 +8,15 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
-from app.lib.crossmatch.matching import distribution_rows, match_records, results_to_rows
-from app.lib.crossmatch.models import CrossmatchReason, CrossmatchStatus, MatchedRecord, TriageStatus
+from app.lib.crossmatch.matching import (
+    DistributionKey,
+    distribution_key,
+    distribution_rows,
+    match_records,
+    results_to_rows,
+)
+from app.lib.crossmatch.models import MatchedRecord
+from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
@@ -36,7 +43,7 @@ def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCros
         record_id=item.record_id,
         status=item.result.status.value,
         triage=item.result.triage_status.value,
-        reason=item.result.reason.value if item.result.reason is not None else "",
+        parameters=spec.PreviewCrossmatchParameters.model_validate(parameters_payload(item.result.parameters)),
         candidates=candidates,
         designation=item.designation,
         ra=item.ra,
@@ -109,9 +116,9 @@ class CrossmatchManager:
             record_id: candidates
             for record_id, _triage, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
         }
-        counts: Counter[tuple[CrossmatchStatus, TriageStatus, CrossmatchReason | None]] = Counter()
+        counts: Counter[DistributionKey] = Counter()
         for item in matched:
-            counts[(item.result.status, item.result.triage_status, item.result.reason)] += 1
+            counts[distribution_key(item.result)] += 1
         sample_count = len(matched)
         preview_items = (
             random.sample(matched, _PREVIEW_RETURN_SIZE) if sample_count > _PREVIEW_RETURN_SIZE else list(matched)
