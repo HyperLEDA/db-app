@@ -2,8 +2,6 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
-import structlog
-
 from app.lib.crossmatch.matching import (
     DistributionKey,
     distribution_key,
@@ -24,7 +22,6 @@ DistributionCallback = Callable[[list[dict[str, Any]], str], None]
 def run(
     repo: repository.Repository,
     params: spec.CrossmatchParams,
-    log: structlog.stdlib.BoundLogger,
     on_progress: ProgressCallback,
     on_distribution: DistributionCallback,
 ) -> None:
@@ -75,13 +72,11 @@ def run(
                 existing_pgcs,
                 design_to_pgcs,
                 resolver,
-                params.print_pending,
-                log,
             )
             for item in batch:
                 counts[distribution_key(item.result)] += 1
                 total += 1
-            if params.write and batch:
+            if batch:
                 repo.set_crossmatch_results(results_to_rows([(item.record_id, item.result) for item in batch]))
             progress = 100.0 if total_records == 0 else min(100.0, 100.0 * total / total_records)
             on_progress(min(progress, 99.0), f"Processed {total} / {total_records} records")

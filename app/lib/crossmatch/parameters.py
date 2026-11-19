@@ -7,7 +7,7 @@ PARAMETER_ORDER: tuple[Parameter, ...] = (
     Parameter.NAME,
     Parameter.PGC,
     Parameter.REDSHIFT,
-    Parameter.TYPE,
+    Parameter.NATURE,
 )
 
 _PREFERENCE_PARAMETERS: tuple[Parameter, ...] = (Parameter.PGC, Parameter.NAME)
@@ -32,7 +32,7 @@ def enabled_parameters(
     if redshift_enabled:
         enabled.add(Parameter.REDSHIFT)
     if nature_enabled:
-        enabled.add(Parameter.TYPE)
+        enabled.add(Parameter.NATURE)
     return tuple(name for name in PARAMETER_ORDER if name in enabled)
 
 
@@ -46,7 +46,7 @@ def parameters_payload(matches: Mapping[Parameter, bool]) -> dict[str, bool | No
         Parameter.NAME.value: matches.get(Parameter.NAME),
         Parameter.PGC.value: matches.get(Parameter.PGC),
         Parameter.REDSHIFT.value: matches.get(Parameter.REDSHIFT),
-        Parameter.TYPE.value: matches.get(Parameter.TYPE),
+        Parameter.NATURE.value: matches.get(Parameter.NATURE),
     }
 
 
@@ -100,7 +100,7 @@ def _match_redshift(evidence: RecordEvidence, candidate: Neighbor, redshift_tole
     )
 
 
-def _match_type(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
+def _match_nature(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
     return (
         evidence.record_type_name is not None
         and candidate.type_name is not None
@@ -113,7 +113,7 @@ _EVALUATORS: dict[Parameter, ParameterEvaluator] = {
     Parameter.NAME: _match_name,
     Parameter.PGC: _match_pgc,
     Parameter.REDSHIFT: _match_redshift,
-    Parameter.TYPE: _match_type,
+    Parameter.NATURE: _match_nature,
 }
 
 

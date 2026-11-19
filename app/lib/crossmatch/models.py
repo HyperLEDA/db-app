@@ -40,7 +40,7 @@ class Parameter(enum.StrEnum):
     NAME = "name"
     PGC = "pgc"
     REDSHIFT = "redshift"
-    TYPE = "type"
+    NATURE = "nature"
 
 
 type ParameterMatches = dict[Parameter, bool]

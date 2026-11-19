@@ -45,18 +45,18 @@ def test_resolver_new_and_existing() -> None:
     resolver = Resolver(radius_deg=1.0, include_nature=True)
     new = resolver.resolve(_evidence())
     assert new.status == CrossmatchStatus.NEW and new.triage_status == TriageStatus.RESOLVED
-    assert new.parameters == {"coordinates": False, "name": False, "type": False}
+    assert new.parameters == {"coordinates": False, "name": False, "nature": False}
 
     existing = resolver.resolve(_evidence(neighbors=[_neighbor(7, type_name="G")], record_type_name="G"))
     assert existing.status == CrossmatchStatus.EXISTING
     assert existing.triage_status == TriageStatus.RESOLVED
     assert existing.matched_pgc == 7
-    assert existing.parameters == {"coordinates": True, "name": False, "type": True}
+    assert existing.parameters == {"coordinates": True, "name": False, "nature": True}
 
     missing_type = resolver.resolve(_evidence(neighbors=[_neighbor(7)]))
     assert missing_type.status == CrossmatchStatus.EXISTING
     assert missing_type.triage_status == TriageStatus.PENDING
-    assert missing_type.parameters == {"coordinates": True, "name": False, "type": False}
+    assert missing_type.parameters == {"coordinates": True, "name": False, "nature": False}
 
     colliding = resolver.resolve(
         _evidence(
@@ -89,7 +89,7 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_pgc.matched_pgc == 7
     assert by_pgc.parameters["coordinates"] is True
     assert by_pgc.parameters["pgc"] is True
-    assert by_pgc.parameters["type"] is True
+    assert by_pgc.parameters["nature"] is True
 
     by_name = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(
@@ -135,7 +135,7 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_type.status == CrossmatchStatus.EXISTING
     assert by_type.triage_status == TriageStatus.RESOLVED
     assert by_type.matched_pgc == 7
-    assert by_type.parameters["type"] is True
+    assert by_type.parameters["nature"] is True
 
 
 def test_resolver_pgc_name_redshift_and_type() -> None:
@@ -149,7 +149,7 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
         "coordinates": False,
         "name": False,
         "pgc": True,
-        "type": False,
+        "nature": False,
     }
 
     unknown = Resolver(radius_deg=1.0, pgc_column="pgc", include_pgc=True, include_nature=True).resolve(
@@ -180,7 +180,7 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
     assert redshift.matched_pgc == 7
     assert redshift.parameters["coordinates"] is True
     assert redshift.parameters["redshift"] is False
-    assert redshift.parameters["type"] is True
+    assert redshift.parameters["nature"] is True
 
     typed = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(neighbors=[_neighbor(7, type_name="G")], record_type_name="Star")
@@ -188,14 +188,14 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
     assert typed.status == CrossmatchStatus.EXISTING
     assert typed.triage_status == TriageStatus.PENDING
     assert typed.parameters["coordinates"] is True
-    assert typed.parameters["type"] is False
+    assert typed.parameters["nature"] is False
 
 
 def test_decide_matched() -> None:
-    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: True})
-    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: True, Parameter.TYPE: False})
-    assert not decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.TYPE: False})
-    assert not decide_matched({Parameter.COORDINATES: False, Parameter.NAME: True, Parameter.TYPE: True})
+    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.NATURE: True})
+    assert decide_matched({Parameter.COORDINATES: True, Parameter.NAME: True, Parameter.NATURE: False})
+    assert not decide_matched({Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.NATURE: False})
+    assert not decide_matched({Parameter.COORDINATES: False, Parameter.NAME: True, Parameter.NATURE: True})
     assert not decide_matched({Parameter.COORDINATES: True})
 
 
@@ -212,7 +212,7 @@ def test_results_to_rows_and_distribution() -> None:
                     parameters={
                         Parameter.COORDINATES: True,
                         Parameter.NAME: False,
-                        Parameter.TYPE: True,
+                        Parameter.NATURE: True,
                     },
                 ),
             ),
@@ -238,7 +238,7 @@ def test_results_to_rows_and_distribution() -> None:
         parameters={
             Parameter.COORDINATES: True,
             Parameter.NAME: False,
-            Parameter.TYPE: True,
+            Parameter.NATURE: True,
         },
     )
     new = CrossmatchResult(status=CrossmatchStatus.NEW, triage_status=TriageStatus.RESOLVED, parameters={})
@@ -255,7 +255,7 @@ def test_results_to_rows_and_distribution() -> None:
         "name": False,
         "pgc": None,
         "redshift": None,
-        "type": True,
+        "nature": True,
     }
     assert table[1]["percent"] == 20.0
     assert table[1]["parameters"] == {
@@ -263,5 +263,5 @@ def test_results_to_rows_and_distribution() -> None:
         "name": None,
         "pgc": None,
         "redshift": None,
-        "type": None,
+        "nature": None,
     }

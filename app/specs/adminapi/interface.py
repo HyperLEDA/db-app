@@ -188,8 +188,6 @@ class CrossmatchParams(pydantic.BaseModel):
         description="SQL boolean on rawdata columns. Empty is no filter.",
     )
     batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records read per batch")
-    print_pending: bool = pydantic.Field(default=False, description="Log records that need manual check")
-    write: bool = pydantic.Field(default=True, description="Write results into layer0.crossmatch")
 
 
 class StartCrossmatchRequest(WriteRequest):
@@ -216,6 +214,7 @@ class PreviewCrossmatchRequest(pydantic.BaseModel):
         description="Redshift tolerance. Used when include_redshift is true.",
     )
     row_filter: str | None = None
+    batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records sampled for preview")
 
 
 class PreviewCrossmatchNeighbor(pydantic.BaseModel):
@@ -231,7 +230,7 @@ class PreviewCrossmatchParameters(pydantic.BaseModel):
     name: bool | None = None
     pgc: bool | None = None
     redshift: bool | None = None
-    type: bool | None = None
+    nature: bool | None = None
 
 
 class PreviewCrossmatchRow(pydantic.BaseModel):

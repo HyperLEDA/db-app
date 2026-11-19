@@ -73,6 +73,19 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     repo.sample_crossmatch_records.assert_called_once_with("raw", 1000, None)
 
 
+def test_preview_crossmatch_uses_batch_size() -> None:
+    repo = mock.Mock()
+    repo.sample_crossmatch_records.return_value = (["a"], 1, 1)
+    repo.fetch_crossmatch_neighbors.return_value = [_row("a", 180.0, 0.0)]
+    repo.pgcs_by_designation.return_value = {}
+
+    CrossmatchManager(repo).preview(
+        adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30, batch_size=250)
+    )
+
+    repo.sample_crossmatch_records.assert_called_once_with("raw", 250, None)
+
+
 def test_preview_crossmatch_returns_subset_of_sample() -> None:
     repo = mock.Mock()
     resolved_ids = [f"r{i}" for i in range(25)]

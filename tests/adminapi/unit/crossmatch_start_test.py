@@ -19,12 +19,14 @@ def test_start_crossmatch() -> None:
         parameters={
             "params": {
                 "table_name": "raw",
+                "include_pgc": False,
+                "include_redshift": False,
+                "include_nature": False,
                 "radius": 5.0,
                 "pgc_column": "",
                 "redshift_tolerance": 0.0,
+                "row_filter": "",
                 "batch_size": 1000,
-                "print_pending": False,
-                "write": True,
             }
         },
     )

@@ -27,4 +27,4 @@ class CrossmatchTask(layer2_common.Layer2StorageTask):
         def on_distribution(rows: list[dict[str, Any]], description: str) -> None:
             artifacts.emit_table("crossmatch-distribution", rows, description)
 
-        engine.run(self.repository, params, self.log, on_progress, on_distribution)
+        engine.run(self.repository, params, on_progress, on_distribution)

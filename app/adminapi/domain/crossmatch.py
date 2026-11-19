@@ -20,7 +20,6 @@ from app.lib.storage import enums, sql_row_filter
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
-_PREVIEW_SAMPLE_SIZE = 1000
 _PREVIEW_RETURN_SIZE = 10
 
 
@@ -140,7 +139,7 @@ class CrossmatchManager:
         try:
             record_ids, eligible, total = self._repo.sample_crossmatch_records(
                 request.table_name,
-                _PREVIEW_SAMPLE_SIZE,
+                request.batch_size,
                 row_filter,
             )
         except RuntimeError as exc:

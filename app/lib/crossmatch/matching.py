@@ -2,8 +2,6 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import structlog
-
 from app.lib.crossmatch.models import (
     CrossmatchResult,
     CrossmatchStatus,
@@ -117,8 +115,6 @@ def resolve_batch(
     existing_pgcs: set[int],
     design_to_pgcs: Mapping[str, list[int]],
     resolver: Resolver,
-    print_pending: bool,
-    log: structlog.stdlib.BoundLogger | None = None,
 ) -> list[MatchedRecord]:
     matched: list[MatchedRecord] = []
     radius_deg = resolver.search_radius_deg
@@ -165,12 +161,6 @@ def resolve_batch(
                 neighbors=neighbors,
             )
         )
-        if print_pending and log is not None and result.triage_status == TriageStatus.PENDING:
-            log.warning(
-                "pending crossmatch",
-                record_id=record_id,
-                parameters=parameters_payload(result.parameters),
-            )
     return matched
 
 
@@ -196,4 +186,4 @@ def match_records(
         include_redshift=include_redshift,
         include_nature=include_nature,
     )
-    return resolve_batch(by_record, record_pgc_by_id, existing_pgcs, design_to_pgcs, resolver, False)
+    return resolve_batch(by_record, record_pgc_by_id, existing_pgcs, design_to_pgcs, resolver)

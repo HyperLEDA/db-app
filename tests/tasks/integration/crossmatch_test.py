@@ -38,8 +38,6 @@ def _seed(storage: postgres.PgStorage, table_name: str) -> None:
 def _run(
     pg_storage: PostgresTestStorage,
     table_name: str,
-    *,
-    write: bool,
     monkeypatch: pytest.MonkeyPatch,
 ) -> list[list[dict[str, object]]]:
     tables: list[list[dict[str, object]]] = []
@@ -57,7 +55,7 @@ def _run(
     monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
     task = CrossmatchTask(
         structlog.get_logger(),
-        {"table_name": table_name, "radius": 30.0, "write": write, "batch_size": 10},
+        {"table_name": table_name, "radius": 30.0, "batch_size": 10},
     )
     task.prepare(tasks.Config(storage=pg_storage.config))
     try:
@@ -67,15 +65,13 @@ def _run(
     return tables
 
 
-@pytest.mark.parametrize("write", [False, True])
-def test_crossmatch_dry_run_and_write(
+def test_crossmatch_writes_results(
     pg_storage: PostgresTestStorage,
-    write: bool,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    table_name = f"xmatch_{'write' if write else 'dry'}"
+    table_name = "xmatch_write"
     _seed(pg_storage.storage, table_name)
-    tables = _run(pg_storage, table_name, write=write, monkeypatch=monkeypatch)
+    tables = _run(pg_storage, table_name, monkeypatch)
     stored = pg_storage.storage.query(
         "SELECT record_id, triage_status::text AS triage, metadata FROM layer0.crossmatch ORDER BY record_id"
     )
@@ -84,12 +80,8 @@ def test_crossmatch_dry_run_and_write(
         params=[table_name],
     )
     assert tables[-1][0]["count"] + tables[-1][1]["count"] == 2
-    if write:
-        assert stored == [
-            {"record_id": "far", "triage": "resolved", "metadata": {}},
-            {"record_id": "near", "triage": "resolved", "metadata": {"pgc": 100}},
-        ]
-        assert modified["modification_dt"].year != 2000
-    else:
-        assert stored == []
-        assert modified["modification_dt"].year == 2000
+    assert stored == [
+        {"record_id": "far", "triage": "resolved", "metadata": {}},
+        {"record_id": "near", "triage": "pending", "metadata": {"pgc": 100}},
+    ]
+    assert modified["modification_dt"].year != 2000
