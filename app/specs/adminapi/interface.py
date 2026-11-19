@@ -205,7 +205,6 @@ class PreviewCrossmatchRequest(pydantic.BaseModel):
         ge=0,
         description="Redshift tolerance. 0 disables redshift matching.",
     )
-    limit: int = pydantic.Field(default=20, ge=1, le=200, description="Number of random records to crossmatch")
 
 
 class PreviewCrossmatchNeighbor(pydantic.BaseModel):
@@ -228,9 +227,19 @@ class PreviewCrossmatchRow(pydantic.BaseModel):
     neighbors: list[PreviewCrossmatchNeighbor]
 
 
+class PreviewCrossmatchStat(pydantic.BaseModel):
+    status: str
+    triage: str
+    reason: str
+    count: int
+    percent: float
+
+
 class PreviewCrossmatchResponse(pydantic.BaseModel):
     rows: list[PreviewCrossmatchRow]
     total_count: int
+    sample_count: int
+    statistics: list[PreviewCrossmatchStat]
 
 
 class PreviewStructuredUploadRequest(pydantic.BaseModel):

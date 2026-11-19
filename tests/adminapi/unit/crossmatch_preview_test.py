@@ -40,10 +40,12 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     ]
     repo.pgcs_by_designation.return_value = {}
 
-    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30, limit=2))
+    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
 
     by_id = {row.record_id: row for row in response.rows}
     assert response.total_count == 8
+    assert response.sample_count == 2
+    assert set(by_id) == {"near", "far"}
     assert by_id["near"].status == "existing" and by_id["near"].triage == "resolved"
     assert by_id["near"].reason == "MATCHED_COORDINATES"
     assert by_id["near"].candidates == [100] and by_id["near"].neighbors[0].pgc == 100
@@ -51,8 +53,30 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     assert by_id["near"].neighbors[0].distance_arcsec == 0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
     assert by_id["far"].reason == ""
+    assert [(stat.status, stat.triage, stat.reason, stat.count) for stat in response.statistics] == [
+        ("existing", "resolved", "MATCHED_COORDINATES", 1),
+        ("new", "resolved", "", 1),
+    ]
+    assert all(stat.percent == 50.0 for stat in response.statistics)
     repo.fetch_claimed_pgcs.assert_not_called()
-    repo.sample_crossmatch_records.assert_called_once_with("raw", 2)
+    repo.sample_crossmatch_records.assert_called_once_with("raw", 1000)
+
+
+def test_preview_crossmatch_returns_subset_of_sample() -> None:
+    repo = mock.Mock()
+    record_ids = [f"r{i}" for i in range(25)]
+    repo.sample_crossmatch_records.return_value = (record_ids, 100)
+    repo.fetch_crossmatch_neighbors.return_value = [_row(record_id, 180.0, 0.0) for record_id in record_ids]
+    repo.pgcs_by_designation.return_value = {}
+
+    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
+
+    assert response.sample_count == 25
+    assert len(response.rows) == 20
+    assert {row.record_id for row in response.rows} <= set(record_ids)
+    assert response.statistics == [
+        adminapi.PreviewCrossmatchStat(status="new", triage="resolved", reason="", count=25, percent=100.0),
+    ]
 
 
 def test_preview_crossmatch_missing_table() -> None:

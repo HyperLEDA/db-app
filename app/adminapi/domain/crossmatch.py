@@ -1,3 +1,5 @@
+import random
+from collections import Counter
 from collections.abc import Callable
 from typing import final
 
@@ -6,10 +8,14 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
-from app.lib.crossmatch.matching import match_records, results_to_rows
+from app.lib.crossmatch.matching import distribution_rows, match_records, results_to_rows
+from app.lib.crossmatch.models import CrossmatchReason, CrossmatchStatus, MatchedRecord, TriageStatus
 from app.lib.storage import enums
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
+
+_PREVIEW_SAMPLE_SIZE = 1000
+_PREVIEW_RETURN_SIZE = 20
 
 
 def _append_crossmatch_rows(
@@ -23,6 +29,29 @@ def _append_crossmatch_rows(
         triage_override = triage_statuses[i] if i < len(triage_statuses) else None
         triage = triage_override if triage_override is not None else default_triage
         rows.append((record_id, triage, candidates_for_index(i)))
+
+
+def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCrossmatchRow:
+    return spec.PreviewCrossmatchRow(
+        record_id=item.record_id,
+        status=item.result.status.value,
+        triage=item.result.triage_status.value,
+        reason=item.result.reason.value if item.result.reason is not None else "",
+        candidates=candidates,
+        designation=item.designation,
+        ra=item.ra,
+        dec=item.dec,
+        neighbors=[
+            spec.PreviewCrossmatchNeighbor(
+                pgc=neighbor.pgc,
+                ra=neighbor.ra,
+                dec=neighbor.dec,
+                distance_arcsec=round(neighbor.distance_deg * 3600, 2),
+                design=neighbor.design,
+            )
+            for neighbor in item.neighbors
+        ],
+    )
 
 
 @final
@@ -53,7 +82,7 @@ class CrossmatchManager:
             if pgc_column not in info.columns:
                 raise RuleValidationError(f"column {pgc_column} not found in {request.table_name}")
         try:
-            record_ids, total = self._repo.sample_crossmatch_records(request.table_name, request.limit)
+            record_ids, total = self._repo.sample_crossmatch_records(request.table_name, _PREVIEW_SAMPLE_SIZE)
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
                 raise
@@ -80,32 +109,21 @@ class CrossmatchManager:
             record_id: candidates
             for record_id, _triage, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
         }
-        by_id = {item.record_id: item for item in matched}
-        preview_rows = [
-            spec.PreviewCrossmatchRow(
-                record_id=record_id,
-                status=item.result.status.value,
-                triage=item.result.triage_status.value,
-                reason=item.result.reason.value if item.result.reason is not None else "",
-                candidates=written.get(record_id, []),
-                designation=item.designation,
-                ra=item.ra,
-                dec=item.dec,
-                neighbors=[
-                    spec.PreviewCrossmatchNeighbor(
-                        pgc=neighbor.pgc,
-                        ra=neighbor.ra,
-                        dec=neighbor.dec,
-                        distance_arcsec=round(neighbor.distance_deg * 3600, 2),
-                        design=neighbor.design,
-                    )
-                    for neighbor in item.neighbors
-                ],
-            )
-            for record_id in record_ids
-            if (item := by_id.get(record_id)) is not None
-        ]
-        return spec.PreviewCrossmatchResponse(rows=preview_rows, total_count=total)
+        counts: Counter[tuple[CrossmatchStatus, TriageStatus, CrossmatchReason | None]] = Counter()
+        for item in matched:
+            counts[(item.result.status, item.result.triage_status, item.result.reason)] += 1
+        sample_count = len(matched)
+        preview_items = (
+            random.sample(matched, _PREVIEW_RETURN_SIZE) if sample_count > _PREVIEW_RETURN_SIZE else list(matched)
+        )
+        preview_rows = [_preview_row(item, written.get(item.record_id, [])) for item in preview_items]
+        statistics = [spec.PreviewCrossmatchStat.model_validate(row) for row in distribution_rows(counts, sample_count)]
+        return spec.PreviewCrossmatchResponse(
+            rows=preview_rows,
+            total_count=total,
+            sample_count=sample_count,
+            statistics=statistics,
+        )
 
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []

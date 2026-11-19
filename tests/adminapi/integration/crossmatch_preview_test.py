@@ -39,17 +39,20 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
     _seed(storage, table_name)
     repo = repository.Repository(storage, structlog.get_logger())
 
-    response = CrossmatchManager(repo).preview(
-        adminapi.PreviewCrossmatchRequest(table_name=table_name, radius=30, limit=10)
-    )
+    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name=table_name, radius=30))
 
     by_id = {row.record_id: row for row in response.rows}
     assert response.total_count == 2
+    assert response.sample_count == 2
     assert set(by_id) == {"near", "far"}
     assert by_id["near"].status == "existing" and by_id["near"].candidates == [100]
     assert by_id["near"].neighbors[0].pgc == 100
     assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
     assert by_id["far"].status == "new" and by_id["far"].candidates == []
+    assert {(stat.status, stat.triage, stat.reason, stat.count) for stat in response.statistics} == {
+        ("existing", "resolved", "MATCHED_COORDINATES", 1),
+        ("new", "resolved", "", 1),
+    }
     assert storage.query("SELECT record_id FROM layer0.crossmatch") == []
     modified = storage.query_one(
         "SELECT modification_dt FROM layer0.tables WHERE table_name = %s",
