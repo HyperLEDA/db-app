@@ -21,12 +21,19 @@ _SIMILAR_TYPE_MAP = {
 type ParameterEvaluator = Callable[[RecordEvidence, Neighbor, float | None], bool]
 
 
-def enabled_parameters(*, pgc_enabled: bool, redshift_enabled: bool) -> tuple[Parameter, ...]:
-    enabled = {Parameter.COORDINATES, Parameter.NAME, Parameter.TYPE}
+def enabled_parameters(
+    *,
+    pgc_enabled: bool,
+    redshift_enabled: bool,
+    nature_enabled: bool,
+) -> tuple[Parameter, ...]:
+    enabled: set[Parameter] = {Parameter.COORDINATES, Parameter.NAME}
     if pgc_enabled:
         enabled.add(Parameter.PGC)
     if redshift_enabled:
         enabled.add(Parameter.REDSHIFT)
+    if nature_enabled:
+        enabled.add(Parameter.TYPE)
     return tuple(name for name in PARAMETER_ORDER if name in enabled)
 
 
@@ -45,7 +52,10 @@ def parameters_payload(matches: Mapping[Parameter, bool]) -> dict[str, bool | No
 
 
 def decide_matched(matches: Mapping[Parameter, bool]) -> bool:
-    return all(matches[name] for name in _AUTO_MATCH_PARAMETERS if name in matches)
+    required = [name for name in _AUTO_MATCH_PARAMETERS if name in matches]
+    if not required:
+        required = list(matches)
+    return bool(required) and all(matches[name] for name in required)
 
 
 def prefer_candidates(

@@ -1,3 +1,7 @@
+from psycopg import sql
+
+from app.catalogs import layer0
+
 _NEIGHBOR_BODY = """
     SELECT
         b.id AS new_id,
@@ -53,3 +57,23 @@ NEIGHBORS_FOR_IDS = f"""
     )
     {_NEIGHBOR_BODY}
 """
+
+
+def neighbors_after_id_filtered(table_name: str, row_filter: sql.Composable) -> sql.Composed:
+    raw = sql.SQL("{}.{}").format(
+        sql.Identifier(layer0.RAWDATA_SCHEMA),
+        sql.Identifier(table_name),
+    )
+    id_col = sql.Identifier(layer0.INTERNAL_ID_COLUMN_NAME)
+    return sql.SQL(
+        """
+        WITH batch AS (
+            SELECT rec.id
+            FROM layer0.records rec
+            JOIN {} raw ON raw.{} = rec.id
+            WHERE rec.table_id = %s AND rec.id > %s AND {}
+            ORDER BY rec.id ASC
+            LIMIT %s
+        )
+        """
+    ).format(raw, id_col, row_filter) + sql.SQL(_NEIGHBOR_BODY)

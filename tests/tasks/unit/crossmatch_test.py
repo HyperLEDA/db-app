@@ -42,7 +42,7 @@ def _evidence(
 
 
 def test_resolver_new_and_existing() -> None:
-    resolver = Resolver(radius_deg=1.0)
+    resolver = Resolver(radius_deg=1.0, include_nature=True)
     new = resolver.resolve(_evidence())
     assert new.status == CrossmatchStatus.NEW and new.triage_status == TriageStatus.RESOLVED
     assert new.parameters == {"coordinates": False, "name": False, "type": False}
@@ -73,7 +73,7 @@ def test_resolver_new_and_existing() -> None:
 
 
 def test_resolver_matched_by_identifier_and_filters() -> None:
-    by_pgc = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
+    by_pgc = Resolver(radius_deg=1.0, pgc_column="pgc", include_pgc=True, include_nature=True).resolve(
         _evidence(
             neighbors=[
                 _neighbor(7, type_name="G"),
@@ -91,7 +91,7 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_pgc.parameters["pgc"] is True
     assert by_pgc.parameters["type"] is True
 
-    by_name = Resolver(radius_deg=1.0).resolve(
+    by_name = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(
             neighbors=[
                 _neighbor(7, type_name="G"),
@@ -107,7 +107,9 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_name.matched_pgc == 7
     assert by_name.parameters["name"] is True
 
-    by_redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001).resolve(
+    by_redshift = Resolver(
+        radius_deg=1.0, redshift_tolerance=0.001, include_redshift=True, include_nature=True
+    ).resolve(
         _evidence(
             neighbors=[
                 _neighbor(7, redshift=0.1, type_name="G"),
@@ -123,7 +125,7 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
     assert by_redshift.parameters["redshift"] is True
     assert by_redshift.parameters["type"] is True
 
-    by_type = Resolver(radius_deg=1.0).resolve(
+    by_type = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(
             neighbors=[
                 _neighbor(7, type_name="G"),
@@ -139,7 +141,7 @@ def test_resolver_matched_by_identifier_and_filters() -> None:
 
 
 def test_resolver_pgc_name_redshift_and_type() -> None:
-    outside = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
+    outside = Resolver(radius_deg=1.0, pgc_column="pgc", include_pgc=True, include_nature=True).resolve(
         _evidence(record_pgc=9, claimed_pgc_exists_in_layer2=True, record_type_name="G")
     )
     assert outside.status == CrossmatchStatus.EXISTING
@@ -152,14 +154,14 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
         "type": False,
     }
 
-    unknown = Resolver(radius_deg=1.0, pgc_column="pgc").resolve(
+    unknown = Resolver(radius_deg=1.0, pgc_column="pgc", include_pgc=True, include_nature=True).resolve(
         _evidence(record_pgc=9, claimed_pgc_exists_in_layer2=False)
     )
     assert unknown.status == CrossmatchStatus.NEW
     assert unknown.triage_status == TriageStatus.PENDING
     assert unknown.parameters["pgc"] is False
 
-    named = Resolver(radius_deg=1.0).resolve(
+    named = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(record_designation="NGC 1", same_name_pgcs=[4], record_type_name="G")
     )
     assert named.status == CrossmatchStatus.EXISTING
@@ -168,7 +170,7 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
     assert named.parameters["coordinates"] is False
     assert named.parameters["name"] is True
 
-    redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001).resolve(
+    redshift = Resolver(radius_deg=1.0, redshift_tolerance=0.001, include_redshift=True, include_nature=True).resolve(
         _evidence(
             neighbors=[_neighbor(7, redshift=0.1, type_name="G")],
             record_redshift=0.2,
@@ -182,7 +184,7 @@ def test_resolver_pgc_name_redshift_and_type() -> None:
     assert redshift.parameters["redshift"] is False
     assert redshift.parameters["type"] is True
 
-    typed = Resolver(radius_deg=1.0).resolve(
+    typed = Resolver(radius_deg=1.0, include_nature=True).resolve(
         _evidence(neighbors=[_neighbor(7, type_name="G")], record_type_name="Star")
     )
     assert typed.status == CrossmatchStatus.EXISTING

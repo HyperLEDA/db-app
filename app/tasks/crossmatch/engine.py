@@ -13,6 +13,7 @@ from app.lib.crossmatch.matching import (
     results_to_rows,
 )
 from app.lib.crossmatch.resolver import Resolver
+from app.lib.storage import sql_row_filter
 from app.specs import adminapi as spec
 from app.tasks import repository
 
@@ -27,12 +28,18 @@ def run(
     on_progress: ProgressCallback,
     on_distribution: DistributionCallback,
 ) -> None:
+    include_pgc = params.include_pgc and bool(params.pgc_column.strip())
+    include_redshift = params.include_redshift and params.redshift_tolerance > 0
     resolver = Resolver(
         radius_deg=params.radius / 3600.0,
         pgc_column=params.pgc_column.strip() or None,
-        redshift_tolerance=params.redshift_tolerance if params.redshift_tolerance > 0 else None,
+        redshift_tolerance=params.redshift_tolerance if include_redshift else None,
+        include_pgc=include_pgc,
+        include_redshift=include_redshift,
+        include_nature=params.include_nature,
     )
-    table_id, total_records = repo.crossmatch_table(params.table_name)
+    row_filter = sql_row_filter.row_filter_clause(params.row_filter)
+    table_id, total_records = repo.crossmatch_table(params.table_name, row_filter)
     on_progress(0, f"Starting crossmatch for {params.table_name} ({total_records} records)")
 
     counts: dict[DistributionKey, int] = defaultdict(int)
@@ -40,7 +47,14 @@ def run(
     last_id = ""
     try:
         while True:
-            rows = repo.fetch_crossmatch_neighbors(table_id, last_id, params.batch_size, resolver.search_radius_deg)
+            rows = repo.fetch_crossmatch_neighbors(
+                table_id,
+                last_id,
+                params.batch_size,
+                resolver.search_radius_deg,
+                table_name=params.table_name,
+                row_filter=row_filter,
+            )
             by_record, last_id = group_batch(rows)
             if not by_record:
                 break

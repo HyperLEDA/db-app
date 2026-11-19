@@ -183,11 +183,17 @@ def match_records(
     record_pgc_by_id: Mapping[str, int | None],
     existing_pgcs: set[int],
     design_to_pgcs: Mapping[str, list[int]],
+    include_pgc: bool = False,
+    include_redshift: bool = False,
+    include_nature: bool = False,
 ) -> list[MatchedRecord]:
     by_record, _last_id = group_batch(rows)
     resolver = Resolver(
         radius_deg=radius_deg,
         pgc_column=pgc_column,
         redshift_tolerance=redshift_tolerance,
+        include_pgc=include_pgc,
+        include_redshift=include_redshift,
+        include_nature=include_nature,
     )
     return resolve_batch(by_record, record_pgc_by_id, existing_pgcs, design_to_pgcs, resolver, False)

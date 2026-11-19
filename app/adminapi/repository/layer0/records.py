@@ -3,6 +3,7 @@ from typing import Any
 
 from psycopg import sql
 
+from app.catalogs import layer0
 from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
 from app.lib.crossmatch.query import NEIGHBORS_FOR_IDS
 from app.lib.storage import enums, postgres
@@ -203,7 +204,12 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
 
-    def sample_crossmatch_records(self, table_name: str, limit: int) -> tuple[list[str], int]:
+    def sample_crossmatch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_filter: sql.Composable | None = None,
+    ) -> tuple[list[str], int, int]:
         table_id = require_table_id(self._storage, table_name)
         total = int(
             self._storage.query_one(
@@ -212,28 +218,64 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )["cnt"]
         )
         if total == 0:
-            return [], 0
-        if total < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
-            rows = self._storage.query(
-                "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
-                params=[table_id, limit],
-                read_only=True,
-            )
-            return [str(row["id"]) for row in rows], total
+            return [], 0, 0
 
-        percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / total)
-        query = """
-            SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
-            WHERE table_id = %s
+        if row_filter is None:
+            eligible = total
+            if eligible < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
+                rows = self._storage.query(
+                    "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
+                    params=[table_id, limit],
+                    read_only=True,
+                )
+                return [str(row["id"]) for row in rows], eligible, total
+
+            percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / eligible)
+            query = """
+                SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
+                WHERE table_id = %s
+                ORDER BY random()
+                LIMIT %s
+            """
+            while True:
+                rows = self._storage.query(query, params=[percent, table_id, limit], read_only=True)
+                if len(rows) >= limit or percent >= 100.0:
+                    return [str(row["id"]) for row in rows], eligible, total
+                percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
+
+        raw = sql.SQL("{}.{}").format(
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        id_col = sql.Identifier(layer0.INTERNAL_ID_COLUMN_NAME)
+        eligible = int(
+            self._storage.query_one(
+                sql.SQL(
+                    """
+                    SELECT COUNT(*) AS cnt
+                    FROM layer0.records rec
+                    JOIN {} raw ON raw.{} = rec.id
+                    WHERE rec.table_id = %s AND {}
+                    """
+                ).format(raw, id_col, row_filter),
+                params=[table_id],
+            )["cnt"]
+        )
+        if eligible == 0:
+            return [], 0, total
+
+        sample_query = sql.SQL(
+            """
+            SELECT rec.id
+            FROM layer0.records rec
+            JOIN {} raw ON raw.{} = rec.id
+            WHERE rec.table_id = %s AND {}
             ORDER BY random()
             LIMIT %s
-        """
-        while True:
-            rows = self._storage.query(query, params=[percent, table_id, limit], read_only=True)
-            if len(rows) >= limit or percent >= 100.0:
-                return [str(row["id"]) for row in rows], total
-            # SYSTEM sampling picks whole pages, so a small percentage can yield fewer rows than requested.
-            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
+            """
+        ).format(raw, id_col, row_filter)
+        rows = self._storage.query(sample_query, params=[table_id, limit], read_only=True)
+        return [str(row["id"]) for row in rows], eligible, total
 
     def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
         if not record_ids:

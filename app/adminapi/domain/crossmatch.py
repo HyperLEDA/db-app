@@ -15,14 +15,14 @@ from app.lib.crossmatch.matching import (
     match_records,
     results_to_rows,
 )
-from app.lib.crossmatch.models import MatchedRecord
+from app.lib.crossmatch.models import MatchedRecord, TriageStatus
 from app.lib.crossmatch.parameters import parameters_payload
-from app.lib.storage import enums
+from app.lib.storage import enums, sql_row_filter
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
 
 _PREVIEW_SAMPLE_SIZE = 1000
-_PREVIEW_RETURN_SIZE = 20
+_PREVIEW_RETURN_SIZE = 10
 
 
 def _append_crossmatch_rows(
@@ -61,6 +61,17 @@ def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCros
     )
 
 
+def _sample_by_triage(
+    matched: list[MatchedRecord],
+    triage: TriageStatus,
+    limit: int,
+) -> list[MatchedRecord]:
+    pool = [item for item in matched if item.result.triage_status == triage]
+    if len(pool) > limit:
+        return random.sample(pool, limit)
+    return pool
+
+
 @final
 class CrossmatchManager:
     def __init__(self, repo: repository.Repository, prefect: PrefectClient | None = None) -> None:
@@ -81,15 +92,26 @@ class CrossmatchManager:
         return spec.StartCrossmatchResponse(task_id=task_id)
 
     def preview(self, request: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
-        pgc_column = request.pgc_column.strip()
-        if pgc_column:
+        include_pgc = request.include_pgc
+        include_redshift = request.include_redshift
+        pgc_column = request.pgc_column.strip() if include_pgc else ""
+        if include_pgc:
+            if not pgc_column:
+                raise RuleValidationError("pgc_column is required when include_pgc is true")
             info = self._repo.get_table_metadata(layer0.RAWDATA_SCHEMA, request.table_name)
             if not info.columns:
                 raise NotFoundError(entity_name="table", entity=request.table_name)
             if pgc_column not in info.columns:
                 raise RuleValidationError(f"column {pgc_column} not found in {request.table_name}")
+        if include_redshift and not (request.redshift_tolerance > 0):
+            raise RuleValidationError("redshift_tolerance must be greater than 0 when include_redshift is true")
+        row_filter = sql_row_filter.row_filter_clause(request.row_filter)
         try:
-            record_ids, total = self._repo.sample_crossmatch_records(request.table_name, _PREVIEW_SAMPLE_SIZE)
+            record_ids, eligible, total = self._repo.sample_crossmatch_records(
+                request.table_name,
+                _PREVIEW_SAMPLE_SIZE,
+                row_filter,
+            )
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
                 raise
@@ -107,10 +129,13 @@ class CrossmatchManager:
             rows,
             radius_deg=radius_deg,
             pgc_column=pgc_column or None,
-            redshift_tolerance=request.redshift_tolerance if request.redshift_tolerance > 0 else None,
+            redshift_tolerance=request.redshift_tolerance if include_redshift else None,
             record_pgc_by_id=record_pgc_by_id,
             existing_pgcs=existing_pgcs,
             design_to_pgcs=self._repo.pgcs_by_designation(list(dict.fromkeys(str(item) for item in designations))),
+            include_pgc=include_pgc,
+            include_redshift=include_redshift,
+            include_nature=request.include_nature,
         )
         written = {
             record_id: candidates
@@ -120,14 +145,20 @@ class CrossmatchManager:
         for item in matched:
             counts[distribution_key(item.result)] += 1
         sample_count = len(matched)
-        preview_items = (
-            random.sample(matched, _PREVIEW_RETURN_SIZE) if sample_count > _PREVIEW_RETURN_SIZE else list(matched)
-        )
-        preview_rows = [_preview_row(item, written.get(item.record_id, [])) for item in preview_items]
+        pending_rows = [
+            _preview_row(item, written.get(item.record_id, []))
+            for item in _sample_by_triage(matched, TriageStatus.PENDING, _PREVIEW_RETURN_SIZE)
+        ]
+        resolved_rows = [
+            _preview_row(item, written.get(item.record_id, []))
+            for item in _sample_by_triage(matched, TriageStatus.RESOLVED, _PREVIEW_RETURN_SIZE)
+        ]
         statistics = [spec.PreviewCrossmatchStat.model_validate(row) for row in distribution_rows(counts, sample_count)]
         return spec.PreviewCrossmatchResponse(
-            rows=preview_rows,
+            pending_rows=pending_rows,
+            resolved_rows=resolved_rows,
             total_count=total,
+            eligible_count=eligible,
             sample_count=sample_count,
             statistics=statistics,
         )

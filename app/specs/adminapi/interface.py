@@ -170,15 +170,22 @@ class StartStructuredUploadResponse(pydantic.BaseModel):
 
 class CrossmatchParams(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    include_pgc: bool = pydantic.Field(default=False, description="Use claimed PGC column")
+    include_redshift: bool = pydantic.Field(default=False, description="Use redshift matching")
+    include_nature: bool = pydantic.Field(default=False, description="Use object type matching")
     radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
     pgc_column: str = pydantic.Field(
         default="",
-        description="Raw-table column with a claimed PGC. Empty skips PGC matching.",
+        description="Raw-table column with a claimed PGC. Used when include_pgc is true.",
     )
     redshift_tolerance: float = pydantic.Field(
         default=0,
         ge=0,
-        description="Redshift tolerance. 0 disables redshift matching.",
+        description="Redshift tolerance. Used when include_redshift is true.",
+    )
+    row_filter: str = pydantic.Field(
+        default="",
+        description="SQL boolean on rawdata columns. Empty is no filter.",
     )
     batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records read per batch")
     print_pending: bool = pydantic.Field(default=False, description="Log records that need manual check")
@@ -195,16 +202,20 @@ class StartCrossmatchResponse(pydantic.BaseModel):
 
 class PreviewCrossmatchRequest(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    include_pgc: bool = False
+    include_redshift: bool = False
+    include_nature: bool = False
     radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
     pgc_column: str = pydantic.Field(
         default="",
-        description="Raw-table column with a claimed PGC. Empty skips PGC matching.",
+        description="Raw-table column with a claimed PGC. Used when include_pgc is true.",
     )
     redshift_tolerance: float = pydantic.Field(
         default=0,
         ge=0,
-        description="Redshift tolerance. 0 disables redshift matching.",
+        description="Redshift tolerance. Used when include_redshift is true.",
     )
+    row_filter: str | None = None
 
 
 class PreviewCrossmatchNeighbor(pydantic.BaseModel):
@@ -244,8 +255,10 @@ class PreviewCrossmatchStat(pydantic.BaseModel):
 
 
 class PreviewCrossmatchResponse(pydantic.BaseModel):
-    rows: list[PreviewCrossmatchRow]
+    pending_rows: list[PreviewCrossmatchRow]
+    resolved_rows: list[PreviewCrossmatchRow]
     total_count: int
+    eligible_count: int
     sample_count: int
     statistics: list[PreviewCrossmatchStat]
 

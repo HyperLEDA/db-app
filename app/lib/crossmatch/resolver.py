@@ -21,13 +21,18 @@ class Resolver:
         radius_deg: float,
         pgc_column: str | None = None,
         redshift_tolerance: float | None = None,
+        *,
+        include_pgc: bool = False,
+        include_redshift: bool = False,
+        include_nature: bool = False,
     ) -> None:
         self._radius_deg = radius_deg
-        self._pgc_column = pgc_column
-        self._redshift_tolerance = redshift_tolerance
+        self._pgc_column = pgc_column if include_pgc else None
+        self._redshift_tolerance = redshift_tolerance if include_redshift else None
         self._parameter_names = enabled_parameters(
-            pgc_enabled=pgc_column is not None,
-            redshift_enabled=redshift_tolerance is not None,
+            pgc_enabled=self._pgc_column is not None,
+            redshift_enabled=self._redshift_tolerance is not None,
+            nature_enabled=include_nature,
         )
 
     @property

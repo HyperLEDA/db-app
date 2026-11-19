@@ -11,7 +11,7 @@ from psycopg import sql
 
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
-from app.lib.crossmatch.query import NEIGHBORS_AFTER_ID
+from app.lib.crossmatch.query import NEIGHBORS_AFTER_ID, neighbors_after_id_filtered
 from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -748,10 +748,33 @@ class Repository(postgres.TransactionalPGRepository):
         )
         return {row["table_name"]: table_statistics.CatalogProgress(structured=int(row["structured"])) for row in rows}
 
-    def crossmatch_table(self, table_name: str) -> tuple[int, int]:
+    def crossmatch_table(
+        self,
+        table_name: str,
+        row_filter: sql.Composable | None = None,
+    ) -> tuple[int, int]:
         table_id = layer0.require_table_id(self._storage, table_name)
+        if row_filter is None:
+            row = self._storage.query_one(
+                "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+                params=[table_id],
+            )
+            return table_id, int(row["cnt"])
+
+        raw = sql.SQL("{}.{}").format(
+            sql.Identifier(layer0.RAWDATA_SCHEMA),
+            sql.Identifier(table_name),
+        )
+        id_col = sql.Identifier(layer0.INTERNAL_ID_COLUMN_NAME)
         row = self._storage.query_one(
-            "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+            sql.SQL(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM layer0.records rec
+                JOIN {} raw ON raw.{} = rec.id
+                WHERE rec.table_id = %s AND {}
+                """
+            ).format(raw, id_col, row_filter),
             params=[table_id],
         )
         return table_id, int(row["cnt"])
@@ -762,10 +785,22 @@ class Repository(postgres.TransactionalPGRepository):
         last_id: str,
         batch_size: int,
         radius_deg: float,
+        *,
+        table_name: str | None = None,
+        row_filter: sql.Composable | None = None,
     ) -> list[dict[str, Any]]:
+        if row_filter is None:
+            return list(
+                self._storage.query(
+                    NEIGHBORS_AFTER_ID,
+                    params=[table_id, last_id, batch_size, radius_deg],
+                )
+            )
+        if table_name is None:
+            raise ValueError("table_name is required when row_filter is set")
         return list(
             self._storage.query(
-                NEIGHBORS_AFTER_ID,
+                neighbors_after_id_filtered(table_name, row_filter),
                 params=[table_id, last_id, batch_size, radius_deg],
             )
         )

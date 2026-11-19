@@ -41,16 +41,18 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
 
     response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name=table_name, radius=30))
 
-    by_id = {row.record_id: row for row in response.rows}
+    resolved_by_id = {row.record_id: row for row in response.resolved_rows}
     assert response.total_count == 2
+    assert response.eligible_count == 2
     assert response.sample_count == 2
-    assert set(by_id) == {"near", "far"}
-    assert by_id["near"].status == "existing" and by_id["near"].candidates == [100]
-    assert by_id["near"].neighbors[0].pgc == 100
-    assert by_id["near"].neighbors[0].ra == 10.0 and by_id["near"].neighbors[0].dec == 20.0
-    assert by_id["far"].status == "new" and by_id["far"].candidates == []
+    assert response.pending_rows == []
+    assert set(resolved_by_id) == {"near", "far"}
+    assert resolved_by_id["near"].status == "existing" and resolved_by_id["near"].candidates == [100]
+    assert resolved_by_id["near"].neighbors[0].pgc == 100
+    assert resolved_by_id["near"].neighbors[0].ra == 10.0 and resolved_by_id["near"].neighbors[0].dec == 20.0
+    assert resolved_by_id["far"].status == "new" and resolved_by_id["far"].candidates == []
     assert {(stat.status, stat.triage, stat.count) for stat in response.statistics} == {
-        ("existing", "pending", 1),
+        ("existing", "resolved", 1),
         ("new", "resolved", 1),
     }
     existing_stat = next(stat for stat in response.statistics if stat.status == "existing")

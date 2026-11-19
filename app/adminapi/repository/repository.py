@@ -153,8 +153,13 @@ class Repository(postgres.TransactionalPGRepository):
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         return self._layer0_records.set_crossmatch_results(rows)
 
-    def sample_crossmatch_records(self, table_name: str, limit: int) -> tuple[list[str], int]:
-        return self._layer0_records.sample_crossmatch_records(table_name, limit)
+    def sample_crossmatch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_filter: sql.Composable | None = None,
+    ) -> tuple[list[str], int, int]:
+        return self._layer0_records.sample_crossmatch_records(table_name, limit, row_filter)
 
     def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
         return self._layer0_records.fetch_crossmatch_neighbors(record_ids, radius_deg)
