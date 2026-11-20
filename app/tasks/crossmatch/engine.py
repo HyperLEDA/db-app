@@ -25,11 +25,12 @@ def run(
     on_progress: ProgressCallback,
     on_distribution: DistributionCallback,
 ) -> None:
-    include_pgc = params.include_pgc and bool(params.pgc_column.strip())
+    pgc_column = params.pgc_column.strip()
+    include_pgc = bool(pgc_column)
     include_redshift = params.include_redshift and params.redshift_tolerance > 0
     resolver = Resolver(
-        radius_deg=params.radius / 3600.0,
-        pgc_column=params.pgc_column.strip() or None,
+        radius_deg=params.radius_arcsec / 3600.0,
+        pgc_column=pgc_column or None,
         redshift_tolerance=params.redshift_tolerance if include_redshift else None,
         include_pgc=include_pgc,
         include_redshift=include_redshift,

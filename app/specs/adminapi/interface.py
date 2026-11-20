@@ -170,13 +170,12 @@ class StartStructuredUploadResponse(pydantic.BaseModel):
 
 class CrossmatchParams(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
-    include_pgc: bool = pydantic.Field(default=False, description="Use claimed PGC column")
     include_redshift: bool = pydantic.Field(default=False, description="Use redshift matching")
     include_nature: bool = pydantic.Field(default=False, description="Use object type matching")
-    radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
+    radius_arcsec: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
     pgc_column: str = pydantic.Field(
         default="",
-        description="Raw-table column with a claimed PGC. Used when include_pgc is true.",
+        description="Raw-table column with a claimed PGC. Empty disables PGC matching.",
     )
     redshift_tolerance: float = pydantic.Field(
         default=0,
@@ -200,13 +199,12 @@ class StartCrossmatchResponse(pydantic.BaseModel):
 
 class PreviewCrossmatchRequest(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
-    include_pgc: bool = False
     include_redshift: bool = False
     include_nature: bool = False
-    radius: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
+    radius_arcsec: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
     pgc_column: str = pydantic.Field(
         default="",
-        description="Raw-table column with a claimed PGC. Used when include_pgc is true.",
+        description="Raw-table column with a claimed PGC. Empty disables PGC matching.",
     )
     redshift_tolerance: float = pydantic.Field(
         default=0,
@@ -214,7 +212,7 @@ class PreviewCrossmatchRequest(pydantic.BaseModel):
         description="Redshift tolerance. Used when include_redshift is true.",
     )
     row_filter: str | None = None
-    batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records sampled for preview")
+    sample_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records sampled for preview")
 
 
 class PreviewCrossmatchNeighbor(pydantic.BaseModel):
@@ -235,8 +233,6 @@ class PreviewCrossmatchParameters(pydantic.BaseModel):
 
 class PreviewCrossmatchRow(pydantic.BaseModel):
     record_id: str
-    status: str
-    triage: str
     parameters: PreviewCrossmatchParameters
     candidates: list[int]
     designation: str | None = None

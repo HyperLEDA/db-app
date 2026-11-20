@@ -39,8 +39,6 @@ def _append_crossmatch_rows(
 def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCrossmatchRow:
     return spec.PreviewCrossmatchRow(
         record_id=item.record_id,
-        status=item.result.status.value,
-        triage=item.result.triage_status.value,
         parameters=spec.PreviewCrossmatchParameters.model_validate(parameters_payload(item.result.parameters)),
         candidates=candidates,
         designation=item.designation,
@@ -88,9 +86,7 @@ def _statistics(
             spec.PreviewCrossmatchStat(
                 status=status.value,
                 triage=triage.value,
-                parameters=spec.PreviewCrossmatchParameters.model_validate(
-                    parameters_payload(dict(parameter_items))
-                ),
+                parameters=spec.PreviewCrossmatchParameters.model_validate(parameters_payload(dict(parameter_items))),
                 count=len(items),
                 percent=percent(len(items)),
                 rows=[
@@ -122,12 +118,10 @@ class CrossmatchManager:
         return spec.StartCrossmatchResponse(task_id=task_id)
 
     def preview(self, request: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
-        include_pgc = request.include_pgc
         include_redshift = request.include_redshift
-        pgc_column = request.pgc_column.strip() if include_pgc else ""
+        pgc_column = request.pgc_column.strip()
+        include_pgc = bool(pgc_column)
         if include_pgc:
-            if not pgc_column:
-                raise RuleValidationError("pgc_column is required when include_pgc is true")
             info = self._repo.get_table_metadata(layer0.RAWDATA_SCHEMA, request.table_name)
             if not info.columns:
                 raise NotFoundError(entity_name="table", entity=request.table_name)
@@ -139,7 +133,7 @@ class CrossmatchManager:
         try:
             record_ids, eligible, total = self._repo.sample_crossmatch_records(
                 request.table_name,
-                request.batch_size,
+                request.sample_size,
                 row_filter,
             )
         except RuntimeError as exc:
@@ -147,7 +141,7 @@ class CrossmatchManager:
                 raise
             raise NotFoundError(entity_name="table", entity=request.table_name) from exc
 
-        radius_deg = request.radius / 3600.0
+        radius_deg = request.radius_arcsec / 3600.0
         rows = self._repo.fetch_crossmatch_neighbors(record_ids, radius_deg)
         record_pgc_by_id = (
             self._repo.fetch_claimed_pgcs(request.table_name, pgc_column, record_ids) if pgc_column else {}

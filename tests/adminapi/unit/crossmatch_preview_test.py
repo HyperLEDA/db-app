@@ -42,7 +42,7 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     ]
     repo.pgcs_by_designation.return_value = {"NGC 1": [100]}
 
-    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
+    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius_arcsec=30))
 
     by_status = {stat.status: stat for stat in response.statistics}
     assert response.total_count == 8
@@ -73,14 +73,14 @@ def test_preview_crossmatch_matches_sampled_records() -> None:
     repo.sample_crossmatch_records.assert_called_once_with("raw", 1000, None)
 
 
-def test_preview_crossmatch_uses_batch_size() -> None:
+def test_preview_crossmatch_uses_sample_size() -> None:
     repo = mock.Mock()
     repo.sample_crossmatch_records.return_value = (["a"], 1, 1)
     repo.fetch_crossmatch_neighbors.return_value = [_row("a", 180.0, 0.0)]
     repo.pgcs_by_designation.return_value = {}
 
     CrossmatchManager(repo).preview(
-        adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30, batch_size=250)
+        adminapi.PreviewCrossmatchRequest(table_name="raw", radius_arcsec=30, sample_size=250)
     )
 
     repo.sample_crossmatch_records.assert_called_once_with("raw", 250, None)
@@ -105,7 +105,7 @@ def test_preview_crossmatch_returns_subset_of_sample() -> None:
     ]
     repo.pgcs_by_designation.return_value = {}
 
-    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius=30))
+    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="raw", radius_arcsec=30))
 
     assert response.sample_count == 40
     by_status = {stat.status: stat for stat in response.statistics}
@@ -116,8 +116,8 @@ def test_preview_crossmatch_returns_subset_of_sample() -> None:
     assert len(by_status["colliding"].rows) == 10
     assert {row.record_id for row in by_status["new"].rows} <= set(resolved_ids)
     assert {row.record_id for row in by_status["colliding"].rows} <= set(pending_ids)
-    assert all(row.triage == "resolved" for row in by_status["new"].rows)
-    assert all(row.triage == "pending" for row in by_status["colliding"].rows)
+    assert by_status["new"].triage == "resolved"
+    assert by_status["colliding"].triage == "pending"
 
 
 def test_preview_crossmatch_missing_table() -> None:
@@ -125,7 +125,7 @@ def test_preview_crossmatch_missing_table() -> None:
     repo.sample_crossmatch_records.side_effect = RuntimeError("table 'missing' is not in layer0.tables")
 
     with pytest.raises(NotFoundError):
-        CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="missing", radius=5))
+        CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name="missing", radius_arcsec=5))
 
 
 def test_preview_crossmatch_unknown_pgc_column() -> None:
@@ -138,8 +138,7 @@ def test_preview_crossmatch_unknown_pgc_column() -> None:
         CrossmatchManager(repo).preview(
             adminapi.PreviewCrossmatchRequest(
                 table_name="raw",
-                radius=5,
-                include_pgc=True,
+                radius_arcsec=5,
                 pgc_column="pgc",
             )
         )

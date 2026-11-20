@@ -39,7 +39,9 @@ def test_preview_crossmatch_does_not_write(pg_storage: PostgresTestStorage) -> N
     _seed(storage, table_name)
     repo = repository.Repository(storage, structlog.get_logger())
 
-    response = CrossmatchManager(repo).preview(adminapi.PreviewCrossmatchRequest(table_name=table_name, radius=30))
+    response = CrossmatchManager(repo).preview(
+        adminapi.PreviewCrossmatchRequest(table_name=table_name, radius_arcsec=30)
+    )
 
     by_status = {stat.status: stat for stat in response.statistics}
     assert response.total_count == 2

@@ -55,7 +55,7 @@ def _run(
     monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
     task = CrossmatchTask(
         structlog.get_logger(),
-        {"table_name": table_name, "radius": 30.0, "batch_size": 10},
+        {"table_name": table_name, "radius_arcsec": 30.0, "batch_size": 10},
     )
     task.prepare(tasks.Config(storage=pg_storage.config))
     try:
