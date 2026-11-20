@@ -1,7 +1,5 @@
 from psycopg import sql
 
-from app.catalogs import layer0
-
 _NEIGHBOR_BODY = """
     SELECT
         b.id AS new_id,
@@ -61,10 +59,10 @@ NEIGHBORS_FOR_IDS = f"""
 
 def neighbors_after_id_filtered(table_name: str, row_filter: sql.Composable) -> sql.Composed:
     raw = sql.SQL("{}.{}").format(
-        sql.Identifier(layer0.RAWDATA_SCHEMA),
+        sql.Identifier("rawdata"),
         sql.Identifier(table_name),
     )
-    id_col = sql.Identifier(layer0.INTERNAL_ID_COLUMN_NAME)
+    id_col = sql.Identifier("hyperleda_internal_id")
     return sql.SQL(
         """
         WITH batch AS (
