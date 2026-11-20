@@ -125,3 +125,28 @@ def seed_layer1_table(
     register_pgcs(storage, list(pgcs.values()))
     upsert_pgc(storage, pgcs)
     save_structured_data(storage, layer1_table, columns, list(record_ids), rows, conflict_keys=conflict_keys)
+
+
+def seed_crossmatch_preview_table(storage: postgres.PgStorage, table_name: str) -> None:
+    bib_id = create_bibliography(storage, f"bib-{table_name}", 2000, ["test"], "test")
+    create_table(storage, table_name, bib_id)
+    register_records(storage, table_name, ["near", "far"])
+    register_pgcs(storage, [100])
+    save_structured_data(
+        storage,
+        "icrs.data",
+        ["ra", "e_ra", "dec", "e_dec"],
+        ["near", "far"],
+        [
+            [10.0, 0.1, 20.0, 0.1],
+            [180.0, 0.1, 0.0, 0.1],
+        ],
+    )
+    storage.exec(
+        "INSERT INTO layer2.objects (pgc, name, ra, dec) VALUES (%s, %s, %s, %s)",
+        params=[100, "NGC 1", 10.0, 20.0],
+    )
+    storage.exec(
+        "UPDATE layer0.tables SET modification_dt = TIMESTAMP '2000-01-01' WHERE table_name = %s",
+        params=[table_name],
+    )

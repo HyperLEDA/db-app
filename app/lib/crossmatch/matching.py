@@ -2,44 +2,42 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import structlog
-
 from app.lib.crossmatch.models import (
     CrossmatchResult,
     CrossmatchStatus,
     MatchedRecord,
     Neighbor,
-    PendingReason,
+    Parameter,
     RecordEvidence,
     TriageStatus,
 )
+from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.crossmatch.resolver import Resolver
 from app.lib.storage import enums
 
 C_M_S = 299792458
+DistributionKey = tuple[CrossmatchStatus, TriageStatus, tuple[tuple[Parameter, bool], ...]]
 
 
-def distribution_rows(
-    counts: Mapping[tuple[CrossmatchStatus, TriageStatus, PendingReason | None], int],
-    total: int,
-) -> list[dict[str, Any]]:
-    def pct(n: int) -> float:
-        return round((100.0 * n / total) if total else 0.0, 1)
+def distribution_key(result: CrossmatchResult) -> DistributionKey:
+    return (result.status, result.triage_status, tuple(result.parameters.items()))
 
-    ordered = sorted(
-        counts,
-        key=lambda key: (-counts[key], key[0].value, key[1].value, key[2].value if key[2] is not None else ""),
-    )
+
+def ordered_distribution_keys(counts: Mapping[DistributionKey, int]) -> list[DistributionKey]:
+    return sorted(counts, key=lambda key: (-counts[key], key[0].value, key[1].value, tuple(key[2])))
+
+
+def distribution_rows(counts: Mapping[DistributionKey, int], total: int) -> list[dict[str, Any]]:
     return [
         {
             "status": status.value,
             "triage": triage.value,
-            "reason": reason.value if reason is not None else "",
-            "count": counts[(status, triage, reason)],
-            "percent": pct(counts[(status, triage, reason)]),
+            "parameters": parameters_payload(dict(parameter_items)),
+            "count": n,
+            "percent": round((100.0 * n / total) if total else 0.0, 1),
         }
-        for status, triage, reason in ordered
-        if counts[(status, triage, reason)] > 0
+        for status, triage, parameter_items in ordered_distribution_keys(counts)
+        if (n := counts[(status, triage, parameter_items)]) > 0
     ]
 
 
@@ -68,21 +66,20 @@ def group_batch(rows: Sequence[Mapping[str, Any]]) -> tuple[dict[str, dict[str, 
     by_record: dict[str, dict[str, Any]] = {}
     last_id = ""
     for row in rows:
-        new_id = str(row["new_id"])
-        last_id = new_id
-        if new_id not in by_record:
-            by_record[new_id] = {
+        new_id = last_id = str(row["new_id"])
+        rec = by_record.setdefault(
+            new_id,
+            {
                 "new_ra": None,
                 "new_dec": None,
                 "new_design": None,
                 "new_redshift": None,
                 "new_type": None,
                 "candidates": [],
-            }
-        rec = by_record[new_id]
+            },
+        )
         if row["new_ra"] is not None:
-            rec["new_ra"] = row["new_ra"]
-            rec["new_dec"] = row["new_dec"]
+            rec["new_ra"], rec["new_dec"] = row["new_ra"], row["new_dec"]
         if row["new_design"] is not None:
             rec["new_design"] = row["new_design"]
         if row["new_cz"] is not None:
@@ -90,14 +87,13 @@ def group_batch(rows: Sequence[Mapping[str, Any]]) -> tuple[dict[str, dict[str, 
         if row.get("new_type") is not None:
             rec["new_type"] = row["new_type"]
         if row["existing_pgc"] is not None and row["existing_ra"] is not None and row["existing_dec"] is not None:
-            existing_redshift = float(row["existing_cz"]) / C_M_S if row["existing_cz"] is not None else None
             rec["candidates"].append(
                 (
                     row["existing_ra"],
                     row["existing_dec"],
                     int(row["existing_pgc"]),
                     row["existing_design"],
-                    existing_redshift,
+                    float(row["existing_cz"]) / C_M_S if row["existing_cz"] is not None else None,
                     row.get("existing_type"),
                 )
             )
@@ -110,19 +106,14 @@ def resolve_batch(
     existing_pgcs: set[int],
     design_to_pgcs: Mapping[str, list[int]],
     resolver: Resolver,
-    print_pending: bool,
-    log: structlog.stdlib.BoundLogger | None = None,
 ) -> list[MatchedRecord]:
     matched: list[MatchedRecord] = []
     radius_deg = resolver.search_radius_deg
     for record_id, rec_data in by_record.items():
+        new_ra, new_dec = rec_data["new_ra"], rec_data["new_dec"]
         neighbors: list[Neighbor] = []
-        new_ra = rec_data["new_ra"]
-        new_dec = rec_data["new_dec"]
         if new_ra is not None and new_dec is not None:
-            for existing_ra, existing_dec, pgc, existing_design, existing_redshift, existing_type in rec_data[
-                "candidates"
-            ]:
+            for existing_ra, existing_dec, pgc, design, redshift, type_name in rec_data["candidates"]:
                 dist = angular_distance_deg(float(new_ra), float(new_dec), float(existing_ra), float(existing_dec))
                 if dist <= radius_deg:
                     neighbors.append(
@@ -131,36 +122,33 @@ def resolve_batch(
                             ra=float(existing_ra),
                             dec=float(existing_dec),
                             distance_deg=dist,
-                            design=existing_design,
-                            redshift=existing_redshift,
-                            type_name=existing_type,
+                            design=design,
+                            redshift=redshift,
+                            type_name=type_name,
                         )
                     )
-        record_designation = rec_data["new_design"]
+        designation = rec_data["new_design"]
         record_pgc = record_pgc_by_id.get(record_id) if record_pgc_by_id else None
-        evidence = RecordEvidence(
-            neighbors=neighbors,
-            record_designation=record_designation,
-            same_name_pgcs=design_to_pgcs.get(record_designation, []) if record_designation is not None else None,
-            record_pgc=record_pgc,
-            claimed_pgc_exists_in_layer2=record_pgc is not None and record_pgc in existing_pgcs,
-            record_redshift=rec_data.get("new_redshift"),
-            record_type_name=rec_data.get("new_type"),
-        )
-        result = resolver.resolve(evidence)
         matched.append(
             MatchedRecord(
                 record_id=record_id,
-                result=result,
-                designation=record_designation,
+                result=resolver.resolve(
+                    RecordEvidence(
+                        neighbors=neighbors,
+                        record_designation=designation,
+                        same_name_pgcs=design_to_pgcs.get(designation, []) if designation is not None else None,
+                        record_pgc=record_pgc,
+                        claimed_pgc_exists_in_layer2=record_pgc is not None and record_pgc in existing_pgcs,
+                        record_redshift=rec_data.get("new_redshift"),
+                        record_type_name=rec_data.get("new_type"),
+                    )
+                ),
+                designation=designation,
                 ra=float(new_ra) if new_ra is not None else None,
                 dec=float(new_dec) if new_dec is not None else None,
                 neighbors=neighbors,
             )
         )
-        if print_pending and log is not None and result.triage_status == TriageStatus.PENDING:
-            reason = result.pending_reason.value if result.pending_reason is not None else "unknown"
-            log.warning("pending crossmatch", record_id=record_id, reason=reason)
     return matched
 
 
@@ -173,11 +161,22 @@ def match_records(
     record_pgc_by_id: Mapping[str, int | None],
     existing_pgcs: set[int],
     design_to_pgcs: Mapping[str, list[int]],
+    include_pgc: bool = False,
+    include_redshift: bool = False,
+    include_nature: bool = False,
 ) -> list[MatchedRecord]:
-    by_record, _last_id = group_batch(rows)
-    resolver = Resolver(
-        radius_deg=radius_deg,
-        pgc_column=pgc_column,
-        redshift_tolerance=redshift_tolerance,
+    by_record, _ = group_batch(rows)
+    return resolve_batch(
+        by_record,
+        record_pgc_by_id,
+        existing_pgcs,
+        design_to_pgcs,
+        Resolver(
+            radius_deg=radius_deg,
+            pgc_column=pgc_column,
+            redshift_tolerance=redshift_tolerance,
+            include_pgc=include_pgc,
+            include_redshift=include_redshift,
+            include_nature=include_nature,
+        ),
     )
-    return resolve_batch(by_record, record_pgc_by_id, existing_pgcs, design_to_pgcs, resolver, False)

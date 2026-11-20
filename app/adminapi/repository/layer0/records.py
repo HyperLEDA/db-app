@@ -1,23 +1,15 @@
-import json
 from typing import Any
 
 from psycopg import sql
 
 from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
-from app.lib.crossmatch.query import NEIGHBORS_FOR_IDS
+from app.lib.crossmatch import data as crossmatch_data
+from app.lib.crossmatch.query import NEIGHBORS_FOR_IDS, filtered_record_count, filtered_record_sample
 from app.lib.storage import enums, postgres
 
 _TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
 _TABLESAMPLE_OVERSAMPLING = 3
 _TABLESAMPLE_RETRY_FACTOR = 4
-
-
-def _candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
-    if len(candidates) == 0:
-        return {}
-    if len(candidates) == 1:
-        return {"pgc": candidates[0]}
-    return {"possible_matches": candidates}
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -49,25 +41,26 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:
             return
-        query = (
-            "INSERT INTO layer0.crossmatch (record_id, triage_status, metadata) "
-            "VALUES (%s, %s, %s) "
-            "ON CONFLICT (record_id) DO UPDATE SET "
-            "triage_status = EXCLUDED.triage_status, metadata = EXCLUDED.metadata"
-        )
-        db_rows = [
-            (record_id, triage.value, json.dumps(_candidates_to_metadata(candidates)))
-            for record_id, triage, candidates in rows
-        ]
         with self.with_tx():
             with rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
-                with self._storage.get_connection().cursor() as cursor:
-                    cursor.executemany(query, db_rows)
+                crossmatch_data.write_crossmatch_rows(self._storage, rows)
 
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:
             return
 
+        invalid_where = """
+            FROM submit_staging s
+            LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
+            WHERE c.record_id IS NULL
+               OR c.triage_status != 'resolved'
+               OR c.metadata::jsonb ? 'possible_matches'
+        """
+        join_submit = """
+            FROM submit_staging s
+            JOIN layer0.crossmatch c ON c.record_id = s.record_id
+            JOIN layer0.records r ON r.id = s.record_id
+        """
         with self.with_tx():
             with self._storage.get_connection().cursor() as cur:
                 cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
@@ -75,111 +68,69 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                     for record_id in record_ids:
                         copy.write_row((record_id,))
 
-            invalid_rows = self._storage.query(
-                """
-                SELECT s.record_id::text AS record_id
-                FROM submit_staging s
-                LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
-                WHERE c.record_id IS NULL
-                   OR c.triage_status != 'resolved'
-                   OR c.metadata::jsonb ? 'possible_matches'
-                LIMIT 101
-                """
-            )
+            invalid_rows = self._storage.query(f"SELECT s.record_id::text AS record_id {invalid_where} LIMIT 101")
             if invalid_rows:
-                count_row = self._storage.query_one(
-                    """
-                    SELECT COUNT(*)::int AS cnt
-                    FROM submit_staging s
-                    LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
-                    WHERE c.record_id IS NULL
-                       OR c.triage_status != 'resolved'
-                       OR c.metadata::jsonb ? 'possible_matches'
-                    """
-                )
+                count_row = self._storage.query_one(f"SELECT COUNT(*)::int AS cnt {invalid_where}")
                 raise AssignRecordPgcsPreconditionError(
                     sample=[row["record_id"] for row in invalid_rows[:100]],
                     count=int(count_row["cnt"]),
                 )
 
-            self._storage.query(
-                """
-                SELECT s.record_id
-                FROM submit_staging s
-                JOIN layer0.crossmatch c ON c.record_id = s.record_id
-                JOIN layer0.records r ON r.id = s.record_id
-                FOR UPDATE OF c, r
-                """
-            )
-
+            self._storage.query(f"SELECT s.record_id {join_submit} FOR UPDATE OF c, r")
             existing_rows = self._storage.query(
-                """
+                f"""
                 SELECT s.record_id::text AS record_id, (c.metadata->>'pgc')::int AS pgc
-                FROM submit_staging s
-                JOIN layer0.crossmatch c ON c.record_id = s.record_id
-                JOIN layer0.records r ON r.id = s.record_id
-                WHERE c.metadata::jsonb ? 'pgc'
-                  AND r.pgc IS NULL
+                {join_submit}
+                WHERE c.metadata::jsonb ? 'pgc' AND r.pgc IS NULL
                 ORDER BY s.record_id
                 """
             )
             new_rows = self._storage.query(
-                """
+                f"""
                 SELECT s.record_id::text AS record_id
-                FROM submit_staging s
-                JOIN layer0.crossmatch c ON c.record_id = s.record_id
-                JOIN layer0.records r ON r.id = s.record_id
-                WHERE c.metadata::jsonb = '{}'::jsonb
-                  AND r.pgc IS NULL
+                {join_submit}
+                WHERE c.metadata::jsonb = '{{}}'::jsonb AND r.pgc IS NULL
                 ORDER BY s.record_id
                 """
             )
 
-            pgcs_to_insert: dict[str, int] = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
-
+            pgcs_to_insert = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
             if new_rows:
-                minted = self._mint_pgc_ids(len(new_rows))
-                for row, pgc_id in zip(new_rows, minted, strict=True):
+                for row, pgc_id in zip(new_rows, self._mint_pgc_ids(len(new_rows)), strict=True):
                     pgcs_to_insert[row["record_id"]] = pgc_id
-
             if pgcs_to_insert:
                 with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
-                    update_query = (
+                    self._storage.execute_batch(
                         "UPDATE layer0.records SET pgc = v.pgc "
                         "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                        "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL"
+                        "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL",
+                        [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
                     )
-                    rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-                    self._storage.execute_batch(update_query, rows)
                     touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
-        pgcs_to_insert: dict[str, int] = {}
-
+        pgcs_to_insert = {record_id: pgc for record_id, pgc in pgcs.items() if pgc is not None}
         new_records = [record_id for record_id, pgc in pgcs.items() if pgc is None]
         if new_records:
             shared_pgc = self._mint_pgc_ids(1)[0]
             for record_id in new_records:
                 pgcs_to_insert[record_id] = shared_pgc
-
-        for record_id, pgc in pgcs.items():
-            if pgc is not None:
-                pgcs_to_insert[record_id] = pgc
-
-        if pgcs_to_insert:
-            with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
-                previous_rows = self._storage.query(
+        if not pgcs_to_insert:
+            return
+        with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
+            previous_pgcs = {
+                int(row["pgc"])
+                for row in self._storage.query(
                     "SELECT pgc FROM layer0.records WHERE id = ANY(%s) AND pgc IS NOT NULL",
                     params=[list(pgcs_to_insert.keys())],
                 )
-                previous_pgcs = {int(row["pgc"]) for row in previous_rows}
-                update_query = (
-                    "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                    "WHERE layer0.records.id = v.record_id"
-                )
-                rows = [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()]
-                self._storage.execute_batch(update_query, rows)
-                touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
+            }
+            self._storage.execute_batch(
+                "UPDATE layer0.records SET pgc = v.pgc FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
+                "WHERE layer0.records.id = v.record_id",
+                [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
+            )
+            touch_pgcs(self._storage, list(previous_pgcs | set(pgcs_to_insert.values())))
 
     def _mint_pgc_ids(self, count: int) -> list[int]:
         rows = self._storage.query(
@@ -203,7 +154,12 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             touch_pgcs(self._storage, [target_pgc, *source_pgcs])
         return len(rows)
 
-    def sample_crossmatch_records(self, table_name: str, limit: int) -> tuple[list[str], int]:
+    def sample_crossmatch_records(
+        self,
+        table_name: str,
+        limit: int,
+        row_filter: sql.Composable | None = None,
+    ) -> tuple[list[str], int, int]:
         table_id = require_table_id(self._storage, table_name)
         total = int(
             self._storage.query_one(
@@ -212,28 +168,40 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             )["cnt"]
         )
         if total == 0:
-            return [], 0
-        if total < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
-            rows = self._storage.query(
-                "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
-                params=[table_id, limit],
-                read_only=True,
-            )
-            return [str(row["id"]) for row in rows], total
+            return [], 0, 0
 
-        percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / total)
-        query = """
-            SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
-            WHERE table_id = %s
-            ORDER BY random()
-            LIMIT %s
-        """
-        while True:
-            rows = self._storage.query(query, params=[percent, table_id, limit], read_only=True)
-            if len(rows) >= limit or percent >= 100.0:
-                return [str(row["id"]) for row in rows], total
-            # SYSTEM sampling picks whole pages, so a small percentage can yield fewer rows than requested.
-            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
+        if row_filter is None:
+            eligible = total
+            if eligible < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
+                rows = self._storage.query(
+                    "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
+                    params=[table_id, limit],
+                    read_only=True,
+                )
+                return [str(row["id"]) for row in rows], eligible, total
+
+            percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / eligible)
+            query = """
+                SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
+                WHERE table_id = %s
+                ORDER BY random()
+                LIMIT %s
+            """
+            while True:
+                rows = self._storage.query(query, params=[percent, table_id, limit], read_only=True)
+                if len(rows) >= limit or percent >= 100.0:
+                    return [str(row["id"]) for row in rows], eligible, total
+                percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
+
+        eligible = int(self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])["cnt"])
+        if eligible == 0:
+            return [], 0, total
+        rows = self._storage.query(
+            filtered_record_sample(table_name, row_filter),
+            params=[table_id, limit],
+            read_only=True,
+        )
+        return [str(row["id"]) for row in rows], eligible, total
 
     def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
         if not record_ids:
@@ -241,41 +209,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         return list(self._storage.query(NEIGHBORS_FOR_IDS, params=[record_ids, radius_deg], read_only=True))
 
     def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
-        if not record_ids:
-            return {}
-        query = sql.SQL(
-            "SELECT hyperleda_internal_id, {col} FROM rawdata.{table} WHERE hyperleda_internal_id = ANY(%s)"
-        ).format(col=sql.Identifier(column), table=sql.Identifier(table_name))
-        claimed: dict[str, int | None] = {}
-        for row in self._storage.query(query, params=[record_ids], read_only=True):
-            value = row[column]
-            claimed[str(row["hyperleda_internal_id"])] = int(value) if value is not None else None
-        return claimed
+        return crossmatch_data.fetch_claimed_pgcs(self._storage, table_name, column, record_ids, read_only=True)
 
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
-        if not pgcs:
-            return set()
-        rows = self._storage.query(
-            "SELECT pgc FROM layer2.objects WHERE pgc = ANY(%s)",
-            params=[pgcs],
-            read_only=True,
-        )
-        return {int(row["pgc"]) for row in rows}
+        return crossmatch_data.layer2_pgcs(self._storage, pgcs, read_only=True)
 
     def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
-        if not designations:
-            return {}
-        grouped: dict[str, set[int]] = {}
-        for row in self._storage.query(
-            "SELECT name AS design, pgc FROM layer2.objects WHERE name = ANY(%s)",
-            params=[designations],
-            read_only=True,
-        ):
-            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
-        for row in self._storage.query(
-            "SELECT design, pgc FROM layer2.designations WHERE design = ANY(%s)",
-            params=[designations],
-            read_only=True,
-        ):
-            grouped.setdefault(str(row["design"]), set()).add(int(row["pgc"]))
-        return {design: sorted(grouped.get(design, set())) for design in designations}
+        return crossmatch_data.pgcs_by_designation(self._storage, designations, read_only=True)

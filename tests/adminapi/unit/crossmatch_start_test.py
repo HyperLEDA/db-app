@@ -11,20 +11,22 @@ def test_start_crossmatch() -> None:
     prefect = mock.Mock()
     prefect.create_flow_run.return_value = "run-1"
     manager = CrossmatchManager(mock.Mock(), prefect)
-    params = {"table_name": "raw", "radius": 5.0}
-
-    assert manager.start(adminapi.StartCrossmatchRequest(params=params)).task_id == "run-1"
+    assert (
+        manager.start(adminapi.StartCrossmatchRequest(params={"table_name": "raw", "radius_arcsec": 5.0})).task_id
+        == "run-1"
+    )
     prefect.create_flow_run.assert_called_once_with(
         name="Crossmatch/crossmatch",
         parameters={
             "params": {
                 "table_name": "raw",
-                "radius": 5.0,
+                "include_redshift": False,
+                "include_nature": False,
+                "radius_arcsec": 5.0,
                 "pgc_column": "",
                 "redshift_tolerance": 0.0,
+                "row_filter": "",
                 "batch_size": 1000,
-                "print_pending": False,
-                "write": True,
             }
         },
     )
