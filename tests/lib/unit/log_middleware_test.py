@@ -10,79 +10,61 @@ from app.lib.web.middlewares.auth import AUTH_CTX_STATE_ATTR, AuthContext
 from app.lib.web.middlewares.log import LoggingMiddleware
 
 
+def _client(
+    logger: mock.Mock,
+    *,
+    handler: Callable[..., object] | None = None,
+    auth: bool = False,
+    log_bodies: set[tuple[str, str]] | None = None,
+    extra_routes: list[tuple[str, str, Callable[..., object]]] | None = None,
+) -> testclient.TestClient:
+    app = fastapi.FastAPI()
+    app.add_middleware(LoggingMiddleware, logger=logger, **({"log_bodies": log_bodies} if log_bodies else {}))
+    if auth:
+        app.add_middleware(_AuthStubMiddleware)
+    app.add_api_route("/echo", endpoint=handler or (lambda: {"ok": True}), methods=["GET"])
+    for path, method, endpoint in extra_routes or []:
+        app.add_api_route(path, endpoint=endpoint, methods=[method.upper()])
+    return testclient.TestClient(app)
+
+
 def test_request_headers_are_redacted() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
-
-    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    response = client.get(
+    response = _client(logger).get(
         "/echo",
-        headers={
-            "Authorization": "Bearer secret",
-            "Cookie": "session=abc",
-            "X-API-Key": "key123",
-            "X-Trace": "ok",
-        },
+        headers={"Authorization": "Bearer secret", "Cookie": "session=abc", "X-API-Key": "key123", "X-Trace": "ok"},
     )
-
     assert response.status_code == 200
-    request_log_call = logger.info.call_args_list[0]
-    headers = request_log_call.kwargs["headers"]
-    assert headers["authorization"] == "<redacted>"
-    assert headers["cookie"] == "<redacted>"
-    assert headers["x-api-key"] == "<redacted>"
+    headers = logger.info.call_args_list[0].kwargs["headers"]
+    assert headers["authorization"] == headers["cookie"] == headers["x-api-key"] == "<redacted>"
     assert headers["x-trace"] == "ok"
 
 
 def test_logs_username_when_authenticated() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
-    app.add_middleware(_AuthStubMiddleware)
-
-    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    response = client.get("/echo")
-
-    assert response.status_code == 200
-    request_log = logger.info.call_args_list[0].kwargs
-    response_log = logger.info.call_args_list[1].kwargs
-    assert request_log["username"] == "alice"
-    assert response_log["username"] == "alice"
+    assert _client(logger, auth=True).get("/echo").status_code == 200
+    assert (
+        logger.info.call_args_list[0].kwargs["username"] == logger.info.call_args_list[1].kwargs["username"] == "alice"
+    )
 
 
 def test_binds_request_id_for_handler() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
     seen: dict[str, str] = {}
 
     def handler() -> dict[str, str]:
-        ctx = structlog.contextvars.get_contextvars()
-        request_id = ctx.get("request_id")
+        request_id = structlog.contextvars.get_contextvars().get("request_id")
         assert isinstance(request_id, str)
         seen["request_id"] = request_id
         return {"ok": "true"}
 
-    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    response = client.get("/echo")
-
-    assert response.status_code == 200
-    assert "request_id" in seen
+    assert _client(logger, handler=handler).get("/echo").status_code == 200
     assert seen["request_id"]
     assert structlog.contextvars.get_contextvars() == {}
 
 
 def test_request_id_differs_across_requests() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
     seen: list[str] = []
 
     def handler() -> dict[str, str]:
@@ -91,20 +73,13 @@ def test_request_id_differs_across_requests() -> None:
         seen.append(request_id)
         return {"ok": "true"}
 
-    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    assert client.get("/echo").status_code == 200
-    assert client.get("/echo").status_code == 200
-
-    assert len(seen) == 2
-    assert seen[0] != seen[1]
+    client = _client(logger, handler=handler)
+    assert client.get("/echo").status_code == client.get("/echo").status_code == 200
+    assert len(seen) == 2 and seen[0] != seen[1]
 
 
 def test_logs_client_ip_from_x_forwarded_for() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
     seen: dict[str, str] = {}
 
     def handler() -> dict[str, str]:
@@ -113,62 +88,37 @@ def test_logs_client_ip_from_x_forwarded_for() -> None:
         seen["client_ip"] = client_ip
         return {"ok": "true"}
 
-    app.add_api_route("/echo", endpoint=handler, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    response = client.get("/echo", headers={"X-Forwarded-For": "203.0.113.10, 10.0.0.1"})
-
+    response = _client(logger, handler=handler).get("/echo", headers={"X-Forwarded-For": "203.0.113.10, 10.0.0.1"})
     assert response.status_code == 200
     assert seen["client_ip"] == "203.0.113.10"
-    request_log = logger.info.call_args_list[0].kwargs
-    response_log = logger.info.call_args_list[1].kwargs
-    assert request_log["client_ip"] == "203.0.113.10"
-    assert response_log["client_ip"] == "203.0.113.10"
+    assert (
+        logger.info.call_args_list[0].kwargs["client_ip"]
+        == logger.info.call_args_list[1].kwargs["client_ip"]
+        == "203.0.113.10"
+    )
 
 
 def test_logs_client_ip_from_x_real_ip() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(LoggingMiddleware, logger=logger)
-
-    app.add_api_route("/echo", endpoint=lambda: {"ok": True}, methods=["GET"])
-
-    client = testclient.TestClient(app)
-    response = client.get("/echo", headers={"X-Real-IP": "198.51.100.7"})
-
+    response = _client(logger).get("/echo", headers={"X-Real-IP": "198.51.100.7"})
     assert response.status_code == 200
-    request_log = logger.info.call_args_list[0].kwargs
-    assert request_log["client_ip"] == "198.51.100.7"
+    assert logger.info.call_args_list[0].kwargs["client_ip"] == "198.51.100.7"
 
 
 def test_logs_request_body_only_for_configured_routes() -> None:
     logger = mock.Mock(spec=structlog.stdlib.BoundLogger)
-    app = fastapi.FastAPI()
-    app.add_middleware(
-        LoggingMiddleware,
-        logger=logger,
+    client = _client(
+        logger,
         log_bodies={("/admin/api/v1/source", "post")},
+        extra_routes=[
+            ("/admin/api/v1/ping-body", "post", lambda: {"ok": True}),
+            ("/admin/api/v1/source", "post", lambda: {"ok": True}),
+        ],
     )
-
-    app.add_api_route("/admin/api/v1/ping-body", endpoint=lambda: {"ok": True}, methods=["POST"])
-    app.add_api_route("/admin/api/v1/source", endpoint=lambda: {"ok": True}, methods=["POST"])
-
-    client = testclient.TestClient(app)
-    ping_response = client.post(
-        "/admin/api/v1/ping-body",
-        json={"username": "alice", "password": "secret"},
-    )
-    source_response = client.post(
-        "/admin/api/v1/source",
-        json={"title": "t"},
-    )
-
-    assert ping_response.status_code == 200
-    assert source_response.status_code == 200
-    ping_log = logger.info.call_args_list[0].kwargs
-    source_log = logger.info.call_args_list[2].kwargs
-    assert "body" not in ping_log
-    assert "body" in source_log
+    assert client.post("/admin/api/v1/ping-body", json={"username": "alice", "password": "secret"}).status_code == 200
+    assert client.post("/admin/api/v1/source", json={"title": "t"}).status_code == 200
+    assert "body" not in logger.info.call_args_list[0].kwargs
+    assert "body" in logger.info.call_args_list[2].kwargs
 
 
 class _AuthStubMiddleware(middlewares.BaseHTTPMiddleware):
@@ -177,9 +127,5 @@ class _AuthStubMiddleware(middlewares.BaseHTTPMiddleware):
         request: fastapi.Request,
         call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]],
     ) -> fastapi.Response:
-        setattr(
-            request.state,
-            AUTH_CTX_STATE_ATTR,
-            AuthContext(login="alice"),
-        )
+        setattr(request.state, AUTH_CTX_STATE_ATTR, AuthContext(login="alice"))
         return await call_next(request)
