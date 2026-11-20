@@ -8,12 +8,7 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
-from app.lib.crossmatch.matching import (
-    DistributionKey,
-    distribution_key,
-    match_records,
-    results_to_rows,
-)
+from app.lib.crossmatch.matching import distribution_key, match_records, ordered_distribution_keys, results_to_rows
 from app.lib.crossmatch.models import MatchedRecord
 from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.storage import enums, sql_row_filter
@@ -31,9 +26,8 @@ def _append_crossmatch_rows(
     candidates_for_index: Callable[[int], list[int]],
 ) -> None:
     for i, record_id in enumerate(record_ids):
-        triage_override = triage_statuses[i] if i < len(triage_statuses) else None
-        triage = triage_override if triage_override is not None else default_triage
-        rows.append((record_id, triage, candidates_for_index(i)))
+        override = triage_statuses[i] if i < len(triage_statuses) else None
+        rows.append((record_id, override if override is not None else default_triage, candidates_for_index(i)))
 
 
 def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCrossmatchRow:
@@ -46,56 +40,34 @@ def _preview_row(item: MatchedRecord, candidates: list[int]) -> spec.PreviewCros
         dec=item.dec,
         neighbors=[
             spec.PreviewCrossmatchNeighbor(
-                pgc=neighbor.pgc,
-                ra=neighbor.ra,
-                dec=neighbor.dec,
-                distance_arcsec=round(neighbor.distance_deg * 3600, 2),
-                design=neighbor.design,
+                pgc=n.pgc, ra=n.ra, dec=n.dec, distance_arcsec=round(n.distance_deg * 3600, 2), design=n.design
             )
-            for neighbor in item.neighbors
+            for n in item.neighbors
         ],
     )
 
 
-def _sample_items(items: list[MatchedRecord], limit: int) -> list[MatchedRecord]:
-    if len(items) > limit:
-        return random.sample(items, limit)
-    return items
-
-
-def _statistics(
-    matched: list[MatchedRecord],
-    written: dict[str, list[int]],
-) -> list[spec.PreviewCrossmatchStat]:
-    grouped: dict[DistributionKey, list[MatchedRecord]] = defaultdict(list)
+def _statistics(matched: list[MatchedRecord], written: dict[str, list[int]]) -> list[spec.PreviewCrossmatchStat]:
+    grouped: dict[tuple, list[MatchedRecord]] = defaultdict(list)
     for item in matched:
         grouped[distribution_key(item.result)].append(item)
+    counts = {key: len(items) for key, items in grouped.items()}
     total = len(matched)
-
-    def percent(count: int) -> float:
-        return round((100.0 * count / total) if total else 0.0, 1)
-
-    ordered = sorted(
-        grouped,
-        key=lambda key: (-len(grouped[key]), key[0].value, key[1].value, tuple(key[2])),
-    )
-    statistics: list[spec.PreviewCrossmatchStat] = []
-    for status, triage, parameter_items in ordered:
-        items = grouped[(status, triage, parameter_items)]
-        statistics.append(
-            spec.PreviewCrossmatchStat(
-                status=status.value,
-                triage=triage.value,
-                parameters=spec.PreviewCrossmatchParameters.model_validate(parameters_payload(dict(parameter_items))),
-                count=len(items),
-                percent=percent(len(items)),
-                rows=[
-                    _preview_row(item, written.get(item.record_id, []))
-                    for item in _sample_items(items, _PREVIEW_RETURN_SIZE)
-                ],
-            )
+    return [
+        spec.PreviewCrossmatchStat(
+            status=status.value,
+            triage=triage.value,
+            parameters=spec.PreviewCrossmatchParameters.model_validate(parameters_payload(dict(parameter_items))),
+            count=len(items),
+            percent=round((100.0 * len(items) / total) if total else 0.0, 1),
+            rows=[
+                _preview_row(item, written.get(item.record_id, []))
+                for item in (random.sample(items, _PREVIEW_RETURN_SIZE) if len(items) > _PREVIEW_RETURN_SIZE else items)
+            ],
         )
-    return statistics
+        for status, triage, parameter_items in ordered_distribution_keys(counts)
+        if (items := grouped[(status, triage, parameter_items)])
+    ]
 
 
 @final
@@ -111,11 +83,11 @@ class CrossmatchManager:
             params = spec.CrossmatchParams.model_validate(request.params)
         except pydantic.ValidationError as exc:
             raise RuleValidationError(str(exc)) from exc
-        task_id = self._prefect.create_flow_run(
-            name="Crossmatch/crossmatch",
-            parameters={"params": params.model_dump()},
+        return spec.StartCrossmatchResponse(
+            task_id=self._prefect.create_flow_run(
+                name="Crossmatch/crossmatch", parameters={"params": params.model_dump()}
+            )
         )
-        return spec.StartCrossmatchResponse(task_id=task_id)
 
     def preview(self, request: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
         include_redshift = request.include_redshift
@@ -132,9 +104,7 @@ class CrossmatchManager:
         row_filter = sql_row_filter.row_filter_clause(request.row_filter)
         try:
             record_ids, eligible, total = self._repo.sample_crossmatch_records(
-                request.table_name,
-                request.sample_size,
-                row_filter,
+                request.table_name, request.sample_size, row_filter
             )
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
@@ -147,7 +117,6 @@ class CrossmatchManager:
             self._repo.fetch_claimed_pgcs(request.table_name, pgc_column, record_ids) if pgc_column else {}
         )
         claimed = {pgc for pgc in record_pgc_by_id.values() if pgc is not None}
-        existing_pgcs = self._repo.layer2_pgcs(list(claimed))
         designations = [row["new_design"] for row in rows if row["new_design"] is not None]
         matched = match_records(
             rows,
@@ -155,7 +124,7 @@ class CrossmatchManager:
             pgc_column=pgc_column or None,
             redshift_tolerance=request.redshift_tolerance if include_redshift else None,
             record_pgc_by_id=record_pgc_by_id,
-            existing_pgcs=existing_pgcs,
+            existing_pgcs=self._repo.layer2_pgcs(list(claimed)),
             design_to_pgcs=self._repo.pgcs_by_designation(list(dict.fromkeys(str(item) for item in designations))),
             include_pgc=include_pgc,
             include_redshift=include_redshift,
@@ -163,7 +132,7 @@ class CrossmatchManager:
         )
         written = {
             record_id: candidates
-            for record_id, _triage, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
+            for record_id, _, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
         }
         return spec.PreviewCrossmatchResponse(
             total_count=total,
@@ -175,7 +144,6 @@ class CrossmatchManager:
     def set_crossmatch_results(self, r: spec.SetCrossmatchResultsRequest) -> spec.SetCrossmatchResultsResponse:
         rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []
         payload = r.statuses
-
         if payload.new is not None:
             _append_crossmatch_rows(
                 rows,
@@ -184,7 +152,6 @@ class CrossmatchManager:
                 enums.RecordTriageStatus.RESOLVED,
                 lambda _: [],
             )
-
         if payload.existing is not None:
             existing = payload.existing
             _append_crossmatch_rows(
@@ -194,7 +161,6 @@ class CrossmatchManager:
                 enums.RecordTriageStatus.RESOLVED,
                 lambda i: [existing.pgcs[i]],
             )
-
         if payload.collided is not None:
             collided = payload.collided
             _append_crossmatch_rows(
@@ -204,7 +170,6 @@ class CrossmatchManager:
                 enums.RecordTriageStatus.PENDING,
                 lambda i: list(collided.possible_matches[i]),
             )
-
         if rows:
             self._repo.set_crossmatch_results(rows)
         return spec.SetCrossmatchResultsResponse()
@@ -219,10 +184,8 @@ class CrossmatchManager:
                     raise NotFoundError(entity_name="pgc", entity=str(pgc))
             self._repo.upsert_pgc(pgcs)
             return spec.AssignRecordPgcsResponse()
-
-        unique_ids = list(dict.fromkeys(request.record_ids or []))
         try:
-            self._repo.assign_record_pgcs(unique_ids)
+            self._repo.assign_record_pgcs(list(dict.fromkeys(request.record_ids or [])))
         except repository.AssignRecordPgcsPreconditionError as e:
             raise ConflictError(
                 f"{e.count} records cannot be assigned a PGC (missing crossmatch, not resolved, or collided)",

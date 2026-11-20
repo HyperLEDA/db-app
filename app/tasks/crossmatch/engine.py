@@ -43,6 +43,12 @@ def run(
     counts: dict[DistributionKey, int] = defaultdict(int)
     total = 0
     last_id = ""
+
+    def emit_distribution(message: str) -> None:
+        table = distribution_rows(counts, total)
+        if table:
+            on_distribution(table, message)
+
     try:
         while True:
             rows = repo.fetch_crossmatch_neighbors(
@@ -56,7 +62,6 @@ def run(
             by_record, last_id = group_batch(rows)
             if not by_record:
                 break
-
             record_ids = list(by_record)
             record_pgc_by_id = (
                 repo.fetch_claimed_pgcs(params.table_name, resolver.pgc_column, record_ids)
@@ -64,14 +69,12 @@ def run(
                 else {}
             )
             claimed = {pgc for pgc in record_pgc_by_id.values() if pgc is not None}
-            existing_pgcs = repo.layer2_pgcs(list(claimed))
             designations = [rec["new_design"] for rec in by_record.values() if rec["new_design"] is not None]
-            design_to_pgcs = repo.pgcs_by_designation(designations)
             batch = resolve_batch(
                 by_record,
                 record_pgc_by_id,
-                existing_pgcs,
-                design_to_pgcs,
+                repo.layer2_pgcs(list(claimed)),
+                repo.pgcs_by_designation(designations),
                 resolver,
             )
             for item in batch:
@@ -81,11 +84,7 @@ def run(
                 repo.set_crossmatch_results(results_to_rows([(item.record_id, item.result) for item in batch]))
             progress = 100.0 if total_records == 0 else min(100.0, 100.0 * total / total_records)
             on_progress(min(progress, 99.0), f"Processed {total} / {total_records} records")
-            table = distribution_rows(counts, total)
-            if table:
-                on_distribution(table, f"{total} records crossmatched")
+            emit_distribution(f"{total} records crossmatched")
     finally:
         on_progress(100, "Finished")
-        table = distribution_rows(counts, total)
-        if table:
-            on_distribution(table, f"Final: {total} records")
+        emit_distribution(f"Final: {total} records")

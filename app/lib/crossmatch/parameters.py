@@ -1,32 +1,20 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from app.lib.crossmatch.models import Neighbor, Parameter, ParameterMatches, RecordEvidence
 
-PARAMETER_ORDER: tuple[Parameter, ...] = (
+PARAMETER_ORDER = (
     Parameter.COORDINATES,
     Parameter.NAME,
     Parameter.PGC,
     Parameter.REDSHIFT,
     Parameter.NATURE,
 )
-
-_PREFERENCE_PARAMETERS: tuple[Parameter, ...] = (Parameter.PGC, Parameter.NAME)
-
-_SIMILAR_TYPE_MAP = {
-    "G": {"ext", "?", "QSO"},
-    "ext": {"G", "?", "QSO"},
-}
-
-type ParameterEvaluator = Callable[[RecordEvidence, Neighbor, float | None], bool]
+_PREFERENCE = (Parameter.PGC, Parameter.NAME)
+_SIMILAR = {"G": {"ext", "?", "QSO"}, "ext": {"G", "?", "QSO"}}
 
 
-def enabled_parameters(
-    *,
-    pgc_enabled: bool,
-    redshift_enabled: bool,
-    nature_enabled: bool,
-) -> tuple[Parameter, ...]:
-    enabled: set[Parameter] = {Parameter.COORDINATES, Parameter.NAME}
+def enabled_parameters(*, pgc_enabled: bool, redshift_enabled: bool, nature_enabled: bool) -> tuple[Parameter, ...]:
+    enabled = {Parameter.COORDINATES, Parameter.NAME}
     if pgc_enabled:
         enabled.add(Parameter.PGC)
     if redshift_enabled:
@@ -41,19 +29,13 @@ def empty_matches(parameter_names: Sequence[Parameter]) -> ParameterMatches:
 
 
 def parameters_payload(matches: Mapping[Parameter, bool]) -> dict[str, bool | None]:
-    return {
-        Parameter.COORDINATES.value: matches.get(Parameter.COORDINATES),
-        Parameter.NAME.value: matches.get(Parameter.NAME),
-        Parameter.PGC.value: matches.get(Parameter.PGC),
-        Parameter.REDSHIFT.value: matches.get(Parameter.REDSHIFT),
-        Parameter.NATURE.value: matches.get(Parameter.NATURE),
-    }
+    return {parameter.value: matches.get(parameter) for parameter in PARAMETER_ORDER}
 
 
 def decide_matched(matches: Mapping[Parameter, bool]) -> bool:
-    if not matches.get(Parameter.COORDINATES, False):
-        return False
-    return any(matched for name, matched in matches.items() if name != Parameter.COORDINATES)
+    return matches.get(Parameter.COORDINATES, False) and any(
+        matched for name, matched in matches.items() if name != Parameter.COORDINATES
+    )
 
 
 def prefer_candidates(
@@ -61,60 +43,13 @@ def prefer_candidates(
 ) -> list[tuple[Neighbor, Mapping[Parameter, bool]]]:
     if len(accepted) <= 1:
         return list(accepted)
-    for parameter in _PREFERENCE_PARAMETERS:
+    for parameter in _PREFERENCE:
         if parameter not in accepted[0][1]:
             continue
-        narrowed = [(candidate, matches) for candidate, matches in accepted if matches[parameter]]
+        narrowed = [(c, m) for c, m in accepted if m[parameter]]
         if len(narrowed) == 1:
             return narrowed
     return list(accepted)
-
-
-def _types_match(record_type: str, other_type: str) -> bool:
-    return record_type == other_type or other_type in _SIMILAR_TYPE_MAP.get(record_type, set())
-
-
-def _match_coordinates(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
-    return any(neighbor.pgc == candidate.pgc for neighbor in evidence.neighbors)
-
-
-def _match_name(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
-    same_name = set(evidence.same_name_pgcs or [])
-    return evidence.record_designation is not None and candidate.pgc in same_name
-
-
-def _match_pgc(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
-    return (
-        evidence.record_pgc is not None
-        and evidence.claimed_pgc_exists_in_layer2
-        and evidence.record_pgc == candidate.pgc
-    )
-
-
-def _match_redshift(evidence: RecordEvidence, candidate: Neighbor, redshift_tolerance: float | None) -> bool:
-    return (
-        redshift_tolerance is not None
-        and evidence.record_redshift is not None
-        and candidate.redshift is not None
-        and abs(candidate.redshift - evidence.record_redshift) < redshift_tolerance
-    )
-
-
-def _match_nature(evidence: RecordEvidence, candidate: Neighbor, _redshift_tolerance: float | None) -> bool:
-    return (
-        evidence.record_type_name is not None
-        and candidate.type_name is not None
-        and _types_match(evidence.record_type_name, candidate.type_name)
-    )
-
-
-_EVALUATORS: dict[Parameter, ParameterEvaluator] = {
-    Parameter.COORDINATES: _match_coordinates,
-    Parameter.NAME: _match_name,
-    Parameter.PGC: _match_pgc,
-    Parameter.REDSHIFT: _match_redshift,
-    Parameter.NATURE: _match_nature,
-}
 
 
 def evaluate_candidate(
@@ -124,4 +59,26 @@ def evaluate_candidate(
     *,
     redshift_tolerance: float | None,
 ) -> ParameterMatches:
-    return {name: _EVALUATORS[name](evidence, candidate, redshift_tolerance) for name in parameter_names}
+    same_name = set(evidence.same_name_pgcs or [])
+    record_type, other_type = evidence.record_type_name, candidate.type_name
+    values = {
+        Parameter.COORDINATES: any(n.pgc == candidate.pgc for n in evidence.neighbors),
+        Parameter.NAME: evidence.record_designation is not None and candidate.pgc in same_name,
+        Parameter.PGC: (
+            evidence.record_pgc is not None
+            and evidence.claimed_pgc_exists_in_layer2
+            and evidence.record_pgc == candidate.pgc
+        ),
+        Parameter.REDSHIFT: (
+            redshift_tolerance is not None
+            and evidence.record_redshift is not None
+            and candidate.redshift is not None
+            and abs(candidate.redshift - evidence.record_redshift) < redshift_tolerance
+        ),
+        Parameter.NATURE: (
+            record_type is not None
+            and other_type is not None
+            and (record_type == other_type or other_type in _SIMILAR.get(record_type, set()))
+        ),
+    }
+    return {name: values[name] for name in parameter_names}

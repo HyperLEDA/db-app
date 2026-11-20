@@ -1,11 +1,4 @@
-from app.lib.crossmatch.models import (
-    CrossmatchResult,
-    CrossmatchStatus,
-    Neighbor,
-    Parameter,
-    RecordEvidence,
-    TriageStatus,
-)
+from app.lib.crossmatch.models import CrossmatchResult, CrossmatchStatus, Neighbor, RecordEvidence, TriageStatus
 from app.lib.crossmatch.parameters import (
     decide_matched,
     empty_matches,
@@ -43,10 +36,6 @@ class Resolver:
     def pgc_column(self) -> str | None:
         return self._pgc_column
 
-    @property
-    def parameter_names(self) -> tuple[Parameter, ...]:
-        return self._parameter_names
-
     def resolve(self, evidence: RecordEvidence) -> CrossmatchResult:
         candidates = self._candidates(evidence)
         unknown_pgc = (
@@ -54,21 +43,19 @@ class Resolver:
             and evidence.record_pgc is not None
             and not evidence.claimed_pgc_exists_in_layer2
         )
+        empty = empty_matches(self._parameter_names)
         if not candidates:
             return CrossmatchResult(
                 status=CrossmatchStatus.NEW,
                 triage_status=TriageStatus.PENDING if unknown_pgc else TriageStatus.RESOLVED,
-                parameters=empty_matches(self._parameter_names),
+                parameters=empty,
             )
 
         evaluated = [
             (
                 candidate,
                 evaluate_candidate(
-                    evidence,
-                    candidate,
-                    self._parameter_names,
-                    redshift_tolerance=self._redshift_tolerance,
+                    evidence, candidate, self._parameter_names, redshift_tolerance=self._redshift_tolerance
                 ),
             )
             for candidate in candidates
@@ -76,7 +63,6 @@ class Resolver:
         accepted = prefer_candidates(
             [(candidate, matches) for candidate, matches in evaluated if decide_matched(matches)]
         )
-
         if len(accepted) == 1:
             candidate, matches = accepted[0]
             return CrossmatchResult(
@@ -85,15 +71,9 @@ class Resolver:
                 matched_pgc=candidate.pgc,
                 parameters=dict(matches),
             )
-        if len(accepted) > 1:
-            return CrossmatchResult(
-                status=CrossmatchStatus.COLLIDING,
-                triage_status=TriageStatus.PENDING,
-                colliding_pgcs=sorted({candidate.pgc for candidate, _matches in accepted}),
-                parameters=empty_matches(self._parameter_names),
-            )
-        if len(evaluated) == 1:
-            candidate, matches = evaluated[0]
+        pool = accepted if len(accepted) > 1 else evaluated
+        if len(pool) == 1:
+            candidate, matches = pool[0]
             return CrossmatchResult(
                 status=CrossmatchStatus.EXISTING,
                 triage_status=TriageStatus.PENDING,
@@ -103,28 +83,15 @@ class Resolver:
         return CrossmatchResult(
             status=CrossmatchStatus.COLLIDING,
             triage_status=TriageStatus.PENDING,
-            colliding_pgcs=sorted({candidate.pgc for candidate, _matches in evaluated}),
-            parameters=empty_matches(self._parameter_names),
+            colliding_pgcs=sorted({candidate.pgc for candidate, _ in pool}),
+            parameters=empty,
         )
 
     def _candidates(self, evidence: RecordEvidence) -> list[Neighbor]:
-        by_pgc: dict[int, Neighbor] = {neighbor.pgc: neighbor for neighbor in evidence.neighbors}
-
+        by_pgc = {neighbor.pgc: neighbor for neighbor in evidence.neighbors}
         for pgc in evidence.same_name_pgcs or []:
-            if pgc not in by_pgc:
-                by_pgc[pgc] = Neighbor(pgc=pgc, ra=0.0, dec=0.0, distance_deg=float("inf"))
-
-        if (
-            self._pgc_column is not None
-            and evidence.record_pgc is not None
-            and evidence.claimed_pgc_exists_in_layer2
-            and evidence.record_pgc not in by_pgc
-        ):
-            by_pgc[evidence.record_pgc] = Neighbor(
-                pgc=evidence.record_pgc,
-                ra=0.0,
-                dec=0.0,
-                distance_deg=float("inf"),
-            )
-
+            by_pgc.setdefault(pgc, Neighbor(pgc=pgc, ra=0.0, dec=0.0, distance_deg=float("inf")))
+        if self._pgc_column is not None and evidence.record_pgc is not None and evidence.claimed_pgc_exists_in_layer2:
+            pgc = evidence.record_pgc
+            by_pgc.setdefault(pgc, Neighbor(pgc=pgc, ra=0.0, dec=0.0, distance_deg=float("inf")))
         return list(by_pgc.values())

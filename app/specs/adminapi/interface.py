@@ -168,24 +168,21 @@ class StartStructuredUploadResponse(pydantic.BaseModel):
     task_id: str
 
 
-class CrossmatchParams(pydantic.BaseModel):
+class CrossmatchMatchOptions(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
     include_redshift: bool = pydantic.Field(default=False, description="Use redshift matching")
     include_nature: bool = pydantic.Field(default=False, description="Use object type matching")
     radius_arcsec: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
-    pgc_column: str = pydantic.Field(
-        default="",
-        description="Raw-table column with a claimed PGC. Empty disables PGC matching.",
-    )
+    pgc_column: str = pydantic.Field(default="", description="Claimed-PGC column; empty disables matching")
     redshift_tolerance: float = pydantic.Field(
         default=0,
         ge=0,
         description="Redshift tolerance. Used when include_redshift is true.",
     )
-    row_filter: str = pydantic.Field(
-        default="",
-        description="SQL boolean on rawdata columns. Empty is no filter.",
-    )
+
+
+class CrossmatchParams(CrossmatchMatchOptions):
+    row_filter: str = pydantic.Field(default="", description="SQL boolean on rawdata columns")
     batch_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records read per batch")
 
 
@@ -197,20 +194,7 @@ class StartCrossmatchResponse(pydantic.BaseModel):
     task_id: str
 
 
-class PreviewCrossmatchRequest(pydantic.BaseModel):
-    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
-    include_redshift: bool = False
-    include_nature: bool = False
-    radius_arcsec: float = pydantic.Field(gt=0, description="Search radius in arcseconds")
-    pgc_column: str = pydantic.Field(
-        default="",
-        description="Raw-table column with a claimed PGC. Empty disables PGC matching.",
-    )
-    redshift_tolerance: float = pydantic.Field(
-        default=0,
-        ge=0,
-        description="Redshift tolerance. Used when include_redshift is true.",
-    )
+class PreviewCrossmatchRequest(CrossmatchMatchOptions):
     row_filter: str | None = None
     sample_size: int = pydantic.Field(default=1000, ge=1, le=500_000, description="Records sampled for preview")
 
