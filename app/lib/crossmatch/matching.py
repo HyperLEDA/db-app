@@ -62,11 +62,41 @@ def angular_distance_deg(ra1: float, dec1: float, ra2: float, dec2: float) -> fl
     return math.sqrt(d_dec**2 + d_ra**2)
 
 
-def group_batch(rows: Sequence[Mapping[str, Any]]) -> tuple[dict[str, dict[str, Any]], str]:
+def _candidate(row: Mapping[str, Any]) -> tuple[Any, ...]:
+    return (
+        row["existing_ra"],
+        row["existing_dec"],
+        int(row["existing_pgc"]),
+        row["existing_design"],
+        float(row["existing_cz"]) / C_M_S if row["existing_cz"] is not None else None,
+        row.get("existing_type"),
+    )
+
+
+def group_inputs(
+    inputs: Sequence[Mapping[str, Any]], neighbors: Sequence[Mapping[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    by_record = {
+        str(row["id"]): {
+            "new_ra": row["ra"],
+            "new_dec": row["dec"],
+            "new_design": row["design"],
+            "new_redshift": float(row["cz"]) / C_M_S if row["cz"] is not None else None,
+            "new_type": row["type_name"],
+            "candidates": [],
+        }
+        for row in inputs
+    }
+    for row in neighbors:
+        if row["existing_ra"] is not None and row["existing_dec"] is not None:
+            by_record[str(row["new_id"])]["candidates"].append(_candidate(row))
+    return by_record
+
+
+def group_batch(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     by_record: dict[str, dict[str, Any]] = {}
-    last_id = ""
     for row in rows:
-        new_id = last_id = str(row["new_id"])
+        new_id = str(row["new_id"])
         rec = by_record.setdefault(
             new_id,
             {
@@ -87,17 +117,8 @@ def group_batch(rows: Sequence[Mapping[str, Any]]) -> tuple[dict[str, dict[str, 
         if row.get("new_type") is not None:
             rec["new_type"] = row["new_type"]
         if row["existing_pgc"] is not None and row["existing_ra"] is not None and row["existing_dec"] is not None:
-            rec["candidates"].append(
-                (
-                    row["existing_ra"],
-                    row["existing_dec"],
-                    int(row["existing_pgc"]),
-                    row["existing_design"],
-                    float(row["existing_cz"]) / C_M_S if row["existing_cz"] is not None else None,
-                    row.get("existing_type"),
-                )
-            )
-    return by_record, last_id
+            rec["candidates"].append(_candidate(row))
+    return by_record
 
 
 def resolve_batch(
@@ -165,9 +186,8 @@ def match_records(
     include_redshift: bool = False,
     include_nature: bool = False,
 ) -> list[MatchedRecord]:
-    by_record, _ = group_batch(rows)
     return resolve_batch(
-        by_record,
+        group_batch(rows),
         record_pgc_by_id,
         existing_pgcs,
         design_to_pgcs,

@@ -1,6 +1,7 @@
+import contextlib
 import datetime
 import json
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from typing import Any, final
 
 import psycopg
@@ -12,7 +13,7 @@ from psycopg import sql
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
 from app.lib.crossmatch import data as crossmatch_data
-from app.lib.crossmatch.query import NEIGHBORS_AFTER_ID, filtered_record_count, neighbors_after_id_filtered
+from app.lib.crossmatch.query import NEIGHBORS_FOR_COORDS, filtered_record_count, table_input
 from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -27,6 +28,23 @@ _MIN_MAX_TYPES = frozenset(
         mapping.TYPE_BOOLEAN,
     }
 )
+
+
+@final
+class CrossmatchSource:
+    def __init__(self, conn: psycopg.Connection, cursor: psycopg.ServerCursor) -> None:
+        self._conn = conn
+        self._cursor = cursor
+
+    def fetch(self, size: int) -> list[dict[str, Any]]:
+        return self._cursor.fetchmany(size)
+
+    def neighbors(self, ids: list[str], ras: list[float], decs: list[float], radius_deg: float) -> list[dict[str, Any]]:
+        if not ids:
+            return []
+        with self._conn.transaction():
+            self._conn.execute("SET LOCAL jit = off")
+            return self._conn.execute(NEIGHBORS_FOR_COORDS, [ids, ras, decs, radius_deg]).fetchall()
 
 
 @final
@@ -764,40 +782,29 @@ class Repository(postgres.TransactionalPGRepository):
         row = self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])
         return table_id, int(row["cnt"])
 
-    def fetch_crossmatch_neighbors(
+    @contextlib.contextmanager
+    def crossmatch_source(
         self,
         table_id: int,
-        last_id: str,
-        batch_size: int,
-        radius_deg: float,
-        *,
-        table_name: str | None = None,
-        row_filter: sql.Composable | None = None,
-    ) -> list[dict[str, Any]]:
-        if row_filter is None:
-            return list(
-                self._storage.query(
-                    NEIGHBORS_AFTER_ID,
-                    params=[table_id, last_id, batch_size, radius_deg],
-                )
-            )
-        if table_name is None:
-            raise ValueError("table_name is required when row_filter is set")
-        return list(
-            self._storage.query(
-                neighbors_after_id_filtered(table_name, row_filter),
-                params=[table_id, last_id, batch_size, radius_deg],
-            )
-        )
-
-    def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
-        return crossmatch_data.fetch_claimed_pgcs(self._storage, table_name, column, record_ids)
+        table_name: str,
+        row_filter: sql.Composable | None,
+        pgc_column: str | None,
+    ) -> Generator[CrossmatchSource]:
+        with self._storage.get_pool().connection() as conn:
+            # Index lookups by record_id are random disk reads; hash joins over sequential scans are far cheaper
+            # for whole tables. WITH HOLD materializes the result at commit so no snapshot is held while batching.
+            with conn.transaction():
+                conn.execute("SET LOCAL enable_nestloop = off")
+                conn.execute("SET LOCAL cursor_tuple_fraction = 1")
+                cursor = conn.cursor("crossmatch_input", withhold=True)
+                cursor.execute(table_input(table_name, row_filter, pgc_column), [table_id])
+            try:
+                yield CrossmatchSource(conn, cursor)
+            finally:
+                cursor.close()
 
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
         return crossmatch_data.layer2_pgcs(self._storage, pgcs)
-
-    def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
-        return crossmatch_data.pgcs_by_designation(self._storage, designations)
 
     def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
         if not rows:
