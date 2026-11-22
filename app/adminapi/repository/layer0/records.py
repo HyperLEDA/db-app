@@ -4,7 +4,12 @@ from psycopg import sql
 
 from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
 from app.lib.crossmatch import data as crossmatch_data
-from app.lib.crossmatch.query import NEIGHBORS_FOR_IDS, filtered_record_count, filtered_record_sample
+from app.lib.crossmatch.query import (
+    NEIGHBORS_FOR_IDS,
+    filtered_record_count,
+    filtered_record_sample,
+    filtered_tablesample,
+)
 from app.lib.storage import enums, postgres
 
 _TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
@@ -193,20 +198,38 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                     return [str(row["id"]) for row in rows], eligible, total
                 percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
-        eligible = int(self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])["cnt"])
-        if eligible == 0:
-            return [], 0, total
-        rows = self._storage.query(
-            filtered_record_sample(table_name, row_filter),
-            params=[table_id, limit],
-            read_only=True,
-        )
-        return [str(row["id"]) for row in rows], eligible, total
+        if total < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
+            eligible = int(
+                self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])["cnt"]
+            )
+            if eligible == 0:
+                return [], 0, total
+            rows = self._storage.query(
+                filtered_record_sample(table_name, row_filter),
+                params=[table_id, limit],
+                read_only=True,
+            )
+            return [str(row["id"]) for row in rows], eligible, total
+
+        # The eligible count is estimated from the sample: an exact filtered count scans the whole table.
+        percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / total)
+        query = filtered_tablesample(table_name, row_filter)
+        while True:
+            row = self._storage.query(query, params=[percent, limit], read_only=True)[0]
+            scanned, passing = int(row["scanned"]), int(row["passing"])
+            if passing >= limit or percent >= 100.0:
+                eligible = passing if percent >= 100.0 else round(total * passing / max(scanned, 1))
+                return [str(record_id) for record_id in row["ids"]], eligible, total
+            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
     def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
         if not record_ids:
             return []
-        return list(self._storage.query(NEIGHBORS_FOR_IDS, params=[record_ids, radius_deg], read_only=True))
+        with self.with_tx():
+            self._storage.exec("SET TRANSACTION READ ONLY")
+            # RA above 180 deg is valid but makes PostGIS emit a NOTICE per row when casting to geography.
+            self._storage.exec("SET LOCAL client_min_messages = warning")
+            return list(self._storage.query(NEIGHBORS_FOR_IDS, params=[record_ids, radius_deg]))
 
     def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
         return crossmatch_data.fetch_claimed_pgcs(self._storage, table_name, column, record_ids, read_only=True)

@@ -23,7 +23,7 @@ _NEIGHBOR_BODY = """
 """
 
 NEIGHBORS_FOR_IDS = f"""
-    WITH batch AS (SELECT rec.id FROM layer0.records rec WHERE rec.id = ANY(%s))
+    WITH batch AS (SELECT id FROM unnest(%s::text[]) AS ids(id))
     {_NEIGHBOR_BODY}
 """
 
@@ -104,3 +104,18 @@ def filtered_record_sample(table_name: str, row_filter: sql.Composable) -> sql.C
         WHERE rec.table_id = %s AND {} ORDER BY random() LIMIT %s
         """
     ).format(raw, id_col, row_filter)
+
+
+def filtered_tablesample(table_name: str, row_filter: sql.Composable) -> sql.Composed:
+    raw, id_col = _raw(table_name)
+    return sql.SQL(
+        """
+        WITH s AS MATERIALIZED (
+            SELECT raw.{} AS id, COALESCE(({}), false) AS passes FROM {} raw TABLESAMPLE SYSTEM (%s)
+        )
+        SELECT
+            (SELECT COUNT(*) FROM s) AS scanned,
+            (SELECT COUNT(*) FROM s WHERE passes) AS passing,
+            ARRAY(SELECT id FROM s WHERE passes ORDER BY random() LIMIT %s) AS ids
+        """
+    ).format(id_col, row_filter, raw)

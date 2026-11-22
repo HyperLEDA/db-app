@@ -166,6 +166,8 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
                 after_id = str(rows[-1][layer0.INTERNAL_ID_COLUMN_NAME])
         if rows_written_total:
             self.repository.touch_table(table_name)
+            # Bulk inserts rarely reach the autovacuum insert threshold; without this index-only scans hit the heap.
+            self.repository.vacuum_analyze(layer1.get_catalog_object_type(self._catalog).layer1_table())
         progress.update(100, "Finished")
 
 

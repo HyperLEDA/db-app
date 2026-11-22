@@ -5,8 +5,8 @@ import structlog
 
 from app.adminapi import clients, domain, repository
 from app.adminapi.domain import layer1_write
-from app.adminapi.repository.layer0 import tables
-from app.lib.storage import enums
+from app.adminapi.repository.layer0 import records, tables
+from app.lib.storage import enums, sql_row_filter
 from app.specs import adminapi
 from tests import lib
 from tests.lib.postgres import PostgresTestStorage
@@ -73,6 +73,28 @@ def test_sample_rawdata_tablesample(
 
     assert len(rows) == 5
     assert all(set(row) == {"hyperleda_internal_id", "ra", "type"} for row in rows)
+
+
+def test_sample_crossmatch_records_filtered_tablesample(
+    repo: repository.Repository, raw_table: str, pg_storage: PostgresTestStorage, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(records, "_TABLESAMPLE_MIN_ROWS_PER_LIMIT", 1)
+
+    ids, eligible, total = repo.sample_crossmatch_records(
+        raw_table, 5, sql_row_filter.row_filter_clause("dec IS NOT NULL")
+    )
+
+    assert total == ROW_COUNT and len(ids) == 5 and 0 < eligible <= ROW_COUNT
+    rows = pg_storage.get_storage().query(
+        f'SELECT dec FROM rawdata."{raw_table}" WHERE hyperleda_internal_id = ANY(%s)', params=[ids]
+    )
+    assert len(rows) == 5 and all(row["dec"] is not None for row in rows)
+
+    assert repo.sample_crossmatch_records(raw_table, 5, sql_row_filter.row_filter_clause("dec > 1000")) == (
+        [],
+        0,
+        ROW_COUNT,
+    )
 
 
 def test_sample_rawdata_unanalyzed_table_uses_small_path(
