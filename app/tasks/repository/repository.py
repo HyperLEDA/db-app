@@ -44,6 +44,8 @@ class CrossmatchSource:
             return []
         with self._conn.transaction():
             self._conn.execute("SET LOCAL jit = off")
+            # RA above 180 deg is valid but makes PostGIS emit a NOTICE per row when casting to geography.
+            self._conn.execute("SET LOCAL client_min_messages = warning")
             return self._conn.execute(NEIGHBORS_FOR_COORDS, [ids, ras, decs, radius_deg]).fetchall()
 
 
@@ -567,6 +569,10 @@ class Repository(postgres.TransactionalPGRepository):
                 )
         except psycopg.errors.ForeignKeyViolation as e:
             raise RuntimeError(layer1.format_foreign_key_violation(e)) from e
+
+    def vacuum_analyze(self, table_name: str) -> None:
+        schema, name = table_name.split(".", maxsplit=1)
+        self._storage.exec(sql.SQL("VACUUM (ANALYZE) {}").format(sql.Identifier(schema, name)))
 
     def touch_table(self, table_name: str) -> None:
         with self.with_tx():

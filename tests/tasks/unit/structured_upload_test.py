@@ -26,6 +26,7 @@ class _Repo:
     ) -> None:
         self.tables, self.rows, self.total, self.saved = tables, rows, total, []
         self.touched: list[str] = []
+        self.vacuumed: list[str] = []
 
     def get_table_metadata(self, schema: str, table: str) -> postgres.TableInfo:
         return self.tables[(schema, table)]
@@ -57,6 +58,9 @@ class _Repo:
 
     def touch_table(self, table_name: str) -> None:
         self.touched.append(table_name)
+
+    def vacuum_analyze(self, table_name: str) -> None:
+        self.vacuumed.append(table_name)
 
 
 def _run(
@@ -154,7 +158,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         {"table_name": "raw_design", "design": 'col("design")', "write": False, "batch_size": 10},
         monkeypatch,
     )
-    assert text_repo.saved == [] and text_repo.touched == []
+    assert text_repo.saved == [] and text_repo.touched == [] and text_repo.vacuumed == []
     assert previews == [[{"id": "r1", "design": "NGC 1"}, {"id": "r3", "design": "IC 10"}]]
     assert progress == [0, 99, 100]
 
@@ -179,7 +183,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10},
         monkeypatch,
     )
-    assert num_repo.touched == ["raw_icrs"]
+    assert num_repo.touched == ["raw_icrs"] and num_repo.vacuumed == ["icrs.data"]
     catalog, columns, ids, data = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]
