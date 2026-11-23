@@ -13,7 +13,7 @@ from psycopg import sql
 from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
 from app.lib.crossmatch import data as crossmatch_data
-from app.lib.crossmatch.query import NEIGHBORS_FOR_COORDS, filtered_record_count, table_input
+from app.lib.crossmatch import query as crossmatch_query
 from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -32,21 +32,11 @@ _MIN_MAX_TYPES = frozenset(
 
 @final
 class CrossmatchSource:
-    def __init__(self, conn: psycopg.Connection, cursor: psycopg.ServerCursor) -> None:
-        self._conn = conn
+    def __init__(self, cursor: psycopg.ServerCursor) -> None:
         self._cursor = cursor
 
     def fetch(self, size: int) -> list[dict[str, Any]]:
         return self._cursor.fetchmany(size)
-
-    def neighbors(self, ids: list[str], ras: list[float], decs: list[float], radius_deg: float) -> list[dict[str, Any]]:
-        if not ids:
-            return []
-        with self._conn.transaction():
-            self._conn.execute("SET LOCAL jit = off")
-            # RA above 180 deg is valid but makes PostGIS emit a NOTICE per row when casting to geography.
-            self._conn.execute("SET LOCAL client_min_messages = warning")
-            return self._conn.execute(NEIGHBORS_FOR_COORDS, [ids, ras, decs, radius_deg]).fetchall()
 
 
 @final
@@ -785,7 +775,7 @@ class Repository(postgres.TransactionalPGRepository):
                 params=[table_id],
             )
             return table_id, int(row["cnt"])
-        row = self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])
+        row = self._storage.query_one(crossmatch_query.filtered_record_count(table_name, row_filter), params=[table_id])
         return table_id, int(row["cnt"])
 
     @contextlib.contextmanager
@@ -795,29 +785,47 @@ class Repository(postgres.TransactionalPGRepository):
         table_name: str,
         row_filter: sql.Composable | None,
         pgc_column: str | None,
+        radius_deg: float,
+        record_count: int,
+        *,
+        include_redshift: bool,
+        include_nature: bool,
     ) -> Generator[CrossmatchSource]:
+        bulk = record_count > crossmatch_query.BULK_THRESHOLD
+        query = crossmatch_query.crossmatch_input(
+            crossmatch_query.table_records(table_name, row_filter, pgc_column),
+            include_redshift=include_redshift,
+            include_nature=include_nature,
+            bulk=bulk,
+        )
         with self._storage.get_pool().connection() as conn:
             # Index lookups by record_id are random disk reads; hash joins over sequential scans are far cheaper
             # for whole tables. WITH HOLD materializes the result at commit so no snapshot is held while batching.
             with conn.transaction():
-                conn.execute("SET LOCAL enable_nestloop = off")
+                if bulk:
+                    conn.execute("SET LOCAL enable_nestloop = off")
                 conn.execute("SET LOCAL cursor_tuple_fraction = 1")
+                conn.execute("SET LOCAL jit = off")
+                # RA above 180 deg is valid but makes PostGIS emit a NOTICE per row when casting to geography.
+                conn.execute("SET LOCAL client_min_messages = warning")
                 cursor = conn.cursor("crossmatch_input", withhold=True)
-                cursor.execute(table_input(table_name, row_filter, pgc_column), [table_id])
+                cursor.execute(query, {"table_id": table_id, "radius": radius_deg})
             try:
-                yield CrossmatchSource(conn, cursor)
+                yield CrossmatchSource(cursor)
             finally:
                 cursor.close()
 
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
         return crossmatch_data.layer2_pgcs(self._storage, pgcs)
 
-    def set_crossmatch_results(self, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]) -> None:
+    def set_crossmatch_results(
+        self, table_id: int, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]
+    ) -> None:
         if not rows:
             return
         with self.with_tx():
-            with layer0.rawdata_table(self._storage, record_ids=[record_id for record_id, _, _ in rows]):
-                crossmatch_data.write_crossmatch_rows(self._storage, rows)
+            crossmatch_data.write_crossmatch_rows(self._storage, rows)
+            layer0.touch_tables(self._storage, [table_id])
 
 
 def _statistics_to_json(progress: table_statistics.TableProgress) -> str:

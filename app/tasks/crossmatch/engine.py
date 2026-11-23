@@ -6,8 +6,7 @@ from app.lib.crossmatch.matching import (
     DistributionKey,
     distribution_key,
     distribution_rows,
-    group_inputs,
-    resolve_batch,
+    resolve_inputs,
     results_to_rows,
 )
 from app.lib.crossmatch.resolver import Resolver
@@ -49,36 +48,25 @@ def run(
             on_distribution(table, message)
 
     try:
-        with repo.crossmatch_source(table_id, params.table_name, row_filter, resolver.pgc_column) as source:
+        with repo.crossmatch_source(
+            table_id,
+            params.table_name,
+            row_filter,
+            resolver.pgc_column,
+            resolver.search_radius_deg,
+            total_records,
+            include_redshift=include_redshift,
+            include_nature=params.include_nature,
+        ) as source:
             while inputs := source.fetch(params.batch_size):
-                located = [row for row in inputs if row["ra"] is not None and row["dec"] is not None]
-                neighbors = source.neighbors(
-                    [str(row["id"]) for row in located],
-                    [float(row["ra"]) for row in located],
-                    [float(row["dec"]) for row in located],
-                    resolver.search_radius_deg,
-                )
-                record_pgc_by_id = (
-                    {
-                        str(row["id"]): int(row["claimed_pgc"]) if row["claimed_pgc"] is not None else None
-                        for row in inputs
-                    }
-                    if resolver.pgc_column is not None
-                    else {}
-                )
-                claimed = {pgc for pgc in record_pgc_by_id.values() if pgc is not None}
-                batch = resolve_batch(
-                    group_inputs(inputs, neighbors),
-                    record_pgc_by_id,
-                    repo.layer2_pgcs(list(claimed)),
-                    {row["design"]: row["same_name_pgcs"] or [] for row in inputs if row["design"] is not None},
-                    resolver,
-                )
+                batch = resolve_inputs(inputs, resolver, repo.layer2_pgcs)
                 for item in batch:
                     counts[distribution_key(item.result)] += 1
                     total += 1
                 if batch:
-                    repo.set_crossmatch_results(results_to_rows([(item.record_id, item.result) for item in batch]))
+                    repo.set_crossmatch_results(
+                        table_id, results_to_rows([(item.record_id, item.result) for item in batch])
+                    )
                 progress = 100.0 if total_records == 0 else min(100.0, 100.0 * total / total_records)
                 on_progress(min(progress, 99.0), f"Processed {total} / {total_records} records")
                 emit_distribution(f"{total} records crossmatched")

@@ -1,20 +1,19 @@
+from concurrent import futures
 from typing import Any
 
 from psycopg import sql
 
 from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
 from app.lib.crossmatch import data as crossmatch_data
-from app.lib.crossmatch.query import (
-    NEIGHBORS_FOR_IDS,
-    filtered_record_count,
-    filtered_record_sample,
-    filtered_tablesample,
-)
+from app.lib.crossmatch import query as crossmatch_query
+from app.lib.crossmatch.query import filtered_record_count, filtered_record_sample, filtered_tablesample
 from app.lib.storage import enums, postgres
 
 _TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
 _TABLESAMPLE_OVERSAMPLING = 3
 _TABLESAMPLE_RETRY_FACTOR = 4
+_CROSSMATCH_INPUT_STREAMS = 4
+_CROSSMATCH_INPUT_MIN_CHUNK = 100
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -222,20 +221,49 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                 return [str(record_id) for record_id in row["ids"]], eligible, total
             percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
-    def fetch_crossmatch_neighbors(self, record_ids: list[str], radius_deg: float) -> list[dict[str, Any]]:
+    def fetch_crossmatch_inputs(
+        self,
+        table_name: str,
+        record_ids: list[str],
+        pgc_column: str | None,
+        radius_deg: float,
+        *,
+        include_redshift: bool,
+        include_nature: bool,
+    ) -> list[dict[str, Any]]:
         if not record_ids:
             return []
+        bulk = len(record_ids) > crossmatch_query.BULK_THRESHOLD
+        query = crossmatch_query.crossmatch_input(
+            crossmatch_query.id_records(table_name, pgc_column),
+            include_redshift=include_redshift,
+            include_nature=include_nature,
+            bulk=bulk,
+        )
+        if bulk or len(record_ids) < _CROSSMATCH_INPUT_MIN_CHUNK * 2:
+            return self._fetch_crossmatch_inputs(query, record_ids, radius_deg, bulk=bulk)
+
+        # The index path is bound by random reads; on HDD a few concurrent streams overlap the seeks.
+        chunks = [record_ids[i::_CROSSMATCH_INPUT_STREAMS] for i in range(_CROSSMATCH_INPUT_STREAMS)]
+        with futures.ThreadPoolExecutor(max_workers=_CROSSMATCH_INPUT_STREAMS) as executor:
+            results = executor.map(
+                lambda chunk: self._fetch_crossmatch_inputs(query, chunk, radius_deg, bulk=False), chunks
+            )
+            return [row for rows in results for row in rows]
+
+    def _fetch_crossmatch_inputs(
+        self, query: sql.Composable, record_ids: list[str], radius_deg: float, *, bulk: bool
+    ) -> list[dict[str, Any]]:
         with self.with_tx():
             self._storage.exec("SET TRANSACTION READ ONLY")
+            if bulk:
+                self._storage.exec("SET LOCAL enable_nestloop = off")
+            self._storage.exec("SET LOCAL jit = off")
             # RA above 180 deg is valid but makes PostGIS emit a NOTICE per row when casting to geography.
             self._storage.exec("SET LOCAL client_min_messages = warning")
-            return list(self._storage.query(NEIGHBORS_FOR_IDS, params=[record_ids, radius_deg]))
-
-    def fetch_claimed_pgcs(self, table_name: str, column: str, record_ids: list[str]) -> dict[str, int | None]:
-        return crossmatch_data.fetch_claimed_pgcs(self._storage, table_name, column, record_ids, read_only=True)
+            with self._storage.get_connection().cursor() as cursor:
+                cursor.execute(query, {"ids": record_ids, "radius": radius_deg})
+                return cursor.fetchall()
 
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
         return crossmatch_data.layer2_pgcs(self._storage, pgcs, read_only=True)
-
-    def pgcs_by_designation(self, designations: list[str]) -> dict[str, list[int]]:
-        return crossmatch_data.pgcs_by_designation(self._storage, designations, read_only=True)
