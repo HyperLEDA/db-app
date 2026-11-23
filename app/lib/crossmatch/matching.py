@@ -1,5 +1,5 @@
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from app.lib.crossmatch.models import (
@@ -62,63 +62,35 @@ def angular_distance_deg(ra1: float, dec1: float, ra2: float, dec2: float) -> fl
     return math.sqrt(d_dec**2 + d_ra**2)
 
 
-def _candidate(row: Mapping[str, Any]) -> tuple[Any, ...]:
-    return (
-        row["existing_ra"],
-        row["existing_dec"],
-        int(row["existing_pgc"]),
-        row["existing_design"],
-        float(row["existing_cz"]) / C_M_S if row["existing_cz"] is not None else None,
-        row.get("existing_type"),
-    )
+def _candidates(row: Mapping[str, Any]) -> list[tuple[Any, ...]]:
+    if row["neighbor_pgcs"] is None:
+        return []
+    return [
+        (ra, dec, int(pgc), design, float(cz) / C_M_S if cz is not None else None, type_name)
+        for pgc, ra, dec, design, type_name, cz in zip(
+            row["neighbor_pgcs"],
+            row["neighbor_ras"],
+            row["neighbor_decs"],
+            row["neighbor_designs"],
+            row["neighbor_types"],
+            row["neighbor_czs"],
+            strict=True,
+        )
+    ]
 
 
-def group_inputs(
-    inputs: Sequence[Mapping[str, Any]], neighbors: Sequence[Mapping[str, Any]]
-) -> dict[str, dict[str, Any]]:
-    by_record = {
+def group_inputs(inputs: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
         str(row["id"]): {
             "new_ra": row["ra"],
             "new_dec": row["dec"],
             "new_design": row["design"],
             "new_redshift": float(row["cz"]) / C_M_S if row["cz"] is not None else None,
             "new_type": row["type_name"],
-            "candidates": [],
+            "candidates": _candidates(row),
         }
         for row in inputs
     }
-    for row in neighbors:
-        if row["existing_ra"] is not None and row["existing_dec"] is not None:
-            by_record[str(row["new_id"])]["candidates"].append(_candidate(row))
-    return by_record
-
-
-def group_batch(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
-    by_record: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        new_id = str(row["new_id"])
-        rec = by_record.setdefault(
-            new_id,
-            {
-                "new_ra": None,
-                "new_dec": None,
-                "new_design": None,
-                "new_redshift": None,
-                "new_type": None,
-                "candidates": [],
-            },
-        )
-        if row["new_ra"] is not None:
-            rec["new_ra"], rec["new_dec"] = row["new_ra"], row["new_dec"]
-        if row["new_design"] is not None:
-            rec["new_design"] = row["new_design"]
-        if row["new_cz"] is not None:
-            rec["new_redshift"] = float(row["new_cz"]) / C_M_S
-        if row.get("new_type") is not None:
-            rec["new_type"] = row["new_type"]
-        if row["existing_pgc"] is not None and row["existing_ra"] is not None and row["existing_dec"] is not None:
-            rec["candidates"].append(_candidate(row))
-    return by_record
 
 
 def resolve_batch(
@@ -173,30 +145,21 @@ def resolve_batch(
     return matched
 
 
-def match_records(
-    rows: Sequence[Mapping[str, Any]],
-    *,
-    radius_deg: float,
-    pgc_column: str | None,
-    redshift_tolerance: float | None,
-    record_pgc_by_id: Mapping[str, int | None],
-    existing_pgcs: set[int],
-    design_to_pgcs: Mapping[str, list[int]],
-    include_pgc: bool = False,
-    include_redshift: bool = False,
-    include_nature: bool = False,
+def resolve_inputs(
+    inputs: Sequence[Mapping[str, Any]],
+    resolver: Resolver,
+    layer2_pgcs: Callable[[list[int]], set[int]],
 ) -> list[MatchedRecord]:
+    record_pgc_by_id = (
+        {str(row["id"]): int(row["claimed_pgc"]) if row["claimed_pgc"] is not None else None for row in inputs}
+        if resolver.pgc_column is not None
+        else {}
+    )
+    claimed = {pgc for pgc in record_pgc_by_id.values() if pgc is not None}
     return resolve_batch(
-        group_batch(rows),
+        group_inputs(inputs),
         record_pgc_by_id,
-        existing_pgcs,
-        design_to_pgcs,
-        Resolver(
-            radius_deg=radius_deg,
-            pgc_column=pgc_column,
-            redshift_tolerance=redshift_tolerance,
-            include_pgc=include_pgc,
-            include_redshift=include_redshift,
-            include_nature=include_nature,
-        ),
+        layer2_pgcs(list(claimed)),
+        {row["design"]: row["same_name_pgcs"] or [] for row in inputs if row["design"] is not None},
+        resolver,
     )

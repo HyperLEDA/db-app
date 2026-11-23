@@ -8,9 +8,10 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
-from app.lib.crossmatch.matching import distribution_key, match_records, ordered_distribution_keys, results_to_rows
+from app.lib.crossmatch.matching import distribution_key, ordered_distribution_keys, resolve_inputs, results_to_rows
 from app.lib.crossmatch.models import MatchedRecord
 from app.lib.crossmatch.parameters import parameters_payload
+from app.lib.crossmatch.resolver import Resolver
 from app.lib.storage import enums, sql_row_filter
 from app.lib.web.errors import ConflictError, InternalError, NotFoundError, RuleValidationError
 from app.specs import adminapi as spec
@@ -111,25 +112,23 @@ class CrossmatchManager:
                 raise
             raise NotFoundError(entity_name="table", entity=request.table_name) from exc
 
-        radius_deg = request.radius_arcsec / 3600.0
-        rows = self._repo.fetch_crossmatch_neighbors(record_ids, radius_deg)
-        record_pgc_by_id = (
-            self._repo.fetch_claimed_pgcs(request.table_name, pgc_column, record_ids) if pgc_column else {}
-        )
-        claimed = {pgc for pgc in record_pgc_by_id.values() if pgc is not None}
-        designations = [row["new_design"] for row in rows if row["new_design"] is not None]
-        matched = match_records(
-            rows,
-            radius_deg=radius_deg,
+        resolver = Resolver(
+            radius_deg=request.radius_arcsec / 3600.0,
             pgc_column=pgc_column or None,
             redshift_tolerance=request.redshift_tolerance if include_redshift else None,
-            record_pgc_by_id=record_pgc_by_id,
-            existing_pgcs=self._repo.layer2_pgcs(list(claimed)),
-            design_to_pgcs=self._repo.pgcs_by_designation(list(dict.fromkeys(str(item) for item in designations))),
             include_pgc=include_pgc,
             include_redshift=include_redshift,
             include_nature=request.include_nature,
         )
+        inputs = self._repo.fetch_crossmatch_inputs(
+            request.table_name,
+            record_ids,
+            resolver.pgc_column,
+            resolver.search_radius_deg,
+            include_redshift=include_redshift,
+            include_nature=request.include_nature,
+        )
+        matched = resolve_inputs(inputs, resolver, self._repo.layer2_pgcs)
         written = {
             record_id: candidates
             for record_id, _, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
