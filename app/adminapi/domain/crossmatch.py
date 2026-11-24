@@ -121,6 +121,7 @@ class CrossmatchManager:
             row_filter=request.row_filter,
         )
         try:
+            eligible_percent = self._repo.estimate_submit_eligible_percent(selection)
             rows = self._repo.preview_submit_crossmatch(selection, request.sample_size)
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
@@ -130,6 +131,7 @@ class CrossmatchManager:
             sample_count=len(rows),
             new_count=sum(row["outcome"] == "new" for row in rows),
             existing_count=sum(row["outcome"] == "existing" for row in rows),
+            eligible_percent=eligible_percent,
             rows=[spec.PreviewSubmitCrossmatchRow.model_validate(row) for row in rows[:_PREVIEW_SUBMIT_ROW_LIMIT]],
         )
 

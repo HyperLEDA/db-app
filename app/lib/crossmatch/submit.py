@@ -146,6 +146,43 @@ def eligible_count_query(selection: SubmitSelection) -> sql.Composed:
     ).format(frm=frm, predicate=predicate)
 
 
+def estimate_eligible_rate_query(selection: SubmitSelection) -> sql.Composed:
+    passes = _passes_expression(selection)
+    if selection.row_filter is None:
+        return sql.SQL(
+            """
+            WITH s AS MATERIALIZED (
+                SELECT COALESCE(({passes}), false) AS passes
+                FROM layer0.records r TABLESAMPLE SYSTEM (%s)
+                LEFT JOIN layer0.crossmatch c ON c.record_id = r.id
+                WHERE r.table_id = %s
+            )
+            SELECT
+                (SELECT COUNT(*)::int FROM s) AS scanned,
+                (SELECT COUNT(*)::int FROM s WHERE passes) AS passing
+            """
+        ).format(passes=passes)
+    return sql.SQL(
+        """
+        WITH s AS MATERIALIZED (
+            SELECT COALESCE(({passes}), false) AS passes
+            FROM {raw} raw TABLESAMPLE SYSTEM (%s)
+            JOIN layer0.records r ON r.id = raw.{id_col}
+            LEFT JOIN layer0.crossmatch c ON c.record_id = r.id
+            WHERE r.table_id = %s AND ({row_filter})
+        )
+        SELECT
+            (SELECT COUNT(*)::int FROM s) AS scanned,
+            (SELECT COUNT(*)::int FROM s WHERE passes) AS passing
+        """
+    ).format(
+        passes=passes,
+        raw=sql.SQL("{}.{}").format(sql.Identifier("rawdata"), sql.Identifier(selection.table_name)),
+        id_col=sql.Identifier("hyperleda_internal_id"),
+        row_filter=selection.row_filter,
+    )
+
+
 def page_query(selection: SubmitSelection) -> sql.Composed:
     frm, predicate = _filtered(selection)
     return sql.SQL(
@@ -180,6 +217,14 @@ def _filtered(selection: SubmitSelection) -> tuple[sql.Composable, sql.Composabl
     if outcome is not None:
         parts.append(outcome)
     return frm, sql.SQL(" AND ").join(parts)
+
+
+def _passes_expression(selection: SubmitSelection) -> sql.Composable:
+    parts: list[sql.Composable] = [sql.SQL("c.record_id IS NOT NULL"), ELIGIBLE]
+    outcome = _outcome_predicate(selection)
+    if outcome is not None:
+        parts.append(outcome)
+    return sql.SQL(" AND ").join(parts)
 
 
 def _outcome_predicate(selection: SubmitSelection) -> sql.Composable | None:

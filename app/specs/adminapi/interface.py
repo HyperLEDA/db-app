@@ -294,6 +294,7 @@ class PreviewSubmitCrossmatchResponse(pydantic.BaseModel):
     sample_count: int
     new_count: int
     existing_count: int
+    eligible_percent: float
     rows: list[PreviewSubmitCrossmatchRow]
 
 

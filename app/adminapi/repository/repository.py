@@ -195,6 +195,9 @@ class Repository(postgres.TransactionalPGRepository):
     ) -> list[dict[str, Any]]:
         return self._layer0_records.preview_submit_crossmatch(selection, sample_size)
 
+    def estimate_submit_eligible_percent(self, selection: crossmatch_submit.SubmitSelection) -> float:
+        return self._layer0_records.estimate_submit_eligible_percent(selection)
+
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)
 

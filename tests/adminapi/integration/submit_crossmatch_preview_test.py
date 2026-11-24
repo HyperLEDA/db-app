@@ -63,6 +63,7 @@ def test_preview_submit_crossmatch_does_not_write(
     )
 
     assert (response.sample_count, response.new_count, response.existing_count) == (2, 1, 1)
+    assert response.eligible_percent == 40.0
     by_id = {row.record_id: row for row in response.rows}
     assert set(by_id) == {new_id, existing_id}
     assert by_id[new_id].outcome == "new" and by_id[new_id].pgc is None
@@ -110,6 +111,7 @@ def test_preview_submit_crossmatch_filters(pg_storage: PostgresTestStorage) -> N
 
     unfiltered = manager.preview_submit(adminapi.PreviewSubmitCrossmatchRequest(table_name=table_name, sample_size=20))
     assert {row.record_id for row in unfiltered.rows} == {new_id, name_false_id, matched_id, name_null_id}
+    assert unfiltered.eligible_percent == 100.0
 
     existing_only = manager.preview_submit(
         adminapi.PreviewSubmitCrossmatchRequest(
@@ -169,6 +171,7 @@ def test_preview_submit_crossmatch_row_filter(pg_storage: PostgresTestStorage) -
     )
     assert {row.record_id for row in response.rows} == {kept_id}
     assert response.sample_count == 1
+    assert response.eligible_percent == 100.0
 
 
 def test_preview_submit_crossmatch_missing_table(pg_storage: PostgresTestStorage) -> None:
