@@ -23,6 +23,7 @@ from app.lib.web.errors import ConflictError, InternalError, NotFoundError, Rule
 from app.specs import adminapi as spec
 
 _PREVIEW_RETURN_SIZE = 10
+_PREVIEW_SUBMIT_ROW_LIMIT = 20
 
 
 def _append_crossmatch_rows(
@@ -112,19 +113,16 @@ class CrossmatchManager:
 
     def preview_submit(self, request: spec.PreviewSubmitCrossmatchRequest) -> spec.PreviewSubmitCrossmatchResponse:
         try:
-            total, eligible, new_count, existing_count, rows = self._repo.preview_submit_crossmatch(
-                request.table_name, request.sample_size
-            )
+            rows = self._repo.preview_submit_crossmatch(request.table_name, request.sample_size)
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
                 raise
             raise NotFoundError(entity_name="table", entity=request.table_name) from exc
         return spec.PreviewSubmitCrossmatchResponse(
-            total_count=total,
-            eligible_count=eligible,
-            new_count=new_count,
-            existing_count=existing_count,
-            rows=[spec.PreviewSubmitCrossmatchRow.model_validate(row) for row in rows],
+            sample_count=len(rows),
+            new_count=sum(row["outcome"] == "new" for row in rows),
+            existing_count=sum(row["outcome"] == "existing" for row in rows),
+            rows=[spec.PreviewSubmitCrossmatchRow.model_validate(row) for row in rows[:_PREVIEW_SUBMIT_ROW_LIMIT]],
         )
 
     def preview(self, request: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:

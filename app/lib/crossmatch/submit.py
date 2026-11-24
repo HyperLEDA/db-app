@@ -2,6 +2,7 @@ from typing import Any
 
 from psycopg import sql
 
+from app.lib.crossmatch.parameters import PARAMETER_ORDER
 from app.lib.storage import postgres
 
 MULTI_CANDIDATE = sql.SQL(
@@ -46,6 +47,17 @@ CANDIDATE_PGC = sql.SQL(
     """
 )
 
+CANDIDATE_PARAMETERS = sql.SQL(
+    """
+    CASE
+        WHEN jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
+             AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
+            THEN c.metadata::jsonb -> 'candidates' -> 0 -> 'parameters'
+        ELSE NULL
+    END
+    """
+)
+
 OUTCOME = sql.SQL(
     """
     CASE
@@ -70,26 +82,13 @@ class AssignRecordPgcsPreconditionError(Exception):
         self.count = count
 
 
-def summary_query() -> sql.Composed:
-    return sql.SQL(
-        """
-        SELECT
-            (SELECT COUNT(*)::int FROM layer0.records WHERE table_id = %s) AS total_count,
-            COUNT(*)::int AS eligible_count,
-            COUNT(*) FILTER (WHERE {is_new})::int AS new_count,
-            COUNT(*) FILTER (WHERE {is_existing})::int AS existing_count
-        {frm}
-        WHERE r.table_id = %s AND {eligible}
-        """
-    ).format(is_new=IS_NEW, is_existing=IS_EXISTING, frm=_FROM_CROSSMATCH, eligible=ELIGIBLE)
-
-
 def sample_query() -> sql.Composed:
     return sql.SQL(
         """
         SELECT r.id::text AS record_id,
                CASE WHEN {is_existing} THEN {pgc} END AS pgc,
-               {outcome} AS outcome
+               {outcome} AS outcome,
+               CASE WHEN {is_existing} THEN {parameters} END AS parameters
         {frm}
         WHERE r.table_id = %s AND {eligible}
         ORDER BY r.id
@@ -99,6 +98,7 @@ def sample_query() -> sql.Composed:
         is_existing=IS_EXISTING,
         pgc=CANDIDATE_PGC,
         outcome=OUTCOME,
+        parameters=CANDIDATE_PARAMETERS,
         frm=_FROM_CROSSMATCH,
         eligible=ELIGIBLE,
     )
@@ -215,12 +215,18 @@ def assign_record_pgcs(storage: postgres.PgStorage, record_ids: list[str]) -> No
             )
 
 
+def _preview_parameters(raw: Any) -> dict[str, bool | None]:
+    source = raw if isinstance(raw, dict) else {}
+    return {parameter.value: source.get(parameter.value) for parameter in PARAMETER_ORDER}
+
+
 def preview_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
             "record_id": row["record_id"],
             "pgc": None if row["pgc"] is None else int(row["pgc"]),
             "outcome": row["outcome"],
+            "parameters": _preview_parameters(row.get("parameters")),
         }
         for row in rows
     ]
