@@ -133,7 +133,7 @@ def table_records(table_name: str, row_filter: sql.Composable | None, pgc_column
     needs_raw = row_filter is not None or pgc_column is not None
     return sql.SQL(
         "SELECT r.id, {claimed} AS claimed_pgc FROM layer0.records r {raw_join} "
-        "WHERE r.table_id = %(table_id)s AND {row_filter}"
+        "WHERE r.table_id = %(table_id)s AND r.pgc IS NULL AND {row_filter}"
     ).format(
         claimed=_claimed(pgc_column),
         raw_join=sql.SQL("JOIN {} raw ON raw.{} = r.id").format(raw, id_col) if needs_raw else sql.SQL(""),

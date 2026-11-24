@@ -807,11 +807,14 @@ class Repository(postgres.TransactionalPGRepository):
         table_id = layer0.require_table_id(self._storage, table_name)
         if row_filter is None:
             row = self._storage.query_one(
-                "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
+                "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s AND pgc IS NULL",
                 params=[table_id],
             )
             return table_id, int(row["cnt"])
-        row = self._storage.query_one(crossmatch_query.filtered_record_count(table_name, row_filter), params=[table_id])
+        unsubmitted = sql.SQL("({}) AND rec.pgc IS NULL").format(row_filter)
+        row = self._storage.query_one(
+            crossmatch_query.filtered_record_count(table_name, unsubmitted), params=[table_id]
+        )
         return table_id, int(row["cnt"])
 
     @contextlib.contextmanager
