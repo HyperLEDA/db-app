@@ -3,10 +3,10 @@ from psycopg import sql
 # Below this many records, index lookups per record are cheaper than hash joins over whole tables.
 BULK_THRESHOLD = 20_000
 
-_ZONE_HEIGHT = "(%(radius)s * 1.001)"
+_ZONE_HEIGHT = "(%(radius)s * 2.002)"
 _ZONE_MIN = f"(floor(-90 / {_ZONE_HEIGHT})::int - 1)"
-_ZONE_EDGE = f"(greatest(abs(zone), abs(zone + 1)) * {_ZONE_HEIGHT} + 2 * %(radius)s)"
-_PROBE_ZONE = f"(floor(p.dec / {_ZONE_HEIGHT})::int + dz.dz)"
+_ZONE_EDGE = f"(greatest(abs(zone), abs(zone + 1)) * {_ZONE_HEIGHT} + {_ZONE_HEIGHT})"
+_PROBE_ZONE = f"(floor(p.dec / {_ZONE_HEIGHT} - 0.5)::int + dz.dz)"
 _PROBE_CELLS = f"((SELECT cells FROM zone_cells)[{_PROBE_ZONE} - {_ZONE_MIN} + 1])"
 _CATALOG_ZONE = f"floor(l2.dec / {_ZONE_HEIGHT})::int"
 _CATALOG_CELLS = f"((SELECT cells FROM zone_cells)[{_CATALOG_ZONE} - {_ZONE_MIN} + 1])"
@@ -14,7 +14,7 @@ _CATALOG_CELLS = f"((SELECT cells FROM zone_cells)[{_CATALOG_ZONE} - {_ZONE_MIN}
 _INDEX_NEIGHBORS = """
     neighbors AS (
         SELECT
-            p.id,
+            p.n,
             array_agg(l2.pgc) AS pgcs, array_agg(l2.ra) AS ras, array_agg(l2.dec) AS decs,
             array_agg(l2.name) AS designs, array_agg(l2.objtype) AS types,
             array_agg({neighbor_cz}) AS czs
@@ -24,14 +24,14 @@ _INDEX_NEIGHBORS = """
             AND ST_DWithin(
                 ST_MakePoint(p.ra, p.dec)::geography, ST_MakePoint(l2.ra, l2.dec)::geography,
                 RADIANS(%(radius)s) * 6371008.7714, false)
-        GROUP BY p.id
+        GROUP BY p.n
     )
 """
 
 # Zones algorithm (Gray et al., "The Zones Algorithm for Finding Points-Near-a-Point"): the sky is cut into declination
-# zones at least one radius high and each zone into RA cells at least as wide as the RA half-width of a search circle
-# anywhere in or next to the zone, so every neighbor of a point lies in one of the 3x3 cells around it. The equality
-# join on (zone, cell) runs as a hash join over sequential scans; ST_DWithin stays the exact predicate.
+# zones at least two radii high and each zone into RA cells at least as wide as a search circle anywhere in or next to
+# the zone, so every neighbor of a point lies in the 2x2 cells nearest to it. The equality join on (zone, cell) runs
+# over sequential scans; ST_DWithin stays the exact predicate.
 # Cell counts per zone are looked up in an array rather than joined: the planner cannot estimate a join against a
 # generated zone list and falls back to per-probe GiST lookups.
 _ZONE_NEIGHBORS = f"""
@@ -39,7 +39,7 @@ _ZONE_NEIGHBORS = f"""
         SELECT array_agg(
             CASE WHEN {_ZONE_EDGE} >= 90 OR sin(radians(%(radius)s)) >= cos(radians({_ZONE_EDGE})) THEN 1
             ELSE greatest(1, floor(
-                360 / (1.001 * degrees(asin(sin(radians(%(radius)s)) / cos(radians({_ZONE_EDGE})))))
+                360 / (2.002 * degrees(asin(sin(radians(%(radius)s)) / cos(radians({_ZONE_EDGE})))))
             ))::int
             END
             ORDER BY zone
@@ -48,14 +48,14 @@ _ZONE_NEIGHBORS = f"""
     ),
     probes AS MATERIALIZED (
         SELECT
-            z.id, z.ra, z.dec, z.zone,
-            ((floor(z.ra * z.cells / 360)::int + k.k) %% z.cells + z.cells) %% z.cells AS cell
+            z.n, z.ra, z.dec, z.zone,
+            ((floor(z.ra * z.cells / 360 - 0.5)::int + k.k) %% z.cells + z.cells) %% z.cells AS cell
         FROM (
-            SELECT p.id, p.ra, p.dec, {_PROBE_ZONE} AS zone, {_PROBE_CELLS} AS cells
-            FROM points p CROSS JOIN (VALUES (-1), (0), (1)) AS dz(dz)
+            SELECT p.n, p.ra, p.dec, {_PROBE_ZONE} AS zone, {_PROBE_CELLS} AS cells
+            FROM points p CROSS JOIN (VALUES (0), (1)) AS dz(dz)
         ) z
-        CROSS JOIN (VALUES (-1), (0), (1)) AS k(k)
-        WHERE k.k <= z.cells - 2
+        CROSS JOIN (VALUES (0), (1)) AS k(k)
+        WHERE k.k < z.cells
     ),
     catalog AS (
         SELECT
@@ -66,17 +66,17 @@ _ZONE_NEIGHBORS = f"""
     ),
     neighbors AS (
         SELECT
-            pr.id,
+            pr.n,
             array_agg(l2.pgc) AS pgcs, array_agg(l2.ra) AS ras, array_agg(l2.dec) AS decs,
             array_agg(l2.name) AS designs, array_agg(l2.objtype) AS types, array_agg({{neighbor_cz}}) AS czs
         FROM probes pr
         JOIN catalog l2 ON l2.zone = pr.zone AND l2.cell = pr.cell
         {{neighbor_cz_join}}
-        WHERE l2.dec BETWEEN pr.dec - {_ZONE_HEIGHT} AND pr.dec + {_ZONE_HEIGHT}
+        WHERE l2.dec BETWEEN pr.dec - %(radius)s * 1.001 AND pr.dec + %(radius)s * 1.001
           AND ST_DWithin(
               ST_MakePoint(pr.ra, pr.dec)::geography, ST_MakePoint(l2.ra, l2.dec)::geography,
               RADIANS(%(radius)s) * 6371008.7714, false)
-        GROUP BY pr.id
+        GROUP BY pr.n
     )
 """
 
@@ -88,7 +88,7 @@ _INPUT = """
         SELECT d.record_id, d.design FROM rec JOIN designation.data d ON d.record_id = rec.id
     ),
     same_name AS (
-        SELECT x.design, array_agg(DISTINCT x.pgc ORDER BY x.pgc) AS pgcs
+        SELECT x.design, array_agg(x.pgc) AS pgcs
         FROM (
             SELECT d.design, r.pgc
             FROM designation.data d JOIN layer0.records r ON r.id = d.record_id
@@ -99,7 +99,8 @@ _INPUT = """
         GROUP BY x.design
     ),
     points AS MATERIALIZED (
-        SELECT rec.id, nc.ra, nc.dec FROM rec JOIN icrs.data nc ON nc.record_id = rec.id
+        SELECT row_number() OVER ()::int AS n, rec.id, nc.ra, nc.dec
+        FROM rec JOIN icrs.data nc ON nc.record_id = rec.id
     ),
     {neighbors}
     SELECT
@@ -113,7 +114,7 @@ _INPUT = """
     {cz_join}
     {type_join}
     LEFT JOIN same_name ON same_name.design = named.design
-    LEFT JOIN neighbors nb ON nb.id = rec.id
+    LEFT JOIN neighbors nb ON nb.n = points.n
 """
 
 

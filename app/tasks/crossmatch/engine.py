@@ -1,6 +1,9 @@
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
+
+import structlog
 
 from app.lib.crossmatch.matching import (
     DistributionKey,
@@ -23,6 +26,7 @@ def run(
     params: spec.CrossmatchParams,
     on_progress: ProgressCallback,
     on_distribution: DistributionCallback,
+    logger: structlog.stdlib.BoundLogger,
 ) -> None:
     pgc_column = params.pgc_column.strip()
     include_pgc = bool(pgc_column)
@@ -41,11 +45,13 @@ def run(
 
     counts: dict[DistributionKey, int] = defaultdict(int)
     total = 0
+    run_started = time.perf_counter()
 
-    def emit_distribution(message: str) -> None:
+    def emit_distribution(message: str) -> list[dict[str, Any]]:
         table = distribution_rows(counts, total)
         if table:
             on_distribution(table, message)
+        return table
 
     try:
         with repo.crossmatch_source(
@@ -59,6 +65,7 @@ def run(
             include_nature=params.include_nature,
         ) as source:
             while inputs := source.fetch(params.batch_size):
+                batch_started = time.perf_counter()
                 batch = resolve_inputs(inputs, resolver, repo.layer2_pgcs)
                 for item in batch:
                     counts[distribution_key(item.result)] += 1
@@ -67,9 +74,19 @@ def run(
                     repo.set_crossmatch_results(
                         table_id, results_to_rows([(item.record_id, item.result) for item in batch])
                     )
+                elapsed_s = time.perf_counter() - run_started
+                eta_s = round(elapsed_s * (total_records - total) / total) if 0 < total < total_records else 0
+                table = emit_distribution(f"{total} records crossmatched")
+                logger.info(
+                    "Processed batch",
+                    records_read=len(inputs),
+                    counts=[(row["status"], row["triage"], row["parameters"], row["count"]) for row in table],
+                    processed=total,
+                    total=total_records,
+                    duration_ms=round((time.perf_counter() - batch_started) * 1000, 1),
+                    eta_s=eta_s,
+                )
                 progress = 100.0 if total_records == 0 else min(100.0, 100.0 * total / total_records)
                 on_progress(min(progress, 99.0), f"Processed {total} / {total_records} records")
-                emit_distribution(f"{total} records crossmatched")
     finally:
         on_progress(100, "Finished")
-        emit_distribution(f"Final: {total} records")

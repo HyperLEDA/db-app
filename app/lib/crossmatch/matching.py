@@ -160,6 +160,7 @@ def resolve_inputs(
         group_inputs(inputs),
         record_pgc_by_id,
         layer2_pgcs(list(claimed)),
-        {row["design"]: row["same_name_pgcs"] or [] for row in inputs if row["design"] is not None},
+        # Deduplicated here rather than in SQL: an ordered DISTINCT aggregate forces a sort over all name matches.
+        {row["design"]: sorted(set(row["same_name_pgcs"] or [])) for row in inputs if row["design"] is not None},
         resolver,
     )
