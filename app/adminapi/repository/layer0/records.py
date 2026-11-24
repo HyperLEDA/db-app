@@ -7,6 +7,7 @@ from psycopg import sql
 from app.catalogs.layer0 import rawdata_table, require_table_id, touch_pgcs
 from app.lib.crossmatch import data as crossmatch_data
 from app.lib.crossmatch import query as crossmatch_query
+from app.lib.crossmatch import submit as crossmatch_submit
 from app.lib.crossmatch.query import filtered_record_count, filtered_record_sample, filtered_tablesample
 from app.lib.storage import enums, postgres
 
@@ -15,12 +16,6 @@ _TABLESAMPLE_OVERSAMPLING = 3
 _TABLESAMPLE_RETRY_FACTOR = 4
 _CROSSMATCH_INPUT_STREAMS = 4
 _CROSSMATCH_INPUT_MIN_CHUNK = 100
-
-
-class AssignRecordPgcsPreconditionError(Exception):
-    def __init__(self, sample: list[str], count: int) -> None:
-        self.sample = sample
-        self.count = count
 
 
 class Layer0RecordRepository(postgres.TransactionalPGRepository):
@@ -53,82 +48,22 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         if not record_ids:
             return
-
-        invalid_where = """
-            FROM submit_staging s
-            LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
-            WHERE c.record_id IS NULL
-               OR c.triage_status != 'resolved'
-               OR c.metadata::jsonb ? 'possible_matches'
-               OR (
-                    jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-                    AND jsonb_array_length(c.metadata::jsonb -> 'candidates') > 1
-               )
-        """
-        join_submit = """
-            FROM submit_staging s
-            JOIN layer0.crossmatch c ON c.record_id = s.record_id
-            JOIN layer0.records r ON r.id = s.record_id
-        """
         with self.with_tx():
-            with self._storage.get_connection().cursor() as cur:
-                cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
-                with cur.copy("COPY submit_staging (record_id) FROM STDIN") as copy:
-                    for record_id in record_ids:
-                        copy.write_row((record_id,))
+            crossmatch_submit.assign_record_pgcs(self._storage, record_ids)
 
-            invalid_rows = self._storage.query(f"SELECT s.record_id::text AS record_id {invalid_where} LIMIT 101")
-            if invalid_rows:
-                count_row = self._storage.query_one(f"SELECT COUNT(*)::int AS cnt {invalid_where}")
-                raise AssignRecordPgcsPreconditionError(
-                    sample=[row["record_id"] for row in invalid_rows[:100]],
-                    count=int(count_row["cnt"]),
-                )
-
-            self._storage.query(f"SELECT s.record_id {join_submit} FOR UPDATE OF c, r")
-            existing_rows = self._storage.query(
-                f"""
-                SELECT s.record_id::text AS record_id,
-                       CASE
-                           WHEN jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-                                AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
-                               THEN (c.metadata::jsonb -> 'candidates' -> 0 ->> 'pgc')::int
-                           ELSE (c.metadata->>'pgc')::int
-                       END AS pgc
-                {join_submit}
-                WHERE r.pgc IS NULL
-                  AND (
-                        (
-                            jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-                            AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
-                        )
-                        OR c.metadata::jsonb ? 'pgc'
-                  )
-                ORDER BY s.record_id
-                """
-            )
-            new_rows = self._storage.query(
-                f"""
-                SELECT s.record_id::text AS record_id
-                {join_submit}
-                WHERE c.metadata::jsonb = '{{}}'::jsonb AND r.pgc IS NULL
-                ORDER BY s.record_id
-                """
-            )
-
-            pgcs_to_insert = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
-            if new_rows:
-                for row, pgc_id in zip(new_rows, self._mint_pgc_ids(len(new_rows)), strict=True):
-                    pgcs_to_insert[row["record_id"]] = pgc_id
-            if pgcs_to_insert:
-                with rawdata_table(self._storage, record_ids=list(pgcs_to_insert.keys())):
-                    self._storage.execute_batch(
-                        "UPDATE layer0.records SET pgc = v.pgc "
-                        "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-                        "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL",
-                        [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
-                    )
-                    touch_pgcs(self._storage, list(set(pgcs_to_insert.values())))
+    def preview_submit_crossmatch(
+        self, table_name: str, sample_size: int
+    ) -> tuple[int, int, int, int, list[dict[str, Any]]]:
+        table_id = require_table_id(self._storage, table_name)
+        summary = self._storage.query_one(crossmatch_submit.summary_query(), params=[table_id, table_id])
+        rows = self._storage.query(crossmatch_submit.sample_query(), params=[table_id, sample_size])
+        return (
+            int(summary["total_count"]),
+            int(summary["eligible_count"]),
+            int(summary["new_count"]),
+            int(summary["existing_count"]),
+            crossmatch_submit.preview_rows(list(rows)),
+        )
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert = {record_id: pgc for record_id, pgc in pgcs.items() if pgc is not None}

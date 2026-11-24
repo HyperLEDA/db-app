@@ -1,0 +1,67 @@
+from typing import Any
+from uuid import UUID, uuid4
+
+import pytest
+import structlog
+
+from app import tasks
+from app.lib.crossmatch import data as crossmatch_data
+from app.lib.storage import enums, postgres
+from app.tasks.submit_crossmatch.task import SubmitCrossmatchTask
+from tests.lib import layer_seed
+from tests.lib.postgres import PostgresTestStorage
+
+pytestmark = pytest.mark.usefixtures("cleared_pg_storage")
+
+
+def _pgc(storage: postgres.PgStorage, record_id: str) -> int | None:
+    return storage.query_one("SELECT pgc FROM layer0.records WHERE id = %s", params=[record_id])["pgc"]
+
+
+def test_submit_crossmatch_assigns_pgcs(pg_storage: PostgresTestStorage, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = pg_storage.storage
+    table_name = "submit_task"
+    new_id = str(uuid4())
+    existing_id = str(uuid4())
+    pending_id = str(uuid4())
+    bib_id = layer_seed.create_bibliography(storage, table_name, 2000, ["test"], "test")
+    layer_seed.create_table(storage, table_name, bib_id)
+    layer_seed.register_records(storage, table_name, [new_id, existing_id, pending_id])
+    layer_seed.register_pgcs(storage, [42])
+    crossmatch_data.write_crossmatch_rows(
+        storage,
+        [
+            (new_id, enums.RecordTriageStatus.RESOLVED, []),
+            (existing_id, enums.RecordTriageStatus.RESOLVED, [42]),
+            (pending_id, enums.RecordTriageStatus.PENDING, []),
+        ],
+    )
+    tables: list[list[dict[str, object]]] = []
+
+    def create_table(**kwargs: Any) -> UUID:
+        tables.append(kwargs["table"])
+        return UUID(int=2)
+
+    monkeypatch.setattr("prefect.artifacts.create_progress_artifact", lambda **_: UUID(int=1))
+    monkeypatch.setattr("prefect.artifacts.update_progress_artifact", lambda **_: UUID(int=1))
+    monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
+    task = SubmitCrossmatchTask(structlog.get_logger(), {"table_name": table_name, "batch_size": 1})
+    task.prepare(tasks.Config(storage=pg_storage.config))
+    try:
+        task.run()
+        new_pgc = _pgc(storage, new_id)
+        assert new_pgc is not None and new_pgc != 42
+        assert _pgc(storage, existing_id) == 42
+        assert _pgc(storage, pending_id) is None
+        assert tables[-1] == [
+            {"outcome": "submitted", "count": 2},
+            {"outcome": "new", "count": 1},
+            {"outcome": "existing", "count": 1},
+        ]
+        pgc_count = storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
+        task.run()
+    finally:
+        task.cleanup()
+    assert _pgc(storage, new_id) == new_pgc
+    assert storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"] == pgc_count
+    assert tables[-1][0]["count"] == 0

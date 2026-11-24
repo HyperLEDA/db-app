@@ -99,6 +99,20 @@ class API:
         response = self.actions.preview_crossmatch(request)
         return server.APIOkResponse(data=response)
 
+    def start_submit_crossmatch(
+        self,
+        request: spec.StartSubmitCrossmatchRequest,
+    ) -> server.APIOkResponse[spec.StartSubmitCrossmatchResponse]:
+        response = self.actions.start_submit_crossmatch(request)
+        return server.APIOkResponse(data=response)
+
+    def preview_submit_crossmatch(
+        self,
+        request: spec.PreviewSubmitCrossmatchRequest,
+    ) -> server.APIOkResponse[spec.PreviewSubmitCrossmatchResponse]:
+        response = self.actions.preview_submit_crossmatch(request)
+        return server.APIOkResponse(data=response)
+
     def set_crossmatch_results(
         self,
         request: spec.SetCrossmatchResultsRequest,
@@ -433,6 +447,26 @@ For every column that has unit metadata in the database, the request must includ
                 (
                     "Cross-identify a random sample of records in a layer 0 table against layer 2 objects "
                     "without writing anything."
+                ),
+                requires_auth=True,
+            ),
+            server.Route(
+                "/v1/tasks/submit-crossmatch",
+                http.HTTPMethod.POST,
+                api.start_submit_crossmatch,
+                "Start submit crossmatch",
+                """Start a task that assigns PGCs from resolved crossmatch results in a layer 0 table.""",
+                requires_auth=True,
+                audit_action=True,
+            ),
+            server.Route(
+                "/v1/tasks/submit-crossmatch/preview",
+                http.HTTPMethod.POST,
+                api.preview_submit_crossmatch,
+                "Preview submit crossmatch",
+                (
+                    "Count resolved crossmatch records that would be assigned a PGC, "
+                    "and return a sample, without writing anything."
                 ),
                 requires_auth=True,
             ),
