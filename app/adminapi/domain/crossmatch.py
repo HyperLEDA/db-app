@@ -96,6 +96,37 @@ class CrossmatchManager:
             )
         )
 
+    def start_submit(self, request: spec.StartSubmitCrossmatchRequest) -> spec.StartSubmitCrossmatchResponse:
+        if self._prefect is None:
+            raise InternalError("prefect client is not configured")
+        try:
+            params = spec.SubmitCrossmatchParams.model_validate(request.params)
+        except pydantic.ValidationError as exc:
+            raise RuleValidationError(str(exc)) from exc
+        return spec.StartSubmitCrossmatchResponse(
+            task_id=self._prefect.create_flow_run(
+                name="Submit crossmatch/submit-crossmatch",
+                parameters={"params": params.model_dump()},
+            )
+        )
+
+    def preview_submit(self, request: spec.PreviewSubmitCrossmatchRequest) -> spec.PreviewSubmitCrossmatchResponse:
+        try:
+            total, eligible, new_count, existing_count, rows = self._repo.preview_submit_crossmatch(
+                request.table_name, request.sample_size
+            )
+        except RuntimeError as exc:
+            if "not in layer0.tables" not in str(exc):
+                raise
+            raise NotFoundError(entity_name="table", entity=request.table_name) from exc
+        return spec.PreviewSubmitCrossmatchResponse(
+            total_count=total,
+            eligible_count=eligible,
+            new_count=new_count,
+            existing_count=existing_count,
+            rows=[spec.PreviewSubmitCrossmatchRow.model_validate(row) for row in rows],
+        )
+
     def preview(self, request: spec.PreviewCrossmatchRequest) -> spec.PreviewCrossmatchResponse:
         include_redshift = request.include_redshift
         pgc_column = request.pgc_column.strip()

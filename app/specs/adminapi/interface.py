@@ -241,6 +241,38 @@ class PreviewCrossmatchResponse(pydantic.BaseModel):
     statistics: list[PreviewCrossmatchStat]
 
 
+class SubmitCrossmatchParams(pydantic.BaseModel):
+    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    batch_size: int = pydantic.Field(default=1000, ge=1, le=10_000, description="Records submitted per batch")
+
+
+class StartSubmitCrossmatchRequest(WriteRequest):
+    params: dict[str, Any]
+
+
+class StartSubmitCrossmatchResponse(pydantic.BaseModel):
+    task_id: str
+
+
+class PreviewSubmitCrossmatchRequest(pydantic.BaseModel):
+    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    sample_size: int = pydantic.Field(default=20, ge=1, le=200, description="Eligible records returned in the sample")
+
+
+class PreviewSubmitCrossmatchRow(pydantic.BaseModel):
+    record_id: str
+    pgc: int | None = None
+    outcome: str
+
+
+class PreviewSubmitCrossmatchResponse(pydantic.BaseModel):
+    total_count: int
+    eligible_count: int
+    new_count: int
+    existing_count: int
+    rows: list[PreviewSubmitCrossmatchRow]
+
+
 class PreviewStructuredUploadRequest(pydantic.BaseModel):
     catalog: str
     table_name: str

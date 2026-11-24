@@ -189,6 +189,11 @@ class Repository(postgres.TransactionalPGRepository):
     def assign_record_pgcs(self, record_ids: list[str]) -> None:
         return self._layer0_records.assign_record_pgcs(record_ids)
 
+    def preview_submit_crossmatch(
+        self, table_name: str, sample_size: int
+    ) -> tuple[int, int, int, int, list[dict[str, Any]]]:
+        return self._layer0_records.preview_submit_crossmatch(table_name, sample_size)
+
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)
 

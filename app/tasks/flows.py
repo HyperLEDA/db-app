@@ -19,6 +19,7 @@ from app.lib import formula, structlog_config, tracing
 from app.specs import adminapi as spec
 from app.tasks import structured_upload
 from app.tasks.crossmatch.task import CrossmatchTask
+from app.tasks.submit_crossmatch.task import SubmitCrossmatchTask
 
 _tracer = trace.get_tracer("tasks")
 
@@ -270,6 +271,22 @@ def crossmatch(params: dict[str, Any]) -> None:
     run_crossmatch(params)
 
 
+def run_submit_crossmatch(params: Mapping[str, Any]) -> None:
+    log = _flow_logger()
+    task = SubmitCrossmatchTask(log, params)
+    _execute_task(task, "tasks.submit_crossmatch", {"task.table_name": str(params.get("table_name", ""))})
+
+
+@flow(
+    log_prints=False,
+    name="Submit crossmatch",
+    description="Assign PGCs for resolved crossmatch results in a layer 0 table.",
+    validate_parameters=False,
+)
+def submit_crossmatch(params: dict[str, Any]) -> None:
+    run_submit_crossmatch(params)
+
+
 def run_structured_upload(catalog: layer1.Catalog, params: Mapping[str, Any]) -> None:
     log = _flow_logger()
     task = structured_upload.StructuredCatalogUploadTask(log, catalog, params)
@@ -304,6 +321,7 @@ FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-orphan-cleanup": layer2_orphan_cleanup,
     "refresh-table-stats": refresh_table_stats,
     "crossmatch": crossmatch,
+    "submit-crossmatch": submit_crossmatch,
 }
 
 
@@ -322,6 +340,7 @@ def build_deployments(
     for schema in catalog_schemas:
         deployments.append(_catalog_deployment(schema, environ))
     deployments.append(_crossmatch_deployment())
+    deployments.append(_submit_crossmatch_deployment())
     return deployments
 
 
@@ -330,6 +349,14 @@ def _crossmatch_deployment() -> RunnerDeployment:
     deployment._parameter_openapi_schema = _openapi_for_params(spec.CrossmatchParams)  # noqa: SLF001
     if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
         raise RuntimeError("parameter schema for crossmatch is empty")
+    return deployment
+
+
+def _submit_crossmatch_deployment() -> RunnerDeployment:
+    deployment = submit_crossmatch.to_deployment(name="submit-crossmatch", enforce_parameter_schema=True)
+    deployment._parameter_openapi_schema = _openapi_for_params(spec.SubmitCrossmatchParams)  # noqa: SLF001
+    if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
+        raise RuntimeError("parameter schema for submit-crossmatch is empty")
     return deployment
 
 

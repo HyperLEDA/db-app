@@ -14,6 +14,7 @@ from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
 from app.lib.crossmatch import data as crossmatch_data
 from app.lib.crossmatch import query as crossmatch_query
+from app.lib.crossmatch import submit as crossmatch_submit
 from app.lib.crossmatch.models import ParameterMatches
 from app.lib.storage import enums, mapping, postgres
 
@@ -857,6 +858,20 @@ class Repository(postgres.TransactionalPGRepository):
 
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
         return crossmatch_data.layer2_pgcs(self._storage, pgcs)
+
+    def submit_crossmatch_table(self, table_name: str) -> tuple[int, int]:
+        table_id = layer0.require_table_id(self._storage, table_name)
+        row = self._storage.query_one(crossmatch_submit.eligible_count_query(), params=[table_id])
+        return table_id, int(row["cnt"])
+
+    def fetch_submit_crossmatch_batch(self, table_id: int, after_id: str, limit: int) -> list[dict[str, Any]]:
+        return list(self._storage.query(crossmatch_submit.page_query(), params=[table_id, after_id, limit]))
+
+    def assign_record_pgcs(self, record_ids: list[str]) -> None:
+        if not record_ids:
+            return
+        with self.with_tx():
+            crossmatch_submit.assign_record_pgcs(self._storage, record_ids)
 
     def set_crossmatch_results(
         self,
