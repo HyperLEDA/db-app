@@ -51,19 +51,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         with self.with_tx():
             crossmatch_submit.assign_record_pgcs(self._storage, record_ids)
 
-    def preview_submit_crossmatch(
-        self, table_name: str, sample_size: int
-    ) -> tuple[int, int, int, int, list[dict[str, Any]]]:
+    def preview_submit_crossmatch(self, table_name: str, sample_size: int) -> list[dict[str, Any]]:
         table_id = require_table_id(self._storage, table_name)
-        summary = self._storage.query_one(crossmatch_submit.summary_query(), params=[table_id, table_id])
         rows = self._storage.query(crossmatch_submit.sample_query(), params=[table_id, sample_size])
-        return (
-            int(summary["total_count"]),
-            int(summary["eligible_count"]),
-            int(summary["new_count"]),
-            int(summary["existing_count"]),
-            crossmatch_submit.preview_rows(list(rows)),
-        )
+        return crossmatch_submit.preview_rows(list(rows))
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert = {record_id: pgc for record_id, pgc in pgcs.items() if pgc is not None}

@@ -256,18 +256,20 @@ class StartSubmitCrossmatchResponse(pydantic.BaseModel):
 
 class PreviewSubmitCrossmatchRequest(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
-    sample_size: int = pydantic.Field(default=20, ge=1, le=200, description="Eligible records returned in the sample")
+    sample_size: int = pydantic.Field(
+        default=1000, ge=1, le=10_000, description="Eligible records sampled (usually the batch size)"
+    )
 
 
 class PreviewSubmitCrossmatchRow(pydantic.BaseModel):
     record_id: str
     pgc: int | None = None
     outcome: str
+    parameters: PreviewCrossmatchParameters
 
 
 class PreviewSubmitCrossmatchResponse(pydantic.BaseModel):
-    total_count: int
-    eligible_count: int
+    sample_count: int
     new_count: int
     existing_count: int
     rows: list[PreviewSubmitCrossmatchRow]
