@@ -266,7 +266,7 @@ class SubmitCrossmatchSelection(pydantic.BaseModel):
 
 
 class SubmitCrossmatchParams(SubmitCrossmatchSelection):
-    batch_size: int = pydantic.Field(default=1000, ge=1, le=10_000, description="Records submitted per batch")
+    batch_size: int = pydantic.Field(default=5000, ge=1, le=10_000, description="Records submitted per batch")
 
 
 class StartSubmitCrossmatchRequest(WriteRequest):
@@ -279,7 +279,7 @@ class StartSubmitCrossmatchResponse(pydantic.BaseModel):
 
 class PreviewSubmitCrossmatchRequest(SubmitCrossmatchSelection):
     sample_size: int = pydantic.Field(
-        default=1000, ge=1, le=10_000, description="Eligible records sampled (usually the batch size)"
+        default=5000, ge=1, le=10_000, description="Eligible records sampled (usually the batch size)"
     )
 
 

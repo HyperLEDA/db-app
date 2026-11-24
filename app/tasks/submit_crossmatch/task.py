@@ -27,4 +27,4 @@ class SubmitCrossmatchTask(layer2_common.Layer2StorageTask):
         def on_summary(rows: list[dict[str, Any]], description: str) -> None:
             artifacts.emit_table("submit-crossmatch-summary", rows, description)
 
-        engine.run(self.repository, params, on_progress, on_summary)
+        engine.run(self.repository, params, on_progress, on_summary, self.log)
