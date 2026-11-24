@@ -60,6 +60,10 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             WHERE c.record_id IS NULL
                OR c.triage_status != 'resolved'
                OR c.metadata::jsonb ? 'possible_matches'
+               OR (
+                    jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
+                    AND jsonb_array_length(c.metadata::jsonb -> 'candidates') > 1
+               )
         """
         join_submit = """
             FROM submit_staging s
@@ -84,9 +88,22 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             self._storage.query(f"SELECT s.record_id {join_submit} FOR UPDATE OF c, r")
             existing_rows = self._storage.query(
                 f"""
-                SELECT s.record_id::text AS record_id, (c.metadata->>'pgc')::int AS pgc
+                SELECT s.record_id::text AS record_id,
+                       CASE
+                           WHEN jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
+                                AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
+                               THEN (c.metadata::jsonb -> 'candidates' -> 0 ->> 'pgc')::int
+                           ELSE (c.metadata->>'pgc')::int
+                       END AS pgc
                 {join_submit}
-                WHERE c.metadata::jsonb ? 'pgc' AND r.pgc IS NULL
+                WHERE r.pgc IS NULL
+                  AND (
+                        (
+                            jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
+                            AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
+                        )
+                        OR c.metadata::jsonb ? 'pgc'
+                  )
                 ORDER BY s.record_id
                 """
             )

@@ -43,6 +43,23 @@ def test_crossmatch_writes_results(pg_storage: PostgresTestStorage, monkeypatch:
     assert tables[-1][0]["count"] + tables[-1][1]["count"] == 2
     assert stored == [
         {"record_id": "far", "triage": "resolved", "metadata": {}},
-        {"record_id": "near", "triage": "pending", "metadata": {"pgc": 100}},
+        {
+            "record_id": "near",
+            "triage": "pending",
+            "metadata": {
+                "candidates": [
+                    {
+                        "pgc": 100,
+                        "parameters": {
+                            "coordinates": True,
+                            "name": False,
+                            "pgc": None,
+                            "redshift": None,
+                            "nature": None,
+                        },
+                    }
+                ],
+            },
+        },
     ]
     assert modified["modification_dt"].year != 2000

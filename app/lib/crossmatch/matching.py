@@ -8,6 +8,7 @@ from app.lib.crossmatch.models import (
     MatchedRecord,
     Neighbor,
     Parameter,
+    ParameterMatches,
     RecordEvidence,
     TriageStatus,
 )
@@ -41,19 +42,34 @@ def distribution_rows(counts: Mapping[DistributionKey, int], total: int) -> list
     ]
 
 
+def candidate_pgcs(candidates: Sequence[int | tuple[int, ParameterMatches]]) -> list[int]:
+    return [candidate if isinstance(candidate, int) else candidate[0] for candidate in candidates]
+
+
 def results_to_rows(
     results: Sequence[tuple[str, CrossmatchResult]],
-) -> list[tuple[str, enums.RecordTriageStatus, list[int]]]:
-    rows: list[tuple[str, enums.RecordTriageStatus, list[int]]] = []
+) -> list[tuple[str, enums.RecordTriageStatus, list[int] | list[tuple[int, ParameterMatches]]]]:
+    rows: list[tuple[str, enums.RecordTriageStatus, list[int] | list[tuple[int, ParameterMatches]]]] = []
     for record_id, result in results:
         triage = enums.RecordTriageStatus(result.triage_status.value)
+        candidates = _row_candidates(result)
         if result.status == CrossmatchStatus.NEW:
-            rows.append((record_id, triage, []))
+            rows.append((record_id, triage, candidates))
         elif result.status == CrossmatchStatus.EXISTING and result.matched_pgc is not None:
-            rows.append((record_id, triage, [result.matched_pgc]))
+            rows.append((record_id, triage, candidates))
         elif result.status == CrossmatchStatus.COLLIDING and result.colliding_pgcs:
-            rows.append((record_id, triage, sorted(result.colliding_pgcs)))
+            rows.append((record_id, triage, candidates))
     return rows
+
+
+def _row_candidates(result: CrossmatchResult) -> list[int] | list[tuple[int, ParameterMatches]]:
+    if result.candidate_matches:
+        return [(pgc, dict(matches)) for pgc, matches in result.candidate_matches]
+    if result.status == CrossmatchStatus.EXISTING and result.matched_pgc is not None:
+        return [result.matched_pgc]
+    if result.status == CrossmatchStatus.COLLIDING and result.colliding_pgcs:
+        return sorted(result.colliding_pgcs)
+    return []
 
 
 def angular_distance_deg(ra1: float, dec1: float, ra2: float, dec2: float) -> float:

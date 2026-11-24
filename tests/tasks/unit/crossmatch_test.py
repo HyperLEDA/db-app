@@ -1,5 +1,6 @@
 import pytest
 
+from app.lib.crossmatch.data import candidates_to_metadata
 from app.lib.crossmatch.matching import distribution_key, distribution_rows, results_to_rows
 from app.lib.crossmatch.models import (
     CrossmatchResult,
@@ -9,7 +10,7 @@ from app.lib.crossmatch.models import (
     RecordEvidence,
     TriageStatus,
 )
-from app.lib.crossmatch.parameters import decide_matched
+from app.lib.crossmatch.parameters import decide_matched, parameters_payload
 from app.lib.crossmatch.resolver import Resolver
 from app.lib.storage import enums
 
@@ -202,6 +203,13 @@ def test_resolver_cases(
     if params is not None:
         for key, value in params.items():
             assert result.parameters[key] is value
+    if status == CrossmatchStatus.NEW:
+        assert result.candidate_matches == []
+    elif matched_pgc is not None:
+        assert result.candidate_matches == [(matched_pgc, result.parameters)]
+    else:
+        assert [pgc for pgc, _matches in result.candidate_matches] == colliding_pgcs
+        assert all(matches for _pgc, matches in result.candidate_matches)
 
 
 @pytest.mark.parametrize(
@@ -220,6 +228,7 @@ def test_decide_matched(matches: dict[Parameter, bool], expected: bool) -> None:
 
 def test_results_to_rows_and_distribution() -> None:
     params = {Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.NATURE: True}
+    other = {Parameter.COORDINATES: True, Parameter.NAME: False, Parameter.NATURE: False}
     rows = results_to_rows(
         [
             ("a", CrossmatchResult(status=CrossmatchStatus.NEW, triage_status=TriageStatus.RESOLVED)),
@@ -230,6 +239,7 @@ def test_results_to_rows_and_distribution() -> None:
                     triage_status=TriageStatus.RESOLVED,
                     matched_pgc=3,
                     parameters=params,
+                    candidate_matches=[(3, params)],
                 ),
             ),
             (
@@ -238,15 +248,53 @@ def test_results_to_rows_and_distribution() -> None:
                     status=CrossmatchStatus.COLLIDING,
                     triage_status=TriageStatus.PENDING,
                     colliding_pgcs=[8, 2],
+                    candidate_matches=[(2, params), (8, other)],
                 ),
             ),
         ]
     )
     assert rows == [
         ("a", enums.RecordTriageStatus.RESOLVED, []),
-        ("b", enums.RecordTriageStatus.RESOLVED, [3]),
-        ("c", enums.RecordTriageStatus.PENDING, [2, 8]),
+        ("b", enums.RecordTriageStatus.RESOLVED, [(3, params)]),
+        ("c", enums.RecordTriageStatus.PENDING, [(2, params), (8, other)]),
     ]
+    assert candidates_to_metadata(rows[0][2]) == {}
+    assert candidates_to_metadata(rows[1][2]) == {
+        "candidates": [{"pgc": 3, "parameters": parameters_payload(params)}],
+    }
+    assert candidates_to_metadata(rows[2][2]) == {
+        "candidates": [
+            {"pgc": 2, "parameters": parameters_payload(params)},
+            {"pgc": 8, "parameters": parameters_payload(other)},
+        ],
+    }
+    manual = results_to_rows(
+        [
+            (
+                "d",
+                CrossmatchResult(
+                    status=CrossmatchStatus.EXISTING,
+                    triage_status=TriageStatus.RESOLVED,
+                    matched_pgc=3,
+                    parameters=params,
+                ),
+            ),
+            (
+                "e",
+                CrossmatchResult(
+                    status=CrossmatchStatus.COLLIDING,
+                    triage_status=TriageStatus.PENDING,
+                    colliding_pgcs=[8, 2],
+                ),
+            ),
+        ]
+    )
+    assert manual == [
+        ("d", enums.RecordTriageStatus.RESOLVED, [3]),
+        ("e", enums.RecordTriageStatus.PENDING, [2, 8]),
+    ]
+    assert candidates_to_metadata([3]) == {"candidates": [{"pgc": 3}]}
+    assert candidates_to_metadata([2, 8]) == {"candidates": [{"pgc": 2}, {"pgc": 8}]}
     existing = CrossmatchResult(
         status=CrossmatchStatus.EXISTING,
         triage_status=TriageStatus.RESOLVED,

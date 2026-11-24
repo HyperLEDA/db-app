@@ -53,6 +53,7 @@ class CrossmatchResult:
     matched_pgc: int | None = None
     colliding_pgcs: list[int] | None = None
     parameters: ParameterMatches = field(default_factory=dict)
+    candidate_matches: list[tuple[int, ParameterMatches]] = field(default_factory=list)
 
 
 @dataclass
