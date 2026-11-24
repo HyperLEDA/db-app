@@ -6,6 +6,7 @@ import structlog
 
 from app.tasks import (
     layer2_common,
+    layer2_import_geometry,
     layer2_import_morphology,
     layer2_import_objects,
     layer2_import_redshift,
@@ -15,9 +16,10 @@ CATALOG_TASKS = {
     "objects": layer2_import_objects.Layer2ImportObjectsTask,
     "redshift": layer2_import_redshift.Layer2ImportRedshiftTask,
     "morphology": layer2_import_morphology.Layer2ImportMorphologyTask,
+    "geometry": layer2_import_geometry.Layer2ImportGeometryTask,
 }
 
-DEFAULT_CATALOGS: tuple[str, ...] = ("objects", "redshift", "morphology")
+DEFAULT_CATALOGS: tuple[str, ...] = ("objects", "redshift", "morphology", "geometry")
 
 
 @final

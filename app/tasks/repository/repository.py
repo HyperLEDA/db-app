@@ -234,6 +234,42 @@ class Repository(postgres.TransactionalPGRepository):
             }
         )
 
+    def get_new_geometry_records(self, dt: datetime.datetime, limit: int, offset: int) -> table.QTable:
+        geometry_table = layer1.get_catalog_object_type(layer1.Catalog.GEOMETRY).layer1_table()
+        rows = self._query_new_pgc_records(
+            geometry_table,
+            """
+            l1.a, l1.b, l1.pa, bands.id AS band, bands.waveref, t.datatype,
+            CASE WHEN l1.method = 'isophotal' THEN 'd25' ELSE 're' END AS kind
+            """,
+            dt,
+            limit,
+            offset,
+            extra_joins="""
+            JOIN layer0.tables AS t ON o.table_id = t.id
+            JOIN photometry.calib_bands AS cb ON cb.id = l1.band
+            JOIN photometry.bands AS bands ON bands.id = cb.band
+              AND bands.waveref < 15000
+              AND l1.a IS NOT NULL AND l1.b IS NOT NULL AND l1.pa IS NOT NULL
+              AND (
+                (l1.method = 'isophotal' AND l1.isophote BETWEEN 24.9 AND 25.1)
+                OR l1.level = 50
+              )
+            """,
+        )
+        return table.QTable(
+            {
+                "pgc": [int(r["pgc"]) for r in rows],
+                "a": [float(r["a"]) for r in rows],
+                "b": [float(r["b"]) for r in rows],
+                "pa": [float(r["pa"]) for r in rows],
+                "band": [str(r["band"]) for r in rows],
+                "waveref": [float(r["waveref"]) for r in rows],
+                "datatype": [r["datatype"].value for r in rows],
+                "kind": [str(r["kind"]) for r in rows],
+            }
+        )
+
     def get_error_object_types(self) -> set[str]:
         rows = self._storage.query("SELECT type_name FROM nature.object_type WHERE objclass = 'err'")
         return {str(row["type_name"]) for row in rows}

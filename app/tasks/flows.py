@@ -26,6 +26,7 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-import",
     "layer2-import-redshift",
     "layer2-import-morphology",
+    "layer2-import-geometry",
     "layer2-import-objects",
     "layer2-orphan-cleanup",
     "refresh-table-stats",
@@ -43,7 +44,7 @@ CLEANUP_ORPHANS_DESCRIPTION = (
     "Remove PGC objects that were left without corresponding records. "
     "Useful if any records were deleted or changed PGC numbers since the last update."
 )
-CATALOGS_DESCRIPTION = "Catalogs to import: objects, redshift, morphology. If not set, imports all."
+CATALOGS_DESCRIPTION = "Catalogs to import: objects, redshift, morphology, geometry. If not set, imports all."
 WRITE_ORPHANS_DESCRIPTION = (
     "If true, remove orphaned PGC objects from layer 2 tables. If false, only report how many orphans would be removed."
 )
@@ -146,7 +147,7 @@ def run_task(
 @flow(
     log_prints=False,
     name="Layer 2 import (all catalogs)",
-    description="Aggregates objects, redshift, and morphology from layer 1 into layer 2.",
+    description="Aggregates objects, redshift, morphology, and geometry from layer 1 into layer 2.",
 )
 def layer2_import(params: Layer2ImportParams = DEFAULT_LAYER2_IMPORT_PARAMS) -> None:
     run_task(
@@ -186,6 +187,23 @@ def layer2_import_morphology(
 ) -> None:
     run_task(
         "layer2-import-morphology",
+        batch_size=params.batch_size,
+        dry_run=params.dry_run,
+        since=params.since,
+        cleanup_orphans=params.cleanup_orphans,
+    )
+
+
+@flow(
+    log_prints=False,
+    name="Layer 2 import — geometry",
+    description="Compiles optical d25 and half-light ellipses from layer 1 into layer 2.",
+)
+def layer2_import_geometry(
+    params: Layer2CatalogTaskParams = DEFAULT_LAYER2_CATALOG_TASK_PARAMS,
+) -> None:
+    run_task(
+        "layer2-import-geometry",
         batch_size=params.batch_size,
         dry_run=params.dry_run,
         since=params.since,
@@ -281,6 +299,7 @@ FLOWS_BY_NAME: dict[str, Flow] = {
     "layer2-import": layer2_import,
     "layer2-import-redshift": layer2_import_redshift,
     "layer2-import-morphology": layer2_import_morphology,
+    "layer2-import-geometry": layer2_import_geometry,
     "layer2-import-objects": layer2_import_objects,
     "layer2-orphan-cleanup": layer2_orphan_cleanup,
     "refresh-table-stats": refresh_table_stats,

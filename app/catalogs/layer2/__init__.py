@@ -1,4 +1,5 @@
 from app.catalogs.layer2.additional_designations import AdditionalDesignationsCatalogObject
+from app.catalogs.layer2.geometry import GeometryCatalogObject
 from app.catalogs.layer2.helpers import get_catalog_object_type
 from app.catalogs.layer2.interface import Catalog, CatalogObject
 from app.catalogs.layer2.morphology import MorphologyCatalogObject
@@ -13,6 +14,7 @@ __all__ = [
     "AdditionalDesignationsCatalogObject",
     "Catalog",
     "CatalogObject",
+    "GeometryCatalogObject",
     "Layer2Object",
     "MorphologyCatalogObject",
     "NoteCatalogObject",

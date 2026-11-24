@@ -160,6 +160,7 @@ class PostgresTestStorage:
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'redshift')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'morphology')")
         self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'objects')")
+        self.storage.exec("INSERT INTO layer2.last_update (dt, catalog) VALUES (to_timestamp(0), 'geometry')")
 
     def get_storage(self) -> postgres.PgStorage:
         return self.storage

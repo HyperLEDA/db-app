@@ -9,6 +9,7 @@ RAW_CATALOGS = [
     layer2.Catalog.OBJECTS,
     layer2.Catalog.REDSHIFT,
     layer2.Catalog.MORPHOLOGY,
+    layer2.Catalog.GEOMETRY,
 ]
 
 

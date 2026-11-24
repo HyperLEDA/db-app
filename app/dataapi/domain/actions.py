@@ -14,6 +14,7 @@ ENABLED_CATALOGS = [
     layer2.Catalog.REDSHIFT,
     layer2.Catalog.VELOCITY,
     layer2.Catalog.MORPHOLOGY,
+    layer2.Catalog.GEOMETRY,
 ]
 
 METADATA_ALLOWED_SCHEMAS = frozenset(

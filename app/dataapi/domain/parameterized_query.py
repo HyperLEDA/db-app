@@ -13,6 +13,7 @@ CATALOGS_FOR_PGC_QUERY = [
     layer2.Catalog.REDSHIFT,
     layer2.Catalog.VELOCITY,
     layer2.Catalog.MORPHOLOGY,
+    layer2.Catalog.GEOMETRY,
     layer2.Catalog.NOTE,
     layer2.Catalog.PHOTOMETRY__TOTAL,
 ]
