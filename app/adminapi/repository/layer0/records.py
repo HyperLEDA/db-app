@@ -1,3 +1,4 @@
+import contextvars
 from concurrent import futures
 from typing import Any
 
@@ -246,10 +247,19 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         # The index path is bound by random reads; on HDD a few concurrent streams overlap the seeks.
         chunks = [record_ids[i::_CROSSMATCH_INPUT_STREAMS] for i in range(_CROSSMATCH_INPUT_STREAMS)]
         with futures.ThreadPoolExecutor(max_workers=_CROSSMATCH_INPUT_STREAMS) as executor:
-            results = executor.map(
-                lambda chunk: self._fetch_crossmatch_inputs(query, chunk, radius_deg, bulk=False), chunks
-            )
-            return [row for rows in results for row in rows]
+            # Worker threads do not inherit contextvars, which carry the tracing span; give each its own copy.
+            pending = [
+                executor.submit(
+                    contextvars.copy_context().run,
+                    self._fetch_crossmatch_inputs,
+                    query,
+                    chunk,
+                    radius_deg,
+                    bulk=False,
+                )
+                for chunk in chunks
+            ]
+            return [row for future in pending for row in future.result()]
 
     def _fetch_crossmatch_inputs(
         self, query: sql.Composable, record_ids: list[str], radius_deg: float, *, bulk: bool
