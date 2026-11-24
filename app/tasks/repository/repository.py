@@ -859,21 +859,30 @@ class Repository(postgres.TransactionalPGRepository):
     def layer2_pgcs(self, pgcs: list[int]) -> set[int]:
         return crossmatch_data.layer2_pgcs(self._storage, pgcs)
 
-    def submit_crossmatch_table(self, selection: crossmatch_submit.SubmitSelection) -> tuple[int, int]:
-        table_id = layer0.require_table_id(self._storage, selection.table_name)
-        row = self._storage.query_one(crossmatch_submit.eligible_count_query(selection), params=[table_id])
-        return table_id, int(row["cnt"])
+    @contextlib.contextmanager
+    def submit_crossmatch_plan(self, selection: crossmatch_submit.SubmitSelection) -> Generator[tuple[int, int]]:
+        # The plan is a session temp table, so every batch must run on the same connection.
+        with self._storage.get_pool().connection() as conn:
+            self._storage.set_thread_conn(conn)
+            try:
+                conn.execute("SET jit = off")
+                with conn.transaction():
+                    table_id = layer0.require_table_id(self._storage, selection.table_name)
+                    # Index lookups by record_id are random disk reads; hash joins over sequential scans are far
+                    # cheaper for whole tables.
+                    conn.execute("SET LOCAL enable_nestloop = off")
+                    total = crossmatch_submit.create_submit_plan(self._storage, table_id, selection)
+                yield table_id, total
+            finally:
+                try:
+                    crossmatch_submit.drop_submit_plan(self._storage)
+                    conn.execute("RESET jit")
+                finally:
+                    self._storage.set_thread_conn(None)
 
-    def fetch_submit_crossmatch_batch(
-        self, table_id: int, after_id: str, limit: int, selection: crossmatch_submit.SubmitSelection
-    ) -> list[dict[str, Any]]:
-        return list(self._storage.query(crossmatch_submit.page_query(selection), params=[table_id, after_id, limit]))
-
-    def assign_record_pgcs(self, record_ids: list[str]) -> None:
-        if not record_ids:
-            return
-        with self.with_tx():
-            crossmatch_submit.assign_record_pgcs(self._storage, record_ids)
+    def submit_crossmatch_batch(self, table_id: int, start: int, stop: int) -> tuple[int, int]:
+        with self._storage.get_connection().transaction():
+            return crossmatch_submit.submit_plan_batch(self._storage, table_id, start, stop)
 
     def set_crossmatch_results(
         self,

@@ -7,6 +7,7 @@ from typing import Any
 import structlog
 from opentelemetry import trace
 from prefect import flow
+from prefect.client.schemas.objects import ConcurrencyLimitConfig, ConcurrencyLimitStrategy
 from prefect.deployments.runner import RunnerDeployment
 from prefect.flows import Flow
 from prefect.logging import get_run_logger
@@ -32,6 +33,9 @@ LAYER2_TASK_NAMES: tuple[str, ...] = (
     "layer2-orphan-cleanup",
     "refresh-table-stats",
 )
+
+# Scheduled runs that outlast their interval would otherwise pile up and compete for disk I/O.
+SCHEDULED_CONCURRENCY = ConcurrencyLimitConfig(limit=1, collision_strategy=ConcurrencyLimitStrategy.CANCEL_NEW)
 
 BATCH_SIZE_DESCRIPTION = "Number of distinct PGC objects fetched in a single query"
 DRY_RUN_DESCRIPTION = (
@@ -336,7 +340,9 @@ def build_deployments(
         if cron is None:
             deployments.append(flow_fn.to_deployment(name=task_name))
         else:
-            deployments.append(flow_fn.to_deployment(name=task_name, cron=cron))
+            deployments.append(
+                flow_fn.to_deployment(name=task_name, cron=cron, concurrency_limit=SCHEDULED_CONCURRENCY)
+            )
     for schema in catalog_schemas:
         deployments.append(_catalog_deployment(schema, environ))
     deployments.append(_crossmatch_deployment())
@@ -367,7 +373,9 @@ def _catalog_deployment(schema: spec.CatalogSchema, environ: Mapping[str, str] |
     if cron is None:
         deployment = flow_fn.to_deployment(name=name, enforce_parameter_schema=True)
     else:
-        deployment = flow_fn.to_deployment(name=name, cron=cron, enforce_parameter_schema=True)
+        deployment = flow_fn.to_deployment(
+            name=name, cron=cron, enforce_parameter_schema=True, concurrency_limit=SCHEDULED_CONCURRENCY
+        )
     parameter_schema_doc = _openapi_for_params(structured_upload.build_catalog_params_model(schema))
     deployment._parameter_openapi_schema = parameter_schema_doc  # noqa: SLF001
     if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
