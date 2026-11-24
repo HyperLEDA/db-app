@@ -9,58 +9,67 @@ from app.lib.storage import postgres, sql_row_filter
 
 _PARAMETER_NAMES = frozenset(parameter.value for parameter in PARAMETER_ORDER)
 
+META = sql.SQL("meta.j")
+
 MULTI_CANDIDATE = sql.SQL(
     """
     COALESCE(
-        jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-        AND jsonb_array_length(c.metadata::jsonb -> 'candidates') > 1,
+        jsonb_typeof({meta} -> 'candidates') = 'array'
+        AND jsonb_array_length({meta} -> 'candidates') > 1,
         false
     )
     """
-)
+).format(meta=META)
 
 ELIGIBLE = sql.SQL(
     """
     r.pgc IS NULL
     AND c.triage_status = 'resolved'
-    AND NOT (c.metadata::jsonb ? 'possible_matches')
+    AND NOT ({meta} ? 'possible_matches')
     AND NOT ({multi})
     """
-).format(multi=MULTI_CANDIDATE)
+).format(meta=META, multi=MULTI_CANDIDATE)
 
-IS_NEW = sql.SQL("c.metadata::jsonb = '{}'::jsonb")
+COUNT_ELIGIBLE = sql.SQL(
+    """
+    r.pgc IS NULL
+    AND c.triage_status = 'resolved'
+    """
+)
+
+IS_NEW = sql.SQL("{meta} = '{{}}'::jsonb").format(meta=META)
 
 IS_EXISTING = sql.SQL(
     """
     (
-        jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-        AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
+        jsonb_typeof({meta} -> 'candidates') = 'array'
+        AND jsonb_array_length({meta} -> 'candidates') = 1
     )
-    OR c.metadata::jsonb ? 'pgc'
+    OR {meta} ? 'pgc'
     """
-)
+).format(meta=META)
 
 CANDIDATE_PGC = sql.SQL(
     """
     CASE
-        WHEN jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-             AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
-            THEN (c.metadata::jsonb -> 'candidates' -> 0 ->> 'pgc')::int
-        ELSE (c.metadata->>'pgc')::int
+        WHEN jsonb_typeof({meta} -> 'candidates') = 'array'
+             AND jsonb_array_length({meta} -> 'candidates') = 1
+            THEN ({meta} -> 'candidates' -> 0 ->> 'pgc')::int
+        ELSE ({meta} ->> 'pgc')::int
     END
     """
-)
+).format(meta=META)
 
 CANDIDATE_PARAMETERS = sql.SQL(
     """
     CASE
-        WHEN jsonb_typeof(c.metadata::jsonb -> 'candidates') = 'array'
-             AND jsonb_array_length(c.metadata::jsonb -> 'candidates') = 1
-            THEN c.metadata::jsonb -> 'candidates' -> 0 -> 'parameters'
+        WHEN jsonb_typeof({meta} -> 'candidates') = 'array'
+             AND jsonb_array_length({meta} -> 'candidates') = 1
+            THEN {meta} -> 'candidates' -> 0 -> 'parameters'
         ELSE NULL
     END
     """
-)
+).format(meta=META)
 
 OUTCOME = sql.SQL(
     """
@@ -72,12 +81,15 @@ OUTCOME = sql.SQL(
     """
 ).format(is_new=IS_NEW, is_existing=IS_EXISTING)
 
+_META_LATERAL = sql.SQL("CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta")
+
 _FROM_CROSSMATCH = sql.SQL(
     """
     FROM layer0.records r
     JOIN layer0.crossmatch c ON c.record_id = r.id
+    {meta}
     """
-)
+).format(meta=_META_LATERAL)
 
 
 class AssignRecordPgcsPreconditionError(Exception):
@@ -136,7 +148,7 @@ def sample_query(selection: SubmitSelection) -> sql.Composed:
 
 
 def eligible_count_query(selection: SubmitSelection) -> sql.Composed:
-    frm, predicate = _filtered(selection)
+    frm, predicate = _filtered(selection, for_count=True)
     return sql.SQL(
         """
         SELECT COUNT(*)::int AS cnt
@@ -155,6 +167,7 @@ def estimate_eligible_rate_query(selection: SubmitSelection) -> sql.Composed:
                 SELECT COALESCE(({passes}), false) AS passes
                 FROM layer0.records r TABLESAMPLE SYSTEM (%s)
                 LEFT JOIN layer0.crossmatch c ON c.record_id = r.id
+                CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta
                 WHERE r.table_id = %s
             )
             SELECT
@@ -169,6 +182,7 @@ def estimate_eligible_rate_query(selection: SubmitSelection) -> sql.Composed:
             FROM {raw} raw TABLESAMPLE SYSTEM (%s)
             JOIN layer0.records r ON r.id = raw.{id_col}
             LEFT JOIN layer0.crossmatch c ON c.record_id = r.id
+            CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta
             WHERE r.table_id = %s AND ({row_filter})
         )
         SELECT
@@ -196,24 +210,36 @@ def page_query(selection: SubmitSelection) -> sql.Composed:
     ).format(outcome=OUTCOME, frm=frm, predicate=predicate)
 
 
-def _filtered(selection: SubmitSelection) -> tuple[sql.Composable, sql.Composable]:
+def _filtered(selection: SubmitSelection, *, for_count: bool = False) -> tuple[sql.Composable, sql.Composable]:
+    outcome = _outcome_predicate(selection)
+    needs_meta = not for_count or outcome is not None
     if selection.row_filter is None:
-        frm: sql.Composable = _FROM_CROSSMATCH
+        frm: sql.Composable = (
+            _FROM_CROSSMATCH
+            if needs_meta
+            else sql.SQL(
+                """
+                FROM layer0.records r
+                JOIN layer0.crossmatch c ON c.record_id = r.id
+                """
+            )
+        )
     else:
         frm = sql.SQL(
             """
             FROM layer0.records r
             JOIN layer0.crossmatch c ON c.record_id = r.id
+            {meta}
             JOIN {raw} raw ON raw.{id_col} = r.id
             """
         ).format(
+            meta=_META_LATERAL if needs_meta else sql.SQL(""),
             raw=sql.SQL("{}.{}").format(sql.Identifier("rawdata"), sql.Identifier(selection.table_name)),
             id_col=sql.Identifier("hyperleda_internal_id"),
         )
-    parts: list[sql.Composable] = [ELIGIBLE]
+    parts: list[sql.Composable] = [COUNT_ELIGIBLE if for_count else ELIGIBLE]
     if selection.row_filter is not None:
         parts.append(selection.row_filter)
-    outcome = _outcome_predicate(selection)
     if outcome is not None:
         parts.append(outcome)
     return frm, sql.SQL(" AND ").join(parts)
@@ -267,19 +293,13 @@ def assign_record_pgcs(storage: postgres.PgStorage, record_ids: list[str]) -> No
         """
         FROM submit_staging s
         LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
+        CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta
         WHERE c.record_id IS NULL
            OR c.triage_status != 'resolved'
-           OR c.metadata::jsonb ? 'possible_matches'
+           OR meta.j ? 'possible_matches'
            OR ({multi})
         """
     ).format(multi=MULTI_CANDIDATE)
-    join_submit = sql.SQL(
-        """
-        FROM submit_staging s
-        JOIN layer0.crossmatch c ON c.record_id = s.record_id
-        JOIN layer0.records r ON r.id = s.record_id
-        """
-    )
     with storage.get_connection().cursor() as cur:
         cur.execute("CREATE TEMP TABLE submit_staging (record_id text PRIMARY KEY) ON COMMIT DROP")
         with cur.copy("COPY submit_staging (record_id) FROM STDIN") as copy:
@@ -296,56 +316,113 @@ def assign_record_pgcs(storage: postgres.PgStorage, record_ids: list[str]) -> No
             count=int(count_row["cnt"]),
         )
 
-    storage.query(sql.SQL("SELECT s.record_id {join} FOR UPDATE OF c, r").format(join=join_submit))
-    existing_rows = storage.query(
-        sql.SQL(
-            """
-            SELECT s.record_id::text AS record_id, {pgc} AS pgc
-            {join}
-            WHERE r.pgc IS NULL AND ({existing})
-            ORDER BY s.record_id
-            """
-        ).format(pgc=CANDIDATE_PGC, join=join_submit, existing=IS_EXISTING)
+    storage.exec("SET LOCAL synchronous_commit = off")
+    storage.query(
+        """
+        SELECT r.id
+        FROM submit_staging s
+        JOIN layer0.crossmatch c ON c.record_id = s.record_id
+        JOIN layer0.records r ON r.id = s.record_id
+        FOR UPDATE OF r
+        """
     )
-    new_rows = storage.query(
-        sql.SQL(
-            """
-            SELECT s.record_id::text AS record_id
-            {join}
-            WHERE {is_new} AND r.pgc IS NULL
-            ORDER BY s.record_id
-            """
-        ).format(join=join_submit, is_new=IS_NEW)
+    storage.exec(
+        """
+        CREATE TEMP TABLE submit_assign (
+            record_id text PRIMARY KEY,
+            table_id int NOT NULL,
+            pgc int NOT NULL
+        ) ON COMMIT DROP
+        """
+    )
+    storage.exec(
+        """
+        WITH classified AS (
+            SELECT
+                r.id AS record_id,
+                r.table_id,
+                CASE
+                    WHEN meta.j = '{}'::jsonb THEN NULL
+                    WHEN jsonb_typeof(meta.j -> 'candidates') = 'array'
+                         AND jsonb_array_length(meta.j -> 'candidates') = 1
+                        THEN (meta.j -> 'candidates' -> 0 ->> 'pgc')::int
+                    WHEN meta.j ? 'pgc' THEN (meta.j ->> 'pgc')::int
+                    ELSE NULL
+                END AS existing_pgc,
+                meta.j = '{}'::jsonb AS is_new
+            FROM submit_staging s
+            JOIN layer0.crossmatch c ON c.record_id = s.record_id
+            JOIN layer0.records r ON r.id = s.record_id
+            CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta
+            WHERE r.pgc IS NULL
+              AND (
+                    meta.j = '{}'::jsonb
+                    OR (
+                        jsonb_typeof(meta.j -> 'candidates') = 'array'
+                        AND jsonb_array_length(meta.j -> 'candidates') = 1
+                    )
+                    OR meta.j ? 'pgc'
+              )
+        ),
+        new_rows AS (
+            SELECT record_id, row_number() OVER (ORDER BY record_id) AS rn
+            FROM classified
+            WHERE is_new
+        ),
+        minted AS (
+            INSERT INTO common.pgc (id)
+            SELECT nextval(pg_get_serial_sequence('common.pgc', 'id'))
+            FROM new_rows
+            RETURNING id
+        ),
+        minted_rn AS (
+            SELECT id, row_number() OVER (ORDER BY id) AS rn FROM minted
+        )
+        INSERT INTO submit_assign (record_id, table_id, pgc)
+        SELECT c.record_id, c.table_id, COALESCE(c.existing_pgc, m.id)
+        FROM classified c
+        LEFT JOIN new_rows n ON n.record_id = c.record_id
+        LEFT JOIN minted_rn m ON m.rn = n.rn
+        """
     )
 
-    pgcs_to_insert = {row["record_id"]: int(row["pgc"]) for row in existing_rows}
-    if new_rows:
-        for row, pgc_id in zip(new_rows, _mint_pgc_ids(storage, len(new_rows)), strict=True):
-            pgcs_to_insert[row["record_id"]] = pgc_id
-    if pgcs_to_insert:
-        record_ids_to_update = list(pgcs_to_insert.keys())
-        table_ids = [
-            int(row["table_id"])
-            for row in storage.query(
-                "SELECT DISTINCT table_id FROM layer0.records WHERE id = ANY(%s)",
-                params=[record_ids_to_update],
-            )
-        ]
-        storage.execute_batch(
-            "UPDATE layer0.records SET pgc = v.pgc "
-            "FROM (VALUES (%s, %s)) AS v(record_id, pgc) "
-            "WHERE layer0.records.id = v.record_id AND layer0.records.pgc IS NULL",
-            [[record_id, pgc_id] for record_id, pgc_id in pgcs_to_insert.items()],
+    missing = storage.query(
+        """
+        SELECT a.record_id::text AS record_id
+        FROM submit_assign a
+        WHERE NOT EXISTS (SELECT 1 FROM common.pgc p WHERE p.id = a.pgc)
+        LIMIT 101
+        """
+    )
+    if missing:
+        count_row = storage.query_one(
+            """
+            SELECT COUNT(*)::int AS cnt
+            FROM submit_assign a
+            WHERE NOT EXISTS (SELECT 1 FROM common.pgc p WHERE p.id = a.pgc)
+            """
         )
+        raise AssignRecordPgcsPreconditionError(
+            sample=[row["record_id"] for row in missing[:100]],
+            count=int(count_row["cnt"]),
+        )
+
+    storage.exec("SET LOCAL session_replication_role = replica")
+    storage.exec(
+        """
+        UPDATE layer0.records r
+        SET pgc = a.pgc
+        FROM submit_assign a
+        WHERE r.id = a.record_id AND r.pgc IS NULL
+        """
+    )
+    storage.exec("INSERT INTO common.pgc_changes (pgc) SELECT DISTINCT pgc FROM submit_assign")
+    table_ids = [int(row["table_id"]) for row in storage.query("SELECT DISTINCT table_id FROM submit_assign")]
+    if table_ids:
         storage.exec(
-            "INSERT INTO common.pgc_changes (pgc) SELECT unnest(%s::int[])",
-            params=[sorted(set(pgcs_to_insert.values()))],
+            "UPDATE layer0.tables SET modification_dt = now() WHERE id = ANY(%s)",
+            params=[table_ids],
         )
-        if table_ids:
-            storage.exec(
-                "UPDATE layer0.tables SET modification_dt = now() WHERE id = ANY(%s)",
-                params=[table_ids],
-            )
 
 
 def _preview_parameters(raw: Any) -> dict[str, bool | None]:
@@ -363,12 +440,3 @@ def preview_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         }
         for row in rows
     ]
-
-
-def _mint_pgc_ids(storage: postgres.PgStorage, count: int) -> list[int]:
-    rows = storage.query(
-        f"""INSERT INTO common.pgc (id)
-        VALUES {",".join(["(DEFAULT)"] * count)}
-        RETURNING id"""
-    )
-    return [int(row["id"]) for row in rows]

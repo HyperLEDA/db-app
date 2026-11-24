@@ -21,7 +21,7 @@ def test_start_submit_crossmatch() -> None:
                 "include_new": True,
                 "include_existing": True,
                 "require_parameters": [],
-                "batch_size": 1000,
+                "batch_size": 5000,
             }
         },
     )
