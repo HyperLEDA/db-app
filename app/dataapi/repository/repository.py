@@ -16,6 +16,7 @@ _ONE_TO_ONE_CATALOGS = frozenset(
         layer2.Catalog.OBJECTS,
         layer2.Catalog.REDSHIFT,
         layer2.Catalog.MORPHOLOGY,
+        layer2.Catalog.GEOMETRY,
     }
 )
 
@@ -304,6 +305,7 @@ class Repository(postgres.TransactionalPGRepository):
                 one_to_one_maps.objects,
                 one_to_one_maps.redshift,
                 one_to_one_maps.morphology,
+                one_to_one_maps.geometry,
                 notes_map,
                 photometry_total_map,
                 velocity_map,
@@ -425,14 +427,16 @@ class _OneToOneMaps:
         objects: dict[int, model.ObjectsCatalog],
         redshift: dict[int, model.RedshiftCatalog],
         morphology: dict[int, model.MorphologyCatalog],
+        geometry: dict[int, model.GeometryCatalog],
     ) -> None:
         self.objects = objects
         self.redshift = redshift
         self.morphology = morphology
+        self.geometry = geometry
 
     @classmethod
     def empty(cls) -> "_OneToOneMaps":
-        return cls({}, {}, {})
+        return cls({}, {}, {}, {})
 
 
 def _optional_float(value: Any) -> float | None:
@@ -448,6 +452,7 @@ def _parse_one_to_one_rows(
     objects: dict[int, model.ObjectsCatalog] = {}
     redshift: dict[int, model.RedshiftCatalog] = {}
     morphology: dict[int, model.MorphologyCatalog] = {}
+    geometry: dict[int, model.GeometryCatalog] = {}
 
     for row in rows:
         pgc = int(row["pgc"])
@@ -494,8 +499,20 @@ def _parse_one_to_one_rows(
                         em=None if em is None else float(em),
                         ep=None if ep is None else float(ep),
                     )
+            elif catalog == layer2.Catalog.GEOMETRY:
+                a25 = _optional_float(data.get("a25"))
+                a_re = _optional_float(data.get("a_re"))
+                if a25 is not None or a_re is not None:
+                    geometry[pgc] = model.GeometryCatalog(
+                        a25=a25,
+                        b25=_optional_float(data.get("b25")),
+                        pa25=_optional_float(data.get("pa25")),
+                        a_re=a_re,
+                        b_re=_optional_float(data.get("b_re")),
+                        pa_re=_optional_float(data.get("pa_re")),
+                    )
 
-    return _OneToOneMaps(objects, redshift, morphology)
+    return _OneToOneMaps(objects, redshift, morphology, geometry)
 
 
 def _layer2_object_from_maps(
@@ -505,6 +522,7 @@ def _layer2_object_from_maps(
     objects_map: dict[int, model.ObjectsCatalog],
     redshift_map: dict[int, model.RedshiftCatalog],
     morphology_map: dict[int, model.MorphologyCatalog],
+    geometry_map: dict[int, model.GeometryCatalog],
     notes_map: dict[int, model.NotesCatalog],
     photometry_total_map: dict[int, model.PhotometryTotalCatalog],
     velocity_map: dict[int, dict[str, model.Velocity]],
@@ -515,6 +533,7 @@ def _layer2_object_from_maps(
     objects = objects_map.get(pgc) if layer2.Catalog.OBJECTS in raw_catalogs else None
     redshift = redshift_map.get(pgc) if layer2.Catalog.REDSHIFT in raw_catalogs else None
     morphology = morphology_map.get(pgc) if layer2.Catalog.MORPHOLOGY in raw_catalogs else None
+    geometry = geometry_map.get(pgc) if layer2.Catalog.GEOMETRY in raw_catalogs else None
     notes = notes_map.get(pgc) if layer2.Catalog.NOTE in raw_catalogs else None
     photometry_total = photometry_total_map.get(pgc) if layer2.Catalog.PHOTOMETRY__TOTAL in raw_catalogs else None
     velocity = velocity_map.get(pgc) if layer2.Catalog.VELOCITY in raw_catalogs else None
@@ -526,6 +545,7 @@ def _layer2_object_from_maps(
             objects=objects,
             redshift=redshift,
             morphology=morphology,
+            geometry=geometry,
             notes=notes,
             photometry_total=photometry_total,
             velocity=velocity,

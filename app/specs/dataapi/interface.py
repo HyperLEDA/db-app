@@ -21,6 +21,7 @@ __all__ = [
     "EquatorialCoordinatesUnits",
     "GalacticCoordinates",
     "GalacticCoordinatesUnits",
+    "Geometry",
     "J2000Coordinate",
     "ListReddeningReferencesResponse",
     "Morphology",
@@ -142,6 +143,15 @@ class Morphology(pydantic.BaseModel):
     ep: float | None = None
 
 
+class Geometry(pydantic.BaseModel):
+    a25: float | None = None
+    b25: float | None = None
+    pa25: float | None = None
+    a_re: float | None = None
+    b_re: float | None = None
+    pa_re: float | None = None
+
+
 class Catalogs(pydantic.BaseModel):
     designation: Designation | None = None
     additional_designations: list[AdditionalDesignation] | None = None
@@ -150,6 +160,7 @@ class Catalogs(pydantic.BaseModel):
     redshift: Redshift | None = None
     nature: Nature | None = None
     morphology: Morphology | None = None
+    geometry: Geometry | None = None
     notes: list[NoteEntry] | None = None
     photometry_total: list[PhotometryTotalMeasurement] | None = None
     photometry_total_corrected: list[PhotometryTotalMeasurement] | None = None
@@ -311,7 +322,7 @@ class QuerySimpleRequest(pydantic.BaseModel):
     catalogs: list[str] | None = pydantic.Field(
         default=None,
         description=(
-            "Catalogs to include in the response (e.g. designation, icrs, redshift, nature, morphology). "
+            "Catalogs to include in the response (e.g. designation, icrs, redshift, nature, morphology, geometry). "
             "If omitted, default set of catalogs is returned."
         ),
     )

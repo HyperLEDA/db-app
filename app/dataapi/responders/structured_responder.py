@@ -69,6 +69,25 @@ def _redshift_from_cz(cz: float, e_cz: float) -> spec.Redshift:
     )
 
 
+def _geometry_spec(
+    a25: float | None,
+    b25: float | None,
+    pa25: float | None,
+    a_re: float | None,
+    b_re: float | None,
+    pa_re: float | None,
+) -> spec.Geometry:
+    return spec.Geometry(a25=a25, b25=b25, pa25=pa25, a_re=a_re, b_re=b_re, pa_re=pa_re)
+
+
+def _geometry_from_catalog(geometry: layer2.GeometryCatalogObject) -> spec.Geometry:
+    return _geometry_spec(geometry.a25, geometry.b25, geometry.pa25, geometry.a_re, geometry.b_re, geometry.pa_re)
+
+
+def _geometry_from_model(geometry: model.GeometryCatalog) -> spec.Geometry:
+    return _geometry_spec(geometry.a25, geometry.b25, geometry.pa25, geometry.a_re, geometry.b_re, geometry.pa_re)
+
+
 def _photometry_total_measurement(measurement: model.PhotometryTotalMeasurement) -> spec.PhotometryTotalMeasurement:
     return spec.PhotometryTotalMeasurement(
         band=measurement.band,
@@ -173,6 +192,9 @@ class StructuredResponder(interface.ObjectResponder):
             if (morphology := obj.get(layer2.MorphologyCatalogObject)) is not None:
                 result.morphology = spec.Morphology(t=morphology.t, em=morphology.em, ep=morphology.ep)
 
+            if (geometry := obj.get(layer2.GeometryCatalogObject)) is not None:
+                result.geometry = _geometry_from_catalog(geometry)
+
             pgc_objects.append(spec.PGCObject(pgc=obj.pgc, catalogs=result))
 
         return spec.QuerySimpleResponse(objects=pgc_objects, schema=catalog_schema)
@@ -215,6 +237,9 @@ class StructuredResponder(interface.ObjectResponder):
                     em=obj.catalogs.morphology.em,
                     ep=obj.catalogs.morphology.ep,
                 )
+
+            if obj.catalogs.geometry is not None:
+                catalogs.geometry = _geometry_from_model(obj.catalogs.geometry)
 
             if obj.catalogs.notes is not None:
                 catalogs.notes = [

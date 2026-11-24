@@ -36,6 +36,16 @@ class MorphologyCatalog:
 
 
 @dataclass
+class GeometryCatalog:
+    a25: float | None
+    b25: float | None
+    pa25: float | None
+    a_re: float | None
+    b_re: float | None
+    pa_re: float | None
+
+
+@dataclass
 class Source:
     bibcode: str
     title: str
@@ -88,6 +98,7 @@ class Catalogs:
     objects: ObjectsCatalog | None = None
     redshift: RedshiftCatalog | None = None
     morphology: MorphologyCatalog | None = None
+    geometry: GeometryCatalog | None = None
     notes: NotesCatalog | None = None
     photometry_total: PhotometryTotalCatalog | None = None
     velocity: dict[str, Velocity] | None = None
@@ -103,6 +114,7 @@ __all__ = [
     "AdditionalDesignation",
     "AdditionalDesignationsCatalog",
     "Catalogs",
+    "GeometryCatalog",
     "Layer2Object",
     "MorphologyCatalog",
     "NoteEntry",

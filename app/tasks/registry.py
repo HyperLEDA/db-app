@@ -5,6 +5,7 @@ import structlog
 from app.tasks import (
     interface,
     layer2_import,
+    layer2_import_geometry,
     layer2_import_morphology,
     layer2_import_objects,
     layer2_import_redshift,
@@ -14,6 +15,7 @@ from app.tasks import (
 
 tasks: list[type[interface.Task]] = [
     layer2_import.Layer2ImportTask,
+    layer2_import_geometry.Layer2ImportGeometryTask,
     layer2_import_morphology.Layer2ImportMorphologyTask,
     layer2_import_objects.Layer2ImportObjectsTask,
     layer2_import_redshift.Layer2ImportRedshiftTask,

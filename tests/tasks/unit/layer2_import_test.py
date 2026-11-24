@@ -10,6 +10,7 @@ from app.tasks import (
     interface,
     layer2_common,
     layer2_import,
+    layer2_import_geometry,
     layer2_import_morphology,
     layer2_import_redshift,
 )
@@ -113,6 +114,128 @@ def test_morphology_per_pgc_compilation_filtering() -> None:
     assert float(agg["t"][by_pgc[2]]) == pytest.approx(2.0)
 
 
+def _geometry_table(
+    pgc: list[int],
+    a: list[float],
+    b: list[float],
+    pa: list[float],
+    band: list[str],
+    waveref: list[float],
+    datatype: list[str],
+    kind: list[str],
+) -> table.QTable:
+    return table.QTable(
+        {
+            "pgc": pgc,
+            "a": a,
+            "b": b,
+            "pa": pa,
+            "band": band,
+            "waveref": waveref,
+            "datatype": datatype,
+            "kind": kind,
+        }
+    )
+
+
+def _geometry_row(agg: table.QTable, pgc: int) -> int:
+    return {int(value): i for i, value in enumerate(agg["pgc"])}[pgc]
+
+
+def test_aggregate_geometry_means_and_prefers_b() -> None:
+    agg = layer2_import_geometry.aggregate_geometry(
+        _geometry_table(
+            [1, 1, 2, 2, 2],
+            [10.0, 30.0, 10.0, 20.0, 40.0],
+            [5.0, 15.0, 8.0, 10.0, 20.0],
+            [10.0, 30.0, 80.0, 100.0, 90.0],
+            ["r_DECam", "g_DECam", "B", "r_DECam", "g_DECam"],
+            [6400.0, 4800.0, 4400.0, 6400.0, 4800.0],
+            ["regular", "regular", "regular", "regular", "regular"],
+            ["re", "re", "d25", "d25", "d25"],
+        )
+    )
+    re = _geometry_row(agg, 1)
+    assert float(agg["a_re"][re]) == pytest.approx(20.0)
+    assert float(agg["b_re"][re]) == pytest.approx(10.0)
+    assert float(agg["pa_re"][re]) == pytest.approx(20.0)
+    assert agg["a25"][re] is None
+
+    d25 = _geometry_row(agg, 2)
+    assert float(agg["a25"][d25]) == pytest.approx(10.0)
+    assert float(agg["b25"][d25]) == pytest.approx(8.0)
+    assert float(agg["pa25"][d25]) == pytest.approx(80.0)
+    assert agg["a_re"][d25] is None
+
+
+def test_aggregate_geometry_falls_back_when_b_missing() -> None:
+    agg = layer2_import_geometry.aggregate_geometry(
+        _geometry_table(
+            [1, 1],
+            [20.0, 30.0],
+            [10.0, 12.0],
+            [20.0, 40.0],
+            ["r_DECam", "g_DECam"],
+            [6400.0, 4800.0],
+            ["regular", "regular"],
+            ["d25", "d25"],
+        )
+    )
+    assert float(agg["a25"][0]) == pytest.approx(25.0)
+    assert float(agg["b25"][0]) == pytest.approx(11.0)
+    assert float(agg["pa25"][0]) == pytest.approx(30.0)
+
+
+def test_aggregate_geometry_compilation_is_independent_per_set() -> None:
+    agg = layer2_import_geometry.aggregate_geometry(
+        _geometry_table(
+            [1, 1, 1],
+            [10.0, 100.0, 6.0],
+            [5.0, 50.0, 3.0],
+            [20.0, 40.0, 10.0],
+            ["B", "B", "r_DECam"],
+            [4400.0, 4400.0, 6400.0],
+            ["regular", "compilation", "compilation"],
+            ["d25", "d25", "re"],
+        )
+    )
+    assert float(agg["a25"][0]) == pytest.approx(10.0)
+    assert float(agg["a_re"][0]) == pytest.approx(6.0)
+
+
+def test_aggregate_geometry_pa_wraps_at_180() -> None:
+    agg = layer2_import_geometry.aggregate_geometry(
+        _geometry_table(
+            [1, 1],
+            [10.0, 12.0],
+            [5.0, 6.0],
+            [10.0, 170.0],
+            ["B", "B"],
+            [4400.0, 4400.0],
+            ["regular", "regular"],
+            ["d25", "d25"],
+        )
+    )
+    assert float(agg["pa25"][0]) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_aggregate_geometry_drops_non_optical() -> None:
+    agg = layer2_import_geometry.aggregate_geometry(
+        _geometry_table(
+            [1, 1],
+            [10.0, 80.0],
+            [5.0, 40.0],
+            [20.0, 30.0],
+            ["B", "W1"],
+            [4400.0, 33526.0],
+            ["regular", "regular"],
+            ["d25", "d25"],
+        )
+    )
+    assert len(agg) == 1
+    assert float(agg["a25"][0]) == pytest.approx(10.0)
+
+
 def test_morphology_null_uncertainties() -> None:
     agg = layer2_import_morphology.aggregate_morphology(
         _morphology_table(
@@ -143,6 +266,7 @@ def test_layer2_import_catalogs(catalogs: list[str] | None, expected: list[str])
     assert task.catalogs == expected
     if catalogs is None:
         assert "morphology" in task.catalogs
+        assert "geometry" in task.catalogs
 
 
 def test_unknown_catalog_raises() -> None:
