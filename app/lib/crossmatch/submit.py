@@ -21,21 +21,11 @@ MULTI_CANDIDATE = sql.SQL(
     """
 ).format(meta=META)
 
-ELIGIBLE = sql.SQL(
-    """
-    r.pgc IS NULL
-    AND c.triage_status = 'resolved'
-    AND NOT ({meta} ? 'possible_matches')
-    AND NOT ({multi})
-    """
-).format(meta=META, multi=MULTI_CANDIDATE)
+ELIGIBLE_ROW = sql.SQL("r.pgc IS NULL AND c.triage_status = 'resolved'")
 
-COUNT_ELIGIBLE = sql.SQL(
-    """
-    r.pgc IS NULL
-    AND c.triage_status = 'resolved'
-    """
-)
+ELIGIBLE_META = sql.SQL("NOT ({meta} ? 'possible_matches') AND NOT ({multi})").format(meta=META, multi=MULTI_CANDIDATE)
+
+ELIGIBLE = sql.SQL("{row} AND {meta}").format(row=ELIGIBLE_ROW, meta=ELIGIBLE_META)
 
 IS_NEW = sql.SQL("{meta} = '{{}}'::jsonb").format(meta=META)
 
@@ -147,17 +137,6 @@ def sample_query(selection: SubmitSelection) -> sql.Composed:
     )
 
 
-def eligible_count_query(selection: SubmitSelection) -> sql.Composed:
-    frm, predicate = _filtered(selection, for_count=True)
-    return sql.SQL(
-        """
-        SELECT COUNT(*)::int AS cnt
-        {frm}
-        WHERE r.table_id = %s AND {predicate}
-        """
-    ).format(frm=frm, predicate=predicate)
-
-
 def estimate_eligible_rate_query(selection: SubmitSelection) -> sql.Composed:
     passes = _passes_expression(selection)
     if selection.row_filter is None:
@@ -197,33 +176,85 @@ def estimate_eligible_rate_query(selection: SubmitSelection) -> sql.Composed:
     )
 
 
-def page_query(selection: SubmitSelection) -> sql.Composed:
-    frm, predicate = _filtered(selection)
+def create_plan_query(selection: SubmitSelection) -> sql.Composed:
+    row_parts: list[sql.Composable] = [ELIGIBLE_ROW]
+    raw_join: sql.Composable = sql.SQL("")
+    if selection.row_filter is not None:
+        row_parts.append(selection.row_filter)
+        raw_join = sql.SQL("JOIN {raw} raw ON raw.{id_col} = r.id").format(
+            raw=sql.SQL("{}.{}").format(sql.Identifier("rawdata"), sql.Identifier(selection.table_name)),
+            id_col=sql.Identifier("hyperleda_internal_id"),
+        )
+    meta_parts: list[sql.Composable] = [ELIGIBLE_META]
+    outcome = _outcome_predicate(selection)
+    if outcome is not None:
+        meta_parts.append(outcome)
+    # OFFSET 0 keeps the subquery from being flattened so metadata is parsed into jsonb once per row
+    # instead of once per predicate.
     return sql.SQL(
         """
-        SELECT r.id::text AS record_id, {outcome} AS outcome
-        {frm}
-        WHERE r.table_id = %s AND r.id > %s AND {predicate}
-        ORDER BY r.id ASC
-        LIMIT %s
+        CREATE TEMP TABLE submit_plan AS
+        SELECT
+            row_number() OVER (ORDER BY meta.rid) AS n,
+            meta.rid,
+            meta.record_id,
+            CASE WHEN {is_new} THEN NULL ELSE {pgc} END AS pgc
+        FROM (
+            SELECT r.ctid AS rid, r.id AS record_id, c.metadata::jsonb AS j
+            FROM layer0.records r
+            JOIN layer0.crossmatch c ON c.record_id = r.id
+            {raw_join}
+            WHERE r.table_id = %s AND {row_predicate}
+            OFFSET 0
+        ) meta
+        WHERE {meta_predicate}
+        ORDER BY meta.rid
         """
-    ).format(outcome=OUTCOME, frm=frm, predicate=predicate)
+    ).format(
+        is_new=IS_NEW,
+        pgc=CANDIDATE_PGC,
+        raw_join=raw_join,
+        row_predicate=sql.SQL(" AND ").join(row_parts),
+        meta_predicate=sql.SQL(" AND ").join(meta_parts),
+    )
 
 
-def _filtered(selection: SubmitSelection, *, for_count: bool = False) -> tuple[sql.Composable, sql.Composable]:
-    outcome = _outcome_predicate(selection)
-    needs_meta = not for_count or outcome is not None
+SUBMIT_PLAN_BATCH = sql.SQL(
+    """
+    WITH batch AS (
+        SELECT
+            r.ctid AS rid,
+            p.pgc IS NULL AS is_new,
+            COALESCE(p.pgc, nextval(pg_get_serial_sequence('common.pgc', 'id'))::int) AS pgc
+        FROM submit_plan p
+        JOIN layer0.records r ON r.ctid = p.rid
+        WHERE p.n > %s AND p.n <= %s AND r.id = p.record_id AND r.pgc IS NULL
+        FOR UPDATE OF r
+    ),
+    minted AS (
+        INSERT INTO common.pgc (id) SELECT pgc FROM batch WHERE is_new
+    ),
+    updated AS (
+        UPDATE layer0.records r
+        SET pgc = b.pgc
+        FROM batch b
+        WHERE r.ctid = b.rid
+        RETURNING r.pgc, b.is_new
+    ),
+    changes AS (
+        INSERT INTO common.pgc_changes (pgc) SELECT DISTINCT pgc FROM updated
+    )
+    SELECT
+        COUNT(*) FILTER (WHERE is_new)::int AS new,
+        COUNT(*) FILTER (WHERE NOT is_new)::int AS existing
+    FROM updated
+    """
+)
+
+
+def _filtered(selection: SubmitSelection) -> tuple[sql.Composable, sql.Composable]:
     if selection.row_filter is None:
-        frm: sql.Composable = (
-            _FROM_CROSSMATCH
-            if needs_meta
-            else sql.SQL(
-                """
-                FROM layer0.records r
-                JOIN layer0.crossmatch c ON c.record_id = r.id
-                """
-            )
-        )
+        frm: sql.Composable = _FROM_CROSSMATCH
     else:
         frm = sql.SQL(
             """
@@ -233,13 +264,14 @@ def _filtered(selection: SubmitSelection, *, for_count: bool = False) -> tuple[s
             JOIN {raw} raw ON raw.{id_col} = r.id
             """
         ).format(
-            meta=_META_LATERAL if needs_meta else sql.SQL(""),
+            meta=_META_LATERAL,
             raw=sql.SQL("{}.{}").format(sql.Identifier("rawdata"), sql.Identifier(selection.table_name)),
             id_col=sql.Identifier("hyperleda_internal_id"),
         )
-    parts: list[sql.Composable] = [COUNT_ELIGIBLE if for_count else ELIGIBLE]
+    parts: list[sql.Composable] = [ELIGIBLE]
     if selection.row_filter is not None:
         parts.append(selection.row_filter)
+    outcome = _outcome_predicate(selection)
     if outcome is not None:
         parts.append(outcome)
     return frm, sql.SQL(" AND ").join(parts)
@@ -440,3 +472,64 @@ def preview_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         }
         for row in rows
     ]
+
+
+def create_submit_plan(storage: postgres.PgStorage, table_id: int, selection: SubmitSelection) -> int:
+    storage.exec("DROP TABLE IF EXISTS submit_plan")
+    storage.exec("SET LOCAL work_mem = '256MB'")
+    storage.exec(create_plan_query(selection), params=[table_id])
+    missing_from = sql.SQL(
+        """
+        FROM submit_plan p
+        WHERE p.pgc IS NOT NULL AND NOT EXISTS (SELECT 1 FROM common.pgc g WHERE g.id = p.pgc)
+        """
+    )
+    missing = storage.query(sql.SQL("SELECT p.record_id::text AS record_id {frm} LIMIT 101").format(frm=missing_from))
+    if missing:
+        count_row = storage.query_one(sql.SQL("SELECT COUNT(*)::int AS cnt {frm}").format(frm=missing_from))
+        raise AssignRecordPgcsPreconditionError(
+            sample=[row["record_id"] for row in missing[:100]],
+            count=int(count_row["cnt"]),
+        )
+    storage.exec("CREATE UNIQUE INDEX ON submit_plan (n)")
+    storage.exec("ANALYZE submit_plan")
+    total = int(storage.query_one("SELECT COUNT(*)::int AS cnt FROM submit_plan")["cnt"])
+    if total >= PREWARM_THRESHOLD:
+        _prewarm(storage)
+    return total
+
+
+PREWARM_THRESHOLD = 50_000
+
+# Every updated record inserts into these indexes at a random leaf page. Reading them sequentially up front is far
+# cheaper on spinning disks than one random read per record.
+_PREWARM_INDEXES = (
+    "layer0.objects_pkey",
+    "layer0.layer0_records_id_pgc_not_null",
+    "layer0.layer0_records_pgc_idx",
+)
+
+
+def _prewarm(storage: postgres.PgStorage) -> None:
+    for index in _PREWARM_INDEXES:
+        storage.query("SELECT pg_prewarm(%s::regclass)", params=[index])
+    storage.query(
+        """
+        SELECT pg_prewarm('layer0.records'::regclass, 'buffer', 'main', MIN(b), MAX(b))
+        FROM (SELECT (rid::text::point)[0]::bigint AS b FROM submit_plan) blocks
+        """
+    )
+
+
+def submit_plan_batch(storage: postgres.PgStorage, table_id: int, start: int, stop: int) -> tuple[int, int]:
+    storage.exec("SET LOCAL synchronous_commit = off")
+    storage.exec("SET LOCAL session_replication_role = replica")
+    row = storage.query_one(SUBMIT_PLAN_BATCH, params=[start, stop])
+    new, existing = int(row["new"]), int(row["existing"])
+    if new + existing:
+        storage.exec("UPDATE layer0.tables SET modification_dt = now() WHERE id = %s", params=[table_id])
+    return new, existing
+
+
+def drop_submit_plan(storage: postgres.PgStorage) -> None:
+    storage.exec("DROP TABLE IF EXISTS submit_plan")
