@@ -8,6 +8,7 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
+from app.lib.crossmatch import submit as crossmatch_submit
 from app.lib.crossmatch.matching import (
     candidate_pgcs,
     distribution_key,
@@ -112,8 +113,15 @@ class CrossmatchManager:
         )
 
     def preview_submit(self, request: spec.PreviewSubmitCrossmatchRequest) -> spec.PreviewSubmitCrossmatchResponse:
+        selection = crossmatch_submit.selection_from(
+            table_name=request.table_name,
+            include_new=request.include_new,
+            include_existing=request.include_existing,
+            require_parameters=request.require_parameters,
+            row_filter=request.row_filter,
+        )
         try:
-            rows = self._repo.preview_submit_crossmatch(request.table_name, request.sample_size)
+            rows = self._repo.preview_submit_crossmatch(selection, request.sample_size)
         except RuntimeError as exc:
             if "not in layer0.tables" not in str(exc):
                 raise

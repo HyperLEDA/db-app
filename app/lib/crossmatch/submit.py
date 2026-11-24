@@ -1,9 +1,13 @@
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from psycopg import sql
 
 from app.lib.crossmatch.parameters import PARAMETER_ORDER
-from app.lib.storage import postgres
+from app.lib.storage import postgres, sql_row_filter
+
+_PARAMETER_NAMES = frozenset(parameter.value for parameter in PARAMETER_ORDER)
 
 MULTI_CANDIDATE = sql.SQL(
     """
@@ -82,7 +86,34 @@ class AssignRecordPgcsPreconditionError(Exception):
         self.count = count
 
 
-def sample_query() -> sql.Composed:
+@dataclass(frozen=True)
+class SubmitSelection:
+    table_name: str
+    include_new: bool = True
+    include_existing: bool = True
+    require_parameters: tuple[str, ...] = ()
+    row_filter: sql.Composable | None = None
+
+
+def selection_from(
+    *,
+    table_name: str,
+    include_new: bool,
+    include_existing: bool,
+    require_parameters: Sequence[str],
+    row_filter: str | None,
+) -> SubmitSelection:
+    return SubmitSelection(
+        table_name=table_name,
+        include_new=include_new,
+        include_existing=include_existing,
+        require_parameters=tuple(require_parameters) if include_existing else (),
+        row_filter=sql_row_filter.row_filter_clause(row_filter),
+    )
+
+
+def sample_query(selection: SubmitSelection) -> sql.Composed:
+    frm, predicate = _filtered(selection)
     return sql.SQL(
         """
         SELECT r.id::text AS record_id,
@@ -90,7 +121,7 @@ def sample_query() -> sql.Composed:
                {outcome} AS outcome,
                CASE WHEN {is_existing} THEN {parameters} END AS parameters
         {frm}
-        WHERE r.table_id = %s AND {eligible}
+        WHERE r.table_id = %s AND {predicate}
         ORDER BY r.id
         LIMIT %s
         """
@@ -99,31 +130,88 @@ def sample_query() -> sql.Composed:
         pgc=CANDIDATE_PGC,
         outcome=OUTCOME,
         parameters=CANDIDATE_PARAMETERS,
-        frm=_FROM_CROSSMATCH,
-        eligible=ELIGIBLE,
+        frm=frm,
+        predicate=predicate,
     )
 
 
-def eligible_count_query() -> sql.Composed:
+def eligible_count_query(selection: SubmitSelection) -> sql.Composed:
+    frm, predicate = _filtered(selection)
     return sql.SQL(
         """
         SELECT COUNT(*)::int AS cnt
         {frm}
-        WHERE r.table_id = %s AND {eligible}
+        WHERE r.table_id = %s AND {predicate}
         """
-    ).format(frm=_FROM_CROSSMATCH, eligible=ELIGIBLE)
+    ).format(frm=frm, predicate=predicate)
 
 
-def page_query() -> sql.Composed:
+def page_query(selection: SubmitSelection) -> sql.Composed:
+    frm, predicate = _filtered(selection)
     return sql.SQL(
         """
         SELECT r.id::text AS record_id, {outcome} AS outcome
         {frm}
-        WHERE r.table_id = %s AND r.id > %s AND {eligible}
+        WHERE r.table_id = %s AND r.id > %s AND {predicate}
         ORDER BY r.id ASC
         LIMIT %s
         """
-    ).format(outcome=OUTCOME, frm=_FROM_CROSSMATCH, eligible=ELIGIBLE)
+    ).format(outcome=OUTCOME, frm=frm, predicate=predicate)
+
+
+def _filtered(selection: SubmitSelection) -> tuple[sql.Composable, sql.Composable]:
+    if selection.row_filter is None:
+        frm: sql.Composable = _FROM_CROSSMATCH
+    else:
+        frm = sql.SQL(
+            """
+            FROM layer0.records r
+            JOIN layer0.crossmatch c ON c.record_id = r.id
+            JOIN {raw} raw ON raw.{id_col} = r.id
+            """
+        ).format(
+            raw=sql.SQL("{}.{}").format(sql.Identifier("rawdata"), sql.Identifier(selection.table_name)),
+            id_col=sql.Identifier("hyperleda_internal_id"),
+        )
+    parts: list[sql.Composable] = [ELIGIBLE]
+    if selection.row_filter is not None:
+        parts.append(selection.row_filter)
+    outcome = _outcome_predicate(selection)
+    if outcome is not None:
+        parts.append(outcome)
+    return frm, sql.SQL(" AND ").join(parts)
+
+
+def _outcome_predicate(selection: SubmitSelection) -> sql.Composable | None:
+    required = selection.require_parameters if selection.include_existing else ()
+    if selection.include_new and selection.include_existing and not required:
+        return None
+    branches: list[sql.Composable] = []
+    if selection.include_new:
+        branches.append(sql.SQL("({is_new})").format(is_new=IS_NEW))
+    if selection.include_existing:
+        existing: sql.Composable = IS_EXISTING
+        if required:
+            existing = sql.SQL("(({existing}) AND {checks})").format(
+                existing=IS_EXISTING,
+                checks=_parameter_checks(required),
+            )
+        branches.append(sql.SQL("({existing})").format(existing=existing))
+    return sql.SQL("({})").format(sql.SQL(" OR ").join(branches))
+
+
+def _parameter_checks(names: Sequence[str]) -> sql.Composable:
+    checks: list[sql.Composable] = []
+    for name in names:
+        if name not in _PARAMETER_NAMES:
+            raise ValueError(f"unknown crossmatch parameter: {name}")
+        checks.append(
+            sql.SQL("(({parameters}) ->> {key})::boolean IS TRUE").format(
+                parameters=CANDIDATE_PARAMETERS,
+                key=sql.Literal(name),
+            )
+        )
+    return sql.SQL(" AND ").join(checks)
 
 
 def assign_record_pgcs(storage: postgres.PgStorage, record_ids: list[str]) -> None:
