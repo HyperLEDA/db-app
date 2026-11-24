@@ -14,6 +14,7 @@ from app.catalogs import layer0, layer1, layer2, table_statistics
 from app.lib import concurrency
 from app.lib.crossmatch import data as crossmatch_data
 from app.lib.crossmatch import query as crossmatch_query
+from app.lib.crossmatch.models import ParameterMatches
 from app.lib.storage import enums, mapping, postgres
 
 _DEFAULT_E_CZ = u.Quantity(100, u.Unit("km/s"))
@@ -858,7 +859,9 @@ class Repository(postgres.TransactionalPGRepository):
         return crossmatch_data.layer2_pgcs(self._storage, pgcs)
 
     def set_crossmatch_results(
-        self, table_id: int, rows: list[tuple[str, enums.RecordTriageStatus, list[int]]]
+        self,
+        table_id: int,
+        rows: Sequence[tuple[str, enums.RecordTriageStatus, Sequence[int | tuple[int, ParameterMatches]]]],
     ) -> None:
         if not rows:
             return

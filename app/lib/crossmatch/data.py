@@ -1,6 +1,9 @@
 import json
+from collections.abc import Sequence
 from typing import Any
 
+from app.lib.crossmatch.models import ParameterMatches
+from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.storage import enums, postgres
 
 _UPSERT = """
@@ -10,15 +13,22 @@ _UPSERT = """
 """
 
 
-def candidates_to_metadata(candidates: list[int]) -> dict[str, Any]:
+def candidates_to_metadata(candidates: Sequence[int | tuple[int, ParameterMatches]]) -> dict[str, Any]:
     if not candidates:
         return {}
-    return {"pgc": candidates[0]} if len(candidates) == 1 else {"possible_matches": candidates}
+    stored: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if isinstance(candidate, int):
+            stored.append({"pgc": candidate})
+            continue
+        pgc, matches = candidate
+        stored.append({"pgc": pgc, "parameters": parameters_payload(matches)})
+    return {"candidates": stored}
 
 
 def write_crossmatch_rows(
     storage: postgres.PgStorage,
-    rows: list[tuple[str, enums.RecordTriageStatus, list[int]]],
+    rows: Sequence[tuple[str, enums.RecordTriageStatus, Sequence[int | tuple[int, ParameterMatches]]]],
 ) -> None:
     # A single INSERT cannot touch the same row twice, so keep the last write per record like row-by-row upserts did.
     latest = {rid: (triage, cands) for rid, triage, cands in rows}

@@ -12,6 +12,15 @@ log: structlog.stdlib.BoundLogger = structlog.get_logger()
 def metadata_to_candidates(metadata: dict[str, Any] | None) -> list[int]:
     if not isinstance(metadata, dict):
         return []
+    raw_candidates = metadata.get("candidates")
+    if isinstance(raw_candidates, list):
+        pgcs: list[Any] = []
+        for item in raw_candidates:
+            if isinstance(item, dict) and item.get("pgc") is not None:
+                pgcs.append(item["pgc"])
+            elif isinstance(item, int):
+                pgcs.append(item)
+        return _candidate_ids(pgcs)
     if "pgc" in metadata and metadata["pgc"] is not None:
         return _candidate_ids([metadata["pgc"]])
     if "possible_matches" in metadata and metadata["possible_matches"] is not None:

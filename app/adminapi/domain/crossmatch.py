@@ -8,7 +8,13 @@ import pydantic
 from app.adminapi import repository
 from app.adminapi.clients.prefect import PrefectClient
 from app.catalogs import layer0
-from app.lib.crossmatch.matching import distribution_key, ordered_distribution_keys, resolve_inputs, results_to_rows
+from app.lib.crossmatch.matching import (
+    candidate_pgcs,
+    distribution_key,
+    ordered_distribution_keys,
+    resolve_inputs,
+    results_to_rows,
+)
 from app.lib.crossmatch.models import MatchedRecord
 from app.lib.crossmatch.parameters import parameters_payload
 from app.lib.crossmatch.resolver import Resolver
@@ -130,7 +136,7 @@ class CrossmatchManager:
         )
         matched = resolve_inputs(inputs, resolver, self._repo.layer2_pgcs)
         written = {
-            record_id: candidates
+            record_id: candidate_pgcs(candidates)
             for record_id, _, candidates in results_to_rows([(item.record_id, item.result) for item in matched])
         }
         return spec.PreviewCrossmatchResponse(

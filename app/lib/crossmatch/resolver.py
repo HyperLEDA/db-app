@@ -1,4 +1,11 @@
-from app.lib.crossmatch.models import CrossmatchResult, CrossmatchStatus, Neighbor, RecordEvidence, TriageStatus
+from app.lib.crossmatch.models import (
+    CrossmatchResult,
+    CrossmatchStatus,
+    Neighbor,
+    ParameterMatches,
+    RecordEvidence,
+    TriageStatus,
+)
 from app.lib.crossmatch.parameters import (
     decide_matched,
     empty_matches,
@@ -65,26 +72,35 @@ class Resolver:
         )
         if len(accepted) == 1:
             candidate, matches = accepted[0]
+            stored = dict(matches)
             return CrossmatchResult(
                 status=CrossmatchStatus.EXISTING,
                 triage_status=TriageStatus.RESOLVED,
                 matched_pgc=candidate.pgc,
-                parameters=dict(matches),
+                parameters=stored,
+                candidate_matches=[(candidate.pgc, stored)],
             )
         pool = accepted if len(accepted) > 1 else evaluated
         if len(pool) == 1:
             candidate, matches = pool[0]
+            stored = dict(matches)
             return CrossmatchResult(
                 status=CrossmatchStatus.EXISTING,
                 triage_status=TriageStatus.PENDING,
                 matched_pgc=candidate.pgc,
-                parameters=dict(matches),
+                parameters=stored,
+                candidate_matches=[(candidate.pgc, stored)],
             )
+        by_pgc: dict[int, ParameterMatches] = {}
+        for candidate, matches in pool:
+            by_pgc.setdefault(candidate.pgc, dict(matches))
+        pgcs = sorted(by_pgc)
         return CrossmatchResult(
             status=CrossmatchStatus.COLLIDING,
             triage_status=TriageStatus.PENDING,
-            colliding_pgcs=sorted({candidate.pgc for candidate, _ in pool}),
+            colliding_pgcs=pgcs,
             parameters=empty,
+            candidate_matches=[(pgc, by_pgc[pgc]) for pgc in pgcs],
         )
 
     def _candidates(self, evidence: RecordEvidence) -> list[Neighbor]:
