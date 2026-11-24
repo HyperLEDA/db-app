@@ -10,6 +10,7 @@ from app.adminapi.repository import common, layer1, metadata, references
 from app.adminapi.repository import model as repo_model
 from app.adminapi.repository.layer0 import records, tables
 from app.catalogs import layer1 as layer1_catalogs
+from app.lib.crossmatch import submit as crossmatch_submit
 from app.lib.storage import enums, postgres
 
 
@@ -190,9 +191,12 @@ class Repository(postgres.TransactionalPGRepository):
         return self._layer0_records.assign_record_pgcs(record_ids)
 
     def preview_submit_crossmatch(
-        self, table_name: str, sample_size: int
-    ) -> tuple[int, int, int, int, list[dict[str, Any]]]:
-        return self._layer0_records.preview_submit_crossmatch(table_name, sample_size)
+        self, selection: crossmatch_submit.SubmitSelection, sample_size: int
+    ) -> list[dict[str, Any]]:
+        return self._layer0_records.preview_submit_crossmatch(selection, sample_size)
+
+    def estimate_submit_eligible_percent(self, selection: crossmatch_submit.SubmitSelection) -> float:
+        return self._layer0_records.estimate_submit_eligible_percent(selection)
 
     def merge_pgcs(self, target_pgc: int, source_pgcs: list[int]) -> int:
         return self._layer0_records.merge_pgcs(target_pgc, source_pgcs)

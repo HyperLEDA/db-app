@@ -14,6 +14,8 @@ from app.lib.storage import enums, postgres
 _TABLESAMPLE_MIN_ROWS_PER_LIMIT = 100
 _TABLESAMPLE_OVERSAMPLING = 3
 _TABLESAMPLE_RETRY_FACTOR = 4
+_TABLESAMPLE_MIN_SCANNED = 200
+_TABLESAMPLE_RATE_START_PERCENT = 1.0
 _CROSSMATCH_INPUT_STREAMS = 4
 _CROSSMATCH_INPUT_MIN_CHUNK = 100
 
@@ -52,18 +54,25 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             crossmatch_submit.assign_record_pgcs(self._storage, record_ids)
 
     def preview_submit_crossmatch(
-        self, table_name: str, sample_size: int
-    ) -> tuple[int, int, int, int, list[dict[str, Any]]]:
-        table_id = require_table_id(self._storage, table_name)
-        summary = self._storage.query_one(crossmatch_submit.summary_query(), params=[table_id, table_id])
-        rows = self._storage.query(crossmatch_submit.sample_query(), params=[table_id, sample_size])
-        return (
-            int(summary["total_count"]),
-            int(summary["eligible_count"]),
-            int(summary["new_count"]),
-            int(summary["existing_count"]),
-            crossmatch_submit.preview_rows(list(rows)),
-        )
+        self, selection: crossmatch_submit.SubmitSelection, sample_size: int
+    ) -> list[dict[str, Any]]:
+        table_id = require_table_id(self._storage, selection.table_name)
+        rows = self._storage.query(crossmatch_submit.sample_query(selection), params=[table_id, sample_size])
+        return crossmatch_submit.preview_rows(list(rows))
+
+    def estimate_submit_eligible_percent(self, selection: crossmatch_submit.SubmitSelection) -> float:
+        table_id = require_table_id(self._storage, selection.table_name)
+        query = crossmatch_submit.estimate_eligible_rate_query(selection)
+        percent = _TABLESAMPLE_RATE_START_PERCENT
+        while True:
+            row = self._storage.query(query, params=[percent, table_id], read_only=True)[0]
+            scanned = int(row["scanned"])
+            passing = int(row["passing"])
+            if scanned >= _TABLESAMPLE_MIN_SCANNED or percent >= 100.0:
+                if scanned == 0:
+                    return 0.0
+                return round(100.0 * passing / scanned, 1)
+            percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
     def upsert_pgc(self, pgcs: dict[str, int | None]) -> None:
         pgcs_to_insert = {record_id: pgc for record_id, pgc in pgcs.items() if pgc is not None}

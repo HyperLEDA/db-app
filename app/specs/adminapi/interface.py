@@ -1,6 +1,6 @@
 import datetime
 import enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import pydantic
 
@@ -241,8 +241,31 @@ class PreviewCrossmatchResponse(pydantic.BaseModel):
     statistics: list[PreviewCrossmatchStat]
 
 
-class SubmitCrossmatchParams(pydantic.BaseModel):
+SubmitMatchParameter = Literal["coordinates", "name", "pgc", "redshift", "nature"]
+
+
+class SubmitCrossmatchSelection(pydantic.BaseModel):
     table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
+    row_filter: str = pydantic.Field(default="", description="SQL boolean on rawdata columns")
+    include_new: bool = pydantic.Field(default=True, description="Submit records with no candidate")
+    include_existing: bool = pydantic.Field(default=True, description="Submit records with one candidate")
+    require_parameters: list[SubmitMatchParameter] = pydantic.Field(
+        default_factory=list,
+        description="Existing matches must have every listed parameter true. Empty means no extra constraint.",
+    )
+
+    @pydantic.model_validator(mode="after")
+    def check_outcomes(self) -> "SubmitCrossmatchSelection":
+        if not self.include_new and not self.include_existing:
+            raise ValueError("at least one of include_new or include_existing must be true")
+        if not self.include_existing:
+            self.require_parameters = []
+        else:
+            self.require_parameters = list(dict.fromkeys(self.require_parameters))
+        return self
+
+
+class SubmitCrossmatchParams(SubmitCrossmatchSelection):
     batch_size: int = pydantic.Field(default=1000, ge=1, le=10_000, description="Records submitted per batch")
 
 
@@ -254,22 +277,24 @@ class StartSubmitCrossmatchResponse(pydantic.BaseModel):
     task_id: str
 
 
-class PreviewSubmitCrossmatchRequest(pydantic.BaseModel):
-    table_name: str = pydantic.Field(min_length=1, description="Layer 0 table name")
-    sample_size: int = pydantic.Field(default=20, ge=1, le=200, description="Eligible records returned in the sample")
+class PreviewSubmitCrossmatchRequest(SubmitCrossmatchSelection):
+    sample_size: int = pydantic.Field(
+        default=1000, ge=1, le=10_000, description="Eligible records sampled (usually the batch size)"
+    )
 
 
 class PreviewSubmitCrossmatchRow(pydantic.BaseModel):
     record_id: str
     pgc: int | None = None
     outcome: str
+    parameters: PreviewCrossmatchParameters
 
 
 class PreviewSubmitCrossmatchResponse(pydantic.BaseModel):
-    total_count: int
-    eligible_count: int
+    sample_count: int
     new_count: int
     existing_count: int
+    eligible_percent: float
     rows: list[PreviewSubmitCrossmatchRow]
 
 

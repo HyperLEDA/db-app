@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
+from app.lib.crossmatch import submit as crossmatch_submit
 from app.specs import adminapi as spec
 from app.tasks import repository
 
@@ -14,14 +15,21 @@ def run(
     on_progress: ProgressCallback,
     on_summary: SummaryCallback,
 ) -> None:
-    table_id, eligible = repo.submit_crossmatch_table(params.table_name)
+    selection = crossmatch_submit.selection_from(
+        table_name=params.table_name,
+        include_new=params.include_new,
+        include_existing=params.include_existing,
+        require_parameters=params.require_parameters,
+        row_filter=params.row_filter,
+    )
+    table_id, eligible = repo.submit_crossmatch_table(selection)
     on_progress(0, f"Submitting crossmatch for {params.table_name} ({eligible} records)")
     submitted = 0
     new_count = 0
     existing_count = 0
     last_id = ""
     try:
-        while batch := repo.fetch_submit_crossmatch_batch(table_id, last_id, params.batch_size):
+        while batch := repo.fetch_submit_crossmatch_batch(table_id, last_id, params.batch_size, selection):
             record_ids = [str(row["record_id"]) for row in batch]
             last_id = record_ids[-1]
             repo.assign_record_pgcs(record_ids)
