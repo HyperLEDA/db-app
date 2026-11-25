@@ -1,5 +1,4 @@
 import atexit
-import pathlib
 import sys
 from collections.abc import Sequence
 
@@ -108,22 +107,6 @@ class PostgresTestStorage:
 
         return _test_storage
 
-    def _run_migrations(self, migrations_dir: str):
-        connection = psycopg.connect(self.config.get_dsn(), autocommit=True)
-
-        migrations = list(pathlib.Path(migrations_dir).iterdir())
-        migrations.sort()
-        cur = connection.cursor()
-
-        for migration_filename in migrations:
-            data = pathlib.Path(migration_filename).read_text()
-            logger.info(f"running {migration_filename} migration")
-            cur.execute(data.encode("utf-8"))
-
-        connection.commit()
-        cur.close()
-        connection.close()
-
     def clear(self):
         if not self.need_new_container:
             return
@@ -168,7 +151,7 @@ class PostgresTestStorage:
     def start(self):
         if self.need_new_container:
             self.container.start()
-            self._run_migrations(self.migrations_dir)
+            postgres.apply(self.config)
         self.storage.connect()
 
     def stop(self):

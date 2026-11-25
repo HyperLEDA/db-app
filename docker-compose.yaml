@@ -26,25 +26,5 @@ services:
       interval: 5s
       retries: 5
 
-  migrate:
-    build: 
-      dockerfile: postgres/dockerfile
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-    entrypoint:
-      /bin/sh -c "cd database/postgres && pgmigrate -c \"postgresql://hyperledadb:5432/hyperleda?user=hyperleda&password=$${POSTGRES_PASSWORD}\" -t latest migrate"
-    volumes:
-      - .:/database
-    depends_on:
-      hyperledadb:
-        condition: service_healthy
-
-  wait-for-migrate:
-    image: busybox
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    entrypoint: /bin/sh -c "echo 'Migration completed successfully'"
-
 volumes:
   hyperledadb-data:

@@ -16,11 +16,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install deps
+        run: uv sync
+
       - name: Check migration file names
         run: make check-migrations
 
-      - name: Start database and apply migrations
-        run: docker compose up -d hyperledadb migrate wait-for-migrate
+      - name: Start database
+        run: docker compose up -d --wait hyperledadb
+
+      - name: Apply migrations
+        env:
+          STORAGE_ENDPOINT: localhost
+          STORAGE_PORT: "6432"
+          STORAGE_DBNAME: hyperleda
+          STORAGE_USER: hyperleda
+          STORAGE_PASSWORD: password
+        run: uv run migrate
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2

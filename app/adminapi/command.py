@@ -28,6 +28,7 @@ class AdminAPICommand(commands.Command):
 
     def prepare(self):
         cfg = parse_config(self.config_path)
+        postgres.apply(cfg.storage)
 
         tracing.setup_tracing("adminapi", cfg.tracing)
 
