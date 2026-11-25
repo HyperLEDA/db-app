@@ -18,7 +18,7 @@ from app import tasks
 from app.catalogs import layer1
 from app.lib import formula, structlog_config, tracing
 from app.specs import adminapi as spec
-from app.tasks import structured_upload
+from app.tasks import interface, structured_upload
 from app.tasks.crossmatch.task import CrossmatchTask
 from app.tasks.submit_crossmatch.task import SubmitCrossmatchTask
 
@@ -83,6 +83,28 @@ def cron_from_env(task_name: str, environ: Mapping[str, str] | None = None) -> s
     env: Mapping[str, str] = os.environ if environ is None else environ
     value = env.get(schedule_env_var(task_name), "").strip()
     return value or None
+
+
+def deployment_job_variables(
+    worker: interface.WorkerConfig,
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    env: Mapping[str, str] = os.environ if environ is None else environ
+    job_env = {
+        key: value
+        for key, value in env.items()
+        if key in {"PREFECT_API_URL", "LOG_LEVEL"} or key.startswith(("STORAGE_", "FIELDAPI_", "TRACING_"))
+    }
+    return {
+        "image": worker.image,
+        "name": f"{worker.docker_container_prefix}-{{{{ ctx.flow_run.name }}}}",
+        "networks": [worker.docker_network],
+        "auto_remove": True,
+        "image_pull_policy": "IfNotPresent",
+        "env": job_env,
+        # Image ENTRYPOINT runs the `tasks` CLI; flow containers need Prefect's command instead.
+        "container_create_kwargs": {"entrypoint": []},
+    }
 
 
 def _flow_logger() -> structlog.stdlib.BoundLogger:
@@ -330,51 +352,90 @@ FLOWS_BY_NAME: dict[str, Flow] = {
 
 
 def build_deployments(
+    worker: interface.WorkerConfig,
     environ: Mapping[str, str] | None = None,
     catalog_schemas: Sequence[spec.CatalogSchema] = (),
 ) -> list[RunnerDeployment]:
+    job_variables = deployment_job_variables(worker, environ)
     deployments: list[RunnerDeployment] = []
     for task_name in LAYER2_TASK_NAMES:
         flow_fn = FLOWS_BY_NAME[task_name]
         cron = cron_from_env(task_name, environ)
         if cron is None:
-            deployments.append(flow_fn.to_deployment(name=task_name))
+            deployments.append(
+                flow_fn.to_deployment(
+                    name=task_name,
+                    work_pool_name=worker.work_pool_name,
+                    job_variables=job_variables,
+                )
+            )
         else:
             deployments.append(
-                flow_fn.to_deployment(name=task_name, cron=cron, concurrency_limit=SCHEDULED_CONCURRENCY)
+                flow_fn.to_deployment(
+                    name=task_name,
+                    cron=cron,
+                    concurrency_limit=SCHEDULED_CONCURRENCY,
+                    work_pool_name=worker.work_pool_name,
+                    job_variables=job_variables,
+                )
             )
     for schema in catalog_schemas:
-        deployments.append(_catalog_deployment(schema, environ))
-    deployments.append(_crossmatch_deployment())
-    deployments.append(_submit_crossmatch_deployment())
+        deployments.append(_catalog_deployment(schema, environ, worker.work_pool_name, job_variables))
+    deployments.append(_crossmatch_deployment(worker.work_pool_name, job_variables))
+    deployments.append(_submit_crossmatch_deployment(worker.work_pool_name, job_variables))
     return deployments
 
 
-def _crossmatch_deployment() -> RunnerDeployment:
-    deployment = crossmatch.to_deployment(name="crossmatch", enforce_parameter_schema=True)
+def _crossmatch_deployment(work_pool_name: str, job_variables: dict[str, Any]) -> RunnerDeployment:
+    deployment = crossmatch.to_deployment(
+        name="crossmatch",
+        enforce_parameter_schema=True,
+        work_pool_name=work_pool_name,
+        job_variables=job_variables,
+    )
     deployment._parameter_openapi_schema = _openapi_for_params(spec.CrossmatchParams)  # noqa: SLF001
     if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
         raise RuntimeError("parameter schema for crossmatch is empty")
     return deployment
 
 
-def _submit_crossmatch_deployment() -> RunnerDeployment:
-    deployment = submit_crossmatch.to_deployment(name="submit-crossmatch", enforce_parameter_schema=True)
+def _submit_crossmatch_deployment(work_pool_name: str, job_variables: dict[str, Any]) -> RunnerDeployment:
+    deployment = submit_crossmatch.to_deployment(
+        name="submit-crossmatch",
+        enforce_parameter_schema=True,
+        work_pool_name=work_pool_name,
+        job_variables=job_variables,
+    )
     deployment._parameter_openapi_schema = _openapi_for_params(spec.SubmitCrossmatchParams)  # noqa: SLF001
     if not deployment._parameter_openapi_schema.properties:  # noqa: SLF001
         raise RuntimeError("parameter schema for submit-crossmatch is empty")
     return deployment
 
 
-def _catalog_deployment(schema: spec.CatalogSchema, environ: Mapping[str, str] | None) -> RunnerDeployment:
+def _catalog_deployment(
+    schema: spec.CatalogSchema,
+    environ: Mapping[str, str] | None,
+    work_pool_name: str,
+    job_variables: dict[str, Any],
+) -> RunnerDeployment:
     flow_fn: Flow = globals()[f"structured_upload_{schema.catalog}"]
     name = f"upload-{schema.catalog}"
     cron = cron_from_env(name, environ)
     if cron is None:
-        deployment = flow_fn.to_deployment(name=name, enforce_parameter_schema=True)
+        deployment = flow_fn.to_deployment(
+            name=name,
+            enforce_parameter_schema=True,
+            work_pool_name=work_pool_name,
+            job_variables=job_variables,
+        )
     else:
         deployment = flow_fn.to_deployment(
-            name=name, cron=cron, enforce_parameter_schema=True, concurrency_limit=SCHEDULED_CONCURRENCY
+            name=name,
+            cron=cron,
+            enforce_parameter_schema=True,
+            concurrency_limit=SCHEDULED_CONCURRENCY,
+            work_pool_name=work_pool_name,
+            job_variables=job_variables,
         )
     parameter_schema_doc = _openapi_for_params(structured_upload.build_catalog_params_model(schema))
     deployment._parameter_openapi_schema = parameter_schema_doc  # noqa: SLF001
