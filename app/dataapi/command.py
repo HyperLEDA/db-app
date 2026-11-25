@@ -29,6 +29,7 @@ class DataAPICommand(commands.Command):
 
     def prepare(self):
         self.config = parse_config(self.config_path)
+        postgres.apply(self.config.storage)
 
         tracing.setup_tracing("dataapi", self.config.tracing)
 

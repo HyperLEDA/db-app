@@ -48,6 +48,7 @@ class TasksWorkerCommand(commands.Command):
 
     def prepare(self) -> None:
         cfg = interface.Config()
+        postgres.apply(cfg.storage)
         self.worker = interface.WorkerConfig.from_env()
         tracing.setup_tracing("tasks", cfg.tracing)
         storage = postgres.PgStorage(cfg.storage, structlog.get_logger(), enums.PG_ENUM_REGISTRY)

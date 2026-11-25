@@ -30,9 +30,15 @@ check-migrations:
 	fi; \
 
 check-schema:
-	docker compose stop hyperledadb migrate wait-for-migrate
-	docker compose rm -f -v hyperledadb migrate wait-for-migrate
-	docker compose up -d hyperledadb migrate wait-for-migrate
+	docker compose stop hyperledadb
+	docker compose rm -f -v hyperledadb
+	docker compose up -d --wait hyperledadb
+	STORAGE_ENDPOINT=localhost \
+	STORAGE_PORT=6432 \
+	STORAGE_DBNAME=hyperleda \
+	STORAGE_USER=hyperleda \
+	STORAGE_PASSWORD=$${POSTGRES_PASSWORD:-password} \
+	uv run migrate
 	bunx schemalint@2.3.2
 
 check:
