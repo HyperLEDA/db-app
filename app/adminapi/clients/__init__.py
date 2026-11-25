@@ -15,6 +15,8 @@ __all__ = [
 class Clients:
     def __init__(self, ads_token: str, prefect_api_url: str) -> None:
         self.ads = ads.ADSClass()
+        self.ads.SERVER = "https://api.scixplorer.org"
+        self.ads.QUERY_SIMPLE_URL = self.ads.SERVER + self.ads.QUERY_SIMPLE_PATH
         self.ads.TOKEN = ads_token
         self.ads.ADS_FIELDS = ["bibcode", "title", "author", "pubdate"]
 
