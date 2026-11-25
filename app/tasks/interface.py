@@ -2,11 +2,26 @@ import abc
 import datetime
 
 import pydantic
+import pydantic_settings as settings
 
 from app.lib import config
 from app.lib.storage import postgres
 from app.lib.tracing import TracingConfig
 from app.specs.fieldapi import FieldAPIConfig
+
+
+class WorkerConfig(config.ConfigSettings):
+    model_config = settings.SettingsConfigDict(env_prefix="TASKS_")
+
+    work_pool_name: str
+    image: str
+    work_pool_concurrency: int
+    docker_network: str
+    docker_container_prefix: str
+
+    @classmethod
+    def from_env(cls) -> "WorkerConfig":
+        return cls()  # pyright: ignore[reportCallIssue] - values come from TASKS_* env vars
 
 
 class Config(config.ConfigSettings):
