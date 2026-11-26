@@ -18,5 +18,6 @@ ENV SERVICE=${SERVICE}
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 COPY app ./app
+COPY postgres/migrations ./postgres/migrations
 COPY pyproject.toml README.md ./
 ENTRYPOINT ["/bin/sh", "-c", "exec \"$SERVICE\" \"$@\"", "--"]
