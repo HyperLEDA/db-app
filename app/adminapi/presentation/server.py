@@ -366,9 +366,9 @@ At least one status block must be present.
                 "Assign PGCs to records",
                 """Assigns PGC numbers to records. Provide exactly one of:
 
-- `record_ids`: finalize from resolved crossmatch metadata. Each record must already have
-  `POST /v1/records/crossmatch` results with `triage_status = resolved`. Only fills null
-  `records.pgc`. Pending or collided rows are rejected. All-or-nothing.
+- `record_ids`: finalize from crossmatch metadata. Each record must already have
+  `POST /v1/records/crossmatch` results with at most one candidate. Only fills null
+  `records.pgc`. Multi-candidate rows are rejected. All-or-nothing.
 - `assignments`: explicit `{record_id, pgc}` mappings. Overwrites existing assignments.
   Non-null target PGCs must already exist. Null `pgc` values mint one shared new PGC
   for all such records in the request. No crossmatch precondition.""",
@@ -455,7 +455,7 @@ For every column that has unit metadata in the database, the request must includ
                 http.HTTPMethod.POST,
                 api.start_submit_crossmatch,
                 "Start submit crossmatch",
-                """Start a task that assigns PGCs from resolved crossmatch results in a layer 0 table.""",
+                """Start a task that assigns PGCs from crossmatch results with at most one candidate.""",
                 requires_auth=True,
                 audit_action=True,
             ),
@@ -465,7 +465,7 @@ For every column that has unit metadata in the database, the request must includ
                 api.preview_submit_crossmatch,
                 "Preview submit crossmatch",
                 (
-                    "Count resolved crossmatch records that would be assigned a PGC, "
+                    "Count crossmatch records with at most one candidate that would be assigned a PGC, "
                     "and return a sample, without writing anything."
                 ),
                 requires_auth=True,

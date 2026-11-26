@@ -24,17 +24,19 @@ def test_submit_crossmatch_assigns_pgcs(pg_storage: PostgresTestStorage, monkeyp
     table_name = "submit_task"
     new_id = str(uuid4())
     existing_id = str(uuid4())
-    pending_id = str(uuid4())
+    pending_existing_id = str(uuid4())
+    collided_id = str(uuid4())
     bib_id = layer_seed.create_bibliography(storage, table_name, 2000, ["test"], "test")
     layer_seed.create_table(storage, table_name, bib_id)
-    layer_seed.register_records(storage, table_name, [new_id, existing_id, pending_id])
-    layer_seed.register_pgcs(storage, [42])
+    layer_seed.register_records(storage, table_name, [new_id, existing_id, pending_existing_id, collided_id])
+    layer_seed.register_pgcs(storage, [42, 8, 9])
     crossmatch_data.write_crossmatch_rows(
         storage,
         [
             (new_id, enums.RecordTriageStatus.RESOLVED, []),
             (existing_id, enums.RecordTriageStatus.RESOLVED, [42]),
-            (pending_id, enums.RecordTriageStatus.PENDING, []),
+            (pending_existing_id, enums.RecordTriageStatus.PENDING, [42]),
+            (collided_id, enums.RecordTriageStatus.PENDING, [8, 9]),
         ],
     )
     tables: list[list[dict[str, object]]] = []
@@ -53,11 +55,12 @@ def test_submit_crossmatch_assigns_pgcs(pg_storage: PostgresTestStorage, monkeyp
         new_pgc = _pgc(storage, new_id)
         assert new_pgc is not None and new_pgc != 42
         assert _pgc(storage, existing_id) == 42
-        assert _pgc(storage, pending_id) is None
+        assert _pgc(storage, pending_existing_id) == 42
+        assert _pgc(storage, collided_id) is None
         assert tables[-1] == [
-            {"outcome": "submitted", "count": 2},
+            {"outcome": "submitted", "count": 3},
             {"outcome": "new", "count": 1},
-            {"outcome": "existing", "count": 1},
+            {"outcome": "existing", "count": 2},
         ]
         pgc_count = storage.query_one("SELECT COUNT(*)::int AS cnt FROM common.pgc")["cnt"]
         task.run()
