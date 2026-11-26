@@ -96,32 +96,32 @@ def test_submit_new_and_existing_records(
     assert table_mt.replace(tzinfo=datetime.UTC) > old_dt
 
 
-def test_reject_pending_records(
+def test_accept_pending_single_candidate_records(
     repo: repository.Repository,
     manager: crossmatch.CrossmatchManager,
     pg_storage: PostgresTestStorage,
 ) -> None:
     table_name = "submit_pending"
-    pending_id = str(uuid.uuid4())
-    resolved_id = str(uuid.uuid4())
-    _register(repo, table_name, [pending_id, resolved_id])
+    pending_new_id = str(uuid.uuid4())
+    pending_existing_id = str(uuid.uuid4())
+    existing_pgc = 4242
+    _register(repo, table_name, [pending_new_id, pending_existing_id])
+    repo.register_pgcs([existing_pgc])
     _set_crossmatch(
         repo,
         [
-            (pending_id, enums.RecordTriageStatus.PENDING, []),
-            (resolved_id, enums.RecordTriageStatus.RESOLVED, []),
+            (pending_new_id, enums.RecordTriageStatus.PENDING, []),
+            (pending_existing_id, enums.RecordTriageStatus.PENDING, [existing_pgc]),
         ],
     )
 
-    with pytest.raises(errors.ConflictError) as exc_info:
-        manager.assign_record_pgcs(
-            adminapi.AssignRecordPgcsRequest(record_ids=[pending_id, resolved_id]),
-        )
+    manager.assign_record_pgcs(
+        adminapi.AssignRecordPgcsRequest(record_ids=[pending_new_id, pending_existing_id]),
+    )
 
-    assert exc_info.value.count == 1
-    assert pending_id in (exc_info.value.sample_record_ids or [])
-    assert _pgc_for(pg_storage, pending_id) is None
-    assert _pgc_for(pg_storage, resolved_id) is None
+    new_pgc = _pgc_for(pg_storage, pending_new_id)
+    assert new_pgc is not None and new_pgc != existing_pgc
+    assert _pgc_for(pg_storage, pending_existing_id) == existing_pgc
 
 
 def test_reject_missing_crossmatch_row(

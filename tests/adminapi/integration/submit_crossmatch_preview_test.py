@@ -51,7 +51,7 @@ def test_preview_submit_crossmatch_does_not_write(
                     enums.RecordTriageStatus.RESOLVED,
                     [(7, {Parameter.COORDINATES: True, Parameter.NAME: False})],
                 ),
-                (pending_id, enums.RecordTriageStatus.PENDING, []),
+                (pending_id, enums.RecordTriageStatus.PENDING, [7]),
                 (collided_id, enums.RecordTriageStatus.RESOLVED, [8, 9]),
                 (assigned_id, enums.RecordTriageStatus.RESOLVED, [7]),
             ],
@@ -62,14 +62,15 @@ def test_preview_submit_crossmatch_does_not_write(
         adminapi.PreviewSubmitCrossmatchRequest(table_name=table_name, sample_size=20)
     )
 
-    assert (response.sample_count, response.new_count, response.existing_count) == (2, 1, 1)
-    assert response.eligible_percent == 40.0
+    assert (response.sample_count, response.new_count, response.existing_count) == (3, 1, 2)
+    assert response.eligible_percent == 60.0
     by_id = {row.record_id: row for row in response.rows}
-    assert set(by_id) == {new_id, existing_id}
+    assert set(by_id) == {new_id, existing_id, pending_id}
     assert by_id[new_id].outcome == "new" and by_id[new_id].pgc is None
     assert by_id[new_id].parameters == adminapi.PreviewCrossmatchParameters()
     assert by_id[existing_id].outcome == "existing" and by_id[existing_id].pgc == 7
     assert by_id[existing_id].parameters == adminapi.PreviewCrossmatchParameters(coordinates=True, name=False)
+    assert by_id[pending_id].outcome == "existing" and by_id[pending_id].pgc == 7
     assert storage.query_one("SELECT pgc FROM layer0.records WHERE id = %s", params=[new_id])["pgc"] is None
 
 

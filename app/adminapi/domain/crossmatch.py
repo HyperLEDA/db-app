@@ -232,7 +232,7 @@ class CrossmatchManager:
             self._repo.assign_record_pgcs(list(dict.fromkeys(request.record_ids or [])))
         except repository.AssignRecordPgcsPreconditionError as e:
             raise ConflictError(
-                f"{e.count} records cannot be assigned a PGC (missing crossmatch, not resolved, or collided)",
+                f"{e.count} records cannot be assigned a PGC (missing crossmatch or multiple candidates)",
                 sample_record_ids=e.sample,
                 count=e.count,
             ) from e

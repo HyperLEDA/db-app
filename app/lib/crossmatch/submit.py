@@ -21,7 +21,7 @@ MULTI_CANDIDATE = sql.SQL(
     """
 ).format(meta=META)
 
-ELIGIBLE_ROW = sql.SQL("r.pgc IS NULL AND c.triage_status = 'resolved'")
+ELIGIBLE_ROW = sql.SQL("r.pgc IS NULL")
 
 ELIGIBLE_META = sql.SQL("NOT ({meta} ? 'possible_matches') AND NOT ({multi})").format(meta=META, multi=MULTI_CANDIDATE)
 
@@ -327,7 +327,6 @@ def assign_record_pgcs(storage: postgres.PgStorage, record_ids: list[str]) -> No
         LEFT JOIN layer0.crossmatch c ON c.record_id = s.record_id
         CROSS JOIN LATERAL (SELECT c.metadata::jsonb AS j) meta
         WHERE c.record_id IS NULL
-           OR c.triage_status != 'resolved'
            OR meta.j ? 'possible_matches'
            OR ({multi})
         """

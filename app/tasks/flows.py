@@ -306,7 +306,6 @@ def run_submit_crossmatch(params: Mapping[str, Any]) -> None:
 @flow(
     log_prints=False,
     name="Submit crossmatch",
-    description="Assign PGCs for resolved crossmatch results in a layer 0 table.",
     validate_parameters=False,
 )
 def submit_crossmatch(params: dict[str, Any]) -> None:
