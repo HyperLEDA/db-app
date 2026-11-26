@@ -62,6 +62,7 @@ jobs:
           retention-days: 1
 
   regression:
+    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -75,16 +76,57 @@ jobs:
       - name: Install deps
         run: make install-dev
 
+      - name: Download AdminAPI image
+        uses: actions/download-artifact@v7
+        with:
+          name: docker-image-adminapi
+          path: images/adminapi
+
+      - name: Download DataAPI image
+        uses: actions/download-artifact@v7
+        with:
+          name: docker-image-dataapi
+          path: images/dataapi
+
+      - name: Load images
+        run: |
+          docker load -i images/adminapi/image.tar
+          docker load -i images/dataapi/image.tar
+
       - name: Start environment
         run: docker compose up -d
 
       - name: Start AdminAPI server
-        run: make adminapi &
+        run: |
+          docker run -d --name adminapi --network host \
+            -v "$PWD/configs:/configs:ro" \
+            local/adminapi:latest -c /configs/dev/adminapi.yaml
 
       - name: Start DataAPI server
-        env:
-          STORAGE_PASSWORD: password
-        run: SERVER_PORT=8081 make dataapi &
+        run: |
+          docker run -d --name dataapi --network host \
+            -e SERVER_PORT=8081 \
+            -v "$PWD/configs:/configs:ro" \
+            local/dataapi:latest -c /configs/dev/dataapi.yaml
+
+      - name: Wait for APIs
+        run: |
+          for url in http://localhost:8080/ping http://localhost:8081/ping; do
+            ready=0
+            for _ in $(seq 1 30); do
+              if curl -fsS "$url" >/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "timed out waiting for $url"
+              docker logs adminapi || true
+              docker logs dataapi || true
+              exit 1
+            fi
+          done
 
       - name: Run regression tests
         run: make test-regression
