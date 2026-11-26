@@ -192,11 +192,13 @@ def filtered_tablesample(table_name: str, row_filter: sql.Composable) -> sql.Com
     return sql.SQL(
         """
         WITH s AS MATERIALIZED (
-            SELECT raw.{} AS id, COALESCE(({}), false) AS passes FROM {} raw TABLESAMPLE SYSTEM (%s)
+            SELECT raw.{} AS id, COALESCE(({}), false) AND r.pgc IS NULL AS passes
+            FROM {} raw TABLESAMPLE SYSTEM (%s)
+            JOIN layer0.records r ON r.id = raw.{}
         )
         SELECT
             (SELECT COUNT(*) FROM s) AS scanned,
             (SELECT COUNT(*) FROM s WHERE passes) AS passing,
             ARRAY(SELECT id FROM s WHERE passes ORDER BY random() LIMIT %s) AS ids
         """
-    ).format(id_col, row_filter, raw)
+    ).format(id_col, row_filter, raw, id_col)
