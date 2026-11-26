@@ -94,13 +94,25 @@ jobs:
           docker load -i images/dataapi/image.tar
 
       - name: Start environment
-        run: docker compose up -d
+        run: docker compose up -d --wait
 
       - name: Start AdminAPI server
         run: |
           docker run -d --name adminapi --network host \
             -v "$PWD/configs:/configs:ro" \
             local/adminapi:latest -c /configs/dev/adminapi.yaml
+
+      - name: Wait for AdminAPI
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/ping >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "timed out waiting for http://localhost:8080/ping"
+          docker logs adminapi || true
+          exit 1
 
       - name: Start DataAPI server
         run: |
@@ -109,24 +121,17 @@ jobs:
             -v "$PWD/configs:/configs:ro" \
             local/dataapi:latest -c /configs/dev/dataapi.yaml
 
-      - name: Wait for APIs
+      - name: Wait for DataAPI
         run: |
-          for url in http://localhost:8080/ping http://localhost:8081/ping; do
-            ready=0
-            for _ in $(seq 1 30); do
-              if curl -fsS "$url" >/dev/null; then
-                ready=1
-                break
-              fi
-              sleep 2
-            done
-            if [ "$ready" -ne 1 ]; then
-              echo "timed out waiting for $url"
-              docker logs adminapi || true
-              docker logs dataapi || true
-              exit 1
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8081/ping >/dev/null 2>&1; then
+              exit 0
             fi
+            sleep 2
           done
+          echo "timed out waiting for http://localhost:8081/ping"
+          docker logs dataapi || true
+          exit 1
 
       - name: Run regression tests
         run: make test-regression
