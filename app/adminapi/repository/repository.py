@@ -214,6 +214,16 @@ class Repository(postgres.TransactionalPGRepository):
     ) -> None:
         return self._layer1.save_structured_data(table, columns, ids, data, conflict_keys)
 
+    def probe_structured_insert(
+        self,
+        table: str,
+        columns: list[str],
+        ids: list[str],
+        data: list[list[Any]],
+        conflict_keys: list[str] | None = None,
+    ) -> None:
+        return self._layer1.probe_structured_insert(table, columns, ids, data, conflict_keys)
+
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         return self._layer1.get_designation_records(record_ids)
 

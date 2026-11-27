@@ -47,4 +47,5 @@ Available constants: {constants}.
 - Boolean logic: `and_(col("v") > 0, not_(isin(col("t"), "E", "S0")))`
 - Text matching: `where(contains(col("name"), "NGC"), 1, 0)`
 - Text slicing and concatenation: `"NGC " + slice(col("name"), 3, 7)`
+- Normalize a designation: `normalize_name(col("name"))`
 - Parse text to a number: `num(slice(col("id"), 1, 5)) * deg`"""

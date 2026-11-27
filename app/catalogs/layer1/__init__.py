@@ -21,7 +21,6 @@ from app.catalogs.layer1.spectroscopy import (
 )
 from app.catalogs.layer1.storage import (
     format_foreign_key_violation,
-    normalize_catalog_rows,
     save_structured_data,
     writable_columns,
 )
@@ -47,7 +46,6 @@ __all__ = [
     "SpectroscopyIntegratedFluxDensityCatalogObject",
     "format_foreign_key_violation",
     "get_catalog_object_type",
-    "normalize_catalog_rows",
     "save_structured_data",
     "writable_columns",
 ]

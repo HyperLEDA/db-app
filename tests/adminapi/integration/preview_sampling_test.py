@@ -150,3 +150,25 @@ def test_preview_upload_text_expression(repo: repository.Repository, raw_table: 
     assert not response.errors
     assert len(response.rows) == 3
     assert all(str(row.outputs["design"]).startswith("SDSS J") for row in response.rows)
+
+
+def test_preview_upload_reports_foreign_key_violation(repo: repository.Repository, raw_table: str) -> None:
+    writer = layer1_write.Layer1Writer(repo, mock.Mock())
+
+    response = writer.preview_upload(
+        adminapi.PreviewStructuredUploadRequest(
+            catalog="nature",
+            table_name=raw_table,
+            limit=3,
+            expressions={"type_name": '"NOT_A_REAL_TYPE"'},
+        )
+    )
+
+    assert len(response.errors) == 1
+    assert response.errors[0].field == "type_name"
+    assert "foreign key violation" in response.errors[0].message
+    assert len(response.rows) == 3
+    assert all(row.outputs["type_name"] == "NOT_A_REAL_TYPE" for row in response.rows)
+
+    remaining = repo.get_nature_records([row.record_id for row in response.rows])
+    assert all(record is None for record in remaining)

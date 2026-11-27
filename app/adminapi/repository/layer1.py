@@ -44,6 +44,32 @@ class Layer1Repository(postgres.TransactionalPGRepository):
         with self.with_tx():
             layer1.save_structured_data(self._storage, table, columns, ids, data, conflict_keys)
 
+    def probe_structured_insert(
+        self,
+        table: str,
+        columns: list[str],
+        ids: list[str],
+        data: list[list[Any]],
+        conflict_keys: list[str] | None = None,
+    ) -> None:
+        class _Rollback(Exception):
+            pass
+
+        try:
+            with self.with_tx():
+                layer1.save_structured_data(
+                    self._storage,
+                    table,
+                    columns,
+                    ids,
+                    data,
+                    conflict_keys,
+                    track_changes=False,
+                )
+                raise _Rollback()
+        except _Rollback:
+            return
+
     def get_designation_records(self, record_ids: list[str]) -> list[model.DesignationRecord | None]:
         if not record_ids:
             return []

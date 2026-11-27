@@ -1,6 +1,6 @@
 import pytest
 
-from app.catalogs import designation_normalization
+from app.lib import designation_normalization
 
 RULE_CASES: list[tuple[str, tuple[str, str] | None]] = [
     ("PGC1191069", ("PGC", "PGC 1191069")),

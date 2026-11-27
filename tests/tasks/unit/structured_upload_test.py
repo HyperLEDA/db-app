@@ -52,9 +52,15 @@ class _Repo:
         return [] if after_id else self.rows
 
     def save_structured_data(
-        self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
+        self,
+        catalog: layer1.Catalog,
+        columns: list[str],
+        ids: list[str],
+        data: list[list[Any]],
+        *,
+        skip_foreign_keys: bool = False,
     ) -> None:
-        self.saved.append((catalog, columns, ids, data))
+        self.saved.append((catalog, columns, ids, data, skip_foreign_keys))
 
     def touch_table(self, table_name: str) -> None:
         self.touched.append(table_name)
@@ -68,9 +74,8 @@ def _run(
     repo: _Repo,
     params: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
-) -> tuple[list[float], list[list[dict[str, Any]]]]:
+) -> list[float]:
     progress: list[float] = []
-    previews: list[list[dict[str, Any]]] = []
     artifact_id = UUID(int=1)
 
     def create_progress(**kwargs: Any) -> UUID:
@@ -81,17 +86,12 @@ def _run(
         progress.append(kwargs["progress"])
         return artifact_id
 
-    def create_table(**kwargs: Any) -> UUID:
-        previews.append(kwargs["table"])
-        return UUID(int=2)
-
     monkeypatch.setattr("prefect.artifacts.create_progress_artifact", create_progress)
     monkeypatch.setattr("prefect.artifacts.update_progress_artifact", update_progress)
-    monkeypatch.setattr("prefect.artifacts.create_table_artifact", create_table)
     task = structured_upload.StructuredCatalogUploadTask(structlog.get_logger(), catalog, params)
     task.repository = repo
     task.run()
-    return progress, previews
+    return progress
 
 
 def _field(name: str, data_type: str, unit: str | None = None) -> spec.CatalogField:
@@ -134,7 +134,7 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(pydantic.ValidationError):
         model.model_validate({"table_name": "raw", "ra": "col("})
     form = model.model_validate({"table_name": "raw", "ra": 'col("ra")'})
-    assert form.note == "" and form.write is True and form.batch_size == 10_000
+    assert form.note == "" and form.batch_size == 10_000
 
     text_repo = _Repo(
         {
@@ -152,14 +152,16 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         ],
         3,
     )
-    progress, previews = _run(
+    progress = _run(
         layer1.Catalog.DESIGNATION,
         text_repo,
-        {"table_name": "raw_design", "design": 'col("design")', "write": False, "batch_size": 10},
+        {"table_name": "raw_design", "design": 'col("design")', "batch_size": 10},
         monkeypatch,
     )
-    assert text_repo.saved == [] and text_repo.touched == [] and text_repo.vacuumed == []
-    assert previews == [[{"id": "r1", "design": "NGC 1"}, {"id": "r3", "design": "IC 10"}]]
+    catalog, columns, ids, data, skip_foreign_keys = text_repo.saved[0]
+    assert (catalog, columns, ids) == (layer1.Catalog.DESIGNATION, ["design"], ["r1", "r3"])
+    assert data == [["NGC 1"], ["IC 10"]] and skip_foreign_keys is False
+    assert text_repo.touched == ["raw_design"] and text_repo.vacuumed == ["designation.data"]
     assert progress == [0, 99, 100]
 
     num_repo = _Repo(
@@ -177,41 +179,47 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         [{layer0.INTERNAL_ID_COLUMN_NAME: "r1", "ra": 60.0}, {layer0.INTERNAL_ID_COLUMN_NAME: "r2", "ra": None}],
         2,
     )
-    progress, previews = _run(
+    progress = _run(
         layer1.Catalog.ICRS,
         num_repo,
-        {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10},
+        {"table_name": "raw_icrs", "ra": 'col("ra")', "batch_size": 10},
         monkeypatch,
     )
     assert num_repo.touched == ["raw_icrs"] and num_repo.vacuumed == ["icrs.data"]
-    catalog, columns, ids, data = num_repo.saved[0]
-    assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
+    catalog, columns, ids, data, skip_foreign_keys = num_repo.saved[0]
+    assert (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
+    assert skip_foreign_keys is False
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]
+
+    large_repo = _Repo(num_repo.tables, num_repo.rows, 100_001)
+    _run(
+        layer1.Catalog.ICRS,
+        large_repo,
+        {"table_name": "raw_icrs", "ra": 'col("ra")', "batch_size": 10},
+        monkeypatch,
+    )
+    assert large_repo.saved[0][-1] is True
     text_repo.paged = False
     task = structured_upload.StructuredCatalogUploadTask(
         structlog.get_logger(),
         layer1.Catalog.DESIGNATION,
-        {"table_name": "raw_design", "design": 'col("design")', "row_filter": "class = 'STAR'", "write": False},
+        {"table_name": "raw_design", "design": 'col("design")', "row_filter": "class = 'STAR'"},
     )
     task.repository = text_repo
     task.run()
     assert text_repo.keyset == ["", "r3"] and not text_repo.paged
 
 
-def test_progress_and_preview_artifacts(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_progress_artifacts(monkeypatch: pytest.MonkeyPatch) -> None:
     created: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
-    tables: list[dict[str, Any]] = []
     artifact_id = UUID(int=1)
     monkeypatch.setattr("prefect.artifacts.create_progress_artifact", lambda **kw: created.append(kw) or artifact_id)
     monkeypatch.setattr("prefect.artifacts.update_progress_artifact", lambda **kw: updated.append(kw) or artifact_id)
-    monkeypatch.setattr("prefect.artifacts.create_table_artifact", lambda **kw: tables.append(kw) or UUID(int=2))
     tracker = artifacts.ProgressTracker("structured-upload-progress")
     tracker.update(0, "start")
     tracker.update(40, "middle")
     assert created[0]["progress"] == 0 and updated[0]["artifact_id"] == artifact_id and updated[0]["progress"] == 40
-    artifacts.emit_table("structured-upload-preview", [{"id": "r1", "design": "NGC 1"}], "Dry-run preview")
-    assert tables[0]["table"] == [{"id": "r1", "design": "NGC 1"}] and tables[0]["description"] == "Dry-run preview"
 
 
 @pytest.mark.parametrize(

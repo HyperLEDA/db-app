@@ -1,5 +1,5 @@
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 import pydantic
@@ -11,8 +11,8 @@ from app.lib.storage import sql_row_filter
 from app.specs import adminapi as spec
 from app.tasks import artifacts, layer2_common, repository
 
-_RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size", "row_filter"})
-_PREVIEW_ROWS = 5
+_RESERVED_PARAMETERS = frozenset({"table_name", "batch_size", "row_filter"})
+_SKIP_FOREIGN_KEYS_MIN_ROWS = 100_000
 
 
 def build_catalog_schema(repo: repository.Repository, catalog: layer1.Catalog) -> spec.CatalogSchema:
@@ -43,7 +43,6 @@ def build_catalog_params_model(schema: spec.CatalogSchema) -> type[pydantic.Base
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(description=description))
         else:
             field_defs[field.name] = (formula.ExpressionStr, pydantic.Field(default="", description=description))
-    field_defs["write"] = (bool, pydantic.Field(default=True, description="Write rows into the catalog"))
     field_defs["batch_size"] = (
         int,
         pydantic.Field(default=10_000, ge=1, le=500_000, description="Rows read per batch"),
@@ -98,13 +97,12 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             return
         processed = 0
         rows_written_total = 0
-        preview_sent = False
-        write = bool(values["write"])
+        skip_foreign_keys = total > _SKIP_FOREIGN_KEYS_MIN_ROWS
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
         run_started = time.perf_counter()
 
         def consume(rows: list[dict[str, Any]], *, done: int, span: int, **log_fields: Any) -> None:
-            nonlocal processed, rows_written_total, preview_sent
+            nonlocal processed, rows_written_total
             batch_started = time.perf_counter()
             processed += len(rows)
             ids, data = formula.evaluate_batch(
@@ -118,17 +116,16 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             )
             rows_kept = len(ids)
             rows_written = 0
-            if write and ids:
-                self.repository.save_structured_data(self._catalog, output_columns, ids, data)
+            if ids:
+                self.repository.save_structured_data(
+                    self._catalog,
+                    output_columns,
+                    ids,
+                    data,
+                    skip_foreign_keys=skip_foreign_keys,
+                )
                 rows_written = rows_kept
                 rows_written_total += rows_written
-            elif ids and not write and not preview_sent:
-                artifacts.emit_table(
-                    "structured-upload-preview",
-                    _preview_rows(output_columns, ids, data),
-                    "Dry-run preview",
-                )
-                preview_sent = True
             elapsed_s = time.perf_counter() - run_started
             eta_s = round(elapsed_s * (span - done) / done) if 0 < done < span else 0
             self.log.info(
@@ -169,16 +166,6 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             # Bulk inserts rarely reach the autovacuum insert threshold; without this index-only scans hit the heap.
             self.repository.vacuum_analyze(layer1.get_catalog_object_type(self._catalog).layer1_table())
         progress.update(100, "Finished")
-
-
-def _preview_rows(columns: Sequence[str], ids: Sequence[str], data: Sequence[Sequence[Any]]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for index in range(min(_PREVIEW_ROWS, len(ids))):
-        row: dict[str, Any] = {"id": ids[index]}
-        for name, value in zip(columns, data[index], strict=True):
-            row[name] = value
-        rows.append(row)
-    return rows
 
 
 def _field_description(field: spec.CatalogField) -> str:
