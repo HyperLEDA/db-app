@@ -22,6 +22,13 @@ def _json_value(value: object) -> object:
     return str(value)
 
 
+def _foreign_key_field(exc: psycopg.errors.ForeignKeyViolation) -> str:
+    detail = getattr(getattr(exc, "diag", None), "message_detail", None) or ""
+    if detail.startswith("Key (") and ")=" in detail:
+        return detail[len("Key (") : detail.index(")=")].split(",")[0].strip()
+    return ""
+
+
 def _evaluate_field(
     field: formula.OutputField,
     source: str,
@@ -182,6 +189,28 @@ class Layer1Writer:
                     skipped_reason=skipped_reason,
                 )
             )
+
+        required_fields = [col.name for col in layer1.writable_columns(layer1_info) if col.not_null]
+        if not errors and ids and outputs and all(name in outputs for name in required_fields):
+            output_columns = list(outputs.keys())
+            data = [[outputs[name][i] for name in output_columns] for i in range(len(ids))]
+            data = layer1.normalize_catalog_rows(catalog, output_columns, data)
+            try:
+                self._repo.probe_structured_insert(
+                    object_cls.layer1_table(),
+                    output_columns,
+                    list(ids),
+                    data,
+                    conflict_keys=object_cls.layer1_primary_keys(),
+                )
+            except psycopg.errors.ForeignKeyViolation as e:
+                errors.append(
+                    spec.PreviewFieldError(
+                        field=_foreign_key_field(e),
+                        message=layer1.format_foreign_key_violation(e),
+                    )
+                )
+
         return spec.PreviewStructuredUploadResponse(
             rows=preview_rows,
             errors=errors,
