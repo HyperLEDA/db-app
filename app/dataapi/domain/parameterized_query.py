@@ -1,9 +1,9 @@
 from astropy import coordinates as coords
 
-from app.catalogs import designation_normalization, layer2
+from app.catalogs import layer2
 from app.dataapi import repository, responders
 from app.dataapi.domain import reddening
-from app.lib import astronomy
+from app.lib import astronomy, designation_normalization
 from app.lib.web.errors import RuleValidationError
 from app.specs import dataapi as spec
 

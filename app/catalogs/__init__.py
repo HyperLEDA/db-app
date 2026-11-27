@@ -1,6 +1,5 @@
-from app.catalogs import designation_normalization, layer0
+from app.catalogs import layer0
 
 __all__ = [
-    "designation_normalization",
     "layer0",
 ]

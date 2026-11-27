@@ -5,8 +5,7 @@ import psycopg
 from psycopg import rows as psycopg_rows
 from psycopg import sql
 
-from app.catalogs import designation_normalization, layer0
-from app.catalogs.layer1.interface import Catalog
+from app.catalogs import layer0
 from app.lib.storage import postgres
 
 _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
@@ -14,19 +13,6 @@ _INTERNAL_COLUMNS = frozenset({"record_id", "object_id", "id"})
 
 def writable_columns(table_info: postgres.TableInfo) -> list[postgres.ColumnInfo]:
     return [col for name, col in table_info.columns.items() if name not in _INTERNAL_COLUMNS]
-
-
-def normalize_catalog_rows(
-    catalog: Catalog,
-    columns: Sequence[str],
-    rows: list[list[Any]],
-) -> list[list[Any]]:
-    if catalog is not Catalog.DESIGNATION or "design" not in columns:
-        return rows
-    design_idx = list(columns).index("design")
-    for row in rows:
-        row[design_idx] = designation_normalization.normalize_designation(str(row[design_idx]))
-    return rows
 
 
 def format_foreign_key_violation(exc: psycopg.errors.ForeignKeyViolation) -> str:
