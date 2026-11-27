@@ -579,13 +579,17 @@ class Repository(postgres.TransactionalPGRepository):
         columns: Sequence[str],
         ids: Sequence[str],
         data: list[list[Any]],
+        *,
+        skip_foreign_keys: bool = False,
     ) -> None:
         object_cls = layer1.get_catalog_object_type(catalog)
         normalized = layer1.normalize_catalog_rows(catalog, columns, [list(row) for row in data])
         try:
             with self.with_tx():
-                # Skip per-row FK triggers on bulk upserts; IDs already come from layer0/rawdata.
-                self._storage.exec("SET LOCAL session_replication_role = replica")
+                # Large uploads skip per-row FK triggers; IDs already come from layer0/rawdata.
+                # Small uploads keep FK checks out of caution.
+                if skip_foreign_keys:
+                    self._storage.exec("SET LOCAL session_replication_role = replica")
                 layer1.save_structured_data(
                     self._storage,
                     object_cls.layer1_table(),

@@ -13,6 +13,7 @@ from app.tasks import artifacts, layer2_common, repository
 
 _RESERVED_PARAMETERS = frozenset({"table_name", "write", "batch_size", "row_filter"})
 _PREVIEW_ROWS = 5
+_SKIP_FOREIGN_KEYS_MIN_ROWS = 100_000
 
 
 def build_catalog_schema(repo: repository.Repository, catalog: layer1.Catalog) -> spec.CatalogSchema:
@@ -100,6 +101,7 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
         rows_written_total = 0
         preview_sent = False
         write = bool(values["write"])
+        skip_foreign_keys = total > _SKIP_FOREIGN_KEYS_MIN_ROWS
         fetch_columns = [name for name in sorted(needed) if name != layer0.INTERNAL_ID_COLUMN_NAME]
         run_started = time.perf_counter()
 
@@ -119,7 +121,13 @@ class StructuredCatalogUploadTask(layer2_common.Layer2StorageTask):
             rows_kept = len(ids)
             rows_written = 0
             if write and ids:
-                self.repository.save_structured_data(self._catalog, output_columns, ids, data)
+                self.repository.save_structured_data(
+                    self._catalog,
+                    output_columns,
+                    ids,
+                    data,
+                    skip_foreign_keys=skip_foreign_keys,
+                )
                 rows_written = rows_kept
                 rows_written_total += rows_written
             elif ids and not write and not preview_sent:

@@ -52,9 +52,15 @@ class _Repo:
         return [] if after_id else self.rows
 
     def save_structured_data(
-        self, catalog: layer1.Catalog, columns: list[str], ids: list[str], data: list[list[Any]]
+        self,
+        catalog: layer1.Catalog,
+        columns: list[str],
+        ids: list[str],
+        data: list[list[Any]],
+        *,
+        skip_foreign_keys: bool = False,
     ) -> None:
-        self.saved.append((catalog, columns, ids, data))
+        self.saved.append((catalog, columns, ids, data, skip_foreign_keys))
 
     def touch_table(self, table_name: str) -> None:
         self.touched.append(table_name)
@@ -184,9 +190,19 @@ def test_params_model_and_upload_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch,
     )
     assert num_repo.touched == ["raw_icrs"] and num_repo.vacuumed == ["icrs.data"]
-    catalog, columns, ids, data = num_repo.saved[0]
+    catalog, columns, ids, data, skip_foreign_keys = num_repo.saved[0]
     assert previews == [] and (catalog, columns, ids) == (layer1.Catalog.ICRS, ["ra"], ["r1"])
+    assert skip_foreign_keys is False
     assert data[0][0] == pytest.approx(1) and progress == [0, 99, 100]
+
+    large_repo = _Repo(num_repo.tables, num_repo.rows, 100_001)
+    _run(
+        layer1.Catalog.ICRS,
+        large_repo,
+        {"table_name": "raw_icrs", "ra": 'col("ra")', "write": True, "batch_size": 10},
+        monkeypatch,
+    )
+    assert large_repo.saved[0][-1] is True
     text_repo.paged = False
     task = structured_upload.StructuredCatalogUploadTask(
         structlog.get_logger(),
