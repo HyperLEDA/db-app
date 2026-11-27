@@ -62,7 +62,7 @@ def _params(repo: repository.Repository, table_name: str, *, write: bool, batch_
     params: dict[str, object] = {"table_name": table_name, "write": write, "batch_size": batch_size}
     for field in schema.fields:
         if field.name == "design":
-            params[field.name] = 'col("design")'
+            params[field.name] = 'normalize_name(col("design"))'
         elif field.required:
             params[field.name] = '""'
     return params
@@ -134,7 +134,7 @@ def test_schema_dry_run_and_write(
         assert modified["modification_dt"].year != 2000
         assert len(pg_storage.storage.query("SELECT pgc FROM common.pgc_changes WHERE pgc = %s", params=[pgc])) == 1
     else:
-        assert stored == [] and previews[0][0]["design"] == "ngc905"
+        assert stored == [] and previews[0][0]["design"] == "NGC 905"
         assert modified["modification_dt"].year == 2000
 
 

@@ -12,7 +12,7 @@ from app.lib.web.errors import NotFoundError, RuleValidationError
 from app.specs import adminapi
 
 
-def test_designation_save_normalizes_design() -> None:
+def test_designation_save_passes_design_through() -> None:
     repo = mock.Mock()
     repo.get_column_units.return_value = {}
     writer = Layer1Writer(repo, mock.Mock())
@@ -29,29 +29,7 @@ def test_designation_save_normalizes_design() -> None:
         DesignationCatalogObject.layer1_table(),
         ["design"],
         ["r1"],
-        [["NGC 905"]],
-        conflict_keys=DesignationCatalogObject.layer1_primary_keys(),
-    )
-
-
-def test_designation_save_preserves_already_normalized_design() -> None:
-    repo = mock.Mock()
-    repo.get_column_units.return_value = {}
-    writer = Layer1Writer(repo, mock.Mock())
-
-    request = adminapi.SaveStructuredDataRequest(
-        catalog="designation",
-        columns=["design"],
-        ids=["r1"],
-        data=[["NGC 905"]],
-    )
-    writer.save_data(request)
-
-    repo.save_structured_data.assert_called_once_with(
-        DesignationCatalogObject.layer1_table(),
-        ["design"],
-        ["r1"],
-        [["NGC 905"]],
+        [["ngc905"]],
         conflict_keys=DesignationCatalogObject.layer1_primary_keys(),
     )
 

@@ -91,6 +91,11 @@ def test_boolean_results(source: str, columns: dict[str, tuple[str, Any]], expec
         ('slice(col("name"), 4, 10)', TEXT, ["1", " 22 ", "", "100"]),
         ('"X" + slice(col("name"), 0, 2) + col("t")', TEXT_UNIT | TEXT, ["XNGE", "X nS0", "XICSb", "XNGE"]),
         ('zfill(slice(col("name"), 4, 10), 4)', TEXT, ["0001", " 22 ", "0000", "0100"]),
+        (
+            'normalize_name(col("name"))',
+            {"name": ("", ["ngc905", "ESO104-044", " NGC 905 ", "unknown xyz"])},
+            ["NGC 905", "ESO 104-44", "NGC 905", "unknown xyz"],
+        ),
     ],
 )
 def test_string_results(source: str, columns: dict[str, tuple[str, Any]], expected: list[str]) -> None:
@@ -99,6 +104,7 @@ def test_string_results(source: str, columns: dict[str, tuple[str, Any]], expect
 
 def test_string_scalars_and_numbers() -> None:
     assert _run('upper("ngc")') == "NGC"
+    assert _run('normalize_name("ngc905")') == "NGC 905"
     assert bool(_run('contains("NGC 1", "GC")'))
     length = _run('len(col("name"))', TEXT)
     assert length.unit == u.Unit("") and length.value.tolist() == [5, 8, 4, 7]
@@ -140,5 +146,17 @@ def test_math_helpers_keep_units() -> None:
 
 def test_new_functions_in_help() -> None:
     help_text = formula.expression_syntax_help()
-    for name in ("select", "isin", "contains", "and_", "or_", "not_", "slice", "zfill", "num", "round"):
+    for name in (
+        "select",
+        "isin",
+        "contains",
+        "and_",
+        "or_",
+        "not_",
+        "slice",
+        "zfill",
+        "num",
+        "normalize_name",
+        "round",
+    ):
         assert f"`{name}(" in help_text

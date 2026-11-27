@@ -88,8 +88,6 @@ class Layer1Writer:
                     new_row.append(value)
             converted.append(new_row)
 
-        converted = layer1.normalize_catalog_rows(catalog, request.columns, converted)
-
         try:
             conflict_keys = object_cls.layer1_primary_keys()
             self._repo.save_structured_data(table, request.columns, request.ids, converted, conflict_keys=conflict_keys)
@@ -194,7 +192,6 @@ class Layer1Writer:
         if not errors and ids and outputs and all(name in outputs for name in required_fields):
             output_columns = list(outputs.keys())
             data = [[outputs[name][i] for name in output_columns] for i in range(len(ids))]
-            data = layer1.normalize_catalog_rows(catalog, output_columns, data)
             try:
                 self._repo.probe_structured_insert(
                     object_cls.layer1_table(),

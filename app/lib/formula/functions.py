@@ -8,6 +8,7 @@ import numpy as np
 from astropy import coordinates
 from astropy import units as u
 
+from app.lib import designation_normalization
 from app.lib.formula import values
 
 
@@ -198,6 +199,14 @@ def _num(text: object) -> u.Quantity:
     return np.asarray(_formula_str(text), dtype=float) * u.Unit("")
 
 
+def _normalize_name(text: str | np.ndarray) -> str | np.ndarray:
+    if isinstance(text, np.ndarray):
+        if text.shape == ():
+            return designation_normalization.normalize_designation(str(text.item()))
+        return np.asarray([designation_normalization.normalize_designation(str(item)) for item in text])
+    return designation_normalization.normalize_designation(str(text))
+
+
 def _round(x: object, ndigits: object) -> u.Quantity:
     return np.round(_to_quantity(x), int(_int(ndigits)))
 
@@ -323,6 +332,12 @@ FUNCTIONS: tuple[FunctionDef, ...] = (
         "num",
         "Parse text to a dimensionless number; fails on unparseable values",
         _num,
+        placeholder="${1:s}",
+    ),
+    FunctionDef(
+        "normalize_name",
+        "Normalize an astronomical designation (e.g. ngc905 → NGC 905)",
+        _string(_normalize_name),
         placeholder="${1:s}",
     ),
     FunctionDef(

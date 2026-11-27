@@ -583,7 +583,6 @@ class Repository(postgres.TransactionalPGRepository):
         skip_foreign_keys: bool = False,
     ) -> None:
         object_cls = layer1.get_catalog_object_type(catalog)
-        normalized = layer1.normalize_catalog_rows(catalog, columns, [list(row) for row in data])
         try:
             with self.with_tx():
                 # Large uploads skip per-row FK triggers; IDs already come from layer0/rawdata.
@@ -595,7 +594,7 @@ class Repository(postgres.TransactionalPGRepository):
                     object_cls.layer1_table(),
                     columns,
                     ids,
-                    normalized,
+                    data,
                     object_cls.layer1_primary_keys(),
                     track_changes=False,
                 )
