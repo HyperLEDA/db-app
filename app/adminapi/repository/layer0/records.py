@@ -127,20 +127,23 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
         row_filter: sql.Composable | None = None,
     ) -> tuple[list[str], int, int]:
         table_id = require_table_id(self._storage, table_name)
-        total = int(
-            self._storage.query_one(
-                "SELECT COUNT(*) AS cnt FROM layer0.records WHERE table_id = %s",
-                params=[table_id],
-            )["cnt"]
+        counts = self._storage.query_one(
+            """
+            SELECT COUNT(*)::int AS total,
+                   COUNT(*) FILTER (WHERE pgc IS NULL)::int AS eligible
+            FROM layer0.records
+            WHERE table_id = %s
+            """,
+            params=[table_id],
         )
-        if total == 0:
-            return [], 0, 0
+        total, eligible = int(counts["total"]), int(counts["eligible"])
+        if total == 0 or eligible == 0:
+            return [], 0, total
 
         if row_filter is None:
-            eligible = total
             if eligible < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
                 rows = self._storage.query(
-                    "SELECT id FROM layer0.records WHERE table_id = %s ORDER BY random() LIMIT %s",
+                    "SELECT id FROM layer0.records WHERE table_id = %s AND pgc IS NULL ORDER BY random() LIMIT %s",
                     params=[table_id, limit],
                     read_only=True,
                 )
@@ -149,7 +152,7 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
             percent = min(100.0, 100.0 * _TABLESAMPLE_OVERSAMPLING * limit / eligible)
             query = """
                 SELECT id FROM layer0.records TABLESAMPLE SYSTEM (%s)
-                WHERE table_id = %s
+                WHERE table_id = %s AND pgc IS NULL
                 ORDER BY random()
                 LIMIT %s
             """
@@ -159,14 +162,15 @@ class Layer0RecordRepository(postgres.TransactionalPGRepository):
                     return [str(row["id"]) for row in rows], eligible, total
                 percent = min(100.0, percent * _TABLESAMPLE_RETRY_FACTOR)
 
+        unsubmitted = sql.SQL("({}) AND rec.pgc IS NULL").format(row_filter)
         if total < _TABLESAMPLE_MIN_ROWS_PER_LIMIT * limit:
             eligible = int(
-                self._storage.query_one(filtered_record_count(table_name, row_filter), params=[table_id])["cnt"]
+                self._storage.query_one(filtered_record_count(table_name, unsubmitted), params=[table_id])["cnt"]
             )
             if eligible == 0:
                 return [], 0, total
             rows = self._storage.query(
-                filtered_record_sample(table_name, row_filter),
+                filtered_record_sample(table_name, unsubmitted),
                 params=[table_id, limit],
                 read_only=True,
             )
